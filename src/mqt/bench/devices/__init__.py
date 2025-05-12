@@ -20,7 +20,7 @@ from .calibration import DeviceCalibration
 from .device import Device, Gateset
 from .ibm import IBMMontreal, IBMTorino, IBMWashington
 # from .ionq import IonQAria1, IonQHarmony
-from .iqm import IQMAdonis, IQMApollo
+# from .iqm import IQMAdonis, IQMApollo
 from .oqc import OQCLucy
 from .quantinuum import QuantinuumH2
 from .rigetti import RigettiAspenM3
@@ -35,8 +35,8 @@ def get_available_devices() -> list[Device]:
         IBMWashington(),
         # IonQAria1(),
         # IonQHarmony(),
-        IQMAdonis(),
-        IQMApollo(),
+        # IQMAdonis(),
+        # IQMApollo(),
         OQCLucy(),
         QuantinuumH2(),
         RigettiAspenM3(),
