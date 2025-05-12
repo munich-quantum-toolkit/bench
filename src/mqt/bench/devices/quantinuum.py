@@ -1,67 +1,63 @@
-# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
-# Copyright (c) 2025 Munich Quantum Software Company GmbH
-# All rights reserved.
-#
-# SPDX-License-Identifier: MIT
-#
-# Licensed under the MIT License
-
-"""Module to manage Quantinuum devices."""
-
-from __future__ import annotations
-
+from qiskit.transpiler import Target, InstructionProperties
+from qiskit.circuit.library import RXGate, RYGate, RZGate, RZZGate, Measure
+from qiskit.circuit import Parameter
 import json
-from typing import TypedDict, cast
+from pathlib import Path
 
-from .calibration import DeviceCalibration, get_device_calibration_path
-from .device import Device, Gateset
-
-
-class QuantinuumH2(Device):
-    """Quantinuum H2 device."""
-
-    def __init__(self) -> None:
-        """Initialize the Quantinuum device."""
-        with get_device_calibration_path("quantinuum_h2").open() as json_file:
-            self.quantinuum_calibration = cast("QuantinuumCalibration", json.load(json_file))
-        self.calibration = None
-
-        self.name = self.quantinuum_calibration["name"]
-        self.gateset = Gateset("quantinuum", self.quantinuum_calibration["basis_gates"])
-        self.num_qubits = self.quantinuum_calibration["num_qubits"]
-        self.coupling_map = list(self.quantinuum_calibration["connectivity"])
-
-    def read_calibration(self) -> None:
-        """Read the calibration data for the device."""
-        calibration = DeviceCalibration()
-        for qubit in range(self.num_qubits):
-            calibration.single_qubit_gate_fidelity[qubit] = dict.fromkeys(
-                ["ry", "rx"], self.quantinuum_calibration["fidelity"]["1q"]["mean"]
-            )
-            calibration.single_qubit_gate_fidelity[qubit]["rz"] = 1  # rz is always perfect
-            calibration.readout_fidelity[qubit] = self.quantinuum_calibration["fidelity"]["spam"]["mean"]
-
-        for qubit1, qubit2 in self.coupling_map:
-            calibration.two_qubit_gate_fidelity[qubit1, qubit2] = {
-                "rzz": self.quantinuum_calibration["fidelity"]["2q"]["mean"]
-            }
-        self.calibration = calibration
+from .calibration import get_device_calibration_path
 
 
-class Statistics(TypedDict):
-    """Class to store the statistics of a gate or measurement."""
+def create_quantinuum_target(calibration_path: Path) -> Target:
+    with calibration_path.open() as json_file:
+        calib = json.load(json_file)
 
-    mean: float
+    num_qubits = calib["num_qubits"]
+    connectivity = calib["connectivity"]
+    name = calib["name"]
+
+    oneq_fidelity = calib["fidelity"]["1q"]["mean"]
+    twoq_fidelity = calib["fidelity"]["2q"]["mean"]
+    spam_fidelity = calib["fidelity"]["spam"]["mean"]
+
+    target = Target(num_qubits=num_qubits, description=name)
+
+    # Define symbolic parameters
+    theta = Parameter("theta")
+    phi = Parameter("phi")
+    alpha = Parameter("alpha")
+
+    # === Add single-qubit gates ===
+    rx_props = {
+        (q,): InstructionProperties(error=1 - oneq_fidelity)
+        for q in range(num_qubits)
+    }
+    ry_props = {
+        (q,): InstructionProperties(error=1 - oneq_fidelity)
+        for q in range(num_qubits)
+    }
+    rz_props = {
+        (q,): InstructionProperties(error=0.0)
+        for q in range(num_qubits)
+    }
+    measure_props = {
+        (q,): InstructionProperties(error=1 - spam_fidelity)
+        for q in range(num_qubits)
+    }
+
+    target.add_instruction(RXGate(theta), rx_props)
+    target.add_instruction(RYGate(phi), ry_props)
+    target.add_instruction(RZGate(theta), rz_props)
+    target.add_instruction(Measure(), measure_props)
+
+    # === Add two-qubit RZZ gates ===
+    rzz_props = {
+        (q1, q2): InstructionProperties(error=1 - twoq_fidelity)
+        for q1, q2 in connectivity
+    }
+    target.add_instruction(RZZGate(alpha), rzz_props)
+
+    return target
 
 
-Fidelity = TypedDict("Fidelity", {"1q": Statistics, "2q": Statistics, "spam": Statistics})
-
-
-class QuantinuumCalibration(TypedDict):
-    """Class to store the calibration data of a Quantinuum device. Follows https://docs.quantinuum.com/#tag/characterizations."""
-
-    name: str
-    basis_gates: list[str]
-    connectivity: list[list[int]]
-    fidelity: Fidelity
-    num_qubits: int
+def get_quantinuum_h2_target() -> Target:
+    return create_quantinuum_target(get_device_calibration_path("quantinuum_h2"))

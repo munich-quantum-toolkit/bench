@@ -18,28 +18,28 @@ from functools import cache
 
 from .calibration import DeviceCalibration
 from .device import Device, Gateset
-from .ibm import IBMMontreal, IBMTorino, IBMWashington
+# from .ibm import IBMMontreal, IBMTorino, IBMWashington
 # from .ionq import IonQAria1, IonQHarmony
 # from .iqm import IQMAdonis, IQMApollo
-from .oqc import OQCLucy
-from .quantinuum import QuantinuumH2
-from .rigetti import RigettiAspenM3
+# from .oqc import OQCLucy
+# from .quantinuum import QuantinuumH2
+# from .rigetti import RigettiAspenM3
 
 
 @cache
 def get_available_devices() -> list[Device]:
     """Get a list of all available devices."""
     return [
-        IBMTorino(),
-        IBMMontreal(),
-        IBMWashington(),
-        # IonQAria1(),
-        # IonQHarmony(),
-        # IQMAdonis(),
-        # IQMApollo(),
-        OQCLucy(),
-        QuantinuumH2(),
-        RigettiAspenM3(),
+        # IBMTorino(),
+        # IBMMontreal(),
+        # IBMWashington(),
+        # # IonQAria1(),
+        # # IonQHarmony(),
+        # # IQMAdonis(),
+        # # IQMApollo(),
+        # OQCLucy(),
+        # QuantinuumH2(),
+        # RigettiAspenM3(),
     ]
 
 
