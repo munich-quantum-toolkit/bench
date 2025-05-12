@@ -1,96 +1,73 @@
-# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
-# Copyright (c) 2025 Munich Quantum Software Company GmbH
-# All rights reserved.
-#
-# SPDX-License-Identifier: MIT
-#
-# Licensed under the MIT License
-
-"""IonQ devices."""
-
-from __future__ import annotations
-
+from qiskit.transpiler import Target, InstructionProperties
+from qiskit.circuit.library import RXGate, RYGate, RZGate, RXXGate, Measure
 import json
-from typing import TYPE_CHECKING, TypedDict, cast
+from pathlib import Path
+from qiskit.circuit import Parameter
 
-from .calibration import DeviceCalibration, get_device_calibration_path
-from .device import Device, Gateset
+from .calibration import get_device_calibration_path
 
-if TYPE_CHECKING:
-    from pathlib import Path
+def create_ionq_target(calibration_path: Path) -> Target:
+    with calibration_path.open() as json_file:
+        calib = json.load(json_file)
 
+    target = Target(num_qubits=calib["num_qubits"], description=calib["name"])
+    num_qubits = calib["num_qubits"]
+    connectivity = calib["connectivity"]
 
-class IonQDevice(Device):
-    """IonQ device."""
+    # Gate durations and fidelities
+    oneq_fidelity = calib["fidelity"]["1q"]["mean"]
+    twoq_fidelity = calib["fidelity"]["2q"]["mean"]
+    spam_fidelity = calib["fidelity"]["spam"]["mean"]
+    t1 = calib["timing"]["t1"]
+    t2 = calib["timing"]["t2"]
 
-    def __init__(self, calibration_path: Path) -> None:
-        """Initialize the IonQ device."""
-        with calibration_path.open() as json_file:
-            self.ionq_calibration = cast("IonQCalibration", json.load(json_file))
-        self.calibration = None
+    oneq_duration = calib["timing"]["1q"]
+    twoq_duration = calib["timing"]["2q"]
+    readout_duration = calib["timing"]["readout"]
 
-        self.name = self.ionq_calibration["name"]
-        self.gateset = Gateset("ionq", self.ionq_calibration["basis_gates"])
-        self.num_qubits = self.ionq_calibration["num_qubits"]
-        self.coupling_map = list(self.ionq_calibration["connectivity"])
+    theta = Parameter('theta')
+    phi = Parameter('phi')
+    lam = Parameter('lambda')
 
-    def read_calibration(self) -> None:
-        """Read the calibration data for the device."""
-        calibration = DeviceCalibration()
-        for qubit in range(self.num_qubits):
-            calibration.single_qubit_gate_fidelity[qubit] = dict.fromkeys(
-                ["ry", "rx"], self.ionq_calibration["fidelity"]["1q"]["mean"]
-            )
-            calibration.single_qubit_gate_fidelity[qubit]["rz"] = 1  # rz is always perfect
-            calibration.single_qubit_gate_duration[qubit] = dict.fromkeys(
-                ["ry", "rx"], self.ionq_calibration["timing"]["1q"]
-            )
-            calibration.single_qubit_gate_duration[qubit]["rz"] = 0  # rz is always instantaneous
-            calibration.readout_fidelity[qubit] = self.ionq_calibration["fidelity"]["spam"]["mean"]
-            calibration.readout_duration[qubit] = self.ionq_calibration["timing"]["readout"]
-            calibration.t1[qubit] = self.ionq_calibration["timing"]["t1"]
-            calibration.t2[qubit] = self.ionq_calibration["timing"]["t2"]
+    # === Add single-qubit gates ===
+    rx_props = {
+        (q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity)
+        for q in range(num_qubits)
+    }
+    ry_props = {
+        (q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity)
+        for q in range(num_qubits)
+    }
+    rz_props = {
+        (q,): InstructionProperties(duration=0.0, error=0.0)
+        for q in range(num_qubits)
+    }
+    measure_props = {
+        (q,): InstructionProperties(duration=readout_duration, error=1 - spam_fidelity)
+        for q in range(num_qubits)
+    }
 
-        for qubit1, qubit2 in self.coupling_map:
-            calibration.two_qubit_gate_fidelity[qubit1, qubit2] = {
-                "rxx": self.ionq_calibration["fidelity"]["2q"]["mean"]
-            }
-            calibration.two_qubit_gate_duration[qubit1, qubit2] = {"rxx": self.ionq_calibration["timing"]["2q"]}
-        self.calibration = calibration
+    target.add_instruction(RXGate(theta), rx_props)
+    target.add_instruction(RYGate(phi), ry_props)
+    target.add_instruction(RZGate(lam), rz_props)
+    target.add_instruction(Measure(), measure_props)
 
-
-class IonQHarmony(IonQDevice):
-    """IonQ Harmony device."""
-
-    def __init__(self) -> None:
-        """Initialize the IonQ Harmony device."""
-        super().__init__(get_device_calibration_path("ionq_harmony"))
-
-
-class IonQAria1(IonQDevice):
-    """IonQ Aria1 device."""
-
-    def __init__(self) -> None:
-        """Initialize the IonQ Aria1 device."""
-        super().__init__(get_device_calibration_path("ionq_aria1"))
+    # === Add two-qubit gates ===
+    alpha = Parameter('alpha')
+    rxx_props = {
+        (q1, q2): InstructionProperties(duration=twoq_duration, error=1 - twoq_fidelity)
+        for q1, q2 in connectivity
+    }
+    target.add_instruction(RXXGate(alpha), rxx_props)
 
 
-class Statistics(TypedDict):
-    """Class to store the statistics of a gate or measurement."""
 
-    mean: float
+    return target
 
 
-Fidelity = TypedDict("Fidelity", {"1q": Statistics, "2q": Statistics, "spam": Statistics})
-Timing = TypedDict("Timing", {"t1": float, "t2": float, "1q": float, "2q": float, "readout": float, "reset": float})
+def get_ionq_harmony_target() -> Target:
+    return create_ionq_target(get_device_calibration_path("ionq_harmony"))
 
 
-class IonQCalibration(TypedDict):
-    """Class to store the calibration data of an IonQ device. Follows https://docs.ionq.com/#tag/characterizations."""
-
-    name: str
-    basis_gates: list[str]
-    connectivity: list[list[int]]
-    fidelity: Fidelity
-    num_qubits: int
-    timing: Timing
+def get_ionq_aria1_target() -> Target:
+    return create_ionq_target(get_device_calibration_path("ionq_aria1"))

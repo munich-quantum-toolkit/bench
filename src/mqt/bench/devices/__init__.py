@@ -19,7 +19,7 @@ from functools import cache
 from .calibration import DeviceCalibration
 from .device import Device, Gateset
 from .ibm import IBMMontreal, IBMTorino, IBMWashington
-from .ionq import IonQAria1, IonQHarmony
+# from .ionq import IonQAria1, IonQHarmony
 from .iqm import IQMAdonis, IQMApollo
 from .oqc import OQCLucy
 from .quantinuum import QuantinuumH2
@@ -33,8 +33,8 @@ def get_available_devices() -> list[Device]:
         IBMTorino(),
         IBMMontreal(),
         IBMWashington(),
-        IonQAria1(),
-        IonQHarmony(),
+        # IonQAria1(),
+        # IonQHarmony(),
         IQMAdonis(),
         IQMApollo(),
         OQCLucy(),
