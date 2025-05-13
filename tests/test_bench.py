@@ -469,7 +469,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "rigetti",
             "rigetti_aspen_m3",
         )
-    match = "Gateset wrong_gateset not found in available gatesets."
+    match = "Gateset 'wrong_gateset' not found in available gatesets."
     with pytest.raises(ValueError, match=match):
         get_benchmark(
             "qpeexact",

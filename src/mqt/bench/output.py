@@ -86,7 +86,7 @@ def generate_header(
     ))
 
     if target:
-        gateset = sorted(str(inst.name) for inst, _ in target.instructions)
+        gateset = sorted({str(inst.name) for inst, _ in target.instructions})
         lines.append(f"// Used gateset: {gateset}")
     c_map = target.build_coupling_map() if target else None
     if c_map:

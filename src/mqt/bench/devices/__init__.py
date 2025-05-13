@@ -198,7 +198,7 @@ def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
     try:
         return gatesets[name]
     except KeyError:
-        msg = f"Gateset '{name}' not found."
+        msg = f"Gateset '{name}' not found in available gatesets."
         raise ValueError(msg) from None
 
 
