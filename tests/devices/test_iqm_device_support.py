@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Test of the IQM target device."""
+"""Test of the IQM devices."""
 
 from __future__ import annotations
 

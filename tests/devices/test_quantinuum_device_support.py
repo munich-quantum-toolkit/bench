@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Test the quantinuum provider class and the Quantinuum H2 device."""
+"""Test the Quantinuum device."""
 
 from __future__ import annotations
 

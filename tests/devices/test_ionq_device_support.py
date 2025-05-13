@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Test the IonQProvider class and the IonQ devices."""
+"""Test the IonQ devices."""
 
 from __future__ import annotations
 

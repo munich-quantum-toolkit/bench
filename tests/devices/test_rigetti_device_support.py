@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Test the RigettiProvider class and the Rigetti Aspen-M3 device."""
+"""Test the Rigetti Aspen-M3 device."""
 
 from __future__ import annotations
 
