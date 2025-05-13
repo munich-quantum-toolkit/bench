@@ -43,8 +43,6 @@ def create_ionq_target(calibration_path: Path) -> Target:
     oneq_fidelity = calib["fidelity"]["1q"]["mean"]
     twoq_fidelity = calib["fidelity"]["2q"]["mean"]
     spam_fidelity = calib["fidelity"]["spam"]["mean"]
-    calib["timing"]["t1"]
-    calib["timing"]["t2"]
 
     oneq_duration = calib["timing"]["1q"]
     twoq_duration = calib["timing"]["2q"]
