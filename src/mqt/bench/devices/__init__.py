@@ -15,8 +15,9 @@ See README.md or go to https://github.com/cda-tum/mqt-bench for more information
 from __future__ import annotations
 
 from functools import cache
-from typing import TYPE_CHECKING
 
+from qiskit.circuit.controlflow import ControlFlowOp
+from qiskit.circuit.library.standard_gates import __dict__ as gate_dict
 from qiskit.transpiler import Target
 
 from .ibm import get_ibm_target
@@ -25,11 +26,8 @@ from .iqm import get_iqm_target
 from .quantinuum import get_quantinuum_target
 from .rigetti import get_rigetti_target
 
-if TYPE_CHECKING:
-    from qiskit.transpiler import Target
-
-
 # === Device Access ===
+
 
 @cache
 def get_available_devices() -> list[Target]:
@@ -50,7 +48,7 @@ def get_available_devices() -> list[Target]:
 @cache
 def get_available_device_names() -> list[str]:
     """Get a list of all available device names."""
-    return [device.name for device in get_available_devices()]
+    return [device.description for device in get_available_devices()]
 
 
 @cache
@@ -59,7 +57,7 @@ def _device_map() -> dict[str, Target]:
 
     Cached forever by functools.cache.
     """
-    return {d.name: d for d in get_available_devices()}
+    return {d.description: d for d in get_available_devices()}
 
 
 def get_device_by_name(device_name: str) -> Target:
@@ -77,31 +75,64 @@ def get_device_by_name(device_name: str) -> Target:
 
 # === Native Gatesets ===
 
+
 @cache
 def get_available_native_gatesets(num_qubits: int = 20) -> dict[str, Target]:
     """Return mapping: gateset_name → unrestricted Target for up to `num_qubits`."""
     gatesets = {}
 
     for device in get_available_devices():
-        target = Target(name=f"{device.name}_gateset", num_qubits=num_qubits)
-        for inst_name in device.operations:
-            inst = device[inst_name].default_inst
-            target.add_instruction(inst)
-        gatesets[target.name] = target
+        target = Target(description=f"{device.description}", num_qubits=num_qubits)
+
+        for op_name in device.operation_names:  # ✅ Now using string names
+            if op_name in {"reset", "barrier", "measure", "delay"}:
+                continue
+
+            inst_obj = device[op_name].default_inst
+
+            # Skip control-flow ops
+            if isinstance(inst_obj, ControlFlowOp):
+                continue
+
+            # Get class safely — handle singleton gates
+            inst_class = inst_obj if isinstance(inst_obj, type) else type(inst_obj)
+
+            try:
+                target.add_instruction(inst_class)
+            except TypeError:
+                continue
+
+        gatesets[target.description] = target
+        print(gatesets)
 
     # Add custom Clifford+T gateset
-    from qiskit.circuit.library.standard_gates import __dict__ as gate_dict
-    clifford = Target(name="clifford+t", num_qubits=num_qubits)
+    clifford = Target(num_qubits=num_qubits, description="clifford+t")
+
     for name in [
-        "i", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "sxdg",
-        "cx", "cy", "cz", "swap", "iswap", "dcx", "ecr", "measure", "barrier"
+        "i",
+        "x",
+        "y",
+        "z",
+        "h",
+        "s",
+        "sdg",
+        "t",
+        "tdg",
+        "sx",
+        "sxdg",
+        "cx",
+        "cy",
+        "cz",
+        "swap",
+        "iswap",
+        "dcx",
+        "ecr",
+        "measure",
+        "barrier",
     ]:
-        try:
-            gate_class = gate_dict[name.upper()]
-            inst = gate_class()
-            clifford.add_instruction(inst)
-        except Exception:
-            continue
+        gate_class = gate_dict[name.upper()]
+        clifford.add_instruction(gate_class)  # ✅ pass class, not instance
+
     gatesets["clifford+t"] = clifford
 
     return gatesets
@@ -113,15 +144,16 @@ def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
     try:
         return gatesets[name]
     except KeyError:
-        raise ValueError(f"Gateset '{name}' not found.") from None
+        msg = f"Gateset '{name}' not found."
+        raise ValueError(msg) from None
 
 
 # === Exports ===
 
 __all__ = [
-    "get_available_devices",
     "get_available_device_names",
-    "get_device_by_name",
+    "get_available_devices",
     "get_available_native_gatesets",
+    "get_device_by_name",
     "get_native_gateset_by_name",
 ]

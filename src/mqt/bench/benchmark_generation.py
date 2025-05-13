@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypedDict, overload
 
 from qiskit import QuantumCircuit, transpile
+from qiskit.transpiler import Target
 
 from .devices import get_available_device_names, get_device_by_name, get_native_gateset_by_name
 from .output import (
@@ -26,8 +27,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from types import ModuleType
 
     from qiskit.transpiler import Target
-
-    from .devices import Gateset
 
 from dataclasses import dataclass
 
@@ -69,7 +68,7 @@ def generate_filename(
     benchmark_name: str,
     level: str,
     num_qubits: int | None,
-    gateset: Gateset | None = None,
+    gateset: Target | None = None,
     device: Target | None = None,
     opt_level: int | None = None,
 ) -> str:
@@ -219,7 +218,7 @@ def get_indep_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    gateset: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -233,7 +232,7 @@ def get_native_gates_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    gateset: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -246,7 +245,7 @@ def get_native_gates_level(
 
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    gateset: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -284,7 +283,7 @@ def get_native_gates_level(
     if file_precheck and path.is_file():
         return True
 
-    if gateset.name == "clifford+t":
+    if gateset.description == "clifford+t":
         from qiskit.transpiler import PassManager  # noqa: PLC0415
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
@@ -303,12 +302,12 @@ def get_native_gates_level(
         # Transpile once more to remove unnecessary gates and optimize the circuit
         compiled = transpile(
             new_qc,
-            basis_gates=gateset.gates,
+            target=gateset,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
     else:
-        compiled = transpile(qc, basis_gates=gateset.gates, optimization_level=opt_level, seed_transpiler=10)
+        compiled = transpile(qc, target=gateset, optimization_level=opt_level, seed_transpiler=10)
 
     if return_qc:
         return compiled
@@ -413,7 +412,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     benchmark_instance_name: str | None = None,
     compiler_settings: CompilerSettings | None = None,
-    gateset: str | Gateset = "ibm_falcon",
+    gateset: str | Target = "ibm_falcon",
     device_name: str = "ibm_washington",
     **kwargs: str,
 ) -> QuantumCircuit:

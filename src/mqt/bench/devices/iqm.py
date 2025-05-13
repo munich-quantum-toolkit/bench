@@ -67,8 +67,14 @@ def create_iqm_target(calibration_path: Path) -> Target:
     # === Two-qubit CZ gate with per-direction errors ===
     cz_props = {}
     for q1, q2 in connectivity:
-        key = f"{q1}-{q2}"
-        error = twoq_errors[key]
+        key_direct = f"{q1}-{q2}"
+        key_reverse = f"{q2}-{q1}"
+        if key_direct in twoq_errors:
+            error = twoq_errors[key_direct]
+        elif key_reverse in twoq_errors:
+            error = twoq_errors[key_reverse]
+        else:
+            continue
         props = InstructionProperties(duration=twoq_duration, error=error)
 
         # Add both directions
