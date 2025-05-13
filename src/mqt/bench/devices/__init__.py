@@ -17,7 +17,8 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
-from .device import Gateset
+from qiskit.transpiler import Target
+
 from .ibm import get_ibm_target
 from .ionq import get_ionq_target
 from .iqm import get_iqm_target
@@ -27,6 +28,8 @@ from .rigetti import get_rigetti_target
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
+
+# === Device Access ===
 
 @cache
 def get_available_devices() -> list[Target]:
@@ -72,68 +75,53 @@ def get_device_by_name(device_name: str) -> Target:
         raise ValueError(msg) from None
 
 
-__all__ = [
-    "Gateset",
-    "get_available_device_names",
-    "get_available_devices",
-    "get_device_by_name",
-]
-
+# === Native Gatesets ===
 
 @cache
-def get_available_native_gatesets() -> list[Gateset]:
-    """Get a list of all available native gatesets."""
-    available_gatesets = []
+def get_available_native_gatesets(num_qubits: int = 20) -> dict[str, Target]:
+    """Return mapping: gateset_name → unrestricted Target for up to `num_qubits`."""
+    gatesets = {}
+
     for device in get_available_devices():
-        if device.gateset not in available_gatesets:
-            available_gatesets.append(device.gateset)
-    available_gatesets.append(
-        Gateset(
-            "clifford+t",
-            [
-                "i",
-                "x",
-                "y",
-                "z",
-                "h",
-                "s",
-                "sdg",
-                "t",
-                "tdg",
-                "sx",
-                "sxdg",
-                "cx",
-                "cy",
-                "cz",
-                "swap",
-                "iswap",
-                "dcx",
-                "ecr",
-                "measure",
-                "barrier",
-            ],
-        )
-    )
-    return available_gatesets
+        target = Target(name=f"{device.name}_gateset", num_qubits=num_qubits)
+        for inst_name in device.operations:
+            inst = device[inst_name].default_inst
+            target.add_instruction(inst)
+        gatesets[target.name] = target
+
+    # Add custom Clifford+T gateset
+    from qiskit.circuit.library.standard_gates import __dict__ as gate_dict
+    clifford = Target(name="clifford+t", num_qubits=num_qubits)
+    for name in [
+        "i", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "sxdg",
+        "cx", "cy", "cz", "swap", "iswap", "dcx", "ecr", "measure", "barrier"
+    ]:
+        try:
+            gate_class = gate_dict[name.upper()]
+            inst = gate_class()
+            clifford.add_instruction(inst)
+        except Exception:
+            continue
+    gatesets["clifford+t"] = clifford
+
+    return gatesets
 
 
-@cache
-def _native_gateset_map() -> dict[str, Gateset]:
-    """One-time build of name → Gateset map.
-
-    Cached forever by functools.cache.
-    """
-    return {g.name: g for g in get_available_native_gatesets()}
-
-
-def get_native_gateset_by_name(gateset_name: str) -> Gateset:
-    """Get a native gateset by its name.
-
-    Arguments:
-        gateset_name: the name of the gateset
-    """
+def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
+    """Retrieve an unrestricted gateset Target by name."""
+    gatesets = get_available_native_gatesets(num_qubits)
     try:
-        return _native_gateset_map()[gateset_name]
+        return gatesets[name]
     except KeyError:
-        msg = f"Gateset {gateset_name} not found in available gatesets."
-        raise ValueError(msg) from None
+        raise ValueError(f"Gateset '{name}' not found.") from None
+
+
+# === Exports ===
+
+__all__ = [
+    "get_available_devices",
+    "get_available_device_names",
+    "get_device_by_name",
+    "get_available_native_gatesets",
+    "get_native_gateset_by_name",
+]
