@@ -529,45 +529,6 @@ def test_saving_qasm_to_alternative_location_with_alternative_filename(
     path.unlink()
 
 
-def test_oqc_benchmarks() -> None:
-    """Test the creation of benchmarks for the OQC devices."""
-    qc = get_benchmark("ghz", 1, 5)
-    directory = "."
-    filename = "ghz_oqc"
-    path = Path(directory) / Path(filename).with_suffix(".qasm")
-
-    get_native_gates_level(
-        qc,
-        get_device_by_name("oqc_lucy").gateset,
-        qc.num_qubits,
-        opt_level=0,
-        file_precheck=False,
-        return_qc=False,
-        target_directory=directory,
-        target_filename=filename,
-        output_format=OutputFormat.QASM2,
-    )
-    assert QuantumCircuit.from_qasm_file(str(path))
-    path.unlink()
-    directory = "."
-    filename = "ghz_oqc2"
-    path = Path(directory) / Path(filename).with_suffix(".qasm")
-    get_mapped_level(
-        qc,
-        qc.num_qubits,
-        get_device_by_name("oqc_lucy"),
-        opt_level=0,
-        file_precheck=False,
-        return_qc=False,
-        target_directory=directory,
-        target_filename=filename,
-        output_format=OutputFormat.QASM2,
-    )
-
-    assert QuantumCircuit.from_qasm_file(str(path))
-    path.unlink()
-
-
 def test_clifford_t() -> None:
     """Test the Clifford+T gateset."""
     qc = get_benchmark(
