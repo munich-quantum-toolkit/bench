@@ -24,10 +24,16 @@ logger = logging.getLogger(__name__)
 def get_ibm_target(device_name: str) -> Target:
     """Get the target device for a given name."""
     if device_name == "ibm_montreal":
-        return FakeMontrealV2().target
+        target = FakeMontrealV2().target
+        target.description = "ibm_montreal"
+        return target
     if device_name == "ibm_torino":
-        return FakeTorino().target
+        target = FakeTorino().target
+        target.description = "ibm_torino"
+        return target
     if device_name == "ibm_washington":
-        return FakeWashingtonV2().target
+        target = FakeWashingtonV2().target
+        target.description = "ibm_washington"
+        return target
     msg = f"Unknown IBM device: {device_name}"
     raise ValueError(msg)
