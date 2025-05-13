@@ -48,12 +48,12 @@ if TYPE_CHECKING:
              "--algorithm", "ghz",
              "--num-qubits", "20",
          ], dumps(get_benchmark(level="indep", benchmark_name="ghz", circuit_size=20))),
-        # ([
-        #      "--level", "nativegates",
-        #      "--algorithm", "ghz",
-        #      "--num-qubits", "20",
-        #      "--gateset", "ibm_falcon",
-        #  ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, gateset="ibm_falcon"))),
+        ([
+             "--level", "nativegates",
+             "--algorithm", "ghz",
+             "--num-qubits", "20",
+             "--gateset", "ibm_falcon",
+         ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, gateset="ibm_falcon"))),
         ([
              "--level", "mapped",
              "--algorithm", "ghz",
