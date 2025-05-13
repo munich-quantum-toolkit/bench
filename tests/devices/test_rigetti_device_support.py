@@ -10,37 +10,41 @@
 
 from __future__ import annotations
 
-import re
+from qiskit.transpiler import Target
 
-import pytest
-
-from mqt.bench.devices import get_device_by_name
+from mqt.bench.devices.rigetti import get_rigetti_target
 
 
-def test_rigetti_aspen_m3_device() -> None:
-    """Test the import of the Rigetti Aspen-M3 quantum computer."""
-    device = get_device_by_name("rigetti_aspen_m3")
-    single_qubit_gates = device.get_single_qubit_gates()
-    two_qubit_gates = device.get_two_qubit_gates()
+def test_rigetti_aspen_m3_target_structure() -> None:
+    """Test the structure of the Rigetti Aspen-M3 target device."""
+    target = get_rigetti_target("rigetti_aspen_m3")
 
-    assert device.name == "rigetti_aspen_m3"
-    assert device.num_qubits == 79
+    assert isinstance(target, Target)
+    assert target.description == "rigetti_aspen_m3"
+    assert target.num_qubits == 79  # Adjust if your calibration changes
 
-    assert all(gate in ["rx", "rz", "measure", "barrier"] for gate in single_qubit_gates)
-    assert all(gate in ["cz", "cp", "xx_plus_yy"] for gate in two_qubit_gates)
+    expected_single_qubit_gates = {"rx_minus_piby2", "rx_pi", "rx_piby2", "rz", "measure"}
+    expected_two_qubit_gates = {"cz", "cp", "xx_plus_yy"}
 
-    for q in range(device.num_qubits):
-        assert 0 <= device.get_readout_fidelity(q) <= 1
-        with pytest.raises(ValueError, match=re.escape("Readout duration values not available.")):
-            device.get_readout_duration(q)
+    assert expected_single_qubit_gates.issubset(set(target.operation_names))
+    assert any(g in target.operation_names for g in expected_two_qubit_gates)
 
-        for gate in single_qubit_gates:
-            assert 0 <= device.get_single_qubit_gate_fidelity(gate, q) <= 1
-            with pytest.raises(ValueError, match=re.escape("Single-qubit gate duration values not available.")):
-                device.get_single_qubit_gate_duration(gate, q)
+    # === Single-qubit gate properties ===
+    for gate in expected_single_qubit_gates:
+        if gate not in target.operation_names:
+            continue
+        for props in target[gate].values():
+            assert 0 <= props.error < 1
 
-    for q0, q1 in device.coupling_map:
-        for gate in two_qubit_gates:
-            assert 0 <= device.get_two_qubit_gate_fidelity(gate, q0, q1) <= 1
-            with pytest.raises(ValueError, match=re.escape("Two-qubit gate duration values not available.")):
-                device.get_two_qubit_gate_duration(gate, q0, q1)
+    # === Two-qubit gate properties ===
+    for gate in expected_two_qubit_gates:
+        if gate not in target.operation_names:
+            continue
+        for (q0, q1), props in target[gate].items():
+            assert q0 != q1
+            assert 0 <= props.error < 1
+
+    # === Readout fidelity ===
+    if "measure" in target.operation_names:
+        for props in target["measure"].values():
+            assert 0 <= props.error < 1

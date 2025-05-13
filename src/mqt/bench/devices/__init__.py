@@ -1,8 +1,40 @@
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""Initialization of the devices module."""
+
 from __future__ import annotations
+
 from functools import cache
 
-from qiskit.circuit.controlflow import ControlFlowOp
-from qiskit.circuit.library.standard_gates import __dict__ as gate_dict
+from qiskit.circuit import Instruction
+from qiskit.circuit.library import (
+    Barrier,
+    CXGate,
+    CYGate,
+    CZGate,
+    DCXGate,
+    ECRGate,
+    HGate,
+    IGate,
+    Measure,
+    SdgGate,
+    SGate,
+    SwapGate,
+    SXdgGate,
+    SXGate,
+    TdgGate,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
+    iSwapGate,
+)
 from qiskit.transpiler import Target
 
 from .ibm import get_ibm_target
@@ -23,8 +55,10 @@ DEVICE_TO_GATESET = {
     "rigetti_aspen_m3": "rigetti",
 }
 
+
 @cache
 def get_available_devices() -> list[Target]:
+    """Return a list of available devices."""
     return [
         get_ibm_target("ibm_montreal"),
         get_ibm_target("ibm_torino"),
@@ -40,19 +74,70 @@ def get_available_devices() -> list[Target]:
 
 @cache
 def get_available_device_names() -> list[str]:
+    """Return a list of available device names."""
     return [device.description for device in get_available_devices()]
 
 
 @cache
 def _device_map() -> dict[str, Target]:
+    """Return a mapping of device names to Target objects."""
     return {d.description: d for d in get_available_devices()}
 
 
 def get_device_by_name(device_name: str) -> Target:
+    """Return the Target object for a given device name."""
     try:
         return _device_map()[device_name]
     except KeyError:
-        raise ValueError(f"Device {device_name} not found.") from None
+        msg = f"Device {device_name} not found."
+        raise ValueError(msg) from None
+
+
+def create_clifford_target(num_qubits: int) -> Target:
+    """Create a dense Target for the Clifford+T gateset with full qubit connectivity."""
+    gate_classes = {
+        "i": IGate,
+        "x": XGate,
+        "y": YGate,
+        "z": ZGate,
+        "h": HGate,
+        "s": SGate,
+        "sdg": SdgGate,
+        "t": TGate,
+        "tdg": TdgGate,
+        "sx": SXGate,
+        "sxdg": SXdgGate,
+        "cx": CXGate,
+        "cy": CYGate,
+        "cz": CZGate,
+        "swap": SwapGate,
+        "iswap": iSwapGate,
+        "dcx": DCXGate,
+        "ecr": ECRGate,
+        "measure": Measure,
+        "barrier": lambda: Barrier(num_qubits),
+    }
+
+    target = Target(num_qubits=num_qubits, description="clifford+t")
+
+    for gate_class in gate_classes.values():
+        try:
+            gate = gate_class()
+
+            if gate.name == "barrier":
+                qargs = {tuple(range(num_qubits)): None}
+            elif gate.num_qubits == 1:
+                qargs = {(q,): None for q in range(num_qubits)}
+            elif gate.num_qubits == 2:
+                qargs = {(q0, q1): None for q0 in range(num_qubits) for q1 in range(num_qubits) if q0 != q1}
+            else:
+                continue  # skip 3+ qubit gates (not needed here)
+
+            target.add_instruction(gate, qargs)
+        except Exception:
+            continue
+
+    return target
 
 
 @cache
@@ -71,40 +156,50 @@ def get_available_native_gatesets(num_qubits: int = 20) -> dict[str, Target]:
 
         for op_name in device.operation_names:
             try:
-                inst_props = device[op_name]
-                inst_obj = inst_props.default_inst
-                if inst_obj is None or isinstance(inst_obj, ControlFlowOp):
+                # Access instruction mapping (could be a dict or custom object)
+                op_entry = device[op_name]
+
+                # Skip if empty or invalid
+                if not isinstance(op_entry, dict) or not op_entry:
                     continue
-                inst_class = inst_obj if isinstance(inst_obj, type) else type(inst_obj)
-                target.add_instruction(inst_class)
-            except Exception:
+
+                # Try to resolve the instruction object
+                try:
+                    inst = device.operation_from_name(op_name)
+                except Exception:
+                    continue
+
+                # Validate it's a real Instruction and not a class
+                if not isinstance(inst, Instruction):
+                    try:
+                        inst = inst()  # instantiate if it's a class
+                    except Exception:
+                        continue
+
+                # Prepare qubit mappings
+                qarg_map = dict.fromkeys(op_entry.keys())
+                if qarg_map:
+                    target.add_instruction(inst, qarg_map)
+
+            except Exception as e:
+                print(f"Skipping {op_name}: {e}")
                 continue
 
         gatesets[gateset_name] = target
 
     # Add Clifford+T manually
-    from qiskit.circuit.library.standard_gates import __dict__ as gate_dict
-    clifford = Target(num_qubits=num_qubits, description="clifford+t")
-    for name in [
-        "i", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "sxdg",
-        "cx", "cy", "cz", "swap", "iswap", "dcx", "ecr", "measure", "barrier"
-    ]:
-        try:
-            gate_class = gate_dict[name.upper()]
-            clifford.add_instruction(gate_class)
-        except Exception:
-            continue
-
-    gatesets["clifford+t"] = clifford
+    gatesets["clifford+t"] = create_clifford_target(num_qubits=num_qubits)
     return gatesets
 
 
 def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
+    """Return the Target object for a given native gateset name."""
     gatesets = get_available_native_gatesets(num_qubits)
     try:
         return gatesets[name]
     except KeyError:
-        raise ValueError(f"Gateset '{name}' not found.") from None
+        msg = f"Gateset '{name}' not found."
+        raise ValueError(msg) from None
 
 
 __all__ = [

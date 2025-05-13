@@ -10,37 +10,45 @@
 
 from __future__ import annotations
 
-import re
+from qiskit.transpiler import Target
 
-import pytest
-
-from mqt.bench.devices import get_device_by_name
+from mqt.bench.devices.quantinuum import get_quantinuum_target
 
 
-def test_quantinuum_h2_device() -> None:
-    """Test the import of the Quantinuum H2 quantum computer."""
-    device = get_device_by_name("quantinuum_h2")
-    single_qubit_gates = device.get_single_qubit_gates()
-    two_qubit_gates = device.get_two_qubit_gates()
+def test_quantinuum_target_structure() -> None:
+    """Test the structure of the Quantinuum H2 target device."""
+    target = get_quantinuum_target("quantinuum_h2")
 
-    assert device.name == "quantinuum_h2"
-    assert device.num_qubits == 32
+    # Basic metadata
+    assert isinstance(target, Target)
+    assert target.description == "quantinuum_h2"
+    assert target.num_qubits == 32  # adjust if your calibration changes
 
-    assert all(gate in ["rz", "ry", "rx", "measure", "barrier"] for gate in single_qubit_gates)
-    assert all(gate == "rzz" for gate in two_qubit_gates)
+    # Ensure all expected gates are supported
+    expected_gates = {"rx", "ry", "rz", "rzz", "measure"}
+    assert expected_gates.issubset(set(target.operation_names))
 
-    for q in range(device.num_qubits):
-        assert 0 <= device.get_readout_fidelity(q) <= 1
-        with pytest.raises(ValueError, match=re.escape(r"Readout duration values not available.")):
-            device.get_readout_duration(q)
+    # === Single-qubit gates ===
+    for op in ["rx", "ry", "rz"]:
+        insts = target[op]
+        assert all(len(qargs) == 1 for qargs in insts), f"{op} not single-qubit"
+        for props in insts.values():
+            assert 0 <= props.error < 1
 
-        for gate in single_qubit_gates:
-            assert 0 <= device.get_single_qubit_gate_fidelity(gate, q) <= 1
-            with pytest.raises(ValueError, match=re.escape(r"Single-qubit gate duration values not available.")):
-                device.get_single_qubit_gate_duration(gate, q)
+    # === Measurement ===
+    insts = target["measure"]
+    assert all(len(qargs) == 1 for qargs in insts)
+    for props in insts.values():
+        assert 0 <= props.error < 1
 
-    for q0, q1 in device.coupling_map:
-        for gate in two_qubit_gates:
-            assert 0 <= device.get_two_qubit_gate_fidelity(gate, q0, q1) <= 1
-            with pytest.raises(ValueError, match=re.escape(r"Two-qubit gate duration values not available.")):
-                device.get_two_qubit_gate_duration(gate, q0, q1)
+    # === Two-qubit gates ===
+    insts = target["rzz"]
+    assert all(len(qargs) == 2 for qargs in insts)
+    for (q0, q1), props in insts.items():
+        assert q0 != q1
+        assert 0 <= props.error < 1
+
+    # Symmetry check (if assumed)
+    # This is optional, depending on your calibration assumption
+    for q0, q1 in insts:
+        assert (q1, q0) in insts

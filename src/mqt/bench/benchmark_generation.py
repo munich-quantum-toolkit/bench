@@ -89,10 +89,10 @@ def generate_filename(
     base = f"{benchmark_name}_{level}"
 
     if level == "nativegates" and gateset is not None and opt_level is not None:
-        return f"{base}_{gateset.name}_opt{opt_level}_{num_qubits}"
+        return f"{base}_{gateset.description}_opt{opt_level}_{num_qubits}"
 
     if level == "mapped" and device is not None and opt_level is not None:
-        return f"{base}_{device.name}_opt{opt_level}_{num_qubits}"
+        return f"{base}_{device.description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"
 
@@ -288,9 +288,11 @@ def get_native_gates_level(
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
         # Transpile the circuit to single- and two-qubit gates including rotations
+        gates = {inst.name for inst, _ in gateset.instructions}
+        print(gates)
         compiled_for_sk = transpile(
             qc,
-            basis_gates=[*gateset.gates, "rx", "ry", "rz"],
+            basis_gates=[*gates, "rx", "ry", "rz"],
             optimization_level=opt_level,
             seed_transpiler=10,
         )
@@ -316,7 +318,7 @@ def get_native_gates_level(
         qc=compiled,
         filename=filename_native,
         output_format=output_format,
-        gateset=gateset.gates,
+        target=gateset,
         target_directory=target_directory,
     )
 
@@ -385,7 +387,6 @@ def get_mapped_level(
     if file_precheck and path.is_file():
         return True
 
-    c_map = device.coupling_map
     compiled = transpile(
         qc,
         target=device,
@@ -400,8 +401,7 @@ def get_mapped_level(
         qc=compiled,
         filename=filename_mapped,
         output_format=output_format,
-        gateset=device.basis_gates,
-        c_map=c_map,
+        target=device,
         target_directory=target_directory,
     )
 
@@ -485,7 +485,7 @@ def get_benchmark(
     native_gates_level = 2
     if level in ("nativegates", native_gates_level):
         if isinstance(gateset, str):
-            gateset = get_native_gateset_by_name(gateset)
+            gateset = get_native_gateset_by_name(gateset, num_qubits=qc.num_qubits)
         assert compiler_settings.qiskit is not None
         opt_level = compiler_settings.qiskit.optimization_level
         return get_native_gates_level(qc, gateset, circuit_size, opt_level, False, True)

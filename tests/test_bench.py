@@ -17,6 +17,9 @@ from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn
 
+from qiskit.circuit.library import CXGate, HGate, XGate
+from qiskit.transpiler import InstructionProperties, Target
+
 if TYPE_CHECKING:  # pragma: no cover
     import types
 
@@ -263,7 +266,7 @@ def test_quantumcircuit_native_and_mapped_levels(
         assert qc.num_qubits == input_value
 
     native_gatesets = get_available_native_gatesets()
-    for gateset in native_gatesets:
+    for gateset in native_gatesets.values():
         opt_level = 0
         res = get_native_gates_level(
             qc,
@@ -411,7 +414,8 @@ def test_get_benchmark(
             instruction = qc_instruction.operation
             gate_type = instruction.name
             gateset = get_native_gateset_by_name(gateset_name)
-            assert gate_type in gateset.gates or gate_type == "barrier"
+            gates = {inst.name for inst, _ in gateset.instructions}
+            assert gate_type in gates or gate_type == "barrier"
 
 
 def test_get_benchmark_faulty_parameters() -> None:
@@ -538,8 +542,10 @@ def test_clifford_t() -> None:
         gateset="clifford+t",
     )
 
+    clifford_target = get_native_gateset_by_name("clifford+t", num_qubits=4)
+    gates = sorted({inst.name for inst, _ in clifford_target.instructions})
     for gate_type in qc.count_ops():
-        assert gate_type in get_native_gateset_by_name("clifford+t").gates
+        assert gate_type in gates
 
 
 def test_get_module_for_benchmark() -> None:
@@ -644,9 +650,25 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_generate_header_with_options(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the generation of a header with options."""
     monkeypatch.setattr(metadata, "version", lambda _: "0.1.0")
-    gates = ["x", "cx", "h"]
+    gates = ["cx", "h", "x"]
     cmap = [[0, 1], [1, 2]]
-    hdr = generate_header(OutputFormat.QASM2, gateset=gates, c_map=cmap)
+    target = Target(num_qubits=3)
+
+    # === Single-qubit gates ===
+    # Define all-qubit props (or use None if not needed)
+    x_props = {(q,): None for q in range(3)}
+    h_props = {(q,): None for q in range(3)}
+
+    target.add_instruction(HGate(), h_props)
+    target.add_instruction(XGate(), x_props)
+
+    # === Two-qubit CX gate on limited connectivity
+    cx_props = {
+        (0, 1): InstructionProperties(),
+        (1, 2): InstructionProperties(),
+    }
+    target.add_instruction(CXGate(), cx_props)
+    hdr = generate_header(OutputFormat.QASM2, target=target)
 
     assert f"// Used gateset: {gates}" in hdr
     assert f"// Coupling map: {cmap}" in hdr
