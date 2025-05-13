@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from qiskit import AncillaRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
 
 def create_circuit(

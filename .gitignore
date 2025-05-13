@@ -12,12 +12,18 @@
 *.DS_Store
 *hist_output/*png
 
+# Sphinx documentation
+docs/_build/
+docs/api/
+docs/jupyter_execute
+
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+*/.jupyter_cache
 
 # IPython
 profile_default/

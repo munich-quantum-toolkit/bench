@@ -14,7 +14,7 @@ import random
 from fractions import Fraction
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFT
 
 

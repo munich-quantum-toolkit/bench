@@ -10,10 +10,15 @@
 
 from __future__ import annotations
 
-from qiskit import QuantumCircuit, transpile
+from typing import TYPE_CHECKING
+
 from qiskit.circuit.random import random_circuit
+from qiskit.compiler import transpile
 
 from mqt.bench.benchmark_generation import get_openqasm_gates
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 def create_circuit(num_qubits: int) -> QuantumCircuit:

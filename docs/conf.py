@@ -53,53 +53,54 @@ templates_path = ["_templates"]
 html_css_files = ["custom.css"]
 
 extensions = [
-    "sphinx.ext.napoleon",
+    "myst_nb",
+    "autoapi.extension",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.autosectionlabel",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.githubpages",
-    "sphinxcontrib.bibtex",
+    "sphinx.ext.napoleon",
     "sphinx_copybutton",
-    "nbsphinx",
+    "sphinx_design",
     "sphinxext.opengraph",
-    "sphinx_autodoc_typehints",
-    "jupyter_sphinx",
+    "sphinx.ext.viewcode",
+    "sphinxcontrib.bibtex",
 ]
 
 pygments_style = "colorful"
-
-add_module_names = False
 
 modindex_common_prefix = ["mqt.bench."]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "typing_extensions": ("https://typing-extensions.readthedocs.io/en/latest/", None),
-    "qiskit": ("https://qiskit.org/documentation/", None),
+    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit", None),
     "mqt": ("https://mqt.readthedocs.io/en/latest/", None),
 }
 
-nbsphinx_execute = "auto"
-highlight_language = "python3"
-nbsphinx_execute_arguments = [
-    "--InlineBackend.figure_formats={'svg', 'pdf'}",
-    "--InlineBackend.rc=figure.dpi=200",
-]
-nbsphinx_kernel_name = "python3"
+nb_execution_mode = "cache"
 
 autosectionlabel_prefix_document = True
 
-exclude_patterns = ["_build", "build", "**.ipynb_checkpoints", "Thumbs.db", ".DS_Store", ".env"]
+exclude_patterns = [
+    "_build",
+    "**.ipynb_checkpoints",
+    "**.jupyter_cache",
+    "jupyter_execute/**",
+    "Thumbs.db",
+    ".DS_Store",
+    ".env",
+    ".venv",
+]
 
 
 class CDAStyle(UnsrtStyle):
     """Custom style for including PDF links."""
 
     def format_url(self, _e: Entry) -> HRef:
-        """Format URL field as a link to the PDF."""
+        """Format URL field as a link to the PDF.
+
+        Returns:
+            The formatted URL field.
+        """
         url = field("url", raw=True)
         return href()[url, "[PDF]"]
 
@@ -115,7 +116,24 @@ copybutton_line_continuation_character = "\\"
 
 autosummary_generate = True
 
-
+autoapi_dirs = ["../src/mqt"]
+autoapi_python_use_implicit_namespaces = True
+autoapi_root = "api"
+autoapi_add_toctree_entry = False
+autoapi_ignore = [
+    "*/**/_version.py",
+]
+autoapi_options = [
+    "members",
+    "imported-members",
+    "show-inheritance",
+    "special-members",
+    "undoc-members",
+]
+autoapi_keep_files = True
+add_module_names = False
+toc_object_entries_show_parents = "hide"
+python_use_unqualified_type_names = True
 typehints_use_rtype = False
 napoleon_use_rtype = False
 napoleon_google_docstring = True

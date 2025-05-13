@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit import AncillaRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import GroverOperator
 
 

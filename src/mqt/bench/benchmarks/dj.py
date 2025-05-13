@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 
 def dj_oracle(case: str, n: int) -> QuantumCircuit:

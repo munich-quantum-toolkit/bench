@@ -30,8 +30,7 @@ import math
 from typing import cast
 
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Instruction, ParameterVector
+from qiskit.circuit import Instruction, ParameterVector, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFT
 
 

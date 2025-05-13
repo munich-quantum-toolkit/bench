@@ -17,7 +17,6 @@ from io import TextIOBase
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO, overload
 
-from qiskit import QuantumCircuit
 from qiskit import __version__ as __qiskit_version__
 from qiskit.qasm2 import dump as dump2
 from qiskit.qasm3 import dump as dump3
@@ -26,6 +25,7 @@ from qiskit.qpy import dump as dump_qpy
 if TYPE_CHECKING:  # pragma: no cover
     from typing import BinaryIO
 
+    from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
 
 

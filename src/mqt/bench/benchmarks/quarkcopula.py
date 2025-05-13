@@ -13,7 +13,7 @@ from __future__ import annotations
 from math import comb
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 
 def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:

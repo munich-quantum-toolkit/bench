@@ -6,12 +6,12 @@
 #
 # Licensed under the MIT License
 
-"""Graophstate benchmark definition."""
+"""Graphstate benchmark definition."""
 
 from __future__ import annotations
 
 import networkx as nx
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import GraphState
 
 

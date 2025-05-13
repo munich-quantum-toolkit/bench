@@ -16,7 +16,7 @@ import numpy as np
 from qiskit.circuit.library import RealAmplitudes
 
 if TYPE_CHECKING:  # pragma: no cover
-    from qiskit import QuantumCircuit
+    from qiskit.circuit import QuantumCircuit
 
 
 def create_circuit(num_qubits: int) -> QuantumCircuit:

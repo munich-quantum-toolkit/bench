@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 
 def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | None = None) -> QuantumCircuit:

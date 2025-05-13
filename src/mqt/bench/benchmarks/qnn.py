@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes, ZZFeatureMap
 
 

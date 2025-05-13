@@ -153,9 +153,9 @@ def from_rigetti_index(rigetti_index: int) -> int:
 
     The Rigetti architectures consist of 8-qubit rings arranged in a two-dimensional grid.
     Each qubit is identified by a three digit number, where:
-      * the first digit is the row index,
-      * the second digit is the column index, and
-      * the third digit is the ring index.
+    - the first digit is the row index,
+    - the second digit is the column index, and
+    - the third digit is the ring index.
 
     Arguments:
         rigetti_index: the Rigetti qubit index
