@@ -23,7 +23,7 @@ def test_rigetti_aspen_m3_target_structure() -> None:
     assert target.description == "rigetti_aspen_m3"
     assert target.num_qubits == 79  # Adjust if your calibration changes
 
-    expected_single_qubit_gates = {"rx_minus_piby2", "rx_pi", "rx_piby2", "rz", "measure"}
+    expected_single_qubit_gates = {"rx", "rz", "measure"}
     expected_two_qubit_gates = {"cz", "cp", "xx_plus_yy"}
 
     assert expected_single_qubit_gates.issubset(set(target.operation_names))
