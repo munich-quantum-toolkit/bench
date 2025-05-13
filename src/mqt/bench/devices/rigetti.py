@@ -20,9 +20,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-import numpy as np
-from qiskit.circuit import Gate, Parameter
-from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RZGate, XXPlusYYGate
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RXGate, RZGate, XXPlusYYGate
 from qiskit.transpiler import InstructionProperties, Target
 
 from .calibration import get_device_calibration_path
@@ -56,6 +55,7 @@ def create_rigetti_target(calibration_path: Path) -> Target:
 
     # Parameters
     theta = Parameter("theta")
+    alpha = Parameter("alpha")
     lam = Parameter("lambda")
     phi = Parameter("phi")
 
@@ -67,18 +67,12 @@ def create_rigetti_target(calibration_path: Path) -> Target:
 
     # === Add RXGate only once per fixed angle with all qubits ===
 
-    rx_piby2 = Gate(name="rx_piby2", num_qubits=1, params=[np.pi / 2])
-    rx_minus_piby2 = Gate(name="rx_minus_piby2", num_qubits=1, params=[-np.pi / 2])
-    rx_pi = Gate(name="rx_pi", num_qubits=1, params=[np.pi])
-
     rx_props = {}
     for q_str, props in data["properties"]["1Q"].items():
         q = from_rigetti_index(int(q_str))
         fidelity = props["f1QRB"]
         rx_props[q,] = InstructionProperties(error=1 - fidelity)
-    target.add_instruction(rx_piby2, rx_props)
-    target.add_instruction(rx_minus_piby2, rx_props)
-    target.add_instruction(rx_pi, rx_props)
+    target.add_instruction(RXGate(alpha), rx_props)
 
     for q_str, props in oneq_props.items():
         q = from_rigetti_index(int(q_str))
@@ -108,12 +102,15 @@ def create_rigetti_target(calibration_path: Path) -> Target:
         if "fCZ" in fidelity_info:
             fcz = fidelity_info["fCZ"]
             cz_props[q1, q2] = InstructionProperties(error=1 - fcz)
+            cz_props[q2, q1] = InstructionProperties(error=1 - fcz)
         if "fCPHASE" in fidelity_info:
             fcp = fidelity_info["fCPHASE"]
             cp_props[q1, q2] = InstructionProperties(error=1 - fcp)
+            cp_props[q2, q1] = InstructionProperties(error=1 - fcp)
         if "fXY" in fidelity_info:
             fxy = fidelity_info["fXY"]
             xy_props[q1, q2] = InstructionProperties(error=1 - fxy)
+            xy_props[q2, q1] = InstructionProperties(error=1 - fxy)
 
     # === Fill missing entries with averages (optional) ===
     all_pairs = {
