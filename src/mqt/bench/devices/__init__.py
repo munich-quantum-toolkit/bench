@@ -15,31 +15,32 @@ See README.md or go to https://github.com/cda-tum/mqt-bench for more information
 from __future__ import annotations
 
 from functools import cache
+from typing import TYPE_CHECKING
 
-from .calibration import DeviceCalibration
-from .device import Device, Gateset
-# from .ibm import IBMMontreal, IBMTorino, IBMWashington
-# from .ionq import IonQAria1, IonQHarmony
-# from .iqm import IQMAdonis, IQMApollo
-# from .oqc import OQCLucy
-# from .quantinuum import QuantinuumH2
-# from .rigetti import RigettiAspenM3
+from .device import Gateset
+from .ibm import get_ibm_target
+from .ionq import get_ionq_target
+from .iqm import get_iqm_target
+from .quantinuum import get_quantinuum_target
+from .rigetti import get_rigetti_target
+
+if TYPE_CHECKING:
+    from qiskit.transpiler import Target
 
 
 @cache
-def get_available_devices() -> list[Device]:
+def get_available_devices() -> list[Target]:
     """Get a list of all available devices."""
     return [
-        # IBMTorino(),
-        # IBMMontreal(),
-        # IBMWashington(),
-        # # IonQAria1(),
-        # # IonQHarmony(),
-        # # IQMAdonis(),
-        # # IQMApollo(),
-        # OQCLucy(),
-        # QuantinuumH2(),
-        # RigettiAspenM3(),
+        get_ibm_target("ibm_montreal"),
+        get_ibm_target("ibm_torino"),
+        get_ibm_target("ibm_washington"),
+        get_ionq_target("ionq_harmony"),
+        get_ionq_target("ionq_aria1"),
+        get_iqm_target("iqm_adonis"),
+        get_iqm_target("iqm_apollo"),
+        get_quantinuum_target("quantinuum_h2"),
+        get_rigetti_target("rigetti_aspen_m3"),
     ]
 
 
@@ -50,7 +51,7 @@ def get_available_device_names() -> list[str]:
 
 
 @cache
-def _device_map() -> dict[str, Device]:
+def _device_map() -> dict[str, Target]:
     """One-time build of name → Device map.
 
     Cached forever by functools.cache.
@@ -58,7 +59,7 @@ def _device_map() -> dict[str, Device]:
     return {d.name: d for d in get_available_devices()}
 
 
-def get_device_by_name(device_name: str) -> Device:
+def get_device_by_name(device_name: str) -> Target:
     """Get a device by its name.
 
     Arguments:
@@ -72,8 +73,6 @@ def get_device_by_name(device_name: str) -> Device:
 
 
 __all__ = [
-    "Device",
-    "DeviceCalibration",
     "Gateset",
     "get_available_device_names",
     "get_available_devices",

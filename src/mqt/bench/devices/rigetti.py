@@ -1,15 +1,54 @@
-from qiskit.transpiler import Target, InstructionProperties
-from qiskit.circuit.library import RXGate, RZGate, CZGate, CPhaseGate, XXPlusYYGate, Measure
-from qiskit.circuit import Parameter
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""File to create a target device from the Rigetti calibration data."""
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
+
 import numpy as np
+from qiskit.circuit import Gate, Parameter
+from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RZGate, XXPlusYYGate
+from qiskit.transpiler import InstructionProperties, Target
 
 from .calibration import get_device_calibration_path
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def create_rigetti_target(calibration_path: Path) -> Target:
+    """Create a target device from the Rigetti calibration data.
+
+    This function creates a Qiskit Target object representing Rigetti's quantum device
+    capabilities, including supported gate operations and their properties based on
+    device calibration data.
+
+    Args:
+        calibration_path: Path to the JSON file containing Rigetti device calibration data
+
+    Returns:
+        Target: A Qiskit Target object containing:
+            - Device topology and connectivity
+            - Supported single-qubit gates (RZ, RX)
+            - Supported two-qubit gates (CZ, CPhase, XXPlusYY)
+            - Gate error rates and fidelities
+            - Measurement capabilities
+    """
     with calibration_path.open() as f:
         data = json.load(f)
 
@@ -28,24 +67,23 @@ def create_rigetti_target(calibration_path: Path) -> Target:
 
     # === Add RXGate only once per fixed angle with all qubits ===
 
-    from qiskit.circuit import Gate
-    FixedRX90 = Gate(name="rx_piby2", num_qubits=1, params=[np.pi / 2])
-    FixedRXn90 = Gate(name="rx_minus_piby2", num_qubits=1, params=[-np.pi / 2])
-    FixedRX180 = Gate(name="rx_pi", num_qubits=1, params=[np.pi])
+    rx_piby2 = Gate(name="rx_piby2", num_qubits=1, params=[np.pi / 2])
+    rx_minus_piby2 = Gate(name="rx_minus_piby2", num_qubits=1, params=[-np.pi / 2])
+    rx_pi = Gate(name="rx_pi", num_qubits=1, params=[np.pi])
 
     rx_props = {}
     for q_str, props in data["properties"]["1Q"].items():
         q = from_rigetti_index(int(q_str))
         fidelity = props["f1QRB"]
-        rx_props[(q,)] = InstructionProperties(error=1 - fidelity)
-    target.add_instruction(FixedRX90, rx_props)
-    target.add_instruction(FixedRXn90, rx_props)
-    target.add_instruction(FixedRX180, rx_props)
+        rx_props[q,] = InstructionProperties(error=1 - fidelity)
+    target.add_instruction(rx_piby2, rx_props)
+    target.add_instruction(rx_minus_piby2, rx_props)
+    target.add_instruction(rx_pi, rx_props)
 
     for q_str, props in oneq_props.items():
         q = from_rigetti_index(int(q_str))
-        rz_props[(q,)] = InstructionProperties(error=0.0)
-        measure_props[(q,)] = InstructionProperties(error=1 - props["fRO"])
+        rz_props[q,] = InstructionProperties(error=0.0)
+        measure_props[q,] = InstructionProperties(error=1 - props["fRO"])
 
     target.add_instruction(RZGate(lam), rz_props)
     target.add_instruction(Measure(), measure_props)
@@ -69,20 +107,20 @@ def create_rigetti_target(calibration_path: Path) -> Target:
 
         if "fCZ" in fidelity_info:
             fcz = fidelity_info["fCZ"]
-            cz_props[(q1, q2)] = InstructionProperties(error=1 - fcz)
+            cz_props[q1, q2] = InstructionProperties(error=1 - fcz)
         if "fCPHASE" in fidelity_info:
             fcp = fidelity_info["fCPHASE"]
-            cp_props[(q1, q2)] = InstructionProperties(error=1 - fcp)
+            cp_props[q1, q2] = InstructionProperties(error=1 - fcp)
         if "fXY" in fidelity_info:
             fxy = fidelity_info["fXY"]
-            xy_props[(q1, q2)] = InstructionProperties(error=1 - fxy)
+            xy_props[q1, q2] = InstructionProperties(error=1 - fxy)
 
     # === Fill missing entries with averages (optional) ===
     all_pairs = {
         (from_rigetti_index(a), from_rigetti_index(b))
         for a, b in data["connectivity"]
-        if (from_rigetti_index(a), from_rigetti_index(b)) not in added_pairs and
-           (from_rigetti_index(b), from_rigetti_index(a)) not in added_pairs
+        if (from_rigetti_index(a), from_rigetti_index(b)) not in added_pairs
+        and (from_rigetti_index(b), from_rigetti_index(a)) not in added_pairs
     }
 
     cz_avg = sum(1 - v.error for v in cz_props.values()) / len(cz_props) if cz_props else None
@@ -91,11 +129,11 @@ def create_rigetti_target(calibration_path: Path) -> Target:
 
     for q1, q2 in all_pairs:
         if (q1, q2) not in cz_props and cz_avg:
-            cz_props[(q1, q2)] = InstructionProperties(error=1 - cz_avg)
+            cz_props[q1, q2] = InstructionProperties(error=1 - cz_avg)
         if (q1, q2) not in cp_props and cp_avg:
-            cp_props[(q1, q2)] = InstructionProperties(error=1 - cp_avg)
+            cp_props[q1, q2] = InstructionProperties(error=1 - cp_avg)
         if (q1, q2) not in xy_props and xy_avg:
-            xy_props[(q1, q2)] = InstructionProperties(error=1 - xy_avg)
+            xy_props[q1, q2] = InstructionProperties(error=1 - xy_avg)
 
     # === Finally, add each instruction type ONCE ===
     if cz_props:
@@ -108,8 +146,10 @@ def create_rigetti_target(calibration_path: Path) -> Target:
     return target
 
 
-def get_rigetti_aspen_m3_target() -> Target:
-    return create_rigetti_target(get_device_calibration_path("rigetti_aspen_m3"))
+def get_rigetti_target(device_name: str) -> Target:
+    """Get a target device from the Rigetti calibration data."""
+    return create_rigetti_target(get_device_calibration_path(device_name))
+
 
 def from_rigetti_index(rigetti_index: int) -> int:
     """Convert the Rigetti qubit index to a consecutive index.

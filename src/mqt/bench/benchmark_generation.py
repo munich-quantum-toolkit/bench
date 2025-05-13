@@ -25,7 +25,9 @@ from .output import (
 if TYPE_CHECKING:  # pragma: no cover
     from types import ModuleType
 
-    from .devices import Device, Gateset
+    from qiskit.transpiler import Target
+
+    from .devices import Gateset
 
 from dataclasses import dataclass
 
@@ -68,7 +70,7 @@ def generate_filename(
     level: str,
     num_qubits: int | None,
     gateset: Gateset | None = None,
-    device: Device | None = None,
+    device: Target | None = None,
     opt_level: int | None = None,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
@@ -324,7 +326,7 @@ def get_native_gates_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: Literal[True],
@@ -338,7 +340,7 @@ def get_mapped_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: Literal[False],
@@ -351,7 +353,7 @@ def get_mapped_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: bool = False,
@@ -387,9 +389,8 @@ def get_mapped_level(
     c_map = device.coupling_map
     compiled = transpile(
         qc,
+        target=device,
         optimization_level=opt_level,
-        basis_gates=device.gateset.gates,
-        coupling_map=c_map,
         seed_transpiler=10,
     )
 
@@ -400,7 +401,7 @@ def get_mapped_level(
         qc=compiled,
         filename=filename_mapped,
         output_format=output_format,
-        gateset=device.gateset.gates,
+        gateset=device.basis_gates,
         c_map=c_map,
         target_directory=target_directory,
     )
@@ -425,7 +426,7 @@ def get_benchmark(
         benchmark_instance_name: Input selection for some benchmarks, namely "shor"
         compiler_settings: Data class containing the respective compiler settings for the specified compiler (e.g., optimization level for Qiskit)
         gateset: Name of the gateset or tuple containing the name of the gateset and the gateset itself (required for "nativegates" level)
-        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "oqc_lucy", "quantinuum_h2" (required for "mapped" level)
+        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "quantinuum_h2" (required for "mapped" level)
         kwargs: Additional arguments for the benchmark generation
 
     Returns:

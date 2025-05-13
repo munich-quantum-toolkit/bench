@@ -1,13 +1,37 @@
-from qiskit.transpiler import Target, InstructionProperties
-from qiskit.circuit.library import RGate, CZGate, Measure
-from qiskit.circuit import Parameter
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""File to create a target device from the IQM calibration data."""
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import CZGate, Measure, RGate
+from qiskit.transpiler import InstructionProperties, Target
 
 from .calibration import get_device_calibration_path
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 def create_iqm_target(calibration_path: Path) -> Target:
+    """Create a target device from the IQM calibration data."""
     with calibration_path.open() as json_file:
         calib = json.load(json_file)
 
@@ -30,21 +54,13 @@ def create_iqm_target(calibration_path: Path) -> Target:
 
     # === Single-qubit R gate with per-qubit fidelity ===
     r_props = {
-        (q,): InstructionProperties(
-            duration=oneq_duration,
-            error=oneq_errors[str(q)]
-        )
-        for q in range(num_qubits)
+        (q,): InstructionProperties(duration=oneq_duration, error=oneq_errors[str(q)]) for q in range(num_qubits)
     }
     target.add_instruction(RGate(theta, phi), r_props)
 
     # === Per-qubit measurement ===
     measure_props = {
-        (q,): InstructionProperties(
-            duration=readout_duration,
-            error=readout_errors[str(q)]
-        )
-        for q in range(num_qubits)
+        (q,): InstructionProperties(duration=readout_duration, error=readout_errors[str(q)]) for q in range(num_qubits)
     }
     target.add_instruction(Measure(), measure_props)
 
@@ -56,18 +72,14 @@ def create_iqm_target(calibration_path: Path) -> Target:
         props = InstructionProperties(duration=twoq_duration, error=error)
 
         # Add both directions
-        cz_props[(q1, q2)] = props
-        cz_props[(q2, q1)] = props  # assume symmetric for now
+        cz_props[q1, q2] = props
+        cz_props[q2, q1] = props  # assume symmetric for now
 
     target.add_instruction(CZGate(), cz_props)
-
 
     return target
 
 
-def get_iqm_adonis_target() -> Target:
-    return create_iqm_target(get_device_calibration_path("iqm_adonis"))
-
-
-def get_iqm_apollo_target() -> Target:
-    return create_iqm_target(get_device_calibration_path("iqm_apollo"))
+def get_iqm_target(device_name: str) -> Target:
+    """Get a target device from the IQM calibration data."""
+    return create_iqm_target(get_device_calibration_path(device_name))
