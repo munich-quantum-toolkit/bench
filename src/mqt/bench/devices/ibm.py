@@ -96,11 +96,9 @@ def get_ibm_montreal_target() -> Target:
     ]
 
     montreal_coupling = CouplingMap(montreal_edges)
-
     montreal_mock = GenericBackendV2(
         num_qubits=27, coupling_map=montreal_coupling, basis_gates=["sx", "rz", "x", "cx", "measure"]
     )
-
     target = montreal_mock.target
     target.description = "ibm_montreal"
     return target
@@ -411,10 +409,7 @@ def get_ibm_torino_target() -> Target:
         [132, 126],
     ]
 
-    # Create the coupling map
     torino_coupling = CouplingMap(torino_edges)
-
-    # Create the mock backend
     torino_mock = GenericBackendV2(
         num_qubits=133, coupling_map=torino_coupling, basis_gates=["sx", "rz", "cz", "x", "measure"]
     )
@@ -713,8 +708,6 @@ def get_ibm_washington_target() -> Target:
     ]
 
     washington_coupling = CouplingMap(washington_edges)
-
-    # Create GenericBackendV2
     washington_mock = GenericBackendV2(
         num_qubits=127, coupling_map=washington_coupling, basis_gates=["sx", "rz", "x", "cx", "measure"]
     )
