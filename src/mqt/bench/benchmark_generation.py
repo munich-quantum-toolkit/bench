@@ -69,8 +69,7 @@ def generate_filename(
     benchmark_name: str,
     level: str,
     num_qubits: int | None,
-    gateset: Target | None = None,
-    device: Target | None = None,
+    target: Target | None = None,
     opt_level: int | None = None,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
@@ -79,8 +78,7 @@ def generate_filename(
         benchmark_name: name of the quantum circuit
         level: abstraction level
         num_qubits: number of qubits in the benchmark circuit
-        gateset: optional gateset (used for 'nativegates')
-        device: optional device (used for 'mapped')
+        target: target device (used for 'nativegates' and 'mapped')
         opt_level: optional optimization level (used for 'nativegates' and 'mapped')
 
     Returns:
@@ -89,11 +87,14 @@ def generate_filename(
     """
     base = f"{benchmark_name}_{level}"
 
-    if level == "nativegates" and gateset is not None and opt_level is not None:
-        return f"{base}_{gateset.description}_opt{opt_level}_{num_qubits}"
+    # sanitize the target.description to remove any special characters etc. Make it smart.
+    description = target.description.strip().split(" ")[0] if target else ""
 
-    if level == "mapped" and device is not None and opt_level is not None:
-        return f"{base}_{device.description}_opt{opt_level}_{num_qubits}"
+    if level == "nativegates" and opt_level is not None:
+        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
+
+    if level == "mapped" and opt_level is not None:
+        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"
 
@@ -276,7 +277,7 @@ def get_native_gates_level(
         benchmark_name=qc.name,
         level="native",
         num_qubits=num_qubits,
-        gateset=gateset,
+        target=gateset,
         opt_level=opt_level,
     )
     path = Path(target_directory, f"{filename_native}.{output_format.extension()}")
@@ -310,7 +311,7 @@ def get_native_gates_level(
             seed_transpiler=10,
         )
     else:
-        compiled = transpile(qc, target=gateset, optimization_level=opt_level, seed_transpiler=10)
+        compiled = transpile(qc, basis_gates=gateset.operation_names, optimization_level=opt_level, seed_transpiler=10)
 
     if return_qc:
         return compiled
@@ -381,7 +382,7 @@ def get_mapped_level(
         else: True/False indicating whether the function call was successful or not
     """
     filename_mapped = target_filename or generate_filename(
-        benchmark_name=qc.name, level="mapped", num_qubits=num_qubits, device=device, opt_level=opt_level
+        benchmark_name=qc.name, level="mapped", num_qubits=num_qubits, target=device, opt_level=opt_level
     )
     path = Path(target_directory, f"{filename_mapped}.{output_format.extension()}")
 

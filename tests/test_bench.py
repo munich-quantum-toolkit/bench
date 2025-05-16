@@ -602,22 +602,21 @@ def test_create_ae_circuit_with_invalid_qubit_number() -> None:
 
 
 @pytest.mark.parametrize(
-    ("level", "expected"),
+    ("level", "target", "expected"),
     [
-        ("alg", "ghz_alg_5"),
-        ("indep", "ghz_indep_5"),
-        ("nativegates", "ghz_nativegates_ibm_falcon_opt2_5"),
-        ("mapped", "ghz_mapped_ibm_washington_opt2_5"),
+        ("alg", None, "ghz_alg_5"),
+        ("indep", None, "ghz_indep_5"),
+        ("nativegates", get_native_gateset_by_name("ibm_falcon"), "ghz_nativegates_ibm_falcon_opt2_5"),
+        ("mapped", get_device_by_name("ibm_washington"), "ghz_mapped_ibm_washington_opt2_5"),
     ],
 )
-def test_generate_filename(level: str, expected: str) -> None:
+def test_generate_filename(level: str, target: Target, expected: str) -> None:
     """Test the generation of a filename."""
     filename = generate_filename(
         benchmark_name="ghz",
         level=level,
         num_qubits=5,
-        gateset=get_native_gateset_by_name("ibm_falcon"),
-        device=get_device_by_name("ibm_washington"),
+        target=target,
         opt_level=2,
     )
     assert filename == expected
