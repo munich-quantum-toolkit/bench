@@ -93,7 +93,7 @@ def get_device_by_name(device_name: str) -> Target:
         raise ValueError(msg) from None
 
 
-def create_clifford_target(num_qubits: int) -> Target:
+def create_clifford_t_target(num_qubits: int) -> Target:
     """Create a dense Target for the Clifford+T gateset with full qubit connectivity."""
     gate_classes = {
         "i": IGate,
