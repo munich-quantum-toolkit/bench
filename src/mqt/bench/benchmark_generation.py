@@ -220,7 +220,7 @@ def get_indep_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Target,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -234,7 +234,7 @@ def get_native_gates_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Target,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -247,7 +247,7 @@ def get_native_gates_level(
 
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Target,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -260,7 +260,7 @@ def get_native_gates_level(
 
     Arguments:
         qc: quantum circuit which the to be created benchmark circuit is based on
-        gateset: contains the name of the gateset and a list of native gates
+        target: contains the target (used for 'nativegates' level and 'mapped' level)
         num_qubits: number of qubits
         opt_level: optimization level
         file_precheck: flag indicating whether to check whether the file already exists before creating it (again)
@@ -277,7 +277,7 @@ def get_native_gates_level(
         benchmark_name=qc.name,
         level="native",
         num_qubits=num_qubits,
-        target=gateset,
+        target=target,
         opt_level=opt_level,
     )
     path = Path(target_directory, f"{filename_native}.{output_format.extension()}")
@@ -285,16 +285,14 @@ def get_native_gates_level(
     if file_precheck and path.is_file():
         return True
 
-    if gateset.description == "clifford+t":
+    if target.description == "clifford+t":
         from qiskit.transpiler import PassManager  # noqa: PLC0415
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
         # Transpile the circuit to single- and two-qubit gates including rotations
-        gates = {inst.name for inst, _ in gateset.instructions}
-        print(gates)
         compiled_for_sk = transpile(
             qc,
-            basis_gates=[*gates, "rx", "ry", "rz"],
+            basis_gates=[*target.operation_names, "rx", "ry", "rz"],
             optimization_level=opt_level,
             seed_transpiler=10,
         )
@@ -306,12 +304,12 @@ def get_native_gates_level(
         # Transpile once more to remove unnecessary gates and optimize the circuit
         compiled = transpile(
             new_qc,
-            target=gateset,
+            target=target,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
     else:
-        compiled = transpile(qc, basis_gates=gateset.operation_names, optimization_level=opt_level, seed_transpiler=10)
+        compiled = transpile(qc, basis_gates=target.operation_names, optimization_level=opt_level, seed_transpiler=10)
 
     if return_qc:
         return compiled
@@ -320,7 +318,7 @@ def get_native_gates_level(
         qc=compiled,
         filename=filename_native,
         output_format=output_format,
-        target=gateset,
+        target=target,
         target_directory=target_directory,
     )
 
