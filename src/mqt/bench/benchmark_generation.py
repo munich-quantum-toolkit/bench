@@ -14,7 +14,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypedDict, overload
 
-from qiskit import transpile
+from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 
 from .devices import get_available_device_names, get_device_by_name, get_native_gateset_by_name
