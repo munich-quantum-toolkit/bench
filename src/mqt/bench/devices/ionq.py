@@ -8,7 +8,6 @@
 
 """File to create a target device from the IonQ calibration data."""
 
-
 from __future__ import annotations
 
 import json
