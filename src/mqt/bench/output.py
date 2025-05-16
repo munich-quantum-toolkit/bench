@@ -86,7 +86,7 @@ def generate_header(
     ))
 
     if target:
-        lines.append(f"// Used gateset: {target.operation_names}")
+        lines.append(f"// Used gateset: {list(target.operation_names)}")
     c_map = target.build_coupling_map() if target else None
     if c_map:
         lines.append(f"// Coupling map: {c_map}")

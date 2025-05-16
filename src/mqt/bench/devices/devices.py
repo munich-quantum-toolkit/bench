@@ -10,13 +10,18 @@
 
 from __future__ import annotations
 
+from functools import cache
+from typing import TYPE_CHECKING
 
 from .ibm import get_ibm_target
 from .ionq import get_ionq_target
 from .iqm import get_iqm_target
 from .quantinuum import get_quantinuum_target
 from .rigetti import get_rigetti_target
-from functools import cache
+
+if TYPE_CHECKING:
+    from qiskit.transpiler import Target
+
 
 @cache
 def get_available_devices() -> list[Target]:
@@ -32,6 +37,7 @@ def get_available_devices() -> list[Target]:
         get_quantinuum_target("quantinuum_h2"),
         get_rigetti_target("rigetti_aspen_m3"),
     ]
+
 
 @cache
 def get_available_device_names() -> list[str]:

@@ -651,7 +651,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_generate_header_with_options(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the generation of a header with options."""
     monkeypatch.setattr(metadata, "version", lambda _: "0.1.0")
-    gates = ["cx", "h", "x"]
+    gates = ["h", "x", "cx"]
     cmap = [[0, 1], [1, 2]]
     target = Target(num_qubits=3)
 
