@@ -52,33 +52,33 @@ DEVICE_TO_GATESET = {
 
 def create_clifford_t_target(num_qubits: int) -> Target:
     """Create a dense Target for the Clifford+T gateset with full qubit connectivity."""
-    gate_classes = {
-        "i": IGate,
-        "x": XGate,
-        "y": YGate,
-        "z": ZGate,
-        "h": HGate,
-        "s": SGate,
-        "sdg": SdgGate,
-        "t": TGate,
-        "tdg": TdgGate,
-        "sx": SXGate,
-        "sxdg": SXdgGate,
-        "cx": CXGate,
-        "cy": CYGate,
-        "cz": CZGate,
-        "swap": SwapGate,
-        "iswap": iSwapGate,
-        "dcx": DCXGate,
-        "ecr": ECRGate,
-        "measure": Measure,
-        "barrier": lambda: Barrier(num_qubits),
-    }
+    gates = [
+        IGate,
+        XGate,
+        YGate,
+        ZGate,
+        HGate,
+        SGate,
+        SdgGate,
+        TGate,
+        TdgGate,
+        SXGate,
+        SXdgGate,
+        CXGate,
+        CYGate,
+        CZGate,
+        SwapGate,
+        iSwapGate,
+        DCXGate,
+        ECRGate,
+        Measure,
+        lambda: Barrier(num_qubits),
+    ]
 
     target = Target(num_qubits=num_qubits, description="clifford+t")
 
-    for gate_class in gate_classes.values():
-        target.add_instruction(gate_class())
+    for gate in gates:
+        target.add_instruction(gate())
 
     return target
 
