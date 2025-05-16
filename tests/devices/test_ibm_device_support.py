@@ -6,59 +6,54 @@
 #
 # Licensed under the MIT License
 
-"""Test the IBMProvider class and the IBM Washington and IBM Montreal devices."""
+"""Test the IBM devices."""
 
 from __future__ import annotations
 
-from mqt.bench.devices import get_device_by_name
+import pytest
+from qiskit.transpiler import Target
+
+from mqt.bench.devices.ibm import get_ibm_target
 
 
-def test_get_ibmq_washington_device() -> None:
-    """Test getting the IBM Washington device."""
-    device = get_device_by_name("ibm_washington")
-    single_qubit_gates = device.get_single_qubit_gates()
-    two_qubit_gates = device.get_two_qubit_gates()
+@pytest.mark.parametrize(
+    ("device_name", "num_qubits", "expected_2q_gate"),
+    [
+        ("ibm_montreal", 27, "cx"),
+        ("ibm_washington", 127, "cx"),
+        ("ibm_torino", 133, "cz"),
+    ],
+)
+def test_ibm_target_structure(device_name: str, num_qubits: int, expected_2q_gate: str) -> None:
+    """Test structure and basic gate support for IBM targets."""
+    target = get_ibm_target(device_name)
 
-    assert device.name == "ibm_washington"
-    assert device.num_qubits == 127
+    assert isinstance(target, Target)
+    assert target.description == device_name
+    assert target.num_qubits == num_qubits
 
-    assert all(gate in ["id", "rz", "sx", "x", "cx", "measure", "barrier"] for gate in single_qubit_gates)
-    assert all(gate == "cx" for gate in two_qubit_gates)
+    # === Gate presence check ===
+    expected_1q_gates = {"sx", "rz", "x", "measure"}
+    assert expected_1q_gates.issubset(set(target.operation_names))
+    assert expected_2q_gate in target.operation_names
 
-    for q in range(device.num_qubits):
-        assert 0 <= device.get_readout_fidelity(q) <= 1
-        assert device.get_readout_duration(q) >= 0
+    # === Validate available qubits for single-qubit gates
+    for gate in expected_1q_gates:
+        for (q,) in target[gate]:
+            assert isinstance(q, int)
+            # Optional: check that props are present (but allow None)
+            props = target[gate][q,]
+            assert props is not None
 
-        for gate in single_qubit_gates:
-            assert 0 <= device.get_single_qubit_gate_fidelity(gate, q) <= 1
-            assert device.get_single_qubit_gate_duration(gate, q) >= 0
+    # === Validate two-qubit gate connections
+    for (q0, q1), props in target[expected_2q_gate].items():
+        assert isinstance(q0, int)
+        assert isinstance(q1, int)
+        assert q0 != q1
+        assert props is not None
 
-    for q0, q1 in device.coupling_map:
-        for gate in two_qubit_gates:
-            assert 0 <= device.get_two_qubit_gate_fidelity(gate, q0, q1) <= 1
-            assert device.get_two_qubit_gate_duration(gate, q0, q1) >= 0
-
-
-def test_get_ibmq_montreal_device() -> None:
-    """Test getting the IBM Montreal device."""
-    device = get_device_by_name("ibm_montreal")
-    single_qubit_gates = device.get_single_qubit_gates()
-    two_qubit_gates = device.get_two_qubit_gates()
-
-    assert device.name == "ibm_montreal"
-    assert device.num_qubits == 27
-
-    assert all(gate in ["id", "rz", "sx", "x", "cx", "measure", "barrier"] for gate in single_qubit_gates)
-    assert all(gate == "cx" for gate in two_qubit_gates)
-
-    for q in range(device.num_qubits):
-        assert 0 <= device.get_readout_fidelity(q) <= 1
-        assert device.get_readout_duration(q) >= 0
-
-        for gate in single_qubit_gates:
-            assert 0 <= device.get_single_qubit_gate_fidelity(gate, q) <= 1
-            assert device.get_single_qubit_gate_duration(gate, q) >= 0
-    for q0, q1 in device.coupling_map:
-        for gate in two_qubit_gates:
-            assert 0 <= device.get_two_qubit_gate_fidelity(gate, q0, q1) <= 1
-            assert device.get_two_qubit_gate_duration(gate, q0, q1) >= 0
+    # === Validate measure connections
+    for (q,) in target["measure"]:
+        assert isinstance(q, int)
+        props = target["measure"][q,]
+        assert props is not None

@@ -124,6 +124,7 @@ filterwarnings = [
     'ignore:.*is pending deprecation as of qiskit 1.3..*:PendingDeprecationWarning:',
     'ignore:.*The class ``qiskit.providers.exceptions.BackendPropertyError`` is deprecated as of qiskit 1.4.*:DeprecationWarning:',
     'ignore:.*he SolovayKitaev algorithm relies *.:RuntimeWarning:qiskit.synthesis.discrete_basis.generate_basis_approximations',
+    'ignore:.*qiskit.providers.models is deprecated since Qiskit 1.2 and will be removed in Qiskit 2.0.*:DeprecationWarning:'
 ]
 
 [tool.coverage]

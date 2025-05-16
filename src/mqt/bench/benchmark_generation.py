@@ -15,8 +15,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypedDict, overload
 
 from qiskit.compiler import transpile
+from qiskit.transpiler import Target
 
-from .devices import get_available_device_names, get_device_by_name, get_native_gateset_by_name
+from .devices.devices import get_available_device_names, get_device_by_name
+from .devices.gatesets import get_native_gateset_by_name
 from .output import (
     OutputFormat,
     save_circuit,
@@ -26,8 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from types import ModuleType
 
     from qiskit.circuit import QuantumCircuit
-
-    from .devices import Device, Gateset
+    from qiskit.transpiler import Target
 
 from dataclasses import dataclass
 
@@ -69,8 +70,7 @@ def generate_filename(
     benchmark_name: str,
     level: str,
     num_qubits: int | None,
-    gateset: Gateset | None = None,
-    device: Device | None = None,
+    target: Target | None = None,
     opt_level: int | None = None,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
@@ -79,8 +79,7 @@ def generate_filename(
         benchmark_name: name of the quantum circuit
         level: abstraction level
         num_qubits: number of qubits in the benchmark circuit
-        gateset: optional gateset (used for 'nativegates')
-        device: optional device (used for 'mapped')
+        target: target device (used for 'nativegates' and 'mapped')
         opt_level: optional optimization level (used for 'nativegates' and 'mapped')
 
     Returns:
@@ -89,11 +88,14 @@ def generate_filename(
     """
     base = f"{benchmark_name}_{level}"
 
-    if level == "nativegates" and gateset is not None and opt_level is not None:
-        return f"{base}_{gateset.name}_opt{opt_level}_{num_qubits}"
+    # sanitize the target.description to remove any special characters etc. Make it smart.
+    description = target.description.strip().split(" ")[0] if target else ""
 
-    if level == "mapped" and device is not None and opt_level is not None:
-        return f"{base}_{device.name}_opt{opt_level}_{num_qubits}"
+    if level == "nativegates" and opt_level is not None:
+        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
+
+    if level == "mapped" and opt_level is not None:
+        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"
 
@@ -219,7 +221,7 @@ def get_indep_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -233,7 +235,7 @@ def get_native_gates_level(
 @overload
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -246,7 +248,7 @@ def get_native_gates_level(
 
 def get_native_gates_level(
     qc: QuantumCircuit,
-    gateset: Gateset,
+    target: Target,
     num_qubits: int | None,
     opt_level: int,
     file_precheck: bool,
@@ -259,7 +261,7 @@ def get_native_gates_level(
 
     Arguments:
         qc: quantum circuit which the to be created benchmark circuit is based on
-        gateset: contains the name of the gateset and a list of native gates
+        target: contains the target (used for 'nativegates' level and 'mapped' level)
         num_qubits: number of qubits
         opt_level: optimization level
         file_precheck: flag indicating whether to check whether the file already exists before creating it (again)
@@ -276,7 +278,7 @@ def get_native_gates_level(
         benchmark_name=qc.name,
         level="native",
         num_qubits=num_qubits,
-        gateset=gateset,
+        target=target,
         opt_level=opt_level,
     )
     path = Path(target_directory, f"{filename_native}.{output_format.extension()}")
@@ -284,14 +286,14 @@ def get_native_gates_level(
     if file_precheck and path.is_file():
         return True
 
-    if gateset.name == "clifford+t":
+    if target.description == "clifford+t":
         from qiskit.transpiler import PassManager  # noqa: PLC0415
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
         # Transpile the circuit to single- and two-qubit gates including rotations
         compiled_for_sk = transpile(
             qc,
-            basis_gates=[*gateset.gates, "rx", "ry", "rz"],
+            basis_gates=[*target.operation_names, "rx", "ry", "rz"],
             optimization_level=opt_level,
             seed_transpiler=10,
         )
@@ -303,12 +305,12 @@ def get_native_gates_level(
         # Transpile once more to remove unnecessary gates and optimize the circuit
         compiled = transpile(
             new_qc,
-            basis_gates=gateset.gates,
+            basis_gates=target.operation_names,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
     else:
-        compiled = transpile(qc, basis_gates=gateset.gates, optimization_level=opt_level, seed_transpiler=10)
+        compiled = transpile(qc, basis_gates=target.operation_names, optimization_level=opt_level, seed_transpiler=10)
 
     if return_qc:
         return compiled
@@ -317,7 +319,7 @@ def get_native_gates_level(
         qc=compiled,
         filename=filename_native,
         output_format=output_format,
-        gateset=gateset.gates,
+        target=target,
         target_directory=target_directory,
     )
 
@@ -326,7 +328,7 @@ def get_native_gates_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: Literal[True],
@@ -340,7 +342,7 @@ def get_mapped_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: Literal[False],
@@ -353,7 +355,7 @@ def get_mapped_level(
 def get_mapped_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
-    device: Device,
+    device: Target,
     opt_level: int,
     file_precheck: bool,
     return_qc: bool = False,
@@ -379,19 +381,18 @@ def get_mapped_level(
         else: True/False indicating whether the function call was successful or not
     """
     filename_mapped = target_filename or generate_filename(
-        benchmark_name=qc.name, level="mapped", num_qubits=num_qubits, device=device, opt_level=opt_level
+        benchmark_name=qc.name, level="mapped", num_qubits=num_qubits, target=device, opt_level=opt_level
     )
     path = Path(target_directory, f"{filename_mapped}.{output_format.extension()}")
 
     if file_precheck and path.is_file():
         return True
 
-    c_map = device.coupling_map
     compiled = transpile(
         qc,
+        basis_gates=device.operation_names,
+        coupling_map=device.build_coupling_map(),
         optimization_level=opt_level,
-        basis_gates=device.gateset.gates,
-        coupling_map=c_map,
         seed_transpiler=10,
     )
 
@@ -402,8 +403,7 @@ def get_mapped_level(
         qc=compiled,
         filename=filename_mapped,
         output_format=output_format,
-        gateset=device.gateset.gates,
-        c_map=c_map,
+        target=device,
         target_directory=target_directory,
     )
 
@@ -414,7 +414,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     benchmark_instance_name: str | None = None,
     compiler_settings: CompilerSettings | None = None,
-    gateset: str | Gateset = "ibm_falcon",
+    gateset: str | Target = "ibm_falcon",
     device_name: str = "ibm_washington",
     **kwargs: str,
 ) -> QuantumCircuit:
@@ -427,7 +427,7 @@ def get_benchmark(
         benchmark_instance_name: Input selection for some benchmarks, namely "shor"
         compiler_settings: Data class containing the respective compiler settings for the specified compiler (e.g., optimization level for Qiskit)
         gateset: Name of the gateset or tuple containing the name of the gateset and the gateset itself (required for "nativegates" level)
-        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "oqc_lucy", "quantinuum_h2" (required for "mapped" level)
+        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "quantinuum_h2" (required for "mapped" level)
         kwargs: Additional arguments for the benchmark generation
 
     Returns:
@@ -487,7 +487,7 @@ def get_benchmark(
     native_gates_level = 2
     if level in ("nativegates", native_gates_level):
         if isinstance(gateset, str):
-            gateset = get_native_gateset_by_name(gateset)
+            gateset = get_native_gateset_by_name(gateset, num_qubits=qc.num_qubits)
         assert compiler_settings.qiskit is not None
         opt_level = compiler_settings.qiskit.optimization_level
         return get_native_gates_level(qc, gateset, circuit_size, opt_level, False, True)

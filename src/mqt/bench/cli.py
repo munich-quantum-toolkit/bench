@@ -15,12 +15,11 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
+from mqt.bench.devices.devices import get_device_by_name
+from mqt.bench.devices.gatesets import get_native_gateset_by_name
+
 from . import CompilerSettings, QiskitSettings, get_benchmark
 from .benchmark_generation import generate_filename
-from .devices import (
-    get_device_by_name,
-    get_native_gateset_by_name,
-)
 from .output import OutputFormat, save_circuit, write_circuit
 
 
@@ -132,13 +131,19 @@ def main() -> None:
         write_circuit(circuit, sys.stdout, fmt)
         return
 
+    if args.gateset is not None:
+        target = get_native_gateset_by_name(args.gateset)
+    elif args.device is not None:
+        target = get_device_by_name(args.device)
+    else:
+        target = None
+
     # Otherwise, save to file
     filename = generate_filename(
         benchmark_name=benchmark_name,
         level=args.level,
         num_qubits=args.num_qubits,
-        gateset=get_native_gateset_by_name(args.gateset) if args.gateset else None,
-        device=get_device_by_name(args.device) if args.device else None,
+        target=target,
         opt_level=args.qiskit_optimization_level,
     )
     success = save_circuit(
