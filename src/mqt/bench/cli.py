@@ -15,7 +15,8 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from mqt.bench.devices.handling import get_device_by_name, get_native_gateset_by_name
+from mqt.bench.devices.devices import get_device_by_name
+from mqt.bench.devices.gatesets import get_native_gateset_by_name
 
 from . import CompilerSettings, QiskitSettings, get_benchmark
 from .benchmark_generation import generate_filename
