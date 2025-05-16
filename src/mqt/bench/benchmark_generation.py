@@ -305,7 +305,7 @@ def get_native_gates_level(
         # Transpile once more to remove unnecessary gates and optimize the circuit
         compiled = transpile(
             new_qc,
-            target=target,
+            basis_gates=target.operation_names,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
@@ -390,7 +390,8 @@ def get_mapped_level(
 
     compiled = transpile(
         qc,
-        target=device,
+        basis_gates=device.operation_names,
+        coupling_map=device.build_coupling_map(),
         optimization_level=opt_level,
         seed_transpiler=10,
     )
