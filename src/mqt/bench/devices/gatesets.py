@@ -1,14 +1,41 @@
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""Handles the available native gatesets."""
+
 from __future__ import annotations
 
 from functools import cache
 
-from qiskit.circuit import Measure, Barrier, Instruction
-from qiskit.circuit.library import IGate, XGate, YGate, ZGate, HGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, \
-    CXGate, CYGate, CZGate, SwapGate, iSwapGate, DCXGate, ECRGate
-
+from qiskit.circuit import Barrier, Instruction, Measure
+from qiskit.circuit.library import (
+    CXGate,
+    CYGate,
+    CZGate,
+    DCXGate,
+    ECRGate,
+    HGate,
+    IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    SXdgGate,
+    SXGate,
+    TdgGate,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
+    iSwapGate,
+)
 from qiskit.transpiler import Target
 
-from mqt.bench.devices import get_ibm_target, get_ionq_target, get_iqm_target, get_quantinuum_target, get_rigetti_target
+from mqt.bench.devices import get_available_devices
 
 DEVICE_TO_GATESET = {
     "ibm_montreal": "ibm_falcon",
@@ -21,43 +48,6 @@ DEVICE_TO_GATESET = {
     "quantinuum_h2": "quantinuum",
     "rigetti_aspen_m3": "rigetti",
 }
-
-
-@cache
-def get_available_devices() -> list[Target]:
-    """Return a list of available devices."""
-    return [
-        get_ibm_target("ibm_montreal"),
-        get_ibm_target("ibm_torino"),
-        get_ibm_target("ibm_washington"),
-        get_ionq_target("ionq_harmony"),
-        get_ionq_target("ionq_aria1"),
-        get_iqm_target("iqm_adonis"),
-        get_iqm_target("iqm_apollo"),
-        get_quantinuum_target("quantinuum_h2"),
-        get_rigetti_target("rigetti_aspen_m3"),
-    ]
-
-
-@cache
-def get_available_device_names() -> list[str]:
-    """Return a list of available device names."""
-    return [device.description for device in get_available_devices()]
-
-
-@cache
-def _device_map() -> dict[str, Target]:
-    """Return a mapping of device names to Target objects."""
-    return {d.description: d for d in get_available_devices()}
-
-
-def get_device_by_name(device_name: str) -> Target:
-    """Return the Target object for a given device name."""
-    try:
-        return _device_map()[device_name]
-    except KeyError:
-        msg = f"Device {device_name} not found."
-        raise ValueError(msg) from None
 
 
 def create_clifford_t_target(num_qubits: int) -> Target:
@@ -88,21 +78,7 @@ def create_clifford_t_target(num_qubits: int) -> Target:
     target = Target(num_qubits=num_qubits, description="clifford+t")
 
     for gate_class in gate_classes.values():
-        try:
-            gate = gate_class()
-
-            if gate.name == "barrier":
-                qargs = {tuple(range(num_qubits)): None}
-            elif gate.num_qubits == 1:
-                qargs = {(q,): None for q in range(num_qubits)}
-            elif gate.num_qubits == 2:
-                qargs = {(q0, q1): None for q0 in range(num_qubits) for q1 in range(num_qubits) if q0 != q1}
-            else:
-                continue  # skip 3+ qubit gates (not needed here)
-
-            target.add_instruction(gate, qargs)
-        except Exception:
-            continue
+        target.add_instruction(gate_class())
 
     return target
 
