@@ -15,12 +15,10 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
+from mqt.bench.devices.handling import get_device_by_name, get_native_gateset_by_name
+
 from . import CompilerSettings, QiskitSettings, get_benchmark
 from .benchmark_generation import generate_filename
-from .devices import (
-    get_device_by_name,
-    get_native_gateset_by_name,
-)
 from .output import OutputFormat, save_circuit, write_circuit
 
 

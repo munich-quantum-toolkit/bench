@@ -65,7 +65,7 @@ from mqt.bench.benchmarks import (
     vqetwolocalrandom,
     wstate,
 )
-from mqt.bench.devices import (
+from mqt.bench.devices.handling import (
     get_available_devices,
     get_available_native_gatesets,
     get_device_by_name,
