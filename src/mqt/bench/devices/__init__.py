@@ -188,7 +188,7 @@ def get_available_native_gatesets(num_qubits: int = 20) -> dict[str, Target]:
         gatesets[gateset_name] = target
 
     # Add Clifford+T manually
-    gatesets["clifford+t"] = create_clifford_target(num_qubits=num_qubits)
+    gatesets["clifford+t"] = create_clifford_t_target(num_qubits=num_qubits)
     return gatesets
 
 
