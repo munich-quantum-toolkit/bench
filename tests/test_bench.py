@@ -269,7 +269,6 @@ def test_quantumcircuit_native_and_mapped_levels(
 
     native_gatesets = get_available_native_gatesets()
     for gateset_name in native_gatesets:
-        print(gateset_name)
         gateset = get_native_gateset_by_name(gateset_name, num_qubits=qc.num_qubits)
         opt_level = 0
         res = get_native_gates_level(
@@ -293,29 +292,28 @@ def test_quantumcircuit_native_and_mapped_levels(
         )
         assert res
 
-        for device in get_available_devices():
-            # Creating the circuit on target-dependent: mapped level qiskit
-            if device.num_qubits >= qc.num_qubits:
-                res = get_mapped_level(
-                    qc,
-                    qc.num_qubits,
-                    device,
-                    opt_level,
-                    file_precheck=False,
-                    return_qc=False,
-                    target_directory=output_path,
-                )
-                assert res
-                res = get_mapped_level(
-                    qc,
-                    qc.num_qubits,
-                    device,
-                    opt_level,
-                    file_precheck=True,
-                    return_qc=False,
-                    target_directory=output_path,
-                )
-                assert res
+    for device in get_available_devices():
+        if device.num_qubits >= qc.num_qubits:
+            res = get_mapped_level(
+                qc,
+                qc.num_qubits,
+                device,
+                opt_level,
+                file_precheck=False,
+                return_qc=False,
+                target_directory=output_path,
+            )
+            assert res
+            res = get_mapped_level(
+                qc,
+                qc.num_qubits,
+                device,
+                opt_level,
+                file_precheck=True,
+                return_qc=False,
+                target_directory=output_path,
+            )
+            assert res
 
 
 def test_openqasm_gates() -> None:
