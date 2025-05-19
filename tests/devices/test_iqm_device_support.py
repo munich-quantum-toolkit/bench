@@ -10,8 +10,9 @@
 
 from __future__ import annotations
 
-from mqt.bench.targets.devices.iqm import get_iqm_target
 from qiskit.transpiler import Target
+
+from mqt.bench.targets.devices.iqm import get_iqm_target
 
 
 def test_iqm_target_from_calibration() -> None:

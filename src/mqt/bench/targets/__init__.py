@@ -10,6 +10,9 @@
 
 from __future__ import annotations
 
+from importlib import resources
+from pathlib import Path
+
 from mqt.bench.targets.devices.ibm import get_ibm_target
 from mqt.bench.targets.devices.ionq import get_ionq_target
 from mqt.bench.targets.devices.iqm import get_iqm_target
@@ -34,3 +37,14 @@ __all__ = [
     "get_quantinuum_target",
     "get_rigetti_target",
 ]
+
+
+def get_device_calibration_path(filename: str) -> Path:
+    """Get the path to the calibration file for a device."""
+    calibration_path = resources.files("mqt.bench") / "calibration_files" / f"{filename}_calibration.json"
+
+    if not calibration_path.is_file():
+        msg = f"Calibration file not found: {calibration_path}"
+        raise FileNotFoundError(msg)
+
+    return Path(str(calibration_path))
