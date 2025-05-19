@@ -103,21 +103,18 @@ def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
     return target
 
 
-@cache
 def get_ibm_falcon_gateset() -> list[Instruction]:
     """Returns the basis gates of the ibm falcon gateset."""
     alpha = Parameter("alpha")
     return [SXGate(), RZGate(alpha), CXGate(), Measure()]
 
 
-@cache
 def get_ibm_heron_r1_gateset() -> list[Instruction]:
     """Returns the basis gates of the ibm heron r1 gateset."""
     alpha = Parameter("alpha")
     return [SXGate(), RZGate(alpha), CZGate(), XGate(), Measure()]
 
 
-@cache
 def get_ionq_gateset() -> list[Instruction]:
     """Returns the basis gates of the ionq gateset."""
     alpha = Parameter("alpha")
@@ -127,7 +124,6 @@ def get_ionq_gateset() -> list[Instruction]:
     return [RXGate(alpha), RZGate(beta), RXXGate(delta), RYGate(gamma), Measure()]
 
 
-@cache
 def get_iqm_gateset() -> list[Instruction]:
     """Returns the basis gates of the iqm gateset."""
     alpha = Parameter("alpha")
@@ -136,7 +132,6 @@ def get_iqm_gateset() -> list[Instruction]:
     return [U3Gate(alpha, beta, gamma), CZGate(), Measure()]
 
 
-@cache
 def get_quantinuum_gateset() -> list[Instruction]:
     """Returns the basis gates of the quantinuum gateset."""
     alpha = Parameter("alpha")
@@ -146,7 +141,6 @@ def get_quantinuum_gateset() -> list[Instruction]:
     return [RZZGate(delta), RZGate(alpha), RYGate(beta), RXGate(gamma), Measure()]
 
 
-@cache
 def get_rigetti_gateset() -> list[Instruction]:
     """Returns the basis gates of the rigetti gateset."""
     alpha = Parameter("alpha")
