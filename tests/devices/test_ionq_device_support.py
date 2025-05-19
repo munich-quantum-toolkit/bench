@@ -10,9 +10,8 @@
 
 from __future__ import annotations
 
+from mqt.bench.targets.devices.ionq import get_ionq_target
 from qiskit.transpiler import Target
-
-from mqt.bench.devices.ionq import get_ionq_target
 
 
 def test_ionq_target_from_calibration() -> None:

@@ -6,20 +6,21 @@
 #
 # Licensed under the MIT License
 
-"""Initialization of the devices module."""
+"""Initialization of the targets module."""
 
 from __future__ import annotations
+
+from mqt.bench.targets.devices.ibm import get_ibm_target
+from mqt.bench.targets.devices.ionq import get_ionq_target
+from mqt.bench.targets.devices.iqm import get_iqm_target
+from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
+from mqt.bench.targets.devices.rigetti import get_rigetti_target
 
 from .devices import get_available_device_names, get_available_devices, get_device_by_name
 from .gatesets import (
     get_available_native_gatesets,
     get_native_gateset_by_name,
 )
-from .ibm import get_ibm_target
-from .ionq import get_ionq_target
-from .iqm import get_iqm_target
-from .quantinuum import get_quantinuum_target
-from .rigetti import get_rigetti_target
 
 __all__ = [
     "get_available_device_names",

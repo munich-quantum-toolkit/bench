@@ -11,9 +11,8 @@
 from __future__ import annotations
 
 import pytest
+from mqt.bench.targets.devices.ibm import get_ibm_target
 from qiskit.transpiler import Target
-
-from mqt.bench.devices.ibm import get_ibm_target
 
 
 @pytest.mark.parametrize(

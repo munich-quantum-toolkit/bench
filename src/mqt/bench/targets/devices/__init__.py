@@ -13,11 +13,11 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
-from .ibm import get_ibm_target
-from .ionq import get_ionq_target
-from .iqm import get_iqm_target
-from .quantinuum import get_quantinuum_target
-from .rigetti import get_rigetti_target
+from mqt.bench.targets.devices.ibm import get_ibm_target
+from mqt.bench.targets.devices.ionq import get_ionq_target
+from mqt.bench.targets.devices.iqm import get_iqm_target
+from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
+from mqt.bench.targets.devices.rigetti import get_rigetti_target
 
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
