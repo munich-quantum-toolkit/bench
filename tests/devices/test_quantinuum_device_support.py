@@ -10,8 +10,9 @@
 
 from __future__ import annotations
 
-from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
 from qiskit.transpiler import Target
+
+from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
 
 
 def test_quantinuum_target_structure() -> None:

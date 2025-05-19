@@ -10,8 +10,9 @@
 
 from __future__ import annotations
 
-from mqt.bench.targets.devices.rigetti import get_rigetti_target
 from qiskit.transpiler import Target
+
+from mqt.bench.targets.devices.rigetti import get_rigetti_target
 
 
 def test_rigetti_aspen_m3_target_structure() -> None:

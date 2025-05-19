@@ -14,6 +14,7 @@ from functools import cache
 
 from qiskit.circuit import Instruction, Measure, Parameter
 from qiskit.circuit.library import (
+    Barrier,
     CPhaseGate,
     CXGate,
     CYGate,
@@ -40,7 +41,6 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
     iSwapGate,
-Barrier
 )
 from qiskit.transpiler import Target
 
@@ -66,7 +66,7 @@ def create_clifford_t_target() -> list[Instruction]:
         iSwapGate(),
         DCXGate(),
         ECRGate(),
-        Measure()
+        Measure(),
     ]
 
 
@@ -101,7 +101,6 @@ def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
         target.add_instruction(gate)
     target.add_instruction(Barrier(num_qubits))
     return target
-
 
 
 @cache
