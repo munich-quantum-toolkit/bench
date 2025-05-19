@@ -45,7 +45,7 @@ from qiskit.circuit.library import (
 from qiskit.transpiler import Target
 
 
-def create_clifford_t_target() -> list[Instruction]:
+def get_clifford_t_gateset() -> list[Instruction]:
     """Returns the native gateset for the Clifford+T target."""
     return [
         IGate(),
@@ -80,7 +80,7 @@ def get_available_native_gatesets() -> dict[str, list[Instruction]]:
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
         "rigetti": get_rigetti_gateset(),
-        "clifford+t": create_clifford_t_target(),
+        "clifford+t": get_clifford_t_gateset(),
     }
 
 
