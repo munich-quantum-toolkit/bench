@@ -26,6 +26,14 @@ if TYPE_CHECKING:  # pragma: no cover
 from enum import Enum
 
 import pytest
+from mqt.bench.targets.devices import (
+    get_available_devices,
+    get_device_by_name,
+)
+from mqt.bench.targets.gatesets import (
+    get_available_native_gatesets,
+    get_native_gateset_by_name,
+)
 from qiskit import QuantumCircuit, qpy
 from qiskit.qasm3 import load as load_qasm3
 
@@ -64,14 +72,6 @@ from mqt.bench.benchmarks import (
     vqesu2random,
     vqetwolocalrandom,
     wstate,
-)
-from mqt.bench.devices.devices import (
-    get_available_devices,
-    get_device_by_name,
-)
-from mqt.bench.devices.gatesets import (
-    get_available_native_gatesets,
-    get_native_gateset_by_name,
 )
 from mqt.bench.output import (
     MQTBenchExporterError,
@@ -268,7 +268,9 @@ def test_quantumcircuit_native_and_mapped_levels(
         assert qc.num_qubits == input_value
 
     native_gatesets = get_available_native_gatesets()
-    for gateset in native_gatesets.values():
+    for gateset_name in native_gatesets.keys():
+        print(gateset_name)
+        gateset = get_native_gateset_by_name(gateset_name, num_qubits=qc.num_qubits)
         opt_level = 0
         res = get_native_gates_level(
             qc,

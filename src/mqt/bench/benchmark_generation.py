@@ -17,12 +17,12 @@ from typing import TYPE_CHECKING, Literal, TypedDict, overload
 from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 
-from .devices.devices import get_available_device_names, get_device_by_name
-from .devices.gatesets import get_native_gateset_by_name
 from .output import (
     OutputFormat,
     save_circuit,
 )
+from .targets.devices import get_available_device_names, get_device_by_name
+from .targets.gatesets import get_native_gateset_by_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from types import ModuleType
