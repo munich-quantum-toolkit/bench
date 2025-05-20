@@ -17,7 +17,8 @@ import pytest
 from pytest_console_scripts import ScriptRunner
 from qiskit.qasm3 import dumps
 
-from mqt.bench import CompilerSettings, QiskitSettings, get_benchmark
+from mqt.bench import CompilerSettings, QiskitSettings
+from mqt.bench.benchmark_generation import get_benchmark_cli as get_benchmark
 
 if TYPE_CHECKING:
     from pytest_console_scripts import ScriptResult, ScriptRunner
@@ -52,35 +53,20 @@ if TYPE_CHECKING:
              "--level", "nativegates",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-             "--gateset", "ibm_falcon",
-         ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, gateset="ibm_falcon"))),
+             "--target", "ibm_falcon",
+         ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, target="ibm_falcon"))),
         ([
              "--level", "mapped",
              "--algorithm", "ghz",
              "--num-qubits", "20",
              "--qiskit-optimization-level", "2",
-             "--gateset", "ibm_falcon",
-             "--device", "ibm_montreal",
+             "--target", "ibm_montreal",
          ], dumps(get_benchmark(
             level="mapped",
             benchmark_name="ghz",
             circuit_size=20,
             compiler_settings=CompilerSettings(QiskitSettings(optimization_level=2)),
-            gateset="ibm_falcon",
-            device_name="ibm_montreal",
-        ))),
-        ([
-             "--level", "mapped",
-             "--algorithm", "ghz",
-             "--num-qubits", "20",
-             "--qiskit-optimization-level", "2",
-             "--device", "ibm_montreal",
-         ], dumps(get_benchmark(
-            level="mapped",
-            benchmark_name="ghz",
-            circuit_size=20,
-            compiler_settings=CompilerSettings(QiskitSettings(optimization_level=2)),
-            device_name="ibm_montreal",
+            target="ibm_montreal",
         ))),
         (["--help"], "usage: mqt.bench.cli"),
     ],

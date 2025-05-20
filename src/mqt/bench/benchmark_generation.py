@@ -21,6 +21,7 @@ from .output import (
     OutputFormat,
     save_circuit,
 )
+from .targets import get_device_by_name
 from .targets.gatesets import get_native_gateset_by_name
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -396,6 +397,49 @@ def get_mapped_level(
         output_format=output_format,
         target=device,
         target_directory=target_directory,
+    )
+
+
+def get_benchmark_cli(
+    benchmark_name: str,
+    level: str | int,
+    circuit_size: int | None = None,
+    benchmark_instance_name: str | None = None,
+    compiler_settings: CompilerSettings | None = None,
+    target: str | None = "",
+    **kwargs: str,
+) -> QuantumCircuit:
+    """Returns one benchmark as a qiskit.QuantumCircuit object."""
+    if level == "nativegates" or level == 2:
+        assert target
+        return get_benchmark(
+            benchmark_name=benchmark_name,
+            level=level,
+            circuit_size=circuit_size,
+            benchmark_instance_name=benchmark_instance_name,
+            compiler_settings=compiler_settings,
+            target=get_native_gateset_by_name(target),
+            **kwargs,
+        )
+    if level == "mapped" or level == 3:
+        assert target
+        return get_benchmark(
+            benchmark_name=benchmark_name,
+            level=level,
+            circuit_size=circuit_size,
+            benchmark_instance_name=benchmark_instance_name,
+            compiler_settings=compiler_settings,
+            target=get_device_by_name(target),
+            **kwargs,
+        )
+    return get_benchmark(
+        benchmark_name=benchmark_name,
+        level=level,
+        circuit_size=circuit_size,
+        benchmark_instance_name=benchmark_instance_name,
+        compiler_settings=compiler_settings,
+        target=None,
+        **kwargs,
     )
 
 

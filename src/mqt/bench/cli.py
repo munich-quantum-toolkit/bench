@@ -18,8 +18,8 @@ from pathlib import Path
 from mqt.bench.targets.devices import get_device_by_name
 from mqt.bench.targets.gatesets import get_native_gateset_by_name
 
-from . import CompilerSettings, QiskitSettings, get_benchmark
-from .benchmark_generation import generate_filename
+from . import CompilerSettings, QiskitSettings
+from .benchmark_generation import generate_filename, get_benchmark_cli
 from .output import OutputFormat, save_circuit, write_circuit
 
 
@@ -71,14 +71,9 @@ def main() -> None:
         help="Qiskit compiler optimization level (0-3).",
     )
     parser.add_argument(
-        "--gateset",
+        "--target",
         type=str,
-        help="Used gateset (e.g., 'iqm', 'rigetti').",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        help="Device name for mapping stage (e.g., 'ibm_washington').",
+        help="Target name for native gates and mapped level (e.g., 'ibm_falcon' for the native gateset level or 'ibm_washington' for the mapping level).",
     )
     parser.add_argument(
         "--output-format",
@@ -110,14 +105,13 @@ def main() -> None:
     benchmark_name, benchmark_instance = parse_benchmark_name_and_instance(args.algorithm)
 
     # Generate circuit
-    circuit = get_benchmark(
+    circuit = get_benchmark_cli(
         benchmark_name=benchmark_name,
         benchmark_instance_name=benchmark_instance,
         level=args.level,
         circuit_size=args.num_qubits,
         compiler_settings=CompilerSettings(qiskit=qiskit_settings),
-        gateset=args.gateset or "ibm_falcon",
-        device_name=args.device or "ibm_washington",
+        target=args.target,
     )
 
     try:
@@ -131,10 +125,14 @@ def main() -> None:
         write_circuit(circuit, sys.stdout, fmt)
         return
 
-    if args.gateset is not None:
-        target = get_native_gateset_by_name(args.gateset)
-    elif args.device is not None:
-        target = get_device_by_name(args.device)
+    if args.target is not None:
+        if args.level == "nativegates":
+            target = get_native_gateset_by_name(args.gateset)
+        elif args.level == "mapped":
+            target = get_device_by_name(args.target)
+        else:
+            msg = f"Target '{args.target}' is not valid for level '{args.level}'."
+            raise ValueError(msg) from None
     else:
         target = None
 
