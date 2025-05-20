@@ -6,23 +6,13 @@
 #
 # Licensed under the MIT License
 
-"""File to create a target device from the IQM calibration data."""
+"""File to create target devices for IQM with hardcoded mean calibration data."""
 
 from __future__ import annotations
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CZGate, Measure, RGate
 from qiskit.transpiler import InstructionProperties, Target
-
-# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
-# Copyright (c) 2025 Munich Quantum Software Company GmbH
-# All rights reserved.
-#
-# SPDX-License-Identifier: MIT
-#
-# Licensed under the MIT License
-
-"""File to create target devices for IQM with hardcoded mean calibration data."""
 
 
 def get_iqm_target(device_name: str) -> Target:
