@@ -46,7 +46,7 @@ from qiskit.transpiler import Target
 
 
 def get_clifford_t_gateset() -> list[Instruction]:
-    """Returns the native gateset for the Clifford+T target."""
+    """Returns the native gateset for Clifford+T."""
     return [
         IGate(),
         XGate(),
@@ -71,7 +71,7 @@ def get_clifford_t_gateset() -> list[Instruction]:
 
 
 def get_clifford_t_rotations_gateset() -> list[Instruction]:
-    """Returns the native gateset for the Clifford+T target."""
+    """Returns the native gateset for the Clifford+T plus rotation gates."""
     alpha = Parameter("alpha")
     beta = Parameter("beta")
     gamma = Parameter("gamma")
