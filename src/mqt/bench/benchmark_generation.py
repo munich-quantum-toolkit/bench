@@ -199,19 +199,11 @@ def get_indep_level(
     if file_precheck and path.is_file():
         return True
 
-    openqasm_gates = get_openqasm_gates()
-    target_independent = transpile(
-        qc,
-        basis_gates=openqasm_gates,
-        optimization_level=1,
-        seed_transpiler=10,
-    )
-
     if return_qc:
-        return target_independent
+        return qc
 
     return save_circuit(
-        qc=target_independent,
+        qc=qc,
         filename=filename_indep,
         output_format=output_format,
         target_directory=target_directory,
@@ -291,9 +283,10 @@ def get_native_gates_level(
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
         # Transpile the circuit to single- and two-qubit gates including rotations
+        clifford_t_rotations = get_native_gateset_by_name("clifford+t+rotations")
         compiled_for_sk = transpile(
             qc,
-            basis_gates=[*target.operation_names, "rx", "ry", "rz"],
+            target=clifford_t_rotations,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
@@ -305,12 +298,12 @@ def get_native_gates_level(
         # Transpile once more to remove unnecessary gates and optimize the circuit
         compiled = transpile(
             new_qc,
-            basis_gates=target.operation_names,
+            target=target,
             optimization_level=opt_level,
             seed_transpiler=10,
         )
     else:
-        compiled = transpile(qc, basis_gates=target.operation_names, optimization_level=opt_level, seed_transpiler=10)
+        compiled = transpile(qc, target=target, optimization_level=opt_level, seed_transpiler=10)
 
     if return_qc:
         return compiled
@@ -390,8 +383,7 @@ def get_mapped_level(
 
     compiled = transpile(
         qc,
-        basis_gates=device.operation_names,
-        coupling_map=device.build_coupling_map(),
+        target=device,
         optimization_level=opt_level,
         seed_transpiler=10,
     )

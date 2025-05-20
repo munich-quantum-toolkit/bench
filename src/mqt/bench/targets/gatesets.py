@@ -70,6 +70,37 @@ def get_clifford_t_gateset() -> list[Instruction]:
     ]
 
 
+def get_clifford_t_rotations_gateset() -> list[Instruction]:
+    """Returns the native gateset for the Clifford+T target."""
+    alpha = Parameter("alpha")
+    beta = Parameter("beta")
+    gamma = Parameter("gamma")
+    return [
+        IGate(),
+        XGate(),
+        YGate(),
+        ZGate(),
+        HGate(),
+        SGate(),
+        SdgGate(),
+        TGate(),
+        TdgGate(),
+        SXGate(),
+        SXdgGate(),
+        CXGate(),
+        CYGate(),
+        CZGate(),
+        SwapGate(),
+        iSwapGate(),
+        DCXGate(),
+        ECRGate(),
+        Measure(),
+        RXGate(alpha),
+        RYGate(beta),
+        RZGate(gamma),
+    ]
+
+
 @cache
 def get_available_native_gatesets() -> dict[str, list[Instruction]]:
     """Return a list of available native gatesets."""
@@ -81,6 +112,7 @@ def get_available_native_gatesets() -> dict[str, list[Instruction]]:
         "quantinuum": get_quantinuum_gateset(),
         "rigetti": get_rigetti_gateset(),
         "clifford+t": get_clifford_t_gateset(),
+        "clifford+t+rotations": get_clifford_t_rotations_gateset(),
     }
 
 
