@@ -21,7 +21,6 @@ from .output import (
     OutputFormat,
     save_circuit,
 )
-from .targets.devices import get_available_device_names, get_device_by_name
 from .targets.gatesets import get_native_gateset_by_name
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -406,8 +405,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     benchmark_instance_name: str | None = None,
     compiler_settings: CompilerSettings | None = None,
-    gateset: str | Target = "ibm_falcon",
-    device_name: str = "ibm_washington",
+    target: Target | None = None,
     **kwargs: str,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
@@ -418,8 +416,7 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         benchmark_instance_name: Input selection for some benchmarks, namely "shor"
         compiler_settings: Data class containing the respective compiler settings for the specified compiler (e.g., optimization level for Qiskit)
-        gateset: Name of the gateset or tuple containing the name of the gateset and the gateset itself (required for "nativegates" level)
-        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "quantinuum_h2" (required for "mapped" level)
+        target: Qiskit's Target for the benchmark generation (only used for "nativegates" and "mapped" level)
         kwargs: Additional arguments for the benchmark generation
 
     Returns:
@@ -478,26 +475,19 @@ def get_benchmark(
 
     native_gates_level = 2
     if level in ("nativegates", native_gates_level):
-        if isinstance(gateset, str):
-            gateset = get_native_gateset_by_name(gateset, num_qubits=qc.num_qubits)
         assert compiler_settings.qiskit is not None
         opt_level = compiler_settings.qiskit.optimization_level
-        return get_native_gates_level(qc, gateset, circuit_size, opt_level, False, True)
-
-    if device_name not in get_available_device_names():
-        msg = f"Selected device_name must be in {get_available_device_names()}."
-        raise ValueError(msg)
+        return get_native_gates_level(qc, target, circuit_size, opt_level, False, True)
 
     mapped_level = 3
     if level in ("mapped", mapped_level):
-        device = get_device_by_name(device_name)
         assert compiler_settings.qiskit is not None
         opt_level = compiler_settings.qiskit.optimization_level
         assert isinstance(opt_level, int)
         return get_mapped_level(
             qc,
             circuit_size,
-            device,
+            target,
             opt_level,
             False,
             True,

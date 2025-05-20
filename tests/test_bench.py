@@ -20,6 +20,9 @@ from typing import TYPE_CHECKING, NoReturn
 from qiskit.circuit.library import CXGate, HGate, XGate
 from qiskit.transpiler import InstructionProperties, Target
 
+from mqt.bench.targets.devices import get_device_by_name
+from mqt.bench.targets.gatesets import get_native_gateset_by_name
+
 if TYPE_CHECKING:  # pragma: no cover
     import types
 
@@ -75,11 +78,9 @@ from mqt.bench.output import (
 )
 from mqt.bench.targets.devices import (
     get_available_devices,
-    get_device_by_name,
 )
 from mqt.bench.targets.gatesets import (
     get_available_native_gatesets,
-    get_native_gateset_by_name,
 )
 
 
@@ -352,30 +353,28 @@ def test_dj_constant_oracle() -> None:
         "circuit_size",
         "benchmark_instance_name",
         "compiler_settings",
-        "gateset_name",
-        "device_name",
+        "target",
     ),
     [
         # Algorithm-level tests
-        ("dj", "alg", 3, None, None, "", ""),
-        ("wstate", 0, 3, None, None, "", ""),
-        ("shor", "alg", None, "xsmall", None, "", ""),
-        ("grover-noancilla", "alg", 3, None, None, "", ""),
-        ("qwalk-v-chain", "alg", 3, None, None, "", ""),
+        ("dj", "alg", 3, None, None, None),
+        ("wstate", 0, 3, None, None, None),
+        ("shor", "alg", None, "xsmall", None, None),
+        ("grover-noancilla", "alg", 3, None, None, None),
+        ("qwalk-v-chain", "alg", 3, None, None, None),
         # Independent level tests
-        ("ghz", "indep", 3, None, None, "", ""),
-        ("graphstate", 1, 3, None, None, "", ""),
+        ("ghz", "indep", 3, None, None, None),
+        ("graphstate", 1, 3, None, None, None),
         # Native gates level tests
         (
             "dj",
             "nativegates",
-            3,
+            2,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
-            "ionq",
-            "",
+            get_native_gateset_by_name("ionq"),
         ),
-        ("qft", 2, 3, None, None, "rigetti", "rigetti_aspen_m3"),
+        ("qft", 2, 3, None, None, get_native_gateset_by_name("rigetti")),
         # Mapped level tests
         (
             "ghz",
@@ -383,11 +382,17 @@ def test_dj_constant_oracle() -> None:
             3,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
-            "",
-            "ibm_washington",
+            get_device_by_name("ibm_washington"),
         ),
-        ("ghz", 3, 3, None, None, "ibm_falcon", "ibm_montreal"),
-        ("ghz", 3, 3, None, CompilerSettings(qiskit=QiskitSettings(optimization_level=0)), "", "ionq_aria1"),
+        ("ghz", 3, 3, None, None, get_device_by_name("ibm_montreal")),
+        (
+            "ghz",
+            3,
+            3,
+            None,
+            CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
+            get_device_by_name("ionq_aria1"),
+        ),
     ],
 )
 def test_get_benchmark(
@@ -396,8 +401,7 @@ def test_get_benchmark(
     circuit_size: int | None,
     benchmark_instance_name: str | None,
     compiler_settings: CompilerSettings | None,
-    gateset_name: str,
-    device_name: str,
+    target: Target,
 ) -> None:
     """Test the creation of the benchmarks using the get_benchmark method."""
     qc = get_benchmark(
@@ -406,18 +410,15 @@ def test_get_benchmark(
         circuit_size,
         benchmark_instance_name,
         compiler_settings,
-        gateset_name,
-        device_name,
+        target,
     )
     assert qc.depth() > 0
-    if gateset_name:
+    if target:
         assert isinstance(qc, QuantumCircuit)
         for qc_instruction in qc.data:
             instruction = qc_instruction.operation
             gate_type = instruction.name
-            gateset = get_native_gateset_by_name(gateset_name)
-            gates = {inst.name for inst, _ in gateset.instructions}
-            assert gate_type in gates or gate_type == "barrier"
+            assert gate_type in target.operation_names or gate_type == "barrier"
 
 
 def test_get_benchmark_faulty_parameters() -> None:
@@ -433,8 +434,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "wrong_size",
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            "rigetti",
-            "rigetti_aspen_m3",
+            get_device_by_name("rigetti_aspen_m3"),
         )
     match = "circuit_size must be None or int for this benchmark."
     with pytest.raises(ValueError, match=match):
@@ -444,8 +444,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             -1,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            "rigetti",
-            "rigetti_aspen_m3",
+            get_device_by_name("rigetti_aspen_m3"),
         )
 
     match = "benchmark_instance_name must be defined for this benchmark."
@@ -456,8 +455,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             2,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            "rigetti",
-            "rigetti_aspen_m3",
+            get_device_by_name("rigetti_aspen_m3"),
         )
 
     match = "compiler_settings must be of type CompilerSettings or None"
@@ -468,8 +466,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             None,
             "wrong_compiler_settings",
-            "rigetti",
-            "rigetti_aspen_m3",
+            get_device_by_name("rigetti_aspen_m3"),
         )
     match = "Gateset 'wrong_gateset' not found in available gatesets."
     with pytest.raises(ValueError, match=match):
@@ -479,10 +476,9 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            "wrong_gateset",
-            "rigetti_aspen_m3",
+            get_native_gateset_by_name("wrong_gateset"),
         )
-    match = "Selected device_name must be in"
+    match = "Device 'wrong_device' not found."
     with pytest.raises(ValueError, match=match):
         get_benchmark(
             "qpeexact",
@@ -490,8 +486,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            "rigetti",
-            "wrong_device",
+            get_device_by_name("wrong_device"),
         )
 
 
@@ -517,12 +512,13 @@ def test_saving_qasm_to_alternative_location_with_alternative_filename(
     """Test saving the qasm file to an alternative location with an alternative filename."""
     directory = "."
     filename = "ae_test_qiskit"
-    qc = get_benchmark("ae", abstraction_level, 5)
+    target = get_device_by_name("ibm_washington")
+    qc = get_benchmark("ae", abstraction_level, 5, target=target)
     assert qc
     res = get_mapped_level(
         qc,
         qc.num_qubits,
-        get_device_by_name("ibm_washington"),
+        target,
         1,
         False,
         False,
@@ -541,7 +537,7 @@ def test_clifford_t() -> None:
         benchmark_name="qft",
         level="nativegates",
         circuit_size=4,
-        gateset="clifford+t",
+        target=get_native_gateset_by_name("clifford+t"),
     )
 
     clifford_target = get_native_gateset_by_name("clifford+t", num_qubits=4)

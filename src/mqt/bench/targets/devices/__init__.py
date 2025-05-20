@@ -56,5 +56,5 @@ def get_device_by_name(device_name: str) -> Target:
     try:
         return _device_map()[device_name]
     except KeyError:
-        msg = f"Device {device_name} not found."
+        msg = f"Device '{device_name}' not found."
         raise ValueError(msg) from None
