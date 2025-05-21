@@ -41,7 +41,8 @@ Nevertheless, please try to follow the guidelines below as well as you can to he
 - ["Commit early and push often"](https://www.worklytics.co/blog/commit-early-push-often).
 - Write meaningful commit messages, preferably using [gitmoji](https://gitmoji.dev) for additional context.
 - Focus on a single feature or bug at a time and only touch relevant files. Split multiple features into separate contributions.
-- Add tests for new features to ensure they work as intended. Document new features appropriately.
+- Add tests for new features to ensure they work as intended.
+- Document new features appropriately. For user-facing changes, add an entry to the `CHANGELOG.md` file. In case of breaking changes, please also update the `UPGRADING.md` file.
 - Add tests for bug fixes to demonstrate that the bug has been resolved.
 - Document your code thoroughly and ensure it is readable.
 - Keep your code clean by removing debug statements, leftover comments, and unrelated code.
@@ -52,7 +53,7 @@ Nevertheless, please try to follow the guidelines below as well as you can to he
 ## Pull Request Workflow
 
 - Create PRs early. It is ok to create work-in-progress PRs. You may mark these as draft PRs on GitHub.
-- Describe your PR with a descriptive title, reference any related issues by including the issue number in the PR description, and add a comprehensive description of the changes. Follow the provided PR template and do not delete any sections, except for the issue reference if your PR is unrelated to an issue.
+- Describe your PR with a descriptive title, reference any related issues by including the issue number in the PR description, and add a comprehensive description of the changes. Follow the provided PR template and do not delete any sections, except for the issue reference if your PR is not related to an issue.
 - Whenever a PR is created or updated, several workflows on all supported platforms and versions of Python are executed. These workflows ensure that the project still builds, all tests pass, the code is properly formatted, and no new linting errors are introduced. Your PR must pass all these continuous integration (CI) checks before it can be merged.
 - Once your PR is ready, change it from a draft PR to a regular PR and request a review from one of the project maintainers. Only request a review once you are done with your changes and the PR is ready to be reviewed. If you are unsure whether your PR is ready, ask in the PR comments. If you are a first-time contributor, request a review from one of the maintainers by mentioning them in a comment on the PR.
 - If your PR gets a "Changes requested" review, address the feedback and update your PR by pushing to the same branch. Do not close the PR and open a new one. Respond to review comments on the PR (e.g., with "done 👍" or "done in @<commit>") to let the reviewer know that you have addressed the feedback. Note that reviewers do not get a notification if you just react to the review comment with an emoji. Write a comment to notify the reviewer. Do not resolve the review comments yourself. The reviewer will mark the comments as resolved once they are satisfied with the changes.

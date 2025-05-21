@@ -27,7 +27,7 @@ categories:
       - "submodules"
       - "github_actions"
       - "pre-commit"
-change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-template: "- $TITLE ([#$NUMBER]($URL)) ([**@$AUTHOR**](https://github.com/$AUTHOR))"
 change-title-escapes: '\<*_&'
 version-resolver:
   major:
@@ -43,6 +43,8 @@ version-resolver:
 
 template: |
   ## 👀 What Changed
+
+  _Please refer to the [changelog](https://github.com/$OWNER/$REPOSITORY/blob/main/CHANGELOG.md) and the [upgrade guide](https://github.com/$OWNER/$REPOSITORY/blob/main/UPGRADING.md) for a structured overview of the changes._
 
   $CHANGES
 
