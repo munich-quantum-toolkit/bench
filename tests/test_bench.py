@@ -17,7 +17,8 @@ from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn
 
-from qiskit.circuit.library import CXGate, HGate, XGate
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import CXGate, HGate, XGate, RXGate, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
 from mqt.bench.targets.devices import get_device_by_name
@@ -644,6 +645,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "// Coupling map:" not in hdr
 
 
+
 def test_generate_header_with_options(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the generation of a header with options."""
     monkeypatch.setattr(metadata, "version", lambda _: "0.1.0")
@@ -832,3 +834,32 @@ def test_stream_mode_mismatch_raises() -> None:
     # Text stream + QPY → error
     with pytest.raises(MQTBenchExporterError):
         write_circuit(qc, io.StringIO(), fmt=OutputFormat.QPY)
+
+def test_custom_target_with_unsupported_gateset() -> None:
+    """Test the compilation with an external target that is not part of the pre-defined ones."""
+    target = Target(num_qubits=3, description="custom_target")
+    alpha = Parameter("alpha")
+    beta = Parameter("beta")
+
+    target.add_instruction(RXGate(alpha))
+    target.add_instruction(RZGate(beta))
+    # === Two-qubit CX gate on limited connectivity
+    cx_props = {
+        (0, 1): InstructionProperties(),
+        (1, 2): InstructionProperties(),
+        (0, 2): InstructionProperties(),
+    }
+    target.add_instruction(CXGate(), cx_props)
+
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+
+    qc_native_gates = get_native_gates_level(qc, target, 2, 0, False, True)
+    assert qc_native_gates.depth() > 0
+    assert qc_native_gates.layout is None
+
+    qc_mapped = get_mapped_level(qc, qc.num_qubits, target, 0, False, True)
+    assert qc_mapped.depth() > 0
+    assert qc_mapped.layout is not None
+
