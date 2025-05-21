@@ -275,8 +275,6 @@ def _build_rigetti_target(
     target.add_instruction(Measure(), measure_props)
 
     # === Add two-qubit gates ===
-
-    # === Add two-qubit RZZ gates ===
     cp_props = {(q1, q2): InstructionProperties(error=twoq_error_cp) for q1, q2 in connectivity}
     cz_props = {(q1, q2): InstructionProperties(error=twoq_error_cz) for q1, q2 in connectivity}
     xy_props = {(q1, q2): InstructionProperties(error=twoq_error_xy) for q1, q2 in connectivity}

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypedDict, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 from qiskit.compiler import transpile
 from qiskit.transpiler import Target
@@ -39,25 +39,6 @@ from qiskit.transpiler.preset_passmanagers import (
     level_2_pass_manager,
     level_3_pass_manager,
 )
-
-
-class Benchmark(TypedDict, total=False):
-    """Data class for the benchmark generation configuration."""
-
-    name: str
-    include: bool
-    min_qubits: int
-    max_qubits: int
-    min_nodes: int
-    max_nodes: int
-    min_index: int
-    max_index: int
-    min_uncertainty: int
-    max_uncertainty: int
-    instances: list[str]
-    ancillary_mode: list[str]
-    stepsize: int
-    precheck_possible: bool
 
 
 @dataclass
