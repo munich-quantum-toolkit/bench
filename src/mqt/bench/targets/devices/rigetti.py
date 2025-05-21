@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RXGate, RZGate
+from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RXGate, RZGate, XXPlusYYGate
 from qiskit.transpiler import InstructionProperties, Target
 
 
@@ -264,7 +264,6 @@ def _build_rigetti_target(
     alpha = Parameter("alpha")
     beta = Parameter("beta")
     gamma = Parameter("gamma")
-    delta = Parameter("delta")
     theta = Parameter("theta")
 
     # === Add single-qubit gates ===
@@ -282,7 +281,7 @@ def _build_rigetti_target(
     cz_props = {(q1, q2): InstructionProperties(error=twoq_error_cz) for q1, q2 in connectivity}
     xy_props = {(q1, q2): InstructionProperties(error=twoq_error_xy) for q1, q2 in connectivity}
     target.add_instruction(CPhaseGate(gamma), cp_props)
-    target.add_instruction(CZGate(delta), cz_props)
-    target.add_instruction(CPhaseGate(theta), xy_props)
+    target.add_instruction(CZGate(), cz_props)
+    target.add_instruction(XXPlusYYGate(theta), xy_props)
 
     return target

@@ -22,7 +22,7 @@ def test_quantinuum_target_structure() -> None:
     # Basic metadata
     assert isinstance(target, Target)
     assert target.description == "quantinuum_h2"
-    assert target.num_qubits == 32  # adjust if your calibration changes
+    assert target.num_qubits == 56  # adjust if your calibration changes
 
     # Ensure all expected gates are supported
     expected_gates = {"rx", "ry", "rz", "rzz", "measure"}
