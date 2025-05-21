@@ -19,9 +19,11 @@ from mqt.bench.targets.devices.ibm import get_ibm_target
 @pytest.mark.parametrize(
     ("device_name", "num_qubits", "expected_2q_gate"),
     [
-        ("ibm_montreal", 27, "cx"),
-        ("ibm_washington", 127, "cx"),
-        ("ibm_torino", 133, "cz"),
+        ("ibm_falcon_27", 27, "cx"),
+        ("ibm_falcon_127", 127, "cx"),
+        ("ibm_eagle_127", 127, "ecr"),
+        ("ibm_heron_133", 133, "cz"),
+        ("ibm_heron_156", 156, "cz"),
     ],
 )
 def test_ibm_target_structure(device_name: str, num_qubits: int, expected_2q_gate: str) -> None:
