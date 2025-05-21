@@ -179,8 +179,8 @@ extend-select = [
     "SLF",         # flake8-self
     "SLOT",        # flake8-slots
     "SIM",         # flake8-simplify
-    "TC",         # flake8-type-checking
-    "TID",         # flake8-tidy-imports
+    "TC",          # flake8-type-checking
+    "TID251",      # flake8-tidy-imports
     "TRY",         # tryceratops
     "UP",          # pyupgrade
     "YTT",         # flake8-2020
