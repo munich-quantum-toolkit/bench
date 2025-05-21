@@ -76,12 +76,11 @@ def generate_filename(
         all relevant metadata for reproducibility and clarity.
     """
     base = f"{benchmark_name}_{level}"
-
-    # sanitize the target.description to remove any special characters etc. Make it smart.
-    description = target.description.strip().split(" ")[0] if target else ""
-
     if level in {"nativegates", "mapped"}:
         assert opt_level is not None
+        assert target is not None
+        # sanitize the target.description to remove any special characters etc.
+        description = target.description.strip().split(" ")[0]
         return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"
