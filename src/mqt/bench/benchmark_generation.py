@@ -387,7 +387,6 @@ def get_benchmark(
     benchmark_instance_name: str | None = None,
     compiler_settings: CompilerSettings | None = None,
     target: Target | None = None,
-    **kwargs: str,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
@@ -397,8 +396,7 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         benchmark_instance_name: Input selection for some benchmarks, namely "shor"
         compiler_settings: Data class containing the respective compiler settings for the specified compiler (e.g., optimization level for Qiskit)
-        target: Qiskit's Target for the benchmark generation (only used for "nativegates" and "mapped" level)
-        kwargs: Additional arguments for the benchmark generation
+        target: `~qiskit.transpiler.target.Target` for the benchmark generation (only used for "nativegates" and "mapped" level)
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
