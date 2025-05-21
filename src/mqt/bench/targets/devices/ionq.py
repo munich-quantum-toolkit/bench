@@ -27,9 +27,12 @@ def get_ionq_target(device_name: str) -> Target:
 
 def get_ionq_aria1_target() -> Target:
     """Get the target device for IonQ Aria1."""
+    num_qubits = 25
+    connectivity = [[a, b] for a in range(num_qubits) for b in range(num_qubits) if a != b]
     return _build_ionq_target(
-        num_qubits=25,
+        num_qubits=num_qubits,
         description="ionq_aria1",
+        connectivity=connectivity,
         oneq_duration=135e-6,
         twoq_duration=600e-6,
         readout_duration=300e-6,
@@ -41,9 +44,12 @@ def get_ionq_aria1_target() -> Target:
 
 def get_ionq_harmony_target() -> Target:
     """Get the target device for IonQ Harmony."""
+    num_qubits = 11
+    connectivity = [[a, b] for a in range(num_qubits) for b in range(num_qubits) if a != b]
     return _build_ionq_target(
-        num_qubits=11,
+        num_qubits=num_qubits,
         description="ionq_harmony",
+        connectivity=connectivity,
         oneq_duration=10e-6,
         twoq_duration=200e-6,
         readout_duration=130e-6,
@@ -57,6 +63,7 @@ def _build_ionq_target(
     *,
     num_qubits: int,
     description: str,
+    connectivity: list[list[int]],
     oneq_duration: float,
     twoq_duration: float,
     readout_duration: float,
@@ -64,46 +71,38 @@ def _build_ionq_target(
     twoq_fidelity: float,
     spam_fidelity: float,
 ) -> Target:
-    """Construct an IonQ target with all-to-all connectivity and parametric gates."""
+    """Construct a hardcoded IonQ target using mean values."""
     target = Target(description=description)
 
-    # Parameters for parametric gates
     theta = Parameter("theta")
     phi = Parameter("phi")
     lam = Parameter("lambda")
     alpha = Parameter("alpha")
 
-    # Define basis gates
     rx_gate = RXGate(theta)
     ry_gate = RYGate(phi)
     rz_gate = RZGate(lam)
     rxx_gate = RXXGate(alpha)
     measure_gate = Measure()
 
-    # Add single-qubit gates
-    target.add_instruction(
-        rx_gate,
-        {(q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity) for q in range(num_qubits)},
-    )
-    target.add_instruction(
-        ry_gate,
-        {(q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity) for q in range(num_qubits)},
-    )
-    target.add_instruction(rz_gate, {(q,): InstructionProperties(duration=0.0, error=0.0) for q in range(num_qubits)})
-    target.add_instruction(
-        measure_gate,
-        {(q,): InstructionProperties(duration=readout_duration, error=1 - spam_fidelity) for q in range(num_qubits)},
-    )
+    # === Add single-qubit gates ===
+    singleq_props = {
+        (q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity) for q in range(num_qubits)
+    }
+    rz_props = {(q,): InstructionProperties(duration=0.0, error=0.0) for q in range(num_qubits)}
+    measure_props = {
+        (q,): InstructionProperties(duration=readout_duration, error=1 - spam_fidelity) for q in range(num_qubits)
+    }
 
-    # Add two-qubit gates (all-to-all connectivity)
-    target.add_instruction(
-        rxx_gate,
-        {
-            (q1, q2): InstructionProperties(duration=twoq_duration, error=1 - twoq_fidelity)
-            for q1 in range(num_qubits)
-            for q2 in range(num_qubits)
-            if q1 != q2
-        },
-    )
+    target.add_instruction(rx_gate, singleq_props)
+    target.add_instruction(ry_gate, singleq_props)
+    target.add_instruction(rz_gate, rz_props)
+    target.add_instruction(measure_gate, measure_props)
 
+    # === Add two-qubit gates ===
+    twoq_props = {
+        (q1, q2): InstructionProperties(duration=twoq_duration, error=1 - twoq_fidelity) for q1, q2 in connectivity
+    }
+
+    target.add_instruction(rxx_gate, twoq_props)
     return target

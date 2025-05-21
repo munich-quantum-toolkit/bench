@@ -104,23 +104,17 @@ def _build_iqm_target(
     theta = Parameter("theta")
     phi = Parameter("phi")
 
-    # === Single-qubit R gate ===
+    # === Add single-qubit gates ===
     r_props = {(q,): InstructionProperties(duration=oneq_duration, error=oneq_error) for q in range(num_qubits)}
-    target.add_instruction(RGate(theta, phi), r_props)
-
-    # === Per-qubit measurement ===
     measure_props = {
         (q,): InstructionProperties(duration=readout_duration, error=readout_error) for q in range(num_qubits)
     }
+
+    target.add_instruction(RGate(theta, phi), r_props)
     target.add_instruction(Measure(), measure_props)
 
-    # === Two-qubit CZ gate ===
-    cz_props = {}
-    for q1, q2 in connectivity:
-        props = InstructionProperties(duration=twoq_duration, error=twoq_error)
-        cz_props[q1, q2] = props
-        cz_props[q2, q1] = props  # assume symmetric
-
+    # === Add two-qubit gates ===
+    cz_props = {(q1, q2): InstructionProperties(duration=twoq_duration, error=twoq_error) for q1, q2 in connectivity}
     target.add_instruction(CZGate(), cz_props)
 
     return target

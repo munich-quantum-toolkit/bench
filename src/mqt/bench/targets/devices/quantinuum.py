@@ -10,32 +10,42 @@
 
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING
-
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RXGate, RYGate, RZGate, RZZGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from .calibration import get_device_calibration_path
 
-if TYPE_CHECKING:
-    from pathlib import Path
+def get_quantinuum_target(device_name: str) -> Target:
+    """Get a hardcoded Quantinuum target device by name."""
+    if device_name == "quantinuum_h2":
+        return get_quantinuum_h2_target()
+    msg = f"Unknown Quantinuum device: {device_name}"
+    raise ValueError(msg)
 
 
-def create_quantinuum_target(calibration_path: Path) -> Target:
-    """Create a target device from the Quantinuum calibration data."""
-    with calibration_path.open() as json_file:
-        calib = json.load(json_file)
+def get_quantinuum_h2_target() -> Target:
+    """Get the target device for Quantinuum H2."""
+    num_qubits = 56
+    connectivity = [[a, b] for a in range(num_qubits) for b in range(num_qubits) if a != b]
+    return _build_quantinuum_target(
+        name="quantinuum_h2",
+        num_qubits=num_qubits,
+        connectivity=connectivity,
+        oneq_error=0.00003,
+        twoq_error=0.0015,
+        spam_error=0.0015,
+    )
 
-    num_qubits = calib["num_qubits"]
-    connectivity = calib["connectivity"]
-    name = calib["name"]
 
-    oneq_fidelity = calib["fidelity"]["1q"]["mean"]
-    twoq_fidelity = calib["fidelity"]["2q"]["mean"]
-    spam_fidelity = calib["fidelity"]["spam"]["mean"]
-
+def _build_quantinuum_target(
+    name: str,
+    num_qubits: int,
+    connectivity: list[list[int]],
+    oneq_error: float,
+    twoq_error: float,
+    spam_error: float,
+) -> Target:
+    """Construct a hardcoded Quantinuum target using mean values."""
     target = Target(num_qubits=num_qubits, description=name)
 
     # Define symbolic parameters
@@ -44,23 +54,16 @@ def create_quantinuum_target(calibration_path: Path) -> Target:
     alpha = Parameter("alpha")
 
     # === Add single-qubit gates ===
-    rx_props = {(q,): InstructionProperties(error=1 - oneq_fidelity) for q in range(num_qubits)}
-    ry_props = {(q,): InstructionProperties(error=1 - oneq_fidelity) for q in range(num_qubits)}
-    rz_props = {(q,): InstructionProperties(error=0.0) for q in range(num_qubits)}
-    measure_props = {(q,): InstructionProperties(error=1 - spam_fidelity) for q in range(num_qubits)}
+    single_qubit_gate_props = {(q,): InstructionProperties(error=oneq_error) for q in range(num_qubits)}
+    measure_props = {(q,): InstructionProperties(error=spam_error) for q in range(num_qubits)}
 
-    target.add_instruction(RXGate(theta), rx_props)
-    target.add_instruction(RYGate(phi), ry_props)
-    target.add_instruction(RZGate(theta), rz_props)
+    target.add_instruction(RXGate(theta), single_qubit_gate_props)
+    target.add_instruction(RYGate(phi), single_qubit_gate_props)
+    target.add_instruction(RZGate(theta), single_qubit_gate_props)
     target.add_instruction(Measure(), measure_props)
 
     # === Add two-qubit RZZ gates ===
-    rzz_props = {(q1, q2): InstructionProperties(error=1 - twoq_fidelity) for q1, q2 in connectivity}
+    rzz_props = {(q1, q2): InstructionProperties(error=twoq_error) for q1, q2 in connectivity}
     target.add_instruction(RZZGate(alpha), rzz_props)
 
     return target
-
-
-def get_quantinuum_target(device_name: str) -> Target:
-    """Get a target device from the Quantinuum calibration data."""
-    return create_quantinuum_target(get_device_calibration_path(device_name))
