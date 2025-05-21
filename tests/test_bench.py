@@ -43,7 +43,6 @@ from mqt.bench.benchmark_generation import (
     get_mapped_level,
     get_module_for_benchmark,
     get_native_gates_level,
-    get_openqasm_gates,
     get_supported_benchmarks,
 )
 from mqt.bench.benchmarks import (
@@ -316,13 +315,6 @@ def test_quantumcircuit_native_and_mapped_levels(
                 target_directory=output_path,
             )
             assert res
-
-
-def test_openqasm_gates() -> None:
-    """Test the openqasm gates."""
-    openqasm_gates = get_openqasm_gates()
-    num_openqasm_gates = 42
-    assert len(openqasm_gates) == num_openqasm_gates
 
 
 def test_bv() -> None:

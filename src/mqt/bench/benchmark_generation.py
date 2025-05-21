@@ -550,55 +550,6 @@ def get_supported_levels() -> list[str | int]:
     return ["alg", "indep", "nativegates", "mapped", 0, 1, 2, 3]
 
 
-def get_openqasm_gates() -> list[str]:
-    """Returns a list of all quantum gates within the openQASM 2.0 standard header."""
-    # according to https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
-    return [
-        "u3",
-        "u2",
-        "u1",
-        "cx",
-        "id",
-        "u0",
-        "u",
-        "p",
-        "x",
-        "y",
-        "z",
-        "h",
-        "s",
-        "sdg",
-        "t",
-        "tdg",
-        "rx",
-        "ry",
-        "rz",
-        "sx",
-        "sxdg",
-        "cz",
-        "cy",
-        "swap",
-        "ch",
-        "ccx",
-        "cswap",
-        "crx",
-        "cry",
-        "crz",
-        "cu1",
-        "cp",
-        "cu3",
-        "csx",
-        "cu",
-        "rxx",
-        "rzz",
-        "rccx",
-        "rc3x",
-        "c3x",
-        "c3sqrtx",
-        "c4x",
-    ]
-
-
 def get_module_for_benchmark(benchmark_name: str) -> ModuleType:
     """Returns the module for a specific benchmark."""
     return import_module("mqt.bench.benchmarks." + benchmark_name)
