@@ -16,10 +16,10 @@ from importlib import metadata
 from pathlib import Path
 
 from mqt.bench.targets.devices import get_device_by_name
-from mqt.bench.targets.gatesets import get_native_gateset_by_name
+from mqt.bench.targets.gatesets import get_target_for_gateset
 
 from . import CompilerSettings, QiskitSettings
-from .benchmark_generation import generate_filename, get_benchmark_cli
+from .benchmark_generation import generate_filename, get_benchmark
 from .output import OutputFormat, save_circuit, write_circuit
 
 
@@ -104,14 +104,21 @@ def main() -> None:
     # Parse algorithm and optional instance
     benchmark_name, benchmark_instance = parse_benchmark_name_and_instance(args.algorithm)
 
+    if args.level == "nativegates":
+        target = get_target_for_gateset(args.target, num_qubits=args.num_qubits)
+    elif args.level == "mapped":
+        target = get_device_by_name(args.target)
+    else:
+        target = None
+
     # Generate circuit
-    circuit = get_benchmark_cli(
+    circuit = get_benchmark(
         benchmark_name=benchmark_name,
         benchmark_instance_name=benchmark_instance,
         level=args.level,
         circuit_size=args.num_qubits,
         compiler_settings=CompilerSettings(qiskit=qiskit_settings),
-        target=args.target,
+        target=target,
     )
 
     try:
@@ -125,13 +132,6 @@ def main() -> None:
         write_circuit(circuit, sys.stdout, fmt)
         return
 
-    if args.level == "nativegates":
-        target = get_native_gateset_by_name(args.target, num_qubits=args.num_qubits)
-    elif args.level == "mapped":
-        target = get_device_by_name(args.target)
-    else:
-        target = None
-
     # Otherwise, save to file
     filename = generate_filename(
         benchmark_name=benchmark_name,
@@ -144,6 +144,7 @@ def main() -> None:
         qc=circuit,
         filename=filename,
         output_format=fmt,
+        target=target,
         target_directory=args.target_directory,
     )
     if not success:

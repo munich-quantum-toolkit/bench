@@ -11,102 +11,55 @@
 from __future__ import annotations
 
 from functools import cache
+from typing import TYPE_CHECKING
 
-from qiskit.circuit import Instruction, Measure, Parameter
-from qiskit.circuit.library import (
-    Barrier,
-    CPhaseGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    DCXGate,
-    ECRGate,
-    HGate,
-    IGate,
-    RXGate,
-    RXXGate,
-    RYGate,
-    RZGate,
-    RZZGate,
-    SdgGate,
-    SGate,
-    SwapGate,
-    SXdgGate,
-    SXGate,
-    TdgGate,
-    TGate,
-    U3Gate,
-    XGate,
-    XXPlusYYGate,
-    YGate,
-    ZGate,
-    iSwapGate,
-)
-from qiskit.transpiler import Target
+from qiskit.providers.fake_provider import GenericBackendV2
+
+if TYPE_CHECKING:
+    from qiskit.transpiler import Target
 
 
-def get_clifford_t_gateset() -> list[Instruction]:
+def get_clifford_t_gateset() -> list[str]:
     """Returns the native gateset for Clifford+T."""
     return [
-        IGate(),
-        XGate(),
-        YGate(),
-        ZGate(),
-        HGate(),
-        SGate(),
-        SdgGate(),
-        TGate(),
-        TdgGate(),
-        SXGate(),
-        SXdgGate(),
-        CXGate(),
-        CYGate(),
-        CZGate(),
-        SwapGate(),
-        iSwapGate(),
-        DCXGate(),
-        ECRGate(),
-        Measure(),
+        "id",
+        "x",
+        "y",
+        "z",
+        "h",
+        "s",
+        "sdg",
+        "t",
+        "tdg",
+        "sx",
+        "sxdg",
+        "cx",
+        "cy",
+        "cz",
+        "swap",
+        "iswap",
+        "dcx",
+        "ecr",
     ]
 
 
-def get_clifford_t_rotations_gateset() -> list[Instruction]:
+def get_clifford_t_rotations_gateset() -> list[str]:
     """Returns the native gateset for the Clifford+T plus rotation gates."""
-    alpha = Parameter("alpha")
-    beta = Parameter("beta")
-    gamma = Parameter("gamma")
     return [
-        IGate(),
-        XGate(),
-        YGate(),
-        ZGate(),
-        HGate(),
-        SGate(),
-        SdgGate(),
-        TGate(),
-        TdgGate(),
-        SXGate(),
-        SXdgGate(),
-        CXGate(),
-        CYGate(),
-        CZGate(),
-        SwapGate(),
-        iSwapGate(),
-        DCXGate(),
-        ECRGate(),
-        Measure(),
-        RXGate(alpha),
-        RYGate(beta),
-        RZGate(gamma),
+        *get_clifford_t_gateset(),
+        "rx",
+        "ry",
+        "rz",
     ]
 
 
 @cache
-def get_available_native_gatesets() -> dict[str, list[Instruction]]:
+def get_available_native_gatesets() -> dict[str, list[str]]:
     """Return a list of available native gatesets."""
     return {
         "ibm_falcon": get_ibm_falcon_gateset(),
-        "ibm_heron_r1": get_ibm_heron_r1_gateset(),
+        "ibm_eagle": get_ibm_eagle_gateset(),
+        "ibm_heron": get_ibm_heron_gateset(),
         "ionq": get_ionq_gateset(),
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
@@ -117,66 +70,50 @@ def get_available_native_gatesets() -> dict[str, list[Instruction]]:
 
 
 @cache
-def get_native_gateset_by_name(name: str, num_qubits: int = 20) -> Target:
+def get_target_for_gateset(name: str, num_qubits: int) -> Target:
     """Return the Target object for a given native gateset name."""
-    gatesets = get_available_native_gatesets()
     try:
-        gates = gatesets[name]
-
+        gates = get_available_native_gatesets()[name]
     except KeyError:
         msg = f"Gateset '{name}' not found in available gatesets."
         raise ValueError(msg) from None
 
-    target = Target(num_qubits=num_qubits, description=name)
-
-    for gate in gates:
-        target.add_instruction(gate)
-    target.add_instruction(Barrier(num_qubits))
+    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=gates)
+    target = backend.target
+    target.description = name
     return target
 
 
-def get_ibm_falcon_gateset() -> list[Instruction]:
-    """Returns the basis gates of the ibm falcon gateset."""
-    alpha = Parameter("alpha")
-    return [SXGate(), RZGate(alpha), CXGate(), Measure()]
+def get_ibm_falcon_gateset() -> list[str]:
+    """Returns the basis gates of the IBM Falcon gateset."""
+    return ["id", "x", "sx", "rz", "cx"]
 
 
-def get_ibm_heron_r1_gateset() -> list[Instruction]:
-    """Returns the basis gates of the ibm heron r1 gateset."""
-    alpha = Parameter("alpha")
-    return [SXGate(), RZGate(alpha), CZGate(), XGate(), Measure()]
+def get_ibm_eagle_gateset() -> list[str]:
+    """Returns the basis gates of the IBM Eagle gateset."""
+    return ["id", "x", "sx", "rz", "ecr"]
 
 
-def get_ionq_gateset() -> list[Instruction]:
-    """Returns the basis gates of the ionq gateset."""
-    alpha = Parameter("alpha")
-    beta = Parameter("beta")
-    gamma = Parameter("gamma")
-    delta = Parameter("delta")
-    return [RXGate(alpha), RZGate(beta), RXXGate(delta), RYGate(gamma), Measure()]
+def get_ibm_heron_gateset() -> list[str]:
+    """Returns the basis gates of the IBM Heron gateset."""
+    return ["id", "x", "sx", "rz", "cz"]
 
 
-def get_iqm_gateset() -> list[Instruction]:
-    """Returns the basis gates of the iqm gateset."""
-    alpha = Parameter("alpha")
-    beta = Parameter("beta")
-    gamma = Parameter("gamma")
-    return [U3Gate(alpha, beta, gamma), CZGate(), Measure()]
+def get_ionq_gateset() -> list[str]:
+    """Returns the basis gates of the IonQ gateset."""
+    return ["rx", "ry", "rz", "rxx"]
 
 
-def get_quantinuum_gateset() -> list[Instruction]:
-    """Returns the basis gates of the quantinuum gateset."""
-    alpha = Parameter("alpha")
-    beta = Parameter("beta")
-    gamma = Parameter("gamma")
-    delta = Parameter("delta")
-    return [RZZGate(delta), RZGate(alpha), RYGate(beta), RXGate(gamma), Measure()]
+def get_iqm_gateset() -> list[str]:
+    """Returns the basis gates of the IQM gateset."""
+    return ["r", "cz"]
 
 
-def get_rigetti_gateset() -> list[Instruction]:
-    """Returns the basis gates of the rigetti gateset."""
-    alpha = Parameter("alpha")
-    beta = Parameter("beta")
-    gamma = Parameter("gamma")
-    delta = Parameter("delta")
-    return [RXGate(alpha), RZGate(beta), CZGate(), CPhaseGate(gamma), XXPlusYYGate(delta), Measure()]
+def get_quantinuum_gateset() -> list[str]:
+    """Returns the basis gates of the Quantinuum gateset."""
+    return ["rx", "ry", "rz", "rzz"]
+
+
+def get_rigetti_gateset() -> list[str]:
+    """Returns the basis gates of the Rigetti gateset."""
+    return ["rx", "rz", "cz", "cp", "xx_plus_yy"]
