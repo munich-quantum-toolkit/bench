@@ -32,6 +32,14 @@ if TYPE_CHECKING:  # pragma: no cover
 
 from dataclasses import dataclass
 
+from qiskit.transpiler import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers import (
+    level_0_pass_manager,
+    level_1_pass_manager,
+    level_2_pass_manager,
+    level_3_pass_manager,
+)
+
 
 class Benchmark(TypedDict, total=False):
     """Data class for the benchmark generation configuration."""
@@ -293,17 +301,24 @@ def get_native_gates_level(
         # Synthesize the rotations to Clifford+T gates
         # Measurements are removed and added back after the synthesis to avoid errors in the Solovay-Kitaev pass
         pm = PassManager(SolovayKitaev())
-        new_qc = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))
-        new_qc.measure_all()
-        # Transpile once more to remove unnecessary gates and optimize the circuit
-        compiled = transpile(
-            new_qc,
-            target=target,
-            optimization_level=opt_level,
-            seed_transpiler=10,
-        )
+        qc = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))
+        qc.measure_all()
+
+    pm_config = PassManagerConfig(target=target, routing_method="", layout_method="")
+
+    if opt_level == 0:
+        pm = level_0_pass_manager(pm_config)
+    elif opt_level == 1:
+        pm = level_1_pass_manager(pm_config)
+    elif opt_level == 2:
+        pm = level_2_pass_manager(pm_config)
+    elif opt_level == 3:
+        pm = level_3_pass_manager(pm_config)
     else:
-        compiled = transpile(qc, target=target, optimization_level=opt_level, seed_transpiler=10)
+        msg = "Unsupported optimization level"
+        raise ValueError(msg)
+
+    compiled = pm.run(qc)
 
     if return_qc:
         return compiled
