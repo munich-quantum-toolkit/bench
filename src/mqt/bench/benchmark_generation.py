@@ -118,6 +118,7 @@ def get_alg_level(
     return save_circuit(
         qc=qc,
         filename=filename_alg,
+        level="alg",
         output_format=output_format,
         target_directory=target_directory,
     )
@@ -183,6 +184,7 @@ def get_indep_level(
     return save_circuit(
         qc=qc,
         filename=filename_indep,
+        level="indep",
         output_format=output_format,
         target_directory=target_directory,
     )
@@ -287,6 +289,7 @@ def get_native_gates_level(
     return save_circuit(
         qc=compiled,
         filename=filename_native,
+        level="nativegates",
         output_format=output_format,
         target=target,
         target_directory=target_directory,
@@ -370,6 +373,7 @@ def get_mapped_level(
     return save_circuit(
         qc=compiled,
         filename=filename_mapped,
+        level="mapped",
         output_format=output_format,
         target=device,
         target_directory=target_directory,

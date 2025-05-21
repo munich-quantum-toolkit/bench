@@ -54,13 +54,15 @@ def _attach_metadata(qc: QuantumCircuit, header: str) -> QuantumCircuit:
 
 def generate_header(
     fmt: OutputFormat,
+    level: str,
     target: Target | None = None,
 ) -> str:
     """Generate a standardized header for MQT Bench outputs.
 
     Arguments:
         fmt: The chosen output format enum member
-        target: The target circuit to be transpiled, if any.
+        level: The level of the circuit (e.g., "nativegates", "mapped")
+        target: The transpilation target, if any.
 
     Returns:
         A string containing the formatted header.
@@ -85,11 +87,16 @@ def generate_header(
         f"// Output format: {fmt.value}",
     ))
 
-    if target:
-        lines.append(f"// Used gateset: {list(target.operation_names)}")
-    c_map = target.build_coupling_map() if target else None
-    if c_map:
-        lines.append(f"// Coupling map: {c_map}")
+    if level in {"nativegates", "mapped"}:
+        assert target is not None, "Target must be provided for nativegates or mapped level."
+        lines.extend((
+            f"// Level: {level}",
+            f"// Target: {target.description}",
+            f"// Used gateset: {list(target.operation_names)}",
+        ))
+        if level == "mapped":
+            c_map = target.build_coupling_map()
+            lines.append(f"// Coupling map: {c_map or 'all-to-all'}")
 
     return "\n".join(lines) + "\n\n"
 
@@ -98,6 +105,7 @@ def generate_header(
 def write_circuit(
     qc: QuantumCircuit,
     destination: Path,
+    level: str,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:  # pragma: no cover - typing overload only
@@ -108,6 +116,7 @@ def write_circuit(
 def write_circuit(
     qc: QuantumCircuit,
     destination: TextIO | BinaryIO,
+    level: str,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:  # pragma: no cover - typing overload only
@@ -117,6 +126,7 @@ def write_circuit(
 def write_circuit(
     qc: QuantumCircuit,
     destination: Path | TextIO | BinaryIO,
+    level: str,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:
@@ -125,13 +135,14 @@ def write_circuit(
     Arguments:
         qc: The QuantumCircuit to export
         destination: Destination file path or stream (including extension)
+        level: The level of the circuit (e.g., "nativegates", "mapped")
         fmt: Desired output format
         target: The target circuit to be transpiled, if any.
 
     Raises:
         MQTBenchExporterError: On unsupported format or I/O errors.
     """
-    header = generate_header(fmt, target)
+    header = generate_header(fmt, level, target)
 
     if not isinstance(destination, Path):
         is_text = isinstance(destination, TextIOBase)
@@ -188,6 +199,7 @@ def write_circuit(
 def save_circuit(
     qc: QuantumCircuit,
     filename: str,
+    level: str,
     output_format: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
     target_directory: str = "",
@@ -197,6 +209,7 @@ def save_circuit(
     Arguments:
         qc: Circuit to export
         filename: Base filename without extension
+        level: Level of the circuit (e.g., "nativegates", "mapped")
         output_format: One of the supported format values, as defined in `OutputFormat`
         target: Target circuit to be transpiled, if any
         target_directory: Directory to place the output file
@@ -206,7 +219,7 @@ def save_circuit(
     """
     path = Path(target_directory) / f"{filename}.{output_format.extension()}"
     try:
-        write_circuit(qc, path, output_format, target)
+        write_circuit(qc, path, level, output_format, target)
     except MQTBenchExporterError as e:
         print(e)
         return False

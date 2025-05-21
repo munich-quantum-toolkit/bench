@@ -129,7 +129,7 @@ def main() -> None:
 
     # For QASM outputs, serialize and print
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
-        write_circuit(circuit, sys.stdout, fmt)
+        write_circuit(circuit, sys.stdout, args.level, fmt, target)
         return
 
     # Otherwise, save to file
@@ -143,6 +143,7 @@ def main() -> None:
     success = save_circuit(
         qc=circuit,
         filename=filename,
+        level=args.level,
         output_format=fmt,
         target=target,
         target_directory=args.target_directory,
