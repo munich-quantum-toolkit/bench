@@ -109,9 +109,7 @@ filterwarnings = [
     'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
-    # Warnings that should be fixed by us in a subsequent PR. Most likely as part of https://github.com/cda-tum/mqt-bench/pull/429
-    'ignore:.*is pending deprecation as of qiskit 1.3..*:PendingDeprecationWarning:',
-    'ignore:.*he SolovayKitaev algorithm relies *.:RuntimeWarning:qiskit.synthesis.discrete_basis.generate_basis_approximations',
+    'ignore:.*is pending deprecation as of qiskit 1.3..*:PendingDeprecationWarning:', # Warnings that should be fixed by us in a subsequent PR.
 ]
 
 [tool.coverage]
