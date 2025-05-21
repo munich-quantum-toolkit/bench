@@ -18,7 +18,7 @@ from mqt.bench.targets.devices.iqm import get_iqm_target
 
 def test_iqm_target_from_calibration() -> None:
     """Test the structure of the IQM target device."""
-    target = get_iqm_target("iqm_adonis")  # or "iqm_apollo" depending on available calibration
+    target = get_iqm_target("iqm_crystal_5")
 
     assert isinstance(target, Target)
     assert target.num_qubits > 0
