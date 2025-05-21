@@ -13,23 +13,31 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
-from mqt.bench.targets.devices.ibm import get_ibm_target
-from mqt.bench.targets.devices.ionq import get_ionq_target
-from mqt.bench.targets.devices.iqm import get_iqm_target
-from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
-from mqt.bench.targets.devices.rigetti import get_rigetti_target
+from .ibm import get_ibm_target
+from .ionq import get_ionq_target
+from .iqm import get_iqm_target
+from .quantinuum import get_quantinuum_target
+from .rigetti import get_rigetti_target
 
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
+
+
+__all__ = [
+    "get_available_devices",
+    "get_device_by_name",
+]
 
 
 @cache
 def get_available_devices() -> list[Target]:
     """Return a list of available devices."""
     return [
-        get_ibm_target("ibm_montreal"),
-        get_ibm_target("ibm_torino"),
-        get_ibm_target("ibm_washington"),
+        get_ibm_target("ibm_falcon_27"),
+        get_ibm_target("ibm_falcon_127"),
+        get_ibm_target("ibm_eagle_127"),
+        get_ibm_target("ibm_heron_133"),
+        get_ibm_target("ibm_heron_156"),
         get_ionq_target("ionq_harmony"),
         get_ionq_target("ionq_aria1"),
         get_iqm_target("iqm_adonis"),

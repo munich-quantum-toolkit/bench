@@ -26,11 +26,9 @@ def get_quantinuum_target(device_name: str) -> Target:
 def get_quantinuum_h2_target() -> Target:
     """Get the target device for Quantinuum H2."""
     num_qubits = 56
-    connectivity = [[a, b] for a in range(num_qubits) for b in range(num_qubits) if a != b]
     return _build_quantinuum_target(
         name="quantinuum_h2",
         num_qubits=num_qubits,
-        connectivity=connectivity,
         oneq_error=0.00003,
         twoq_error=0.0015,
         spam_error=0.0015,
@@ -38,9 +36,9 @@ def get_quantinuum_h2_target() -> Target:
 
 
 def _build_quantinuum_target(
+    *,
     name: str,
     num_qubits: int,
-    connectivity: list[list[int]],
     oneq_error: float,
     twoq_error: float,
     spam_error: float,
@@ -63,6 +61,7 @@ def _build_quantinuum_target(
     target.add_instruction(Measure(), measure_props)
 
     # === Add two-qubit RZZ gates ===
+    connectivity = [(i, j) for i in range(num_qubits) for j in range(num_qubits) if i != j]
     rzz_props = {(q1, q2): InstructionProperties(error=twoq_error) for q1, q2 in connectivity}
     target.add_instruction(RZZGate(alpha), rzz_props)
 

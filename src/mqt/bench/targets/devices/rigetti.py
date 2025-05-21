@@ -249,6 +249,7 @@ def get_rigetti_aspen_m3_target() -> Target:
 
 
 def _build_rigetti_target(
+    *,
     name: str,
     num_qubits: int,
     connectivity: list[list[int]],
