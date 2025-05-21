@@ -239,7 +239,7 @@ def get_native_gates_level(
 
     Arguments:
         qc: quantum circuit which the to be created benchmark circuit is based on
-        target: contains the target (used for 'nativegates' level and 'mapped' level)
+        target: defines the gate set
         num_qubits: number of qubits
         opt_level: optimization level
         file_precheck: flag indicating whether to check whether the file already exists before creating it (again)
