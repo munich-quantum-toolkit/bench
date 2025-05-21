@@ -40,12 +40,6 @@ def get_available_devices() -> list[Target]:
 
 
 @cache
-def get_available_device_names() -> list[str]:
-    """Return a list of available device names."""
-    return [device.description for device in get_available_devices()]
-
-
-@cache
 def _device_map() -> dict[str, Target]:
     """Return a mapping of device names to Target objects."""
     return {d.description: d for d in get_available_devices()}

@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import pytest
 from qiskit.transpiler import Target
 
 from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
@@ -52,3 +53,9 @@ def test_quantinuum_target_structure() -> None:
     # This is optional, depending on your calibration assumption
     for q0, q1 in insts:
         assert (q1, q0) in insts
+
+
+def test_get_unknown_device() -> None:
+    """Test the get_quantinuum_target function with an unknown device name."""
+    with pytest.raises(ValueError, match="Unknown Quantinuum device: 'unknown_device'"):
+        get_quantinuum_target("unknown_device")

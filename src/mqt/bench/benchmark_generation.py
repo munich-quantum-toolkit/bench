@@ -296,7 +296,7 @@ def get_native_gates_level(
     elif opt_level == 3:
         pm = level_3_pass_manager(pm_config)
     else:
-        msg = "Unsupported optimization level"
+        msg = "Unsupported optimization level."
         raise ValueError(msg)
 
     compiled = pm.run(qc)

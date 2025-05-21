@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import pytest
 from qiskit.transpiler import Target
 
 from mqt.bench.targets.devices.rigetti import get_rigetti_target
@@ -48,3 +49,9 @@ def test_rigetti_aspen_m3_target_structure() -> None:
     if "measure" in target.operation_names:
         for props in target["measure"].values():
             assert 0 <= props.error < 1
+
+
+def test_get_unknown_device() -> None:
+    """Test the get_rigetti_target function with an unknown device name."""
+    with pytest.raises(ValueError, match="Unknown Rigetti device: 'unknown_device'"):
+        get_rigetti_target("unknown_device")

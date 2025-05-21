@@ -843,11 +843,10 @@ def test_custom_target_with_unsupported_gateset() -> None:
 
     target.add_instruction(RXGate(alpha))
     target.add_instruction(RZGate(beta))
-    # === Two-qubit CX gate on limited connectivity
+
     cx_props = {
         (0, 1): InstructionProperties(),
         (1, 2): InstructionProperties(),
-        (0, 2): InstructionProperties(),
     }
     target.add_instruction(CXGate(), cx_props)
 
@@ -855,9 +854,13 @@ def test_custom_target_with_unsupported_gateset() -> None:
     qc.h(0)
     qc.cx(0, 1)
 
-    qc_native_gates = get_native_gates_level(qc, target, 2, 0, False, True)
-    assert qc_native_gates.depth() > 0
-    assert qc_native_gates.layout is None
+    for opt_level in [0, 1, 2, 3]:
+        qc_native_gates = get_native_gates_level(qc, target, 2, opt_level, False, True)
+        assert qc_native_gates.depth() > 0
+        assert qc_native_gates.layout is None
+
+    with pytest.raises(ValueError, match=r"Unsupported optimization level."):
+        get_native_gates_level(qc, target, 2, 4, False, True)
 
     qc_mapped = get_mapped_level(qc, qc.num_qubits, target, 0, False, True)
     assert qc_mapped.depth() > 0

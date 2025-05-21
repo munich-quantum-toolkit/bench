@@ -21,7 +21,7 @@ def get_ionq_target(device_name: str) -> Target:
         return get_ionq_aria1_target()
     if device_name == "ionq_harmony":
         return get_ionq_harmony_target()
-    msg = f"Unknown IonQ device: {device_name}"
+    msg = f"Unknown IonQ device: '{device_name}'"
     raise ValueError(msg)
 
 

@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import pytest
 from qiskit.transpiler import Target
 
 from mqt.bench.targets.devices.iqm import get_iqm_target
@@ -46,3 +47,9 @@ def test_iqm_target_from_calibration() -> None:
         assert 0 <= props.error < 1
         # Also ensure the reverse pair is present (symmetry)
         assert (q2, q1) in target["cz"]
+
+
+def test_get_unknown_device() -> None:
+    """Test the get_iqm_target function with an unknown device name."""
+    with pytest.raises(ValueError, match="Unknown IQM device: 'unknown_device'"):
+        get_iqm_target("unknown_device")

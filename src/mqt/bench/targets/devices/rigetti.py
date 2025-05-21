@@ -19,7 +19,7 @@ def get_rigetti_target(device_name: str) -> Target:
     """Get a hardcoded Rigetti target device by name."""
     if device_name == "rigetti_aspen_m3":
         return get_rigetti_aspen_m3_target()
-    msg = f"Unknown Rigetti device: {device_name}"
+    msg = f"Unknown Rigetti device: '{device_name}'."
     raise ValueError(msg)
 
 

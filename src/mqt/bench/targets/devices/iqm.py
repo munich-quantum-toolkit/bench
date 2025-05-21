@@ -21,7 +21,7 @@ def get_iqm_target(device_name: str) -> Target:
         return get_iqm_adonis_target()
     if device_name == "iqm_apollo":
         return get_iqm_apollo_target()
-    msg = f"Unknown IQM device: {device_name}"
+    msg = f"Unknown IQM device: '{device_name}'."
     raise ValueError(msg)
 
 

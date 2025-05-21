@@ -19,7 +19,7 @@ def get_quantinuum_target(device_name: str) -> Target:
     """Get a hardcoded Quantinuum target device by name."""
     if device_name == "quantinuum_h2":
         return get_quantinuum_h2_target()
-    msg = f"Unknown Quantinuum device: {device_name}"
+    msg = f"Unknown Quantinuum device: '{device_name}'."
     raise ValueError(msg)
 
 
