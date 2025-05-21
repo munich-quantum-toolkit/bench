@@ -104,26 +104,14 @@ xfail_strict = true
 filterwarnings = [
     "error",
     'ignore:.*pkg_resources.*:DeprecationWarning:',
-    'ignore:.*Rigetti.*:UserWarning:',
     'ignore:.*Values in x.*:RuntimeWarning:',
     'ignore:.*divide by zero encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
-    # Qiskit 1.2 deprecations
-    'ignore:.*The class ``qiskit.qobj.pulse_qobj.Pulse.*`` is deprecated as of qiskit 1.2.*:DeprecationWarning:qiskit.*',
-    # Qiskit 1.3 deprecations
-    'ignore:.*The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.*`` is deprecated as of qiskit 1.3.0.*:DeprecationWarning:',
-    'ignore:.*The class ``qiskit.pulse.*`` is deprecated as of Qiskit 1.3.*:DeprecationWarning:qiskit.*',
-    'ignore:.*The class ``qiskit.qobj.*`` is deprecated as of Qiskit 1.3.*:DeprecationWarning:qiskit.*',
-    'ignore:.*The property ``qiskit.transpiler.target.*`` is deprecated as of Qiskit 1.3.*:DeprecationWarning:qiskit.*',
-    'ignore:.*The property ``qiskit.circuit.instruction.Instruction.condition`` is deprecated as of qiskit 1.3.0.*:DeprecationWarning:',
     # Warnings that should be fixed by us in a subsequent PR. Most likely as part of https://github.com/cda-tum/mqt-bench/pull/429
-    'ignore:.*Providing non-standard gates.*is deprecated for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0.*:DeprecationWarning:qiskit.*',
     'ignore:.*is pending deprecation as of qiskit 1.3..*:PendingDeprecationWarning:',
-    'ignore:.*The class ``qiskit.providers.exceptions.BackendPropertyError`` is deprecated as of qiskit 1.4.*:DeprecationWarning:',
     'ignore:.*he SolovayKitaev algorithm relies *.:RuntimeWarning:qiskit.synthesis.discrete_basis.generate_basis_approximations',
-    'ignore:.*qiskit.providers.models is deprecated since Qiskit 1.2 and will be removed in Qiskit 2.0.*:DeprecationWarning:'
 ]
 
 [tool.coverage]
