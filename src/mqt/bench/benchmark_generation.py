@@ -14,6 +14,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
+from qiskit import generate_preset_pass_manager
 from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 
@@ -31,14 +32,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.transpiler import Target
 
 from dataclasses import dataclass
-
-from qiskit.transpiler import PassManagerConfig
-from qiskit.transpiler.preset_passmanagers import (
-    level_0_pass_manager,
-    level_1_pass_manager,
-    level_2_pass_manager,
-    level_3_pass_manager,
-)
 
 
 @dataclass
@@ -282,19 +275,10 @@ def get_native_gates_level(
         qc = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))
         qc.measure_all()
 
-    pm_config = PassManagerConfig(target=target, routing_method="", layout_method="")
-
-    if opt_level == 0:
-        pm = level_0_pass_manager(pm_config)
-    elif opt_level == 1:
-        pm = level_1_pass_manager(pm_config)
-    elif opt_level == 2:
-        pm = level_2_pass_manager(pm_config)
-    elif opt_level == 3:
-        pm = level_3_pass_manager(pm_config)
-    else:
-        msg = "Unsupported optimization level."
-        raise ValueError(msg)
+    pm = generate_preset_pass_manager(optimization_level=opt_level, target=target, seed_transpiler=10)
+    pm.layout = None
+    pm.routing = None
+    pm.scheduling = None
 
     compiled = pm.run(qc)
 
