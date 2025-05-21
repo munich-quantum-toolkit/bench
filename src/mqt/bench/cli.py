@@ -73,7 +73,7 @@ def main() -> None:
     parser.add_argument(
         "--target",
         type=str,
-        help="Target name for native gates and mapped level (e.g., 'ibm_falcon' for the native gateset level or 'ibm_washington' for the mapping level).",
+        help="Target name for native gates and mapped level (e.g., 'ibm_falcon' or 'ibm_washington').",
     )
     parser.add_argument(
         "--output-format",
