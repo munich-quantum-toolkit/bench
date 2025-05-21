@@ -80,7 +80,8 @@ def generate_filename(
     # sanitize the target.description to remove any special characters etc. Make it smart.
     description = target.description.strip().split(" ")[0] if target else ""
 
-    if level in {"nativegates", "mapped"} and opt_level is not None:
+    if level in {"nativegates", "mapped"}:
+        assert opt_level is not None
         return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"

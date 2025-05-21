@@ -135,3 +135,47 @@ def test_cli_qpy_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     # CLI prints the path on a single line - ensure correctness
     assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
     assert expected_path.is_file()
+
+
+def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """QASM2 file should be saved for nativegates level when --save is specified."""
+    target_dir = str(tmp_path)
+    ret = script_runner.run(
+        [
+            "mqt.bench.cli",
+            "--level", "nativegates",
+            "--algorithm", "ghz",
+            "--num-qubits", "5",
+            "--target", "ibm_falcon",
+            "--qiskit-optimization-level", "1",
+            "--output-format", "qasm2",
+            "--save",
+            "--target-directory", target_dir,
+        ]
+    )
+    assert ret.success
+    expected_path = Path(target_dir) / "ghz_nativegates_ibm_falcon_opt1_5.qasm"
+    assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
+    assert expected_path.is_file()
+
+
+def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """QASM2 file should be saved for mapped level when --save is specified."""
+    target_dir = str(tmp_path)
+    ret = script_runner.run(
+        [
+            "mqt.bench.cli",
+            "--level", "mapped",
+            "--algorithm", "ghz",
+            "--num-qubits", "5",
+            "--target", "ibm_montreal",
+            "--qiskit-optimization-level", "1",
+            "--output-format", "qasm2",
+            "--save",
+            "--target-directory", target_dir,
+        ]
+    )
+    assert ret.success
+    expected_path = Path(target_dir) / "ghz_mapped_ibm_montreal_opt1_5.qasm"
+    assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
+    assert expected_path.is_file()

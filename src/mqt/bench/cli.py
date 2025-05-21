@@ -125,14 +125,10 @@ def main() -> None:
         write_circuit(circuit, sys.stdout, fmt)
         return
 
-    if args.target is not None:
-        if args.level == "nativegates":
-            target = get_native_gateset_by_name(args.gateset)
-        elif args.level == "mapped":
-            target = get_device_by_name(args.target)
-        else:
-            msg = f"Target '{args.target}' is not valid for level '{args.level}'."
-            raise ValueError(msg) from None
+    if args.level == "nativegates":
+        target = get_native_gateset_by_name(args.target, num_qubits=args.num_qubits)
+    elif args.level == "mapped":
+        target = get_device_by_name(args.target)
     else:
         target = None
 
