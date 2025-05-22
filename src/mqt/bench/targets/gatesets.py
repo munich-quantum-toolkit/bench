@@ -60,7 +60,7 @@ def get_available_native_gatesets() -> dict[str, list[str]]:
         "ibm_falcon": get_ibm_falcon_gateset(),
         "ibm_eagle": get_ibm_eagle_gateset(),
         "ibm_heron": get_ibm_heron_gateset(),
-        "ionq": get_ionq_gateset(),
+        # "ionq": get_ionq_gateset(),
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
         "rigetti": get_rigetti_gateset(),

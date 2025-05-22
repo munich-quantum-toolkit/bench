@@ -14,7 +14,7 @@ from functools import cache
 from typing import TYPE_CHECKING
 
 from .ibm import get_ibm_target
-from .ionq import get_ionq_target
+from .ionq import add_equivalences, get_ionq_target
 from .iqm import get_iqm_target
 from .quantinuum import get_quantinuum_target
 from .rigetti import get_rigetti_target
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "add_equivalences",
     "get_available_devices",
     "get_device_by_name",
 ]
@@ -38,8 +39,8 @@ def get_available_devices() -> list[Target]:
         get_ibm_target("ibm_eagle_127"),
         get_ibm_target("ibm_heron_133"),
         get_ibm_target("ibm_heron_156"),
-        get_ionq_target("ionq_harmony"),
-        get_ionq_target("ionq_aria1"),
+        get_ionq_target("ionq_forte_1"),
+        get_ionq_target("ionq_aria_1"),
         get_iqm_target("iqm_crystal_5"),
         get_iqm_target("iqm_crystal_20"),
         get_iqm_target("iqm_crystal_54"),

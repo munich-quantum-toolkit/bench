@@ -385,7 +385,7 @@ def test_dj_constant_oracle() -> None:
             3,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
-            get_device_by_name("ionq_aria1"),
+            get_device_by_name("ionq_aria_1"),
         ),
     ],
 )

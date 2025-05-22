@@ -18,28 +18,27 @@ from mqt.bench.targets.devices.ionq import get_ionq_target
 
 def test_ionq_target_from_calibration() -> None:
     """Test the structure of the IonQ target device."""
-    target = get_ionq_target("ionq_aria1")
+    target = get_ionq_target("ionq_aria_1")
 
     assert isinstance(target, Target)
-    assert target.description == "ionq_aria1"
+    assert target.description == "ionq_aria_1"
     assert target.num_qubits > 0
 
     # Check gate support
-    assert "rx" in target.operation_names
-    assert "ry" in target.operation_names
-    assert "rz" in target.operation_names
-    assert "rxx" in target.operation_names
+    assert "gpi" in target.operation_names
+    assert "gpi2" in target.operation_names
+    assert "ms" in target.operation_names
     assert "measure" in target.operation_names
 
     # Single-qubit gates should have properties for all qubits
-    for op_name in ["rx", "ry", "rz", "measure"]:
+    for op_name in ["gpi", "gpi2", "measure"]:
         for (qubit,) in target[op_name]:
             props = target[op_name][qubit,]
             assert props.duration >= 0
             assert props.error >= 0
 
     # Two-qubit gates should have connectivity and properties
-    for (q1, q2), props in target["rxx"].items():
+    for (q1, q2), props in target["ms"].items():
         assert q1 != q2
         assert props.duration > 0
         assert props.error > 0
