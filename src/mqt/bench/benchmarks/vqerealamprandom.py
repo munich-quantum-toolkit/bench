@@ -13,7 +13,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qiskit.circuit.library import RealAmplitudes
+
+try:
+    from qiskit.circuit.library import real_amplitudes
+except ImportError:
+    from qiskit.circuit.library import RealAmplitudes as real_amplitudes  # noqa: N813
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
@@ -29,7 +34,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: a quantum circuit implementing the RealAmplitudes ansatz with random parameter values
     """
     rng = np.random.default_rng(10)
-    qc = RealAmplitudes(num_qubits, entanglement="full", reps=3)
+    qc = real_amplitudes(num_qubits, entanglement="full", reps=3)
     num_params = qc.num_parameters
     qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
     qc.measure_all()

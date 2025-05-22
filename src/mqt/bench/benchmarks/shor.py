@@ -31,7 +31,8 @@ from typing import cast
 
 import numpy as np
 from qiskit.circuit import Instruction, ParameterVector, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT
+from qiskit.circuit.library import QFTGate
+from qiskit.synthesis import synth_qft_full
 
 
 def create_circuit(num_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
@@ -180,7 +181,7 @@ class Shor:
 
         circuit = QuantumCircuit(up_qreg, down_qreg, aux_qreg, name=f"{a}^x mod {to_be_factored_number}")
 
-        qft = QFT(num_bits_necessary + 1, do_swaps=False)
+        qft = synth_qft_full(num_bits_necessary + 1, do_swaps=False)
         iqft = qft.inverse()
 
         # Create gates to perform addition/subtraction by N in Fourier Space
@@ -262,5 +263,5 @@ class Shor:
         circuit.compose(modulo_power.decompose(reps=4), circuit.qubits, inplace=True)
 
         # Apply inverse QFT
-        iqft = QFT(len(up_qreg)).inverse()
+        iqft = QFTGate(len(up_qreg)).inverse()
         return circuit.compose(iqft, up_qreg)

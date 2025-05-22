@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT
+from qiskit.circuit.library import QFTGate
 
 
 def create_circuit(num_qubits: int) -> QuantumCircuit:
@@ -29,7 +29,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     for i in range(1, num_qubits):
         qc.cx(q[num_qubits - i], q[num_qubits - i - 1])
 
-    qc.compose(QFT(num_qubits=num_qubits), inplace=True)
+    qc.compose(QFTGate(num_qubits=num_qubits), inplace=True)
 
     qc.measure_all()
     qc.name = "qftentangled"

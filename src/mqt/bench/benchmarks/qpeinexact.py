@@ -15,7 +15,7 @@ from fractions import Fraction
 
 import numpy as np
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT
+from qiskit.synthesis import synth_qft_full
 
 
 def create_circuit(num_qubits: int) -> QuantumCircuit:
@@ -55,7 +55,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             qc.cp(angle * np.pi, psi, q[i])
 
     qc.compose(
-        QFT(num_qubits=num_qubits, inverse=True),
+        synth_qft_full(num_qubits=num_qubits, inverse=True),
         inplace=True,
         qubits=list(range(num_qubits)),
     )

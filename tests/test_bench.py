@@ -207,10 +207,7 @@ def test_quantumcircuit_indep_level(
     benchmark: types.ModuleType, input_value: int, scalable: bool, output_path: str
 ) -> None:
     """Test the creation of the independent level benchmarks for the benchmarks."""
-    if benchmark in (grover, qwalk):
-        qc = benchmark.create_circuit(input_value, ancillary_mode="noancilla")
-    else:
-        qc = benchmark.create_circuit(input_value)
+    qc = benchmark.create_circuit(input_value)
 
     if scalable:
         assert qc.num_qubits == input_value
@@ -260,10 +257,7 @@ def test_quantumcircuit_native_and_mapped_levels(
     benchmark: types.ModuleType, input_value: int, scalable: bool, output_path: str
 ) -> None:
     """Test the creation of the native and mapped level benchmarks for the benchmarks."""
-    if benchmark in (grover, qwalk):
-        qc = benchmark.create_circuit(input_value, ancillary_mode="noancilla")
-    else:
-        qc = benchmark.create_circuit(input_value)
+    qc = benchmark.create_circuit(input_value)
 
     assert isinstance(qc, QuantumCircuit)
     if scalable:
@@ -354,8 +348,8 @@ def test_dj_constant_oracle() -> None:
         ("dj", "alg", 3, None, None, None),
         ("wstate", 0, 3, None, None, None),
         ("shor", "alg", None, "xsmall", None, None),
-        ("grover-noancilla", "alg", 3, None, None, None),
-        ("qwalk-v-chain", "alg", 3, None, None, None),
+        ("grover", "alg", 3, None, None, None),
+        ("qwalk", "alg", 3, None, None, None),
         # Independent level tests
         ("ghz", "indep", 3, None, None, None),
         ("graphstate", 1, 3, None, None, None),

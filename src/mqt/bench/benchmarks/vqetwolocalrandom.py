@@ -13,7 +13,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qiskit.circuit.library import TwoLocal
+
+try:
+    from qiskit.circuit.library.n_local.n_local import n_local
+except ImportError:
+    from qiskit.circuit.library import TwoLocal as n_local  # noqa: N813
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
@@ -29,7 +34,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: a quantum circuit implementing the TwoLocal ansatz with random parameter values
     """
     rng = np.random.default_rng(10)
-    qc = TwoLocal(num_qubits, "ry", "cx", entanglement="full", reps=3)
+    qc = n_local(num_qubits, "ry", "cx", entanglement="full", reps=3)
     num_params = qc.num_parameters
     qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
     qc.measure_all()

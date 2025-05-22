@@ -12,15 +12,18 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import GroverOperator
+
+try:
+    from qiskit.circuit.library.grover_operator import grover_operator
+except ImportError:
+    from qiskit.circuit.library import GroverOperator as grover_operator  # noqa: N813
 
 
-def create_circuit(num_qubits: int, ancillary_mode: str = "noancilla") -> QuantumCircuit:
+def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing Grover's algorithm.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
-        ancillary_mode: defining the decomposition scheme
     """
     num_qubits = num_qubits - 1  # -1 because of the flag qubit
     q = QuantumRegister(num_qubits, "q")
@@ -33,7 +36,7 @@ def create_circuit(num_qubits: int, ancillary_mode: str = "noancilla") -> Quantu
     oracle = QuantumCircuit(q, flag)
     oracle.mcp(np.pi, q, flag)
 
-    operator = GroverOperator(oracle, mcx_mode=ancillary_mode)
+    operator = grover_operator(oracle)
     iterations = int(np.pi / 4 * np.sqrt(2**num_qubits))
 
     num_qubits = operator.num_qubits - 1  # -1 because last qubit is "flag" qubit and already taken care of
@@ -45,6 +48,6 @@ def create_circuit(num_qubits: int, ancillary_mode: str = "noancilla") -> Quantu
 
     qc.compose(operator.power(iterations), inplace=True)
     qc.measure_all()
-    qc.name = qc.name + "-" + ancillary_mode
+    qc.name = qc.name
 
     return qc

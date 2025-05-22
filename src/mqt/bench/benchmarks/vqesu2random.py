@@ -13,7 +13,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qiskit.circuit.library import EfficientSU2
+
+try:
+    from qiskit.circuit.library import efficient_su2
+except ImportError:
+    from qiskit.circuit.library import EfficientSU2 as efficient_su2  # noqa: N813
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
@@ -29,7 +34,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: a quantum circuit implementing the EfficientSU2 ansatz with random parameter values
     """
     rng = np.random.default_rng(10)
-    qc = EfficientSU2(num_qubits, entanglement="full", reps=3)
+    qc = efficient_su2(num_qubits, entanglement="full", reps=3)
     num_params = qc.num_parameters
     qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
     qc.measure_all()

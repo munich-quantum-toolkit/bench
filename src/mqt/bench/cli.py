@@ -56,7 +56,7 @@ def main() -> None:
     parser.add_argument(
         "--algorithm",
         type=str,
-        help="Name of the benchmark (e.g., 'grover-v-chain', 'shor_xsmall').",
+        help="Name of the benchmark (e.g., 'grover', 'shor_xsmall').",
         required=True,
     )
     parser.add_argument(

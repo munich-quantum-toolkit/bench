@@ -417,22 +417,9 @@ def get_benchmark(
         msg = "benchmark_instance_name must be defined for this benchmark."
         raise ValueError(msg)
 
-    lib = get_module_for_benchmark(
-        benchmark_name.split("-")[0]
-    )  # split is used to filter the ancillary mode for grover and qwalk
+    lib = get_module_for_benchmark(benchmark_name.split("-")[0])
 
-    if "grover" in benchmark_name or "qwalk" in benchmark_name:
-        if "noancilla" in benchmark_name:
-            anc_mode = "noancilla"
-        elif "v-chain" in benchmark_name:
-            anc_mode = "v-chain"
-        else:
-            msg = "Either `noancilla` or `v-chain` must be specified for ancillary mode of Grover and QWalk benchmarks."
-            raise ValueError(msg)
-
-        qc = lib.create_circuit(circuit_size, ancillary_mode=anc_mode)
-
-    elif benchmark_name == "shor":
+    if benchmark_name == "shor":
         to_be_factored_number, a_value = lib.get_instance(benchmark_instance_name)
         qc = lib.create_circuit(to_be_factored_number, a_value)
 
@@ -482,8 +469,7 @@ def get_supported_benchmarks() -> list[str]:
         "ae",
         "bv",
         "dj",
-        "grover-noancilla",
-        "grover-v-chain",
+        "grover",
         "ghz",
         "graphstate",
         "qaoa",
@@ -492,8 +478,7 @@ def get_supported_benchmarks() -> list[str]:
         "qnn",
         "qpeexact",
         "qpeinexact",
-        "qwalk-noancilla",
-        "qwalk-v-chain",
+        "qwalk",
         "randomcircuit",
         "vqerealamprandom",
         "vqesu2random",

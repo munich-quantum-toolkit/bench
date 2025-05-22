@@ -14,10 +14,8 @@ The current release includes the following benchmark algorithms, with each abbre
      - ``"bv"``
    * - Deutsch‑Jozsa
      - ``"dj"``
-   * - Grover's (no ancilla)
-     - ``"grover-noancilla"``
-   * - Grover's (v‑chain)
-     - ``"grover-v-chain"``
+   * - Grover's
+     - ``"grover"``
    * - GHZ State
      - ``"ghz"``
    * - Graph State
@@ -34,10 +32,8 @@ The current release includes the following benchmark algorithms, with each abbre
      - ``"qpeexact"``
    * - Quantum Phase Estimation (QPE) inexact
      - ``"qpeinexact"``
-   * - Quantum Walk (no ancilla)
-     - ``"qwalk-noancilla"``
-   * - Quantum Walk (v‑chain)
-     - ``"qwalk-v-chain"``
+   * - Quantum Walk
+     - ``"qwalk"``
    * - Random Quantum Circuit
      - ``"randomcircuit"``
    * - Real Amplitudes ansatz with Random Parameters
