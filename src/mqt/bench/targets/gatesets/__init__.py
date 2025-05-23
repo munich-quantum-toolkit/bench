@@ -13,11 +13,13 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
+from qiskit.circuit import Parameter
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from .clifford_t import get_clifford_t_gateset, get_clifford_t_rotations_gateset
 from .ibm import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_gateset
-from .ionq import get_ionq_gateset
+from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate, get_ionq_aria_gateset, get_ionq_forte_gateset
 from .iqm import get_iqm_gateset
 from .quantinuum import get_quantinuum_gateset
 from .rigetti import get_rigetti_gateset
@@ -33,7 +35,8 @@ def get_available_native_gatesets() -> dict[str, list[str]]:
         "ibm_falcon": get_ibm_falcon_gateset(),
         "ibm_eagle": get_ibm_eagle_gateset(),
         "ibm_heron": get_ibm_heron_gateset(),
-        "ionq": get_ionq_gateset(),
+        "ionq_forte": get_ionq_forte_gateset(),
+        "ionq_aria": get_ionq_aria_gateset(),
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
         "rigetti": get_rigetti_gateset(),
@@ -51,7 +54,28 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
         msg = f"Gateset '{name}' not found in available gatesets."
         raise ValueError(msg) from None
 
-    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=gates)
+    standard_gates = []
+    other_gates = []
+    for gate in gates:
+        if gate in get_standard_gate_name_mapping():
+            standard_gates.append(gate)
+        else:
+            other_gates.append(gate)
+    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates)
     target = backend.target
     target.description = name
+
+    for gate in other_gates:
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        gamma = Parameter("gamma")
+        if gate == "gpi":
+            target.add_instruction(GPIGate(alpha))
+        elif gate == "gpi2":
+            target.add_instruction(GPI2Gate(alpha))
+        elif gate == "ms":
+            target.add_instruction(MSGate(alpha, beta, gamma))
+        elif gate == "zz":
+            target.add_instruction(ZZGate(alpha))
+
     return target

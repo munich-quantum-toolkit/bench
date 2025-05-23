@@ -360,7 +360,7 @@ def test_dj_constant_oracle() -> None:
             2,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
-            get_target_for_gateset("ionq", num_qubits=5),
+            get_target_for_gateset("ionq_forte", num_qubits=5),
         ),
         ("qft", 2, 3, None, None, get_target_for_gateset("rigetti", 5)),
         # Mapped level tests

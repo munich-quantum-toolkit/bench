@@ -23,9 +23,14 @@ if TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterValueType
 
 
-def get_ionq_gateset() -> list[str]:
-    """Returns the basis gates of the IonQ gateset."""
-    return ["rx", "ry", "rz", "rxx"]
+def get_ionq_forte_gateset() -> list[str]:
+    """Returns the basis gates of the IonQ Forte gateset."""
+    return ["rz", "gpi", "gpi2", "zz", "measure"]
+
+
+def get_ionq_aria_gateset() -> list[str]:
+    """Returns the basis gates of the IonQ Aria gateset."""
+    return ["rz", "gpi", "gpi2", "ms", "measure"]
 
 
 class GPIGate(Gate):  # type: ignore[misc]
