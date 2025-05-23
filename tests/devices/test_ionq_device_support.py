@@ -18,10 +18,10 @@ from mqt.bench.targets.devices.ionq import _build_ionq_target, get_ionq_target  
 
 def test_ionq_target_from_calibration() -> None:
     """Test the structure of the IonQ target device."""
-    target = get_ionq_target("ionq_aria_1")
+    target = get_ionq_target("ionq_aria_25")
 
     assert isinstance(target, Target)
-    assert target.description == "ionq_aria_1"
+    assert target.description == "ionq_aria_25"
     assert target.num_qubits > 0
 
     # Check gate support

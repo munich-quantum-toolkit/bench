@@ -107,8 +107,8 @@ def sample_filenames() -> list[str]:
         "ae_mapped_ibm_falcon_127_opt2_88.qasm",
         "qnn_mapped_ionq_harmony_opt3_3.qasm",
         "qnn_mapped_oqc_lucy_2.qasm",
-        "qaoa_mapped_quantinuum_h2_graph_2.qasm",
-        "dj_mapped_quantinuum_h2_opt3_23.qasm",
+        "qaoa_mapped_quantinuum_h2_56_graph_2.qasm",
+        "dj_mapped_quantinuum_h2_56_opt3_23.qasm",
     ]
 
 
@@ -379,7 +379,7 @@ def test_dj_constant_oracle() -> None:
             3,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=0)),
-            get_device_by_name("ionq_aria_1"),
+            get_device_by_name("ionq_aria_25"),
         ),
     ],
 )
@@ -422,7 +422,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "wrong_size",
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_ankaa_3"),
+            get_device_by_name("rigetti_ankaa_84"),
         )
     match = "circuit_size must be None or int for this benchmark."
     with pytest.raises(ValueError, match=match):
@@ -432,7 +432,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             -1,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_ankaa_3"),
+            get_device_by_name("rigetti_ankaa_84"),
         )
 
     match = "benchmark_instance_name must be defined for this benchmark."
@@ -443,7 +443,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             2,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_ankaa_3"),
+            get_device_by_name("rigetti_ankaa_84"),
         )
 
     match = "compiler_settings must be of type CompilerSettings or None"
@@ -454,7 +454,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             None,
             "wrong_compiler_settings",
-            get_device_by_name("rigetti_ankaa_3"),
+            get_device_by_name("rigetti_ankaa_84"),
         )
     match = "Gateset 'wrong_gateset' not found in available gatesets."
     with pytest.raises(ValueError, match=match):

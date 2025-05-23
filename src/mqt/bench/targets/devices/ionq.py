@@ -20,20 +20,20 @@ from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivale
 def get_ionq_target(device_name: str) -> Target:
     """Get the target device for a given IonQ device name."""
     add_ionq_equivalences()
-    if device_name == "ionq_aria_1":
-        return get_ionq_aria_1_target()
-    if device_name == "ionq_forte_1":
-        return get_ionq_forte_1_target()
+    if device_name == "ionq_aria_25":
+        return get_ionq_aria_25()
+    if device_name == "ionq_forte_36":
+        return get_ionq_forte_36()
     msg = f"Unknown IonQ device: '{device_name}'"
     raise ValueError(msg)
 
 
-def get_ionq_aria_1_target() -> Target:
+def get_ionq_aria_25() -> Target:
     """Get the target device for IonQ Aria 1."""
     num_qubits = 25
     return _build_ionq_target(
         num_qubits=num_qubits,
-        description="ionq_aria_1",
+        description="ionq_aria_25",
         entangling_gate="MS",
         oneq_duration=135e-6,
         twoq_duration=600e-6,
@@ -44,12 +44,12 @@ def get_ionq_aria_1_target() -> Target:
     )
 
 
-def get_ionq_forte_1_target() -> Target:
+def get_ionq_forte_36() -> Target:
     """Get the target device for IonQ Forte 1."""
     num_qubits = 36
     return _build_ionq_target(
         num_qubits=num_qubits,
-        description="ionq_forte_1",
+        description="ionq_forte_36",
         entangling_gate="ZZ",
         oneq_duration=130e-6,
         twoq_duration=970e-6,

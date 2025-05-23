@@ -22,7 +22,7 @@ from .ibm import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_ga
 from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate, get_ionq_aria_gateset, get_ionq_forte_gateset
 from .iqm import get_iqm_gateset
 from .quantinuum import get_quantinuum_gateset
-from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate, get_rigetti_gateset
+from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate, get_rigetti_ankaa_gateset
 
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
@@ -39,7 +39,7 @@ __all__ = [
     "get_ionq_forte_gateset",
     "get_iqm_gateset",
     "get_quantinuum_gateset",
-    "get_rigetti_gateset",
+    "get_rigetti_ankaa_gateset",
     "get_target_for_gateset",
 ]
 
@@ -55,7 +55,7 @@ def get_available_native_gatesets() -> dict[str, list[str]]:
         "ionq_aria": get_ionq_aria_gateset(),
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
-        "rigetti": get_rigetti_gateset(),
+        "rigetti": get_rigetti_ankaa_gateset(),
         "clifford+t": get_clifford_t_gateset(),
         "clifford+t+rotations": get_clifford_t_rotations_gateset(),
     }

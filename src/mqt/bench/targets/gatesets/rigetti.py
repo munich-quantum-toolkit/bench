@@ -17,7 +17,7 @@ from qiskit.circuit.library import CXGate, iSwapGate
 from qiskit.circuit.library.standard_gates import RZGate, UGate
 
 
-def get_rigetti_gateset() -> list[str]:
+def get_rigetti_ankaa_gateset() -> list[str]:
     """Returns the basis gates of the Rigetti gateset."""
     add_rigetti_equivalences()
     return ["rxpi", "rxpi2", "rxpi2dg", "rz", "iswap", "measure"]

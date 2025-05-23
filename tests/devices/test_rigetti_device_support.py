@@ -16,12 +16,12 @@ from qiskit.transpiler import Target
 from mqt.bench.targets.devices.rigetti import get_rigetti_target
 
 
-def test_rigetti_ankaa_3_target_structure() -> None:
+def test_rigetti_ankaa_84_target_structure() -> None:
     """Test the structure of the Rigetti Ankaa 3 target device."""
-    target = get_rigetti_target("rigetti_ankaa_3")
+    target = get_rigetti_target("rigetti_ankaa_84")
 
     assert isinstance(target, Target)
-    assert target.description == "rigetti_ankaa_3"
+    assert target.description == "rigetti_ankaa_84"
     assert target.num_qubits == 84
 
     expected_single_qubit_gates = {

@@ -18,11 +18,11 @@ from mqt.bench.targets.devices.quantinuum import get_quantinuum_target
 
 def test_quantinuum_target_structure() -> None:
     """Test the structure of the Quantinuum H2 target device."""
-    target = get_quantinuum_target("quantinuum_h2")
+    target = get_quantinuum_target("quantinuum_h2_56")
 
     # Basic metadata
     assert isinstance(target, Target)
-    assert target.description == "quantinuum_h2"
+    assert target.description == "quantinuum_h2_56"
     assert target.num_qubits == 56  # adjust if your calibration changes
 
     # Ensure all expected gates are supported

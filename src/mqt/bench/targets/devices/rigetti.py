@@ -20,13 +20,13 @@ from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate,
 def get_rigetti_target(device_name: str) -> Target:
     """Get a hardcoded Rigetti target device by name."""
     add_rigetti_equivalences()
-    if device_name == "rigetti_ankaa_3":
-        return get_rigetti_ankaa_3()
+    if device_name == "rigetti_ankaa_84":
+        return get_rigetti_ankaa_84()
     msg = f"Unknown Rigetti device: '{device_name}'."
     raise ValueError(msg)
 
 
-def get_rigetti_ankaa_3() -> Target:
+def get_rigetti_ankaa_84() -> Target:
     """Get the target device for Rigetti Ankaa 3."""
     num_qubits = 84
     connectivity = [
@@ -308,7 +308,7 @@ def get_rigetti_ankaa_3() -> Target:
         [39, 32],
     ]
     return _build_rigetti_target(
-        name="rigetti_ankaa_3",
+        name="rigetti_ankaa_84",
         num_qubits=num_qubits,
         connectivity=connectivity,
         oneq_error=0.00151,
