@@ -241,7 +241,6 @@ def u_gate_equivalence(sel: EquivalenceLibrary) -> None:
     phi_param = Parameter("phi_param")
     lambda_param = Parameter("lambda_param")
     u_gate = QuantumCircuit(q)
-    # this sequence can be compacted if virtual-z gates will be introduced
     u_gate.append(GPI2Gate(0.5 - lambda_param / (2 * np.pi)), [0])
     u_gate.append(
         GPIGate(theta_param / (4 * np.pi) + phi_param / (4 * np.pi) - lambda_param / (4 * np.pi)),
