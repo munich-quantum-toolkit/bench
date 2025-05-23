@@ -50,11 +50,14 @@ class GPIGate(Gate):  # type: ignore[misc]
     def __init__(self, phi: ParameterValueType, label: str | None = None) -> None:
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
+
+    def _define(self) -> None:
+        """Define the GPI gate."""
+        phi = self.params[0]
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
         qc.x(0)
         qc.rz(4 * phi * np.pi, 0)
-
         self.definition = qc
 
     def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
@@ -87,6 +90,10 @@ class GPI2Gate(Gate):  # type: ignore[misc]
     def __init__(self, phi: ParameterValueType, label: str | None = None) -> None:
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
+
+    def _define(self) -> None:
+        """Define the GPI2 gate."""
+        phi = self.params[0]
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
         qc.rz(-2 * phi * np.pi, 0)
@@ -129,7 +136,7 @@ class MSGate(Gate):  # type: ignore[misc]
         self,
         phi0: ParameterValueType,
         phi1: ParameterValueType,
-        theta: ParameterValueType,
+        theta: ParameterValueType | None = 0.25,
         label: str | None = None,
     ) -> None:
         """Create new MS gate."""
@@ -140,6 +147,11 @@ class MSGate(Gate):  # type: ignore[misc]
             label=label,
         )
 
+    def _define(self) -> None:
+        """Define the MS gate."""
+        phi0 = self.params[0]
+        phi1 = self.params[1]
+        theta = self.params[2]
         q = QuantumRegister(2, "q")
         alpha = phi0 + phi1
         beta = phi0 - phi1
@@ -211,6 +223,10 @@ class ZZGate(Gate):  # type: ignore[misc]
     def __init__(self, theta: ParameterValueType, label: str | None = None) -> None:
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
+
+    def _define(self) -> None:
+        """Define the ZZ gate."""
+        theta = self.params[0]
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q)
         qc.cx(0, 1)
