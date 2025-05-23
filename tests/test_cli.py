@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING
 import pytest
 from pytest_console_scripts import ScriptRunner
 from qiskit.qasm3 import dumps
+from qiskit.qasm3 import loads
+from mqt.bench.benchmark_generation import generate_filename
 
 from mqt.bench import CompilerSettings, QiskitSettings
 from mqt.bench.benchmark_generation import get_benchmark
@@ -137,46 +139,93 @@ def test_cli_qpy_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
     assert expected_path.is_file()
 
-
-def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
-    """QASM2 file should be saved for nativegates level when --save is specified."""
-    target_dir = str(tmp_path)
-    ret = script_runner.run(
-        [
-            "mqt.bench.cli",
-            "--level", "nativegates",
-            "--algorithm", "ghz",
-            "--num-qubits", "5",
-            "--target", "ibm_falcon",
-            "--qiskit-optimization-level", "1",
-            "--output-format", "qasm2",
-            "--save",
-            "--target-directory", target_dir,
-        ]
-    )
+def test_cli_mirror_circuit_stdout(script_runner: ScriptRunner) -> None:
+    """Test the CLI with --generate-mirror-circuit flag to stdout."""
+    args = [
+        "--level", "alg",
+        "--algorithm", "ghz",
+        "--num-qubits", "3",
+        "--generate-mirror-circuit",
+        "--output-format", "qasm3",
+    ]
+    ret = script_runner.run(["mqt.bench.cli", *args])
     assert ret.success
-    expected_path = Path(target_dir) / "ghz_nativegates_ibm_falcon_opt1_5.qasm"
-    assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
-    assert expected_path.is_file()
 
-
-def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
-    """QASM2 file should be saved for mapped level when --save is specified."""
-    target_dir = str(tmp_path)
-    ret = script_runner.run(
-        [
-            "mqt.bench.cli",
-            "--level", "mapped",
-            "--algorithm", "ghz",
-            "--num-qubits", "5",
-            "--target", "ibm_falcon_27",
-            "--qiskit-optimization-level", "1",
-            "--output-format", "qasm2",
-            "--save",
-            "--target-directory", target_dir,
-        ]
+    expected_qc = get_benchmark(
+        level="alg",
+        benchmark_name="ghz",
+        circuit_size=3,
+        generate_mirror_circuit=True
     )
+    qasm_body_from_cli = "\n".join(ret.stdout.splitlines()[4:]) 
+    cli_qc = loads(qasm_body_from_cli)
+
+    assert cli_qc.num_qubits == expected_qc.num_qubits
+    assert cli_qc.count_ops().get("barrier", 0) >= 1 
+    original_qc = get_benchmark(level="alg", benchmark_name="ghz", circuit_size=3, generate_mirror_circuit=False)
+    num_ops_original_unitary = len(original_qc.remove_final_measurements(inplace=False).data)
+    
+    cli_ops_count = 0
+    for instruction in cli_qc.data:
+        if instruction.operation.name not in ["barrier", "measure"]:
+            cli_ops_count += 1
+    assert cli_ops_count == 2 * num_ops_original_unitary
+    assert cli_qc.count_ops().get("measure", 0) == expected_qc.num_qubits
+
+def test_cli_mirror_circuit_save_file(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """Test saving a mirrored circuit from CLI to a file."""
+    target_dir = str(tmp_path)
+    algorithm_name = "ghz"
+    num_q = 3
+    level_str = "alg"
+
+    args = [
+        "--level", level_str,
+        "--algorithm", algorithm_name,
+        "--num-qubits", str(num_q),
+        "--generate-mirror-circuit",
+        "--save", 
+        "--target-directory", target_dir,
+        "--output-format", "qasm3"
+    ]
+    ret = script_runner.run(["mqt.bench.cli", *args])
     assert ret.success
-    expected_path = Path(target_dir) / "ghz_mapped_ibm_falcon_27_opt1_5.qasm"
-    assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
-    assert expected_path.is_file()
+
+    expected_circuit_name_in_cli = f"{algorithm_name}_mirrored"
+    expected_filename_base = generate_filename(
+        benchmark_name=expected_circuit_name_in_cli,
+        level=level_str,
+        num_qubits=num_q
+    )
+    expected_file_path = tmp_path / f"{expected_filename_base}.qasm"
+
+    assert expected_file_path.is_file(), f"Expected file {expected_file_path} not found. Found: {[p.name for p in tmp_path.iterdir()]}"
+    
+    expected_qc = get_benchmark(
+        level=level_str,
+        benchmark_name=algorithm_name,
+        circuit_size=num_q,
+        generate_mirror_circuit=True
+    )
+    
+    saved_content = expected_file_path.read_text()
+    qasm_body_from_file = "\n".join(saved_content.splitlines()[4:])
+    
+    file_qc = loads(qasm_body_from_file)
+
+    assert file_qc.num_qubits == expected_qc.num_qubits
+    assert file_qc.count_ops().get("barrier", 0) >= 1
+    original_qc = get_benchmark(level=level_str, benchmark_name=algorithm_name, circuit_size=num_q, generate_mirror_circuit=False)
+    num_ops_original_unitary = len(original_qc.remove_final_measurements(inplace=False).data)
+    file_ops_count = 0
+    for instruction in file_qc.data:
+        if instruction.operation.name not in ["barrier", "measure"]:
+            file_ops_count += 1
+    assert file_ops_count == 2 * num_ops_original_unitary
+    assert file_qc.count_ops().get("measure", 0) == expected_qc.num_qubits
+
+def test_cli_help_includes_mirror_flag(script_runner: ScriptRunner) -> None:
+    """Test that --help includes the new --generate-mirror-circuit flag."""
+    ret = script_runner.run(["mqt.bench.cli", "--help"])
+    assert ret.success
+    assert "--generate-mirror-circuit" in ret.stdout

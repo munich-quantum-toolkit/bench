@@ -93,6 +93,11 @@ def main() -> None:
         action="store_true",
         help="If set, save the output to a file instead of printing to stdout (e.g. for 'qpy', which is not available as text).",
     )
+    parser.add_argument(
+        "--generate-mirror-circuit",
+        action="store_true",
+        help="If set, generate a mirror circuit (U U_inv) for the benchmark.",
+    )
 
     args = parser.parse_args()
 
@@ -118,7 +123,9 @@ def main() -> None:
         level=args.level,
         circuit_size=args.num_qubits,
         compiler_settings=CompilerSettings(qiskit=qiskit_settings),
-        target=target,
+        gateset=args.gateset or "ibm_falcon",
+        device_name=args.device or "ibm_washington",
+        generate_mirror_circuit=args.generate_mirror_circuit,
     )
 
     try:
@@ -134,7 +141,7 @@ def main() -> None:
 
     # Otherwise, save to file
     filename = generate_filename(
-        benchmark_name=benchmark_name,
+        benchmark_name=circuit.name,
         level=args.level,
         num_qubits=args.num_qubits,
         target=target,

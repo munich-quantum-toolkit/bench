@@ -12,9 +12,8 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, overload
-
-from qiskit import generate_preset_pass_manager
+from typing import TYPE_CHECKING, Literal, TypedDict, overload
+from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 
@@ -379,14 +378,16 @@ def get_mapped_level(
         target_directory=target_directory,
     )
 
-
 def get_benchmark(
     benchmark_name: str,
     level: str | int,
     circuit_size: int | None = None,
     benchmark_instance_name: str | None = None,
     compiler_settings: CompilerSettings | None = None,
-    target: Target | None = None,
+    gateset: str | Gateset = "ibm_falcon",
+    device_name: str = "ibm_washington",
+    generate_mirror_circuit: bool = False,
+    **kwargs: str,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
@@ -396,7 +397,10 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         benchmark_instance_name: Input selection for some benchmarks, namely "shor"
         compiler_settings: Data class containing the respective compiler settings for the specified compiler (e.g., optimization level for Qiskit)
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation (only used for "nativegates" and "mapped" level)
+        gateset: Name of the gateset or tuple containing the name of the gateset and the gateset itself (required for "nativegates" level)
+        device_name: "ibm_washington", "ibm_montreal", "rigetti_aspen_m3", "ionq_harmony", "ionq_aria1", "oqc_lucy", "quantinuum_h2" (required for "mapped" level)
+        generate_mirror_circuit: If True, generates a mirror circuit (qc + barrier + qc.inverse())
+        kwargs: Additional arguments for the benchmark generation
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
@@ -417,50 +421,92 @@ def get_benchmark(
         msg = "benchmark_instance_name must be defined for this benchmark."
         raise ValueError(msg)
 
-    lib = get_module_for_benchmark(benchmark_name.split("-")[0])
+    lib = get_module_for_benchmark(
+        benchmark_name.split("-")[0] # e.g., "grover" from "grover-noancilla"
+    )
 
-    if benchmark_name == "shor":
+    qc_algorithmic: QuantumCircuit
+    if "grover" in benchmark_name or "qwalk" in benchmark_name:
+        anc_mode = "" # Default, might be passed to create_circuit
+        if "noancilla" in benchmark_name:
+            anc_mode = "noancilla"
+        elif "v-chain" in benchmark_name:
+            anc_mode = "v-chain"
+        assert circuit_size is not None
+        qc_algorithmic = lib.create_circuit(circuit_size, ancillary_mode=anc_mode)
+    elif benchmark_name == "shor":
+        assert benchmark_instance_name is not None
         to_be_factored_number, a_value = lib.get_instance(benchmark_instance_name)
-        qc = lib.create_circuit(to_be_factored_number, a_value)
-
+        qc_algorithmic = lib.create_circuit(to_be_factored_number, a_value)
     else:
-        qc = lib.create_circuit(circuit_size)
+        assert circuit_size is not None
+        qc_algorithmic = lib.create_circuit(circuit_size)
 
+    processed_qc: QuantumCircuit
     if level in ("alg", 0):
-        return qc
+        processed_qc = qc_algorithmic
+    else:
+        if compiler_settings is None:
+            compiler_settings = CompilerSettings(QiskitSettings())
+        elif not isinstance(compiler_settings, CompilerSettings):
+            msg = "compiler_settings must be of type CompilerSettings or None."
+            raise ValueError(msg)
 
-    if compiler_settings is None:
-        compiler_settings = CompilerSettings(QiskitSettings())
-    elif not isinstance(compiler_settings, CompilerSettings):
-        msg = "compiler_settings must be of type CompilerSettings or None."  # type: ignore[unreachable]
-        raise ValueError(msg)
+        if level in ("indep", 1):
+            processed_qc = get_indep_level(qc_algorithmic, circuit_size, False, True)
+        elif level in ("nativegates", 2):
+            gateset_obj = get_native_gateset_by_name(gateset) if isinstance(gateset, str) else gateset
+            assert compiler_settings.qiskit is not None
+            opt_level = compiler_settings.qiskit.optimization_level
+            processed_qc = get_native_gates_level(qc_algorithmic, gateset_obj, circuit_size, opt_level, False, True)
+        elif level in ("mapped", 3):
+            if device_name not in get_available_device_names():
+                msg = f"Selected device_name must be in {get_available_device_names()}."
+                raise ValueError(msg)
+            device_obj = get_device_by_name(device_name)
+            assert compiler_settings.qiskit is not None
+            opt_level = compiler_settings.qiskit.optimization_level
+            assert isinstance(opt_level, int)
+            processed_qc = get_mapped_level(
+                qc_algorithmic,
+                circuit_size,
+                device_obj,
+                opt_level,
+                False,
+                True,
+            )
 
-    independent_level = 1
-    if level in ("indep", independent_level):
-        return get_indep_level(qc, circuit_size, False, True)
+    if generate_mirror_circuit:
+        unitary_part_qc = processed_qc.remove_final_measurements(inplace=False)
 
-    native_gates_level = 2
-    if level in ("nativegates", native_gates_level):
-        assert compiler_settings.qiskit is not None
-        opt_level = compiler_settings.qiskit.optimization_level
-        return get_native_gates_level(qc, target, circuit_size, opt_level, False, True)
+        final_mirrored_qc = QuantumCircuit(*unitary_part_qc.qregs)
+        if processed_qc.name:
+            final_mirrored_qc.name = processed_qc.name + "_mirrored"
+        else: # pragma: no cover
+            final_mirrored_qc.name = "mirrored_circuit"
 
-    mapped_level = 3
-    if level in ("mapped", mapped_level):
-        assert compiler_settings.qiskit is not None
-        opt_level = compiler_settings.qiskit.optimization_level
-        assert isinstance(opt_level, int)
-        return get_mapped_level(
-            qc,
-            circuit_size,
-            target,
-            opt_level,
-            False,
-            True,
-        )
+        for instruction in unitary_part_qc.data:
+            final_mirrored_qc.append(instruction.operation, instruction.qubits, instruction.clbits)
+        
+        final_mirrored_qc.barrier()
+        
+        inv_unitary_part_qc = unitary_part_qc.inverse()
+        for instruction in inv_unitary_part_qc.data:
+            final_mirrored_qc.append(instruction.operation, instruction.qubits, instruction.clbits)
 
-    msg = f"Invalid level specified. Must be in {get_supported_levels()}."
-    raise ValueError(msg)
+        num_qubits_in_mirror = final_mirrored_qc.num_qubits
+        if num_qubits_in_mirror > 0:
+            cr_name = "meas"
+            new_cr = ClassicalRegister(num_qubits_in_mirror, name=cr_name)
+            final_mirrored_qc.add_register(new_cr)
+            clbits_to_measure = new_cr
+            
+            final_mirrored_qc.measure(final_mirrored_qc.qubits, clbits_to_measure)
+
+        return final_mirrored_qc
+
+    return processed_qc
+
 
 
 def get_supported_benchmarks() -> list[str]:

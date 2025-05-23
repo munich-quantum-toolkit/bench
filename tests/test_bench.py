@@ -33,6 +33,7 @@ from enum import Enum
 import pytest
 from qiskit import QuantumCircuit, qpy
 from qiskit.qasm3 import load as load_qasm3
+from qiskit.circuit import Barrier # ADDED (Instruction might not be strictly needed if not directly type checking)
 
 from mqt.bench.benchmark_generation import (
     CompilerSettings,
@@ -477,6 +478,100 @@ def test_get_benchmark_faulty_parameters() -> None:
             get_device_by_name("wrong_device"),
         )
 
+@pytest.mark.parametrize(
+    (
+        "benchmark_name",
+        "level",
+        "circuit_size",
+    ),
+    [
+        ("ghz", "alg", 3),
+        ("qft", "indep", 4),
+        ("randomcircuit", "nativegates", 2),
+        ("ae", "mapped", 2),
+    ],
+)
+def test_get_benchmark_mirror_circuit(
+    benchmark_name: str,
+    level: str | int,
+    circuit_size: int,
+) -> None:
+    """Test the creation of mirror circuits."""
+    device_name_for_test = "ibm_washington"
+    gateset_for_test = "ibm_falcon"
+
+    original_processed_qc = get_benchmark(
+        benchmark_name,
+        level,
+        circuit_size=circuit_size,
+        generate_mirror_circuit=False,
+        device_name=device_name_for_test,
+        gateset=gateset_for_test,
+    )
+
+    mirrored_qc = get_benchmark(
+        benchmark_name,
+        level,
+        circuit_size=circuit_size,
+        generate_mirror_circuit=True,
+        device_name=device_name_for_test,
+        gateset=gateset_for_test,
+    )
+
+    original_unitary_part_qc = original_processed_qc.remove_final_measurements(inplace=False)
+
+    assert mirrored_qc.num_qubits == original_processed_qc.num_qubits
+
+    if not original_unitary_part_qc.data:
+        assert len(mirrored_qc.data) > 0
+        assert isinstance(mirrored_qc.data[0].operation, Barrier)
+        for instruction_tuple in mirrored_qc.data[1:]:
+             assert instruction_tuple.operation.name == "measure"
+    else:
+        barrier_index = -1
+        for i, instruction_tuple in enumerate(mirrored_qc.data):
+            if isinstance(instruction_tuple.operation, Barrier):
+                if i == len(original_unitary_part_qc.data):
+                    barrier_index = i
+                    break
+        assert barrier_index != -1, "Barrier not found at the expected position in mirrored circuit"
+
+        assert len(original_unitary_part_qc.data) == barrier_index
+        for i in range(barrier_index):
+            orig_unitary_instr = original_unitary_part_qc.data[i]
+            mir_forward_instr = mirrored_qc.data[i]
+            assert orig_unitary_instr.operation.name == mir_forward_instr.operation.name, \
+                f"Mismatch at index {i} in forward part: expected {orig_unitary_instr.operation.name}, got {mir_forward_instr.operation.name}"
+            assert orig_unitary_instr.operation.params == mir_forward_instr.operation.params
+            assert orig_unitary_instr.qubits == mir_forward_instr.qubits
+            assert orig_unitary_instr.clbits == mir_forward_instr.clbits
+
+        original_unitary_inverse_qc = original_unitary_part_qc.inverse()
+
+        num_measure_ops_at_end = mirrored_qc.num_qubits
+        
+        inverse_part_start_index = barrier_index + 1
+        inverse_part_end_index = len(mirrored_qc.data) - num_measure_ops_at_end 
+        
+        actual_inverse_part_len = inverse_part_end_index - inverse_part_start_index
+        expected_inverse_len = len(original_unitary_inverse_qc.data)
+
+        assert actual_inverse_part_len == expected_inverse_len, \
+            f"Mismatch in length of inverse part: expected {expected_inverse_len}, got {actual_inverse_part_len}"
+
+        for i in range(expected_inverse_len):
+            orig_inv_instr = original_unitary_inverse_qc.data[i]
+            mir_inv_instr = mirrored_qc.data[inverse_part_start_index + i]
+            assert orig_inv_instr.operation.name == mir_inv_instr.operation.name, \
+                f"Mismatch at index {i} in inverse part: expected {orig_inv_instr.operation.name}, got {mir_inv_instr.operation.name}"
+            assert orig_inv_instr.operation.params == mir_inv_instr.operation.params
+            assert orig_inv_instr.qubits == mir_inv_instr.qubits
+            assert orig_inv_instr.clbits == mir_inv_instr.clbits
+
+        for i in range(num_measure_ops_at_end):
+            measure_instr_index = inverse_part_end_index + i
+            assert mirrored_qc.data[measure_instr_index].operation.name == "measure", \
+                f"Expected 'measure' at final op index {i}, got {mirrored_qc.data[measure_instr_index].operation.name}"
 
 def test_configure_end(output_path: str) -> None:
     """Removes all temporarily created files while testing."""
