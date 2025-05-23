@@ -10,16 +10,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
-from qiskit.circuit.library import CXGate, RXGate, iSwapGate
+from qiskit.circuit.library import CXGate, iSwapGate
 from qiskit.circuit.library.standard_gates import RZGate, UGate
-
-if TYPE_CHECKING:
-    from numpy._typing import NDArray
 
 
 def get_rigetti_gateset() -> list[str]:
@@ -59,10 +54,6 @@ class RXPiGate(Gate):  # type: ignore[misc]
         qc.rx(np.pi, 0)
         self.definition = qc
 
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return matrix representation of RX(π)."""
-        return RXGate(np.pi).__array__(dtype=dtype)
-
 
 class RXPiOver2Gate(Gate):  # type: ignore[misc]
     r"""Single-qubit RX(π/2) gate.
@@ -95,10 +86,6 @@ class RXPiOver2Gate(Gate):  # type: ignore[misc]
         qc.rx(np.pi / 2, 0)
         self.definition = qc
 
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return matrix representation of RX(π/2)."""
-        return RXGate(np.pi / 2).__array__(dtype=dtype)
-
 
 class RXMinusPiOver2Gate(Gate):  # type: ignore[misc]
     r"""Single-qubit RX(-π/2) gate.
@@ -130,10 +117,6 @@ class RXMinusPiOver2Gate(Gate):  # type: ignore[misc]
         qc = QuantumCircuit(q)
         qc.rx(-np.pi / 2, 0)
         self.definition = qc
-
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return matrix representation of RX(-π/2)."""
-        return RXGate(-np.pi / 2).__array__(dtype=dtype)
 
 
 def u_gate_equivalence() -> None:

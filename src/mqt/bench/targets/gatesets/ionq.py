@@ -37,7 +37,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -46,7 +45,6 @@ from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
 from qiskit.circuit.library import CXGate, UGate
 
 if TYPE_CHECKING:
-    from numpy._typing import NDArray
     from qiskit.circuit.parameterexpression import ParameterValueType
 
 
@@ -94,12 +92,6 @@ class GPIGate(Gate):  # type: ignore[misc]
         qc.rz(4 * phi * np.pi, 0)
         self.definition = qc
 
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return a numpy array for the GPI gate."""
-        top = np.exp(-1j * 2 * math.pi * self.params[0])
-        bottom = np.exp(1j * 2 * math.pi * self.params[0])
-        return np.array([[0, top], [bottom, 0]], dtype=dtype)
-
 
 class GPI2Gate(Gate):  # type: ignore[misc]
     r"""Single-qubit GPI2 gate.
@@ -135,12 +127,6 @@ class GPI2Gate(Gate):  # type: ignore[misc]
         qc.rz(2 * phi * np.pi, 0)
 
         self.definition = qc
-
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return a numpy array for the GPI2 gate."""
-        top = -1j * np.exp(-1j * self.params[0] * 2 * math.pi)
-        bottom = -1j * np.exp(1j * self.params[0] * 2 * math.pi)
-        return 1 / np.sqrt(2) * np.array([[1, top], [bottom, 1]], dtype=dtype)
 
 
 class MSGate(Gate):  # type: ignore[misc]
@@ -214,24 +200,6 @@ class MSGate(Gate):  # type: ignore[misc]
 
         self.definition = qc
 
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return a numpy array for the MS gate."""
-        phi0 = self.params[0]
-        phi1 = self.params[1]
-        theta = self.params[2]
-        diag = np.cos(math.pi * theta)
-        sin = np.sin(math.pi * theta)
-
-        return np.array(
-            [
-                [diag, 0, 0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 + phi1))],
-                [0, diag, sin * -1j * np.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
-                [0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
-                [sin * -1j * np.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
-            ],
-            dtype=dtype,
-        )
-
 
 class ZZGate(Gate):  # type: ignore[misc]
     r"""Two-qubit ZZ-rotation gate.
@@ -266,19 +234,6 @@ class ZZGate(Gate):  # type: ignore[misc]
         qc.rzz(2 * np.pi * theta, 0, 1)
 
         self.definition = qc
-
-    def __array__(self, dtype: np.dtype[np.complex128] | None = None) -> NDArray[np.complex128]:  # noqa: PLW3201
-        """Return a numpy array for the ZZ gate."""
-        itheta2 = 1j * float(self.params[0]) * math.pi
-        return np.array(
-            [
-                [np.exp(-itheta2), 0, 0, 0],
-                [0, np.exp(itheta2), 0, 0],
-                [0, 0, np.exp(itheta2), 0],
-                [0, 0, 0, np.exp(-itheta2)],
-            ],
-            dtype=dtype,
-        )
 
 
 def u_gate_equivalence() -> None:
