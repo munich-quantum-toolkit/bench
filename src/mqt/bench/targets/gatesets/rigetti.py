@@ -13,7 +13,6 @@ from __future__ import annotations
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
-from qiskit.circuit.library import CXGate, iSwapGate
 from qiskit.circuit.library.standard_gates import RZGate, UGate
 
 
@@ -138,36 +137,6 @@ def u_gate_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(UGate(theta, phi, lam), qc)
 
 
-def cx_gate_equivalence() -> None:
-    """Add CX gate equivalence using iSWAP and single-qubit RX/RZ gates."""
-    qr = QuantumRegister(2, "q")
-    qc = QuantumCircuit(qr)
-
-    # (I ⊗ H) ≈ RZ(pi) RX(pi/2) RZ(pi)
-    qc.rz(np.pi, qr[1])
-    qc.append(RXPI2Gate(), [qr[1]])
-    qc.rz(np.pi, qr[1])
-
-    # First iSWAP
-    qc.append(iSwapGate(), [qr[0], qr[1]])
-
-    # (S† ⊗ H) ≈ RZ(-pi/2) on control, RZ(pi) RX(pi/2) RZ(pi) on target
-    qc.rz(-np.pi / 2, qr[0])
-    qc.rz(np.pi, qr[1])
-    qc.append(RXPI2Gate(), [qr[1]])
-    qc.rz(np.pi, qr[1])
-
-    # Second iSWAP
-    qc.append(iSwapGate(), [qr[0], qr[1]])
-
-    # Final (I ⊗ S) ≈ RZ(pi/2)
-    qc.rz(np.pi / 2, qr[1])
-
-    # Register equivalence
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), qc)
-
-
 def add_rigetti_equivalences() -> None:
     """Add Rigetti gate equivalences to the session equivalence library."""
     u_gate_equivalence()
-    cx_gate_equivalence()
