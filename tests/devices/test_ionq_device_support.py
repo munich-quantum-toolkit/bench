@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from qiskit.transpiler import Target
 
-from mqt.bench.targets.devices.ionq import get_ionq_target
+from mqt.bench.targets.devices.ionq import _build_ionq_target, get_ionq_target
 
 
 def test_ionq_target_from_calibration() -> None:
@@ -48,3 +48,16 @@ def test_get_unknown_device() -> None:
     """Test the get_ionq_target function with an unknown device name."""
     with pytest.raises(ValueError, match="Unknown IonQ device: 'unknown_device'"):
         get_ionq_target("unknown_device")
+
+    with pytest.raises(ValueError, match="Unknown entangling gate: 'wrong_gate'"):
+        _build_ionq_target(
+            num_qubits=5,
+            description="test",
+            entangling_gate="wrong_gate",
+            oneq_duration=0,
+            twoq_duration=0,
+            readout_duration=0,
+            oneq_fidelity=0,
+            twoq_fidelity=0,
+            spam_fidelity=0,
+        )
