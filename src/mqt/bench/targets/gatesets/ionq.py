@@ -263,9 +263,7 @@ class ZZGate(Gate):  # type: ignore[misc]
         theta = self.params[0]
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q)
-        qc.cx(0, 1)
-        qc.rz(2 * np.pi * theta, 1)
-        qc.cx(0, 1)
+        qc.rzz(2 * np.pi * theta, 0, 1)
 
         self.definition = qc
 
