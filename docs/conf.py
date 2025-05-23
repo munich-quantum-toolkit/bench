@@ -165,13 +165,13 @@ html_theme_options = {
     "footer_icons": [
         {
             "name": "GitHub",
-            "url": "https://github.com/munich-quantum-toolkit/core/",
+            "url": "https://github.com/munich-quantum-toolkit/bench/",
             "html": "",
             "class": "fa-brands fa-solid fa-github fa-2x",
         },
         {
             "name": "PyPI",
-            "url": "https://pypi.org/project/mqt-core/",
+            "url": "https://pypi.org/project/mqt-bench/",
             "html": "",
             "class": "fa-brands fa-solid fa-python fa-2x",
         },
