@@ -16,9 +16,9 @@ from typing import TYPE_CHECKING
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from .clifford_t import get_clifford_t_gateset, get_clifford_t_rotations_gateset
-from .ibm import get_ibm_falcon_gateset, get_ibm_eagle_gateset, get_ibm_heron_gateset
-from .iqm import get_iqm_gateset
+from .ibm import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_gateset
 from .ionq import get_ionq_gateset
+from .iqm import get_iqm_gateset
 from .quantinuum import get_quantinuum_gateset
 from .rigetti import get_rigetti_gateset
 
@@ -55,5 +55,3 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
     target = backend.target
     target.description = name
     return target
-
-

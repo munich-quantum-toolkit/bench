@@ -10,16 +10,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from mqt.bench.targets.gatesets.ionq import GPIGate, GPI2Gate, MSGate, ZZGate, add_ionq_equivalences
-
-if TYPE_CHECKING:
-    pass
+from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivalences
 
 add_ionq_equivalences()
 
@@ -88,9 +83,7 @@ def _build_ionq_target(
     singleq_props = {
         (q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity) for q in range(num_qubits)
     }
-    rz_props = {
-        (q,): InstructionProperties(duration=0, error=0) for q in range(num_qubits)
-    }
+    rz_props = {(q,): InstructionProperties(duration=0, error=0) for q in range(num_qubits)}
     measure_props = {
         (q,): InstructionProperties(duration=readout_duration, error=1 - spam_fidelity) for q in range(num_qubits)
     }

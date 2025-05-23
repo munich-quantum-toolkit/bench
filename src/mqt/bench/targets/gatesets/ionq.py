@@ -1,13 +1,26 @@
+# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""Handles the available native gatesets for IonQ."""
+
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy._typing import NDArray
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
-from qiskit.circuit.library import UGate, CXGate, XGate, RZGate, RXGate, CU3Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.library import CXGate, UGate
+
+if TYPE_CHECKING:
+    from numpy._typing import NDArray
+    from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def get_ionq_gateset() -> list[str]:
@@ -260,76 +273,8 @@ def cx_via_zz_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_equiv)
 
 
-def gpi_gate_equivalence() -> None:
-    """Add GPI gate equivalence to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(1, "q")
-    phi_param = Parameter("phi_param")
-    gpi_gate = QuantumCircuit(q)
-    gpi_gate.append(XGate(), [0])
-    gpi_gate.append(RZGate(4 * phi_param * np.pi), [0])
-    SessionEquivalenceLibrary.add_equivalence(GPIGate(phi_param), gpi_gate)
-
-
-def gpi2_gate_equivalence() -> None:
-    """Add GPI2 gate equivalence to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(1, "q")
-    phi_param = Parameter("phi_param")
-    gpi2_gate = QuantumCircuit(q)
-    gpi2_gate.append(RZGate(-2 * phi_param * np.pi), [0])
-    gpi2_gate.append(RXGate(np.pi / 2), [0])
-    gpi2_gate.append(RZGate(2 * phi_param * np.pi), [0])
-    SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi_param), gpi2_gate)
-
-
-def ms_gate_equivalence() -> None:
-    """Add MS gate equivalence to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(2, "q")
-    phi0_param = Parameter("phi0_param")
-    phi1_param = Parameter("phi1_param")
-    theta_param = Parameter("theta_param")
-    alpha_param = phi0_param + phi1_param
-    beta_param = phi0_param - phi1_param
-    ms_gate = QuantumCircuit(q)
-    ms_gate.append(CXGate(), [1, 0])
-    ms_gate.x(0)
-    ms_gate.append(
-        CU3Gate(
-            2 * theta_param * np.pi,
-            2 * alpha_param * np.pi - np.pi / 2,
-            np.pi / 2 - 2 * alpha_param * np.pi,
-        ),
-        [0, 1],
-    )
-    ms_gate.x(0)
-    ms_gate.append(
-        CU3Gate(
-            2 * theta_param * np.pi,
-            -2 * beta_param * np.pi - np.pi / 2,
-            np.pi / 2 + 2 * beta_param * np.pi,
-        ),
-        [0, 1],
-    )
-    ms_gate.append(CXGate(), [1, 0])
-    SessionEquivalenceLibrary.add_equivalence(MSGate(phi0_param, phi1_param, theta_param), ms_gate)
-
-
-def zz_gate_equivalence() -> None:
-    """Add ZZ gate equivalence to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(2, "q")
-    theta_param = Parameter("theta_param")
-    zz_circuit = QuantumCircuit(q)
-    zz_circuit.cx(0, 1)
-    zz_circuit.rz(2 * np.pi * theta_param, 1)
-    zz_circuit.cx(0, 1)
-    SessionEquivalenceLibrary.add_equivalence(ZZGate(theta_param), zz_circuit)
-
-
 def add_ionq_equivalences() -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
     cx_via_ms_equivalence()
     cx_via_zz_equivalence()
-    gpi_gate_equivalence()
-    gpi2_gate_equivalence()
-    ms_gate_equivalence()
-    zz_gate_equivalence()

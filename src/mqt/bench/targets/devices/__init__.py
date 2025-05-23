@@ -13,9 +13,9 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
+from ..gatesets.ionq import add_ionq_equivalences
 from .ibm import get_ibm_target
 from .ionq import get_ionq_target
-from ..gatesets.ionq import add_ionq_equivalences
 from .iqm import get_iqm_target
 from .quantinuum import get_quantinuum_target
 from .rigetti import get_rigetti_target
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "add_ionq_equivalences",
     "get_available_devices",
     "get_device_by_name",
 ]
