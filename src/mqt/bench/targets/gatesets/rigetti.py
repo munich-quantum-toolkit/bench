@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
-from qiskit.circuit.library.standard_gates import RZGate, UGate
+from qiskit.circuit.library.standard_gates import RXGate, RZGate, UGate
 
 
 def get_rigetti_ankaa_gateset() -> list[str]:
@@ -137,6 +137,22 @@ def u_gate_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(UGate(theta, phi, lam), qc)
 
 
+def rx_gate_equivalence() -> None:
+    """Add RX(θ) gate equivalence using RX(±π/2) and RZ gates."""
+    theta = Parameter("θ")
+    qr = QuantumRegister(1, "q")
+    qc = QuantumCircuit(qr)
+
+    qc.rz(-np.pi / 2, qr[0])
+    qc.append(RXPI2Gate(), [qr[0]])
+    qc.rz(theta, qr[0])
+    qc.append(RXPI2DgGate(), [qr[0]])
+    qc.rz(np.pi / 2, qr[0])
+
+    SessionEquivalenceLibrary.add_equivalence(RXGate(theta), qc)
+
+
 def add_rigetti_equivalences() -> None:
     """Add Rigetti gate equivalences to the session equivalence library."""
     u_gate_equivalence()
+    rx_gate_equivalence()
