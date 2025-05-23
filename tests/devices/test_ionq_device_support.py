@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from qiskit.transpiler import Target
 
-from mqt.bench.targets.devices.ionq import _build_ionq_target, get_ionq_target
+from mqt.bench.targets.devices.ionq import _build_ionq_target, get_ionq_target  # noqa: PLC2701
 
 
 def test_ionq_target_from_calibration() -> None:
