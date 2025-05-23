@@ -28,6 +28,22 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 
+__all__ = [
+    "get_available_native_gatesets",
+    "get_clifford_t_gateset",
+    "get_clifford_t_rotations_gateset",
+    "get_ibm_eagle_gateset",
+    "get_ibm_falcon_gateset",
+    "get_ibm_heron_gateset",
+    "get_ionq_aria_gateset",
+    "get_ionq_forte_gateset",
+    "get_iqm_gateset",
+    "get_quantinuum_gateset",
+    "get_rigetti_gateset",
+    "get_target_for_gateset",
+]
+
+
 @cache
 def get_available_native_gatesets() -> dict[str, list[str]]:
     """Return a list of available native gatesets."""

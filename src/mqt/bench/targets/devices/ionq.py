@@ -14,7 +14,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivalences
+from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivalences
 
 
 def get_ionq_target(device_name: str) -> Target:
