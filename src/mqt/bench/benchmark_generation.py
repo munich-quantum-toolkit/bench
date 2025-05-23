@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypedDict, overload
-from qiskit.circuit import QuantumCircuit, ClassicalRegister
+from typing import TYPE_CHECKING, Literal, overload
+
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 
@@ -26,7 +27,6 @@ from .targets.gatesets import get_target_for_gateset
 if TYPE_CHECKING:  # pragma: no cover
     from types import ModuleType
 
-    from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
 
 from dataclasses import dataclass
@@ -378,6 +378,7 @@ def get_mapped_level(
         target_directory=target_directory,
     )
 
+
 def get_benchmark(
     benchmark_name: str,
     level: str | int,
@@ -422,12 +423,12 @@ def get_benchmark(
         raise ValueError(msg)
 
     lib = get_module_for_benchmark(
-        benchmark_name.split("-")[0] # e.g., "grover" from "grover-noancilla"
+        benchmark_name.split("-")[0]  # e.g., "grover" from "grover-noancilla"
     )
 
     qc_algorithmic: QuantumCircuit
     if "grover" in benchmark_name or "qwalk" in benchmark_name:
-        anc_mode = "" # Default, might be passed to create_circuit
+        anc_mode = ""  # Default, might be passed to create_circuit
         if "noancilla" in benchmark_name:
             anc_mode = "noancilla"
         elif "v-chain" in benchmark_name:
@@ -482,14 +483,14 @@ def get_benchmark(
         final_mirrored_qc = QuantumCircuit(*unitary_part_qc.qregs)
         if processed_qc.name:
             final_mirrored_qc.name = processed_qc.name + "_mirrored"
-        else: # pragma: no cover
+        else:  # pragma: no cover
             final_mirrored_qc.name = "mirrored_circuit"
 
         for instruction in unitary_part_qc.data:
             final_mirrored_qc.append(instruction.operation, instruction.qubits, instruction.clbits)
-        
+
         final_mirrored_qc.barrier()
-        
+
         inv_unitary_part_qc = unitary_part_qc.inverse()
         for instruction in inv_unitary_part_qc.data:
             final_mirrored_qc.append(instruction.operation, instruction.qubits, instruction.clbits)
@@ -500,13 +501,12 @@ def get_benchmark(
             new_cr = ClassicalRegister(num_qubits_in_mirror, name=cr_name)
             final_mirrored_qc.add_register(new_cr)
             clbits_to_measure = new_cr
-            
+
             final_mirrored_qc.measure(final_mirrored_qc.qubits, clbits_to_measure)
 
         return final_mirrored_qc
 
     return processed_qc
-
 
 
 def get_supported_benchmarks() -> list[str]:

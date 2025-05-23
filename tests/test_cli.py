@@ -15,12 +15,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from pytest_console_scripts import ScriptRunner
-from qiskit.qasm3 import dumps
-from qiskit.qasm3 import loads
-from mqt.bench.benchmark_generation import generate_filename
+from qiskit.qasm3 import dumps, loads
 
 from mqt.bench import CompilerSettings, QiskitSettings
-from mqt.bench.benchmark_generation import get_benchmark
+from mqt.bench.benchmark_generation import generate_filename, get_benchmark
 from mqt.bench.targets import get_device_by_name, get_target_for_gateset
 
 if TYPE_CHECKING:
@@ -157,14 +155,14 @@ def test_cli_mirror_circuit_stdout(script_runner: ScriptRunner) -> None:
         circuit_size=3,
         generate_mirror_circuit=True
     )
-    qasm_body_from_cli = "\n".join(ret.stdout.splitlines()[4:]) 
+    qasm_body_from_cli = "\n".join(ret.stdout.splitlines()[4:])
     cli_qc = loads(qasm_body_from_cli)
 
     assert cli_qc.num_qubits == expected_qc.num_qubits
-    assert cli_qc.count_ops().get("barrier", 0) >= 1 
+    assert cli_qc.count_ops().get("barrier", 0) >= 1
     original_qc = get_benchmark(level="alg", benchmark_name="ghz", circuit_size=3, generate_mirror_circuit=False)
     num_ops_original_unitary = len(original_qc.remove_final_measurements(inplace=False).data)
-    
+
     cli_ops_count = 0
     for instruction in cli_qc.data:
         if instruction.operation.name not in ["barrier", "measure"]:
@@ -184,7 +182,7 @@ def test_cli_mirror_circuit_save_file(tmp_path: Path, script_runner: ScriptRunne
         "--algorithm", algorithm_name,
         "--num-qubits", str(num_q),
         "--generate-mirror-circuit",
-        "--save", 
+        "--save",
         "--target-directory", target_dir,
         "--output-format", "qasm3"
     ]
@@ -200,17 +198,17 @@ def test_cli_mirror_circuit_save_file(tmp_path: Path, script_runner: ScriptRunne
     expected_file_path = tmp_path / f"{expected_filename_base}.qasm"
 
     assert expected_file_path.is_file(), f"Expected file {expected_file_path} not found. Found: {[p.name for p in tmp_path.iterdir()]}"
-    
+
     expected_qc = get_benchmark(
         level=level_str,
         benchmark_name=algorithm_name,
         circuit_size=num_q,
         generate_mirror_circuit=True
     )
-    
+
     saved_content = expected_file_path.read_text()
     qasm_body_from_file = "\n".join(saved_content.splitlines()[4:])
-    
+
     file_qc = loads(qasm_body_from_file)
 
     assert file_qc.num_qubits == expected_qc.num_qubits
