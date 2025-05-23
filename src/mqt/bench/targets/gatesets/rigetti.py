@@ -171,6 +171,3 @@ def add_rigetti_equivalences() -> None:
     """Add Rigetti gate equivalences to the session equivalence library."""
     u_gate_equivalence()
     cx_gate_equivalence()
-
-
-add_rigetti_equivalences()
