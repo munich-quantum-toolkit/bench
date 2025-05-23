@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 from qiskit.providers.fake_provider import GenericBackendV2
 
-from ..gatesets import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_gateset
+from mqt.bench.targets.gatesets.ibm import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_gateset
 
 logger = logging.getLogger(__name__)
 
