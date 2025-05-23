@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Test the Rigetti Aspen-M3 device."""
+"""Test the Rigetti Ankaa 3 device."""
 
 from __future__ import annotations
 
@@ -16,16 +16,16 @@ from qiskit.transpiler import Target
 from mqt.bench.targets.devices.rigetti import get_rigetti_target
 
 
-def test_rigetti_aspen_m3_target_structure() -> None:
-    """Test the structure of the Rigetti Aspen-M3 target device."""
-    target = get_rigetti_target("rigetti_aspen_m3")
+def test_rigetti_ankaa_3_target_structure() -> None:
+    """Test the structure of the Rigetti Ankaa 3 target device."""
+    target = get_rigetti_target("rigetti_ankaa_3")
 
     assert isinstance(target, Target)
-    assert target.description == "rigetti_aspen_m3"
-    assert target.num_qubits == 79  # Adjust if your calibration changes
+    assert target.description == "rigetti_ankaa_3"
+    assert target.num_qubits == 84
 
-    expected_single_qubit_gates = {"rx", "rz", "measure"}
-    expected_two_qubit_gates = {"cz", "cp", "xx_plus_yy"}
+    expected_single_qubit_gates = {"rx_pi", "rx_pi_by_2", "rx_pi_by_minus_2", "rz", "measure"}
+    expected_two_qubit_gates = {"iswap"}
 
     assert expected_single_qubit_gates.issubset(set(target.operation_names))
     assert any(g in target.operation_names for g in expected_two_qubit_gates)

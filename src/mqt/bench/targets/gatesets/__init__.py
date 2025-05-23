@@ -22,7 +22,7 @@ from .ibm import get_ibm_eagle_gateset, get_ibm_falcon_gateset, get_ibm_heron_ga
 from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate, get_ionq_aria_gateset, get_ionq_forte_gateset
 from .iqm import get_iqm_gateset
 from .quantinuum import get_quantinuum_gateset
-from .rigetti import get_rigetti_gateset
+from .rigetti import RXMinusPiOver2Gate, RXPiGate, RXPiOver2Gate, get_rigetti_gateset
 
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
@@ -77,6 +77,12 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
             target.add_instruction(MSGate(alpha, beta, gamma))
         elif gate == "zz":
             target.add_instruction(ZZGate(alpha))
+        elif gate == "rx_pi":
+            target.add_instruction(RXPiGate())
+        elif gate == "rx_pi_by_2":
+            target.add_instruction(RXPiOver2Gate())
+        elif gate == "rx_pi_by_minus_2":
+            target.add_instruction(RXMinusPiOver2Gate())
         else:
             msg = f"Gate '{gate}' not found in available gatesets."
             raise ValueError(msg) from None

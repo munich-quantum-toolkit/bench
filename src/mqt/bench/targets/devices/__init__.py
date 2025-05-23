@@ -46,7 +46,7 @@ def get_available_devices() -> list[Target]:
         get_iqm_target("iqm_crystal_20"),
         get_iqm_target("iqm_crystal_54"),
         get_quantinuum_target("quantinuum_h2"),
-        get_rigetti_target("rigetti_aspen_m3"),
+        get_rigetti_target("rigetti_ankaa_3"),
     ]
 
 

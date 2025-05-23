@@ -422,7 +422,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "wrong_size",
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_aspen_m3"),
+            get_device_by_name("rigetti_ankaa_3"),
         )
     match = "circuit_size must be None or int for this benchmark."
     with pytest.raises(ValueError, match=match):
@@ -432,7 +432,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             -1,
             None,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_aspen_m3"),
+            get_device_by_name("rigetti_ankaa_3"),
         )
 
     match = "benchmark_instance_name must be defined for this benchmark."
@@ -443,7 +443,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             2,
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
-            get_device_by_name("rigetti_aspen_m3"),
+            get_device_by_name("rigetti_ankaa_3"),
         )
 
     match = "compiler_settings must be of type CompilerSettings or None"
@@ -454,7 +454,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             3,
             None,
             "wrong_compiler_settings",
-            get_device_by_name("rigetti_aspen_m3"),
+            get_device_by_name("rigetti_ankaa_3"),
         )
     match = "Gateset 'wrong_gateset' not found in available gatesets."
     with pytest.raises(ValueError, match=match):
