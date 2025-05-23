@@ -18,6 +18,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from .clifford_t import get_clifford_t_gateset, get_clifford_t_rotations_gateset
 from .ibm import get_ibm_falcon_gateset, get_ibm_eagle_gateset, get_ibm_heron_gateset
 from .iqm import get_iqm_gateset
+from .ionq import get_ionq_gateset
 from .quantinuum import get_quantinuum_gateset
 from .rigetti import get_rigetti_gateset
 
@@ -32,7 +33,7 @@ def get_available_native_gatesets() -> dict[str, list[str]]:
         "ibm_falcon": get_ibm_falcon_gateset(),
         "ibm_eagle": get_ibm_eagle_gateset(),
         "ibm_heron": get_ibm_heron_gateset(),
-        # "ionq": get_ionq_gateset(),
+        "ionq": get_ionq_gateset(),
         "iqm": get_iqm_gateset(),
         "quantinuum": get_quantinuum_gateset(),
         "rigetti": get_rigetti_gateset(),
