@@ -14,12 +14,11 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivalences
+from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate
 
 
 def get_ionq_target(device_name: str) -> Target:
     """Get the target device for a given IonQ device name."""
-    add_ionq_equivalences()
     if device_name == "ionq_aria_25":
         return get_ionq_aria_25()
     if device_name == "ionq_forte_36":

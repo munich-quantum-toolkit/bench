@@ -14,12 +14,11 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RZGate, iSwapGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate, add_rigetti_equivalences
+from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate
 
 
 def get_rigetti_target(device_name: str) -> Target:
     """Get a hardcoded Rigetti target device by name."""
-    add_rigetti_equivalences()
     if device_name == "rigetti_ankaa_84":
         return get_rigetti_ankaa_84()
     msg = f"Unknown Rigetti device: '{device_name}'."

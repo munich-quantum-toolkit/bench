@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Gate, Parameter, SessionEquivalenceLibrary
+from qiskit.circuit import EquivalenceLibrary, Gate, Parameter
 from qiskit.circuit.library import CXGate, UGate
 
 if TYPE_CHECKING:
@@ -50,13 +50,11 @@ if TYPE_CHECKING:
 
 def get_ionq_forte_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Forte gateset."""
-    add_ionq_equivalences()
     return ["rz", "gpi", "gpi2", "zz", "measure"]
 
 
 def get_ionq_aria_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Aria gateset."""
-    add_ionq_equivalences()
     return ["rz", "gpi", "gpi2", "ms", "measure"]
 
 
@@ -236,7 +234,7 @@ class ZZGate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-def u_gate_equivalence() -> None:
+def u_gate_equivalence(sel: EquivalenceLibrary) -> None:
     """Add U gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(1, "q")
     theta_param = Parameter("theta_param")
@@ -250,10 +248,10 @@ def u_gate_equivalence() -> None:
         [0],
     )
     u_gate.append(GPI2Gate(0.5 + phi_param / (2 * np.pi)), [0])
-    SessionEquivalenceLibrary.add_equivalence(UGate(theta_param, phi_param, lambda_param), u_gate)
+    sel.add_equivalence(UGate(theta_param, phi_param, lambda_param), u_gate)
 
 
-def cx_via_ms_equivalence() -> None:
+def cx_via_ms_equivalence(sel: EquivalenceLibrary) -> None:
     """Add CX gate equivalence to the SessionEquivalenceLibrary for both native two-qubit gates."""
     q = QuantumRegister(2, "q")
     cx_gate = QuantumCircuit(q)
@@ -262,10 +260,10 @@ def cx_via_ms_equivalence() -> None:
     cx_gate.append(GPI2Gate(1 / 2), [0])
     cx_gate.append(GPI2Gate(1 / 2), [1])
     cx_gate.append(GPI2Gate(-1 / 4), [0])
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
+    sel.add_equivalence(CXGate(), cx_gate)
 
 
-def cx_via_zz_equivalence() -> None:
+def cx_via_zz_equivalence(sel: EquivalenceLibrary) -> None:
     """Add equivalence CX ≡ H-ZZ(pi/4)-H."""
     q = QuantumRegister(2, "q")
     cx_equiv = QuantumCircuit(q)
@@ -273,11 +271,11 @@ def cx_via_zz_equivalence() -> None:
     cx_equiv.append(ZZGate(0.25), [0, 1])  # pi/4
     cx_equiv.h(1)
 
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_equiv)
+    sel.add_equivalence(CXGate(), cx_equiv)
 
 
-def add_ionq_equivalences() -> None:
+def add_equivalences(sel: EquivalenceLibrary) -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
-    u_gate_equivalence()
-    cx_via_ms_equivalence()
-    cx_via_zz_equivalence()
+    u_gate_equivalence(sel)
+    cx_via_ms_equivalence(sel)
+    cx_via_zz_equivalence(sel)
