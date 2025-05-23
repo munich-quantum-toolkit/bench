@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 def get_rigetti_gateset() -> list[str]:
     """Returns the basis gates of the Rigetti gateset."""
     add_rigetti_equivalences()
-    return ["rx_pi", "rx_pi_by_2", "rx_pi_by_minus_2", "rz", "iswap", "measure"]
+    return ["fixed_angle_rx_pi", "fixed_angle_rx_pi_by_2", "fixed_angle_rx_pi_by_minus_2", "rz", "iswap", "measure"]
 
 
 class RXPiGate(Gate):  # type: ignore[misc]
@@ -50,7 +50,7 @@ class RXPiGate(Gate):  # type: ignore[misc]
 
     def __init__(self, label: str | None = None) -> None:
         """Create RX(π) gate."""
-        super().__init__("rx_pi", 1, [np.pi], label=label)
+        super().__init__("fixed_angle_rx_pi", 1, [np.pi], label=label)
 
     def _define(self) -> None:
         """Define RX(π) gate using standard RX."""
@@ -86,7 +86,7 @@ class RXPiOver2Gate(Gate):  # type: ignore[misc]
 
     def __init__(self, label: str | None = None) -> None:
         """Create RX(π/2) gate."""
-        super().__init__("rx_pi_2", 1, [np.pi / 2], label=label)
+        super().__init__("fixed_angle_rx_pi_by_2", 1, [np.pi / 2], label=label)
 
     def _define(self) -> None:
         """Define RX(π/2) gate using standard RX."""
@@ -122,7 +122,7 @@ class RXMinusPiOver2Gate(Gate):  # type: ignore[misc]
 
     def __init__(self, label: str | None = None) -> None:
         """Create RX(-π/2) gate."""
-        super().__init__("rx_minus_pi_2", 1, [-np.pi / 2], label=label)
+        super().__init__("fixed_angle_rx_pi_by_minus_2", 1, [-np.pi / 2], label=label)
 
     def _define(self) -> None:
         """Define RX(-π/2) gate using standard RX."""

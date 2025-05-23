@@ -77,11 +77,11 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
             target.add_instruction(MSGate(alpha, beta, gamma))
         elif gate == "zz":
             target.add_instruction(ZZGate(alpha))
-        elif gate == "rx_pi":
+        elif gate == "fixed_angle_rx_pi":
             target.add_instruction(RXPiGate())
-        elif gate == "rx_pi_by_2":
+        elif gate == "fixed_angle_rx_pi_by_2":
             target.add_instruction(RXPiOver2Gate())
-        elif gate == "rx_pi_by_minus_2":
+        elif gate == "fixed_angle_rx_pi_by_minus_2":
             target.add_instruction(RXMinusPiOver2Gate())
         else:
             msg = f"Gate '{gate}' not found in available gatesets."

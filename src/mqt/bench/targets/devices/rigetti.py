@@ -331,9 +331,9 @@ def _build_rigetti_target(
     # === Add single-qubit gates ===
     single_qubit_gate_props = {(q,): InstructionProperties(error=oneq_error) for q in range(num_qubits)}
     measure_props = {(q,): InstructionProperties(error=spam_error) for q in range(num_qubits)}
-    target.add_instruction(RXPiGate(), single_qubit_gate_props, name="rx_pi")
-    target.add_instruction(RXPiOver2Gate(), single_qubit_gate_props, name="rx_pi_by_2")
-    target.add_instruction(RXMinusPiOver2Gate(), single_qubit_gate_props, name="rx_pi_by_minus_2")
+    target.add_instruction(RXPiGate(), single_qubit_gate_props, name="fixed_angle_rx_pi")
+    target.add_instruction(RXPiOver2Gate(), single_qubit_gate_props, name="fixed_angle_rx_pi_by_2")
+    target.add_instruction(RXMinusPiOver2Gate(), single_qubit_gate_props, name="fixed_angle_rx_pi_by_minus_2")
 
     alpha = Parameter("alpha")
     target.add_instruction(RZGate(alpha), single_qubit_gate_props)

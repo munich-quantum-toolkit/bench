@@ -24,7 +24,13 @@ def test_rigetti_ankaa_3_target_structure() -> None:
     assert target.description == "rigetti_ankaa_3"
     assert target.num_qubits == 84
 
-    expected_single_qubit_gates = {"rx_pi", "rx_pi_by_2", "rx_pi_by_minus_2", "rz", "measure"}
+    expected_single_qubit_gates = {
+        "fixed_angle_rx_pi",
+        "fixed_angle_rx_pi_by_2",
+        "fixed_angle_rx_pi_by_minus_2",
+        "rz",
+        "measure",
+    }
     expected_two_qubit_gates = {"iswap"}
 
     assert expected_single_qubit_gates.issubset(set(target.operation_names))
