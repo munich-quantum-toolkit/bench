@@ -68,10 +68,10 @@ which is being developed as part of the [Munich Quantum Valley (MQV)](https://ww
   <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-dark.svg" width="90%" alt="MQT Banner">
 </div>
 </div>
-Thank you to all the contributors who have helped make MQT Core a reality!
+Thank you to all the contributors who have helped make MQT Bench a reality!
 <p align="center">
-<a href="https://github.com/munich-quantum-toolkit/core/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=munich-quantum-toolkit/core" />
+<a href="https://github.com/munich-quantum-toolkit/bench/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=munich-quantum-toolkit/bench" />
 </a>
 </p>
 
