@@ -77,5 +77,8 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
             target.add_instruction(MSGate(alpha, beta, gamma))
         elif gate == "zz":
             target.add_instruction(ZZGate(alpha))
+        else:
+            msg = f"Gate '{gate}' not found in available gatesets."
+            raise ValueError(msg) from None
 
     return target

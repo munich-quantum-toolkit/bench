@@ -16,11 +16,10 @@ from qiskit.transpiler import InstructionProperties, Target
 
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate, add_ionq_equivalences
 
-add_ionq_equivalences()
-
 
 def get_ionq_target(device_name: str) -> Target:
     """Get the target device for a given IonQ device name."""
+    add_ionq_equivalences()
     if device_name == "ionq_aria_1":
         return get_ionq_aria_1_target()
     if device_name == "ionq_forte_1":
