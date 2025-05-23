@@ -25,9 +25,9 @@ def test_rigetti_ankaa_3_target_structure() -> None:
     assert target.num_qubits == 84
 
     expected_single_qubit_gates = {
-        "fixed_angle_rx_pi",
-        "fixed_angle_rx_pi_by_2",
-        "fixed_angle_rx_pi_by_minus_2",
+        "rxpi",
+        "rxpi2",
+        "rxpi2dg",
         "rz",
         "measure",
     }

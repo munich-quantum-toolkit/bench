@@ -14,7 +14,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RZGate, iSwapGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from mqt.bench.targets.gatesets.rigetti import RXMinusPiOver2Gate, RXPiGate, RXPiOver2Gate, add_rigetti_equivalences
+from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate, add_rigetti_equivalences
 
 
 def get_rigetti_target(device_name: str) -> Target:
@@ -332,9 +332,9 @@ def _build_rigetti_target(
     # === Add single-qubit gates ===
     single_qubit_gate_props = {(q,): InstructionProperties(error=oneq_error) for q in range(num_qubits)}
     measure_props = {(q,): InstructionProperties(error=spam_error) for q in range(num_qubits)}
-    target.add_instruction(RXPiGate(), single_qubit_gate_props, name="fixed_angle_rx_pi")
-    target.add_instruction(RXPiOver2Gate(), single_qubit_gate_props, name="fixed_angle_rx_pi_by_2")
-    target.add_instruction(RXMinusPiOver2Gate(), single_qubit_gate_props, name="fixed_angle_rx_pi_by_minus_2")
+    target.add_instruction(RXPIGate(), single_qubit_gate_props, name="rxpi")
+    target.add_instruction(RXPI2Gate(), single_qubit_gate_props, name="rxpi2")
+    target.add_instruction(RXPI2DgGate(), single_qubit_gate_props, name="rxpi2dg")
 
     alpha = Parameter("alpha")
     target.add_instruction(RZGate(alpha), single_qubit_gate_props)
