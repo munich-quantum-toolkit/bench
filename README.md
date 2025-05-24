@@ -9,8 +9,8 @@
 <p align="center">
   <a href="https://mqt.readthedocs.io">
    <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-dark.svg" width="90%">
-     <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-light.svg" width="90%" alt="MQT Banner">
+     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/logo-mqt-dark.svg" width="60%">
+     <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/logo-mqt-light.svg" width="60%" alt="MQT Logo">
    </picture>
   </a>
 </p>
@@ -30,6 +30,26 @@ MQT Bench is part of the [_Munich Quantum Toolkit_ (_MQT_)](https://mqt.readthed
 If you have any questions, feel free to create a [discussion](https://github.com/munich-quantum-toolkit/bench/discussions) or an [issue](https://github.com/munich-quantum-toolkit/bench/issues) on [GitHub](https://github.com/munich-quantum-toolkit/bench).
 
 [<img src="https://raw.githubusercontent.com/munich-quantum-toolkit/bench/main/docs/_static/mqtbench.png" align="center" width="500" >](https://www.cda.cit.tum.de/mqtbench)
+
+## Contributors and Supporters
+
+The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/) and supported by the [Munich Quantum Software Company (MQSC)](https://munichquantum.software).
+Among others, it is part of the [Munich Quantum Software Stack (MQSS)](https://www.munich-quantum-valley.de/research/research-areas/mqss) ecosystem, which is being developed as part of the [Munich Quantum Valley (MQV)](https://www.munich-quantum-valley.de) initiative.
+
+<p align="center">
+  <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-dark.svg" width="90%">
+   <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-light.svg" width="90%" alt="MQT Partner Logos">
+  </picture>
+</p>
+
+Thank you to all the contributors who have helped make MQT Bench a reality!
+
+<p align="center">
+<a href="https://github.com/munich-quantum-toolkit/bench/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=munich-quantum-toolkit/bench" />
+</a>
+</p>
 
 ## Getting Started
 
@@ -57,9 +77,9 @@ print(qc_algorithmic_level.draw())
 
 MQT Bench is also available as a [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
-## References
+## Cite This
 
-In case you are using MQT Bench in your work, we would be thankful if you referred to it by citing the following publication:
+If you want to cite MQT Bench, please use the following BibTeX entry:
 
 ```bibtex
 @article{quetschlich2023mqtbench,
@@ -75,8 +95,6 @@ In case you are using MQT Bench in your work, we would be thankful if you referr
   note          = {{{MQT Bench}} is available at \url{https://www.cda.cit.tum.de/mqtbench/}},
 }
 ```
-
-[^1]: The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is a collection of software tools for quantum computing developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/) as well as the [Munich Quantum Software Company (MQSC)](https://munichquantum.software).
 
 ## Acknowledgements
 
