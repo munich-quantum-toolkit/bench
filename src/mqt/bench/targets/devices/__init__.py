@@ -38,13 +38,13 @@ def get_available_devices() -> list[Target]:
         get_ibm_target("ibm_eagle_127"),
         get_ibm_target("ibm_heron_133"),
         get_ibm_target("ibm_heron_156"),
-        get_ionq_target("ionq_harmony"),
-        get_ionq_target("ionq_aria1"),
+        get_ionq_target("ionq_forte_36"),
+        get_ionq_target("ionq_aria_25"),
         get_iqm_target("iqm_crystal_5"),
         get_iqm_target("iqm_crystal_20"),
         get_iqm_target("iqm_crystal_54"),
-        get_quantinuum_target("quantinuum_h2"),
-        get_rigetti_target("rigetti_aspen_m3"),
+        get_quantinuum_target("quantinuum_h2_56"),
+        get_rigetti_target("rigetti_ankaa_84"),
     ]
 
 

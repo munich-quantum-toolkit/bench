@@ -11,47 +11,51 @@
 from __future__ import annotations
 
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import Measure, RXGate, RXXGate, RYGate, RZGate
+from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
+
+from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate
 
 
 def get_ionq_target(device_name: str) -> Target:
     """Get the target device for a given IonQ device name."""
-    if device_name == "ionq_aria1":
-        return get_ionq_aria1_target()
-    if device_name == "ionq_harmony":
-        return get_ionq_harmony_target()
+    if device_name == "ionq_aria_25":
+        return get_ionq_aria_25()
+    if device_name == "ionq_forte_36":
+        return get_ionq_forte_36()
     msg = f"Unknown IonQ device: '{device_name}'"
     raise ValueError(msg)
 
 
-def get_ionq_aria1_target() -> Target:
-    """Get the target device for IonQ Aria1."""
+def get_ionq_aria_25() -> Target:
+    """Get the target device for IonQ Aria 1."""
     num_qubits = 25
     return _build_ionq_target(
         num_qubits=num_qubits,
-        description="ionq_aria1",
+        description="ionq_aria_25",
+        entangling_gate="MS",
         oneq_duration=135e-6,
         twoq_duration=600e-6,
         readout_duration=300e-6,
-        oneq_fidelity=0.9829,
-        twoq_fidelity=0.996,
-        spam_fidelity=0.9993,
+        oneq_fidelity=0.9998,
+        twoq_fidelity=0.98720,
+        spam_fidelity=0.99370,
     )
 
 
-def get_ionq_harmony_target() -> Target:
-    """Get the target device for IonQ Harmony."""
-    num_qubits = 11
+def get_ionq_forte_36() -> Target:
+    """Get the target device for IonQ Forte 1."""
+    num_qubits = 36
     return _build_ionq_target(
         num_qubits=num_qubits,
-        description="ionq_harmony",
-        oneq_duration=10e-6,
-        twoq_duration=200e-6,
-        readout_duration=130e-6,
-        oneq_fidelity=0.9985,
-        twoq_fidelity=0.9614,
-        spam_fidelity=0.99752,
+        description="ionq_forte_36",
+        entangling_gate="ZZ",
+        oneq_duration=130e-6,
+        twoq_duration=970e-6,
+        readout_duration=150e-6,
+        oneq_fidelity=0.9998,
+        twoq_fidelity=0.9932,
+        spam_fidelity=0.9959,
     )
 
 
@@ -59,6 +63,7 @@ def _build_ionq_target(
     *,
     num_qubits: int,
     description: str,
+    entangling_gate: str,
     oneq_duration: float,
     twoq_duration: float,
     readout_duration: float,
@@ -71,21 +76,19 @@ def _build_ionq_target(
 
     theta = Parameter("theta")
     phi = Parameter("phi")
-    lam = Parameter("lambda")
-    alpha = Parameter("alpha")
 
     # === Add single-qubit gates ===
     singleq_props = {
         (q,): InstructionProperties(duration=oneq_duration, error=1 - oneq_fidelity) for q in range(num_qubits)
     }
-    rz_props = {(q,): InstructionProperties(duration=0.0, error=0.0) for q in range(num_qubits)}
+    rz_props = {(q,): InstructionProperties(duration=0, error=0) for q in range(num_qubits)}
     measure_props = {
         (q,): InstructionProperties(duration=readout_duration, error=1 - spam_fidelity) for q in range(num_qubits)
     }
 
-    target.add_instruction(RXGate(theta), singleq_props)
-    target.add_instruction(RYGate(phi), singleq_props)
-    target.add_instruction(RZGate(lam), rz_props)
+    target.add_instruction(RZGate(theta), rz_props)
+    target.add_instruction(GPIGate(theta), singleq_props)
+    target.add_instruction(GPI2Gate(phi), singleq_props)
     target.add_instruction(Measure(), measure_props)
 
     # === Add two-qubit gates ===
@@ -94,5 +97,15 @@ def _build_ionq_target(
         (q1, q2): InstructionProperties(duration=twoq_duration, error=1 - twoq_fidelity) for q1, q2 in connectivity
     }
 
-    target.add_instruction(RXXGate(alpha), twoq_props)
+    if entangling_gate == "MS":
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        gamma = Parameter("gamma")
+        target.add_instruction(MSGate(alpha, beta, gamma), twoq_props)
+    elif entangling_gate == "ZZ":
+        alpha = Parameter("alpha")
+        target.add_instruction(ZZGate(alpha), twoq_props)
+    else:
+        msg = f"Unknown entangling gate: '{entangling_gate}'."
+        raise ValueError(msg)
     return target

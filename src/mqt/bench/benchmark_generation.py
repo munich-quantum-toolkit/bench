@@ -32,6 +32,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 from dataclasses import dataclass
 
+from qiskit.circuit import SessionEquivalenceLibrary
+
+from .targets.gatesets import ionq, rigetti
+
 
 @dataclass
 class QiskitSettings:
@@ -276,6 +280,10 @@ def get_native_gates_level(
         qc = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))
         qc.measure_all()
 
+    if "rigetti" in target.description:
+        rigetti.add_equivalences(SessionEquivalenceLibrary)
+    elif "ionq" in target.description:
+        ionq.add_equivalences(SessionEquivalenceLibrary)
     pm = generate_preset_pass_manager(optimization_level=opt_level, target=target, seed_transpiler=10)
     pm.layout = None
     pm.routing = None
@@ -359,6 +367,11 @@ def get_mapped_level(
 
     if file_precheck and path.is_file():
         return True
+
+    if "rigetti" in device.description:
+        rigetti.add_equivalences(SessionEquivalenceLibrary)
+    elif "ionq" in device.description:
+        ionq.add_equivalences(SessionEquivalenceLibrary)
 
     compiled = transpile(
         qc,
