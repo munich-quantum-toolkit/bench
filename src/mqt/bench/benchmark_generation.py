@@ -68,7 +68,7 @@ def generate_filename(
         all relevant metadata for reproducibility and clarity.
     """
     base = f"{benchmark_name}_{level}"
-    if level in {"nativegates", "mapped"}:
+    if level in {"nativegates", "mapped", "mirror"}:  # ADDED "mirror"
         assert opt_level is not None
         assert target is not None
         # sanitize the target.description to remove any special characters etc.
@@ -446,6 +446,7 @@ def get_benchmark(
         return get_native_gates_level(qc, target, circuit_size, opt_level, False, True)
 
     mapped_level = 3
+    mirror_level = 4
     if level in ("mapped", mapped_level):
         assert compiler_settings.qiskit is not None
         opt_level = compiler_settings.qiskit.optimization_level
@@ -458,6 +459,37 @@ def get_benchmark(
             False,
             True,
         )
+    if level in ("mirror", mirror_level):
+        assert compiler_settings.qiskit is not None
+        opt_level = compiler_settings.qiskit.optimization_level
+        assert isinstance(opt_level, int)
+        assert target is not None, "Target device must be provided for mirror level."
+
+        qc_unitary_algo = qc.remove_final_measurements(inplace=False)
+
+        # Get the mapped version of the unitary part
+        qc_mapped_unitary_base = get_mapped_level(
+            qc=qc_unitary_algo,
+            num_qubits=circuit_size,
+            device=target,
+            opt_level=opt_level,
+            file_precheck=False,
+            return_qc=True,
+        )
+
+        # Compute its inverse
+        qc_inv = qc_mapped_unitary_base.inverse()
+
+        # Compose them. The name of mirrored_circuit_unitary will be qc_mapped_unitary_base.name
+        mirrored_circuit_unitary = qc_mapped_unitary_base.compose(qc_inv)
+        # Set a more descriptive name based on the original algorithm's name
+        mirrored_circuit_unitary.name = f"{qc.name}_mirror"
+
+        # Add measurements back to the final mirrored circuit
+        final_mirrored_qc = mirrored_circuit_unitary.copy()  # Create a new circuit object
+        final_mirrored_qc.measure_all()
+
+        return final_mirrored_qc
 
     msg = f"Invalid level specified. Must be in {get_supported_levels()}."
     raise ValueError(msg)
@@ -490,7 +522,7 @@ def get_supported_benchmarks() -> list[str]:
 
 def get_supported_levels() -> list[str | int]:
     """Returns a list of all supported benchmark levels."""
-    return ["alg", "indep", "nativegates", "mapped", 0, 1, 2, 3]
+    return ["alg", "indep", "nativegates", "mapped", "mirror", 0, 1, 2, 3, 4]  # ADDED "mirror" and 4
 
 
 def get_module_for_benchmark(benchmark_name: str) -> ModuleType:

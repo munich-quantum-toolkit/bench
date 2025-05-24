@@ -55,7 +55,14 @@ if TYPE_CHECKING:
              "--algorithm", "ghz",
              "--num-qubits", "20",
              "--target", "ibm_falcon",
-         ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, target=get_target_for_gateset("ibm_falcon", 20)))),
+             "--qiskit-optimization-level", "1",
+         ], dumps(get_benchmark(
+            level="nativegates",
+            benchmark_name="ghz",
+            circuit_size=20,
+            compiler_settings=CompilerSettings(QiskitSettings(optimization_level=1)),
+            target=get_target_for_gateset("ibm_falcon", 20)
+        ))),
         ([
              "--level", "mapped",
              "--algorithm", "ghz",
@@ -67,6 +74,20 @@ if TYPE_CHECKING:
             benchmark_name="ghz",
             circuit_size=20,
             compiler_settings=CompilerSettings(QiskitSettings(optimization_level=2)),
+            target=get_device_by_name("ibm_falcon_27"),
+        ))),
+
+        ([
+             "--level", "mirror",
+             "--algorithm", "ghz",
+             "--num-qubits", "5",
+             "--qiskit-optimization-level", "0",
+             "--target", "ibm_falcon_27",
+         ], dumps(get_benchmark(
+            level="mirror",
+            benchmark_name="ghz",
+            circuit_size=5,
+            compiler_settings=CompilerSettings(QiskitSettings(optimization_level=0)),
             target=get_device_by_name("ibm_falcon_27"),
         ))),
         (["--help"], "usage: mqt.bench.cli"),
@@ -92,6 +113,18 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
              "--algorithm", "not-a-valid-benchmark",
              "--num-qubits", "20",
          ], ""),
+       ([ # Mirror level missing target
+             "--level", "mirror",
+             "--algorithm", "ghz",
+             "--num-qubits", "5",
+             "--qiskit-optimization-level", "0",
+         ], "The --target argument is required for the 'mirror' level."),
+        ([ # Mirror level missing optimization level
+             "--level", "mirror",
+             "--algorithm", "ghz",
+             "--num-qubits", "5",
+             "--target", "ibm_falcon_27",
+         ], "The --qiskit-optimization-level argument is required for the 'mirror' level."),
     ],
 )
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:

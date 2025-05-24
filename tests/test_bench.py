@@ -852,3 +852,72 @@ def test_custom_target() -> None:
     qc_mapped = get_mapped_level(qc, qc.num_qubits, target, 0, False, True)
     assert qc_mapped.depth() > 0
     assert qc_mapped.layout is not None
+
+
+def test_get_benchmark_mirror_level() -> None:
+    """Test the creation of mirror benchmarks."""
+    logical_num_qubits = 3
+    opt_level = 1
+    compiler_settings = CompilerSettings(QiskitSettings(optimization_level=opt_level))
+
+    device_name = "ibm_falcon_27"
+    device = None
+    try:
+        device = get_device_by_name(device_name)
+        if device.num_qubits < logical_num_qubits:
+            pytest.skip(
+                f"Device {device.name} has {device.num_qubits} qubits, "
+                f"less than logical {logical_num_qubits} for the algorithm."
+            )
+    except ValueError:
+        pytest.skip(f"{device_name} device not available for testing or failed to load.")
+
+    assert device is not None, "Device should be loaded if test is not skipped."
+
+    qc_mirror = get_benchmark(
+        benchmark_name="ghz",
+        level="mirror",
+        circuit_size=logical_num_qubits,
+        compiler_settings=compiler_settings,
+        target=device,
+    )
+
+    assert qc_mirror is not None, "get_benchmark should not return None for valid inputs."
+    assert isinstance(qc_mirror, QuantumCircuit)
+    assert qc_mirror.num_qubits == device.num_qubits
+    assert "ghz_mirror" in qc_mirror.name
+    assert qc_mirror.num_clbits == qc_mirror.num_qubits
+
+    assert len(qc_mirror.data) > 0
+    assert any(instruction.operation.name == "measure" for instruction in qc_mirror.data)
+
+    allowed_gate_names = set(device.operation_names)
+    if "sx" in allowed_gate_names:
+        allowed_gate_names.add("sxdg")  # sxdg is sx.inverse()
+    # 'id' is a very common gate, often implicitly part of basis or used by transpiler
+    allowed_gate_names.add("id")
+
+    for instruction in qc_mirror.data:
+        op_name = instruction.operation.name
+        if op_name not in ["measure", "barrier"]:  # measure and barrier are standard
+            assert op_name in allowed_gate_names, (
+                f"Gate '{op_name}' not in allowed device operations or known equivalents: {allowed_gate_names}"
+            )
+
+    qc_algo_orig = get_module_for_benchmark("ghz").create_circuit(logical_num_qubits)
+    qc_algo_unitary = qc_algo_orig.remove_final_measurements(inplace=False)
+
+    mapped_unitary_base = get_mapped_level(
+        qc=qc_algo_unitary,
+        num_qubits=logical_num_qubits,
+        device=device,
+        opt_level=opt_level,
+        file_precheck=False,
+        return_qc=True,
+    )
+    assert mapped_unitary_base is not None, "get_mapped_level with return_qc=True should return a circuit."
+    assert mapped_unitary_base.num_qubits == device.num_qubits
+
+    qc_mirror_unitary_part = qc_mirror.remove_final_measurements(inplace=False)
+    assert qc_mirror_unitary_part.num_qubits == device.num_qubits
+    assert len(qc_mirror_unitary_part.data) >= 2 * len(mapped_unitary_base.data)
