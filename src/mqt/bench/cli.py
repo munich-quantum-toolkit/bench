@@ -49,8 +49,8 @@ def main() -> None:
     parser.add_argument(
         "--level",
         type=str,
-        choices=["alg", "indep", "nativegates", "mapped"],
-        help='Level to generate benchmarks for ("alg", "indep", "nativegates" or "mapped").',
+        choices=["alg", "indep", "nativegates", "mapped", "mirror"],  # ADDED "mirror"
+        help='Level to generate benchmarks for ("alg", "indep", "nativegates", "mapped", or "mirror").',
         required=True,
     )
     parser.add_argument(
@@ -104,12 +104,19 @@ def main() -> None:
     # Parse algorithm and optional instance
     benchmark_name, benchmark_instance = parse_benchmark_name_and_instance(args.algorithm)
 
+    target_obj = None  # Initialize target_obj
     if args.level == "nativegates":
-        target = get_target_for_gateset(args.target, num_qubits=args.num_qubits)
-    elif args.level == "mapped":
-        target = get_device_by_name(args.target)
-    else:
-        target = None
+        if not args.target:
+            parser.error("The --target argument is required for the 'nativegates' level.")
+        target_obj = get_target_for_gateset(args.target, num_qubits=args.num_qubits)
+    elif args.level == "mapped" or args.level == "mirror":  # ADDED "mirror"
+        if not args.target:
+            parser.error(f"The --target argument is required for the '{args.level}' level.")
+        target_obj = get_device_by_name(args.target)
+
+    # Add check for qiskit_optimization_level for relevant levels
+    if args.level in ("nativegates", "mapped", "mirror") and args.qiskit_optimization_level is None:
+        parser.error(f"The --qiskit-optimization-level argument is required for the '{args.level}' level.")
 
     # Generate circuit
     circuit = get_benchmark(
@@ -118,7 +125,7 @@ def main() -> None:
         level=args.level,
         circuit_size=args.num_qubits,
         compiler_settings=CompilerSettings(qiskit=qiskit_settings),
-        target=target,
+        target=target_obj,
     )
 
     try:
@@ -129,7 +136,7 @@ def main() -> None:
 
     # For QASM outputs, serialize and print
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
-        write_circuit(circuit, sys.stdout, args.level, fmt, target)
+        write_circuit(circuit, sys.stdout, args.level, fmt, target_obj)
         return
 
     # Otherwise, save to file
@@ -137,15 +144,17 @@ def main() -> None:
         benchmark_name=benchmark_name,
         level=args.level,
         num_qubits=args.num_qubits,
-        target=target,
-        opt_level=args.qiskit_optimization_level,
+        target=target_obj,  # USE target_obj
+        opt_level=args.qiskit_optimization_level
+        if args.level in ("nativegates", "mapped", "mirror")
+        else None,  # Pass opt_level for mirror
     )
     success = save_circuit(
         qc=circuit,
         filename=filename,
         level=args.level,
         output_format=fmt,
-        target=target,
+        target=target_obj,
         target_directory=args.target_directory,
     )
     if not success:
