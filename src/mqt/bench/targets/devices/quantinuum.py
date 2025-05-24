@@ -14,6 +14,8 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RXGate, RYGate, RZGate, RZZGate
 from qiskit.transpiler import InstructionProperties, Target
 
+from ._registry import register
+
 
 def get_quantinuum_target(device_name: str) -> Target:
     """Get a hardcoded Quantinuum target device by name."""
@@ -23,6 +25,7 @@ def get_quantinuum_target(device_name: str) -> Target:
     raise ValueError(msg)
 
 
+@register("quantinuum_h2")
 def get_quantinuum_h2_target() -> Target:
     """Get the target device for Quantinuum H2."""
     num_qubits = 56

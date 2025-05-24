@@ -14,6 +14,8 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import Measure, RXGate, RXXGate, RYGate, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
+from ._registry import register
+
 
 def get_ionq_target(device_name: str) -> Target:
     """Get the target device for a given IonQ device name."""
@@ -25,6 +27,7 @@ def get_ionq_target(device_name: str) -> Target:
     raise ValueError(msg)
 
 
+@register("ionq_aria1")
 def get_ionq_aria1_target() -> Target:
     """Get the target device for IonQ Aria1."""
     num_qubits = 25
@@ -40,6 +43,7 @@ def get_ionq_aria1_target() -> Target:
     )
 
 
+@register("ionq_harmony")
 def get_ionq_harmony_target() -> Target:
     """Get the target device for IonQ Harmony."""
     num_qubits = 11

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import builtins
 import io
+import re
 from datetime import date
 from importlib import metadata
 from pathlib import Path
@@ -22,7 +23,7 @@ from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.transpiler import InstructionProperties, PassManager, Target
 from qiskit.transpiler.passes import GatesInBasis
 
-from mqt.bench.targets.devices import get_device_by_name
+from mqt.bench.targets.devices import get_available_device_names, get_device_by_name
 from mqt.bench.targets.gatesets import get_target_for_gateset
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -466,7 +467,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             CompilerSettings(qiskit=QiskitSettings(optimization_level=1)),
             get_target_for_gateset("wrong_gateset", 3),
         )
-    match = "Device 'wrong_device' not found."
+    match = re.escape(f"Unknown device 'wrong_device'. Available devices: {get_available_device_names()}")
     with pytest.raises(ValueError, match=match):
         get_benchmark(
             "qpeexact",

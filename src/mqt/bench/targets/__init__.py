@@ -10,13 +10,14 @@
 
 from __future__ import annotations
 
-from .devices import get_available_devices, get_device_by_name
+from .devices import get_available_device_names, get_available_devices, get_device_by_name
 from .gatesets import (
     get_available_native_gatesets,
     get_target_for_gateset,
 )
 
 __all__ = [
+    "get_available_device_names",
     "get_available_devices",
     "get_available_native_gatesets",
     "get_device_by_name",

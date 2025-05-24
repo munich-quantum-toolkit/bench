@@ -13,6 +13,7 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
+from ._registry import all_devices, device_names, get_device
 from .ibm import get_ibm_target
 from .ionq import get_ionq_target
 from .iqm import get_iqm_target
@@ -24,40 +25,34 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "get_available_device_names",
     "get_available_devices",
     "get_device_by_name",
+    "get_ibm_target",
+    "get_ionq_target",
+    "get_iqm_target",
+    "get_quantinuum_target",
+    "get_rigetti_target",
 ]
 
 
 @cache
 def get_available_devices() -> list[Target]:
     """Return a list of available devices."""
-    return [
-        get_ibm_target("ibm_falcon_27"),
-        get_ibm_target("ibm_falcon_127"),
-        get_ibm_target("ibm_eagle_127"),
-        get_ibm_target("ibm_heron_133"),
-        get_ibm_target("ibm_heron_156"),
-        get_ionq_target("ionq_harmony"),
-        get_ionq_target("ionq_aria1"),
-        get_iqm_target("iqm_crystal_5"),
-        get_iqm_target("iqm_crystal_20"),
-        get_iqm_target("iqm_crystal_54"),
-        get_quantinuum_target("quantinuum_h2"),
-        get_rigetti_target("rigetti_aspen_m3"),
-    ]
+    return all_devices()
 
 
 @cache
-def _device_map() -> dict[str, Target]:
-    """Return a mapping of device names to Target objects."""
-    return {d.description: d for d in get_available_devices()}
+def get_available_device_names() -> list[str]:
+    """Return a list of available device names."""
+    return device_names()
 
 
+@cache
 def get_device_by_name(device_name: str) -> Target:
     """Return the Target object for a given device name."""
     try:
-        return _device_map()[device_name]
+        return get_device(device_name)
     except KeyError:
-        msg = f"Device '{device_name}' not found."
+        msg = f"Unknown device '{device_name}'. Available devices: {get_available_device_names()}"
         raise ValueError(msg) from None

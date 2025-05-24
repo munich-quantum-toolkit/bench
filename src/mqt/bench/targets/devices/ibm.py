@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from ._registry import register
+
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
@@ -39,6 +41,7 @@ def get_ibm_target(device_name: str) -> Target:
     raise ValueError(msg)
 
 
+@register("ibm_falcon_27")
 def get_ibm_falcon_27() -> Target:
     """Get the target for a 27-qubit IBM Falcon architecture."""
     cmap = [
@@ -395,6 +398,7 @@ def _get_127_qubit_cmap() -> list[list[int]]:
     ]
 
 
+@register("ibm_falcon_127")
 def get_ibm_falcon_127() -> Target:
     """Get the target for a 127-qubit IBM Falcon architecture."""
     cmap = _get_127_qubit_cmap()
@@ -404,6 +408,7 @@ def get_ibm_falcon_127() -> Target:
     return target
 
 
+@register("ibm_eagle_127")
 def get_ibm_eagle_127() -> Target:
     """Get the target for a 127-qubit IBM Eagle architecture."""
     cmap = _get_127_qubit_cmap()
@@ -413,6 +418,7 @@ def get_ibm_eagle_127() -> Target:
     return target
 
 
+@register("ibm_heron_133")
 def get_ibm_heron_133() -> Target:
     """Get the target for a 127-qubit IBM Heron architecture."""
     cmap = [
@@ -723,6 +729,7 @@ def get_ibm_heron_133() -> Target:
     return target
 
 
+@register("ibm_heron_156")
 def get_ibm_heron_156() -> Target:
     """Get the target for a 156-qubit IBM Heron architecture."""
     cmap = [

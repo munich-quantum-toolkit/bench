@@ -14,6 +14,8 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import CPhaseGate, CZGate, Measure, RXGate, RZGate, XXPlusYYGate
 from qiskit.transpiler import InstructionProperties, Target
 
+from ._registry import register
+
 
 def get_rigetti_target(device_name: str) -> Target:
     """Get a hardcoded Rigetti target device by name."""
@@ -23,6 +25,7 @@ def get_rigetti_target(device_name: str) -> Target:
     raise ValueError(msg)
 
 
+@register("rigetti_aspen_m3")
 def get_rigetti_aspen_m3_target() -> Target:
     """Get the target device for Rigetti Aspen M3."""
     num_qubits = 79
