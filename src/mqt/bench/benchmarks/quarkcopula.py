@@ -13,7 +13,7 @@ from __future__ import annotations
 from math import comb
 
 import numpy as np
-from qiskit.circuit import ParameterVector, QuantumCircuit
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 
 
 def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = True) -> QuantumCircuit:
@@ -31,10 +31,9 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
     n = num_qubits // n_registers
     qc = QuantumCircuit(num_qubits)
 
-    # === Pre-calculate number of parameters ===
-    num_rzrxrz = depth * n_registers * n * 3
+    num_single_rotations = depth * n_registers * n * 3
     num_rxx = depth * n_registers * comb(n, 2)
-    total_params = num_rzrxrz + num_rxx
+    total_params = num_single_rotations + num_rxx
 
     param_vector: ParameterVector | None = None
     if not random_parameters:
@@ -42,16 +41,15 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
 
     param_index = 0
 
-    def get_param() -> float | ParameterVector:
+    def get_param() -> float | Parameter:
         nonlocal param_index
         if random_parameters:
             return rng.random() * 2 * np.pi
         assert param_vector is not None
-        p = param_vector[param_index]
+        param = param_vector[param_index]
         param_index += 1
-        return p
+        return param
 
-    # === Initial layer ===
     for k in range(n):
         qc.h(k)
 
@@ -61,10 +59,7 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
 
     qc.barrier()
 
-    # === Main layered circuit ===
-    shift = 0
     for _d in range(depth):
-        # RZ-RX-RZ rotations
         for k in range(n):
             for j in range(n_registers):
                 qubit_index = j * n + k
@@ -72,15 +67,12 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
                 qc.rx(get_param(), qubit_index)
                 qc.rz(get_param(), qubit_index)
 
-        # Intra-register entangling RXX gates
-        k = 3 * n + shift
         for i in range(n):
             for j in range(i + 1, n):
                 for layer in range(n_registers):
                     q0 = layer * n + i
                     q1 = layer * n + j
                     qc.rxx(get_param(), q0, q1)
-        shift += 3 * n + comb(n, 2)
 
         qc.barrier()
 
