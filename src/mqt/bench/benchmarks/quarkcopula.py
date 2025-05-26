@@ -26,19 +26,19 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
     """
     assert num_qubits % 2 == 0, "Number of qubits must be divisible by 2."
 
-    rng = np.random.default_rng(10)
     n_registers = 2
     n = num_qubits // n_registers
+    rng = np.random.default_rng(10)
     qc = QuantumCircuit(num_qubits)
 
-    # === Total number of parameters ===
-    num_rzrxrz = depth * n_registers * n * 3  # 3 rotations per qubit per layer
-    num_rxx = depth * n_registers * comb(n, 2)  # full intra-register RXX
-    total_params = num_rzrxrz + num_rxx
+    # === Compute number of parameters ===
+    num_single_qubit_gates = depth * n_registers * n * 3
+    num_rxx_gates = depth * n_registers * comb(n, 2)
+    total_params = num_single_qubit_gates + num_rxx_gates
 
     param_vector: ParameterVector | None = None
     if not random_parameters:
-        param_vector = ParameterVector("p", length=total_params)
+        param_vector = ParameterVector("p", total_params)
 
     param_index = 0
 
@@ -47,41 +47,35 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
         if random_parameters:
             return rng.random() * 2 * np.pi
         assert param_vector is not None
-        param = param_vector[param_index]
+        value = param_vector[param_index]
         param_index += 1
-        return param
+        return value
 
     # === Initial Hadamards on first register ===
-    for k in range(n):
-        qc.h(k)
+    for q in range(n):
+        qc.h(q)
 
-    # CNOTs from register 0 to 1
-    for j in range(n_registers - 1):
-        for k in range(n):
-            qc.cx(k, k + n * (j + 1))
+    # === CNOTs to entangle registers ===
+    for q in range(n):
+        qc.cx(q, q + n)
 
     qc.barrier()
 
-    shift = 0
-    for _d in range(depth):
-        # RZ - RX - RZ for each qubit
-        for k in range(n):
-            for j in range(n_registers):
-                qubit_index = j * n + k
-                qc.rz(get_param(), qubit_index)
-                qc.rx(get_param(), qubit_index)
-                qc.rz(get_param(), qubit_index)
+    # === Layered RZ-RX-RZ and RXX ===
+    for _ in range(depth):
+        # Apply RZ-RX-RZ to each qubit
+        for q in range(num_qubits):
+            qc.rz(get_param(), q)
+            qc.rx(get_param(), q)
+            qc.rz(get_param(), q)
 
-        # Intra-register RXX
-        k = 3 * n + shift
-        for i in range(n):
-            for j in range(i + 1, n):
-                for layer in range(n_registers):
-                    q0 = layer * n + i
-                    q1 = layer * n + j
-                    qc.rxx(get_param(), q0, q1)
+        # Intra-register RXX (full connectivity)
+        for reg in range(n_registers):
+            base = reg * n
+            for i in range(n):
+                for j in range(i + 1, n):
+                    qc.rxx(get_param(), base + i, base + j)
 
-        shift += 3 * n + comb(n, 2)
         qc.barrier()
 
     qc.measure_all()
