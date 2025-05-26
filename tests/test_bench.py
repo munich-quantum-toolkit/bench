@@ -857,6 +857,7 @@ def test_custom_target() -> None:
 @pytest.mark.parametrize(
     "benchmark",
     [
+        qaoa,
         qnn,
         quarkcardinality,
         quarkcopula,
