@@ -75,5 +75,5 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     # Step 7: Measure the system register
     qc.measure(qr_sys[0], cr[0])
-    qc.name = f"hhl"
+    qc.name = "hhl"
     return qc
