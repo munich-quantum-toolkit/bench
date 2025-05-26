@@ -20,20 +20,23 @@ except ImportError:
     from qiskit.circuit.library import ZZFeatureMap as z_feature_map  # noqa: N813
 
 
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(num_qubits: int, random_parameters: bool = True) -> QuantumCircuit:
     """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a ZZ FeatureMap and a RealAmplitudes ansatz.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
+        random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
     """
     feature_map = z_feature_map(feature_dimension=num_qubits)
     ansatz = real_amplitudes(num_qubits=num_qubits, reps=1)
 
     qc = QuantumCircuit(num_qubits)
-    feature_map = feature_map.assign_parameters([1 for _ in range(feature_map.num_parameters)])
 
-    rng = np.random.default_rng(10)
-    ansatz = ansatz.assign_parameters(rng.random(ansatz.num_parameters) * 2 * np.pi)
+    if random_parameters:
+        feature_map = feature_map.assign_parameters([1 for _ in range(feature_map.num_parameters)])
+        rng = np.random.default_rng(10)
+        ansatz = ansatz.assign_parameters(rng.random(ansatz.num_parameters) * 2 * np.pi)
+
     qc.compose(feature_map, inplace=True)
     qc.compose(ansatz, inplace=True)
 

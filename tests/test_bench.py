@@ -64,9 +64,9 @@ from mqt.bench.benchmarks import (
     qwalk,
     randomcircuit,
     shor,
-    vqerealamprandom,
-    vqesu2random,
-    vqetwolocalrandom,
+    vqerealamp,
+    vqesu2,
+    vqetwolocal,
     wstate,
 )
 from mqt.bench.output import (
@@ -131,9 +131,9 @@ def sample_filenames() -> list[str]:
         (quarkcopula, 4, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamprandom, 3, True),
-        (vqesu2random, 3, True),
-        (vqetwolocalrandom, 3, True),
+        (vqerealamp, 3, True),
+        (vqesu2, 3, True),
+        (vqetwolocal, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
     ],
@@ -196,9 +196,9 @@ def test_quantumcircuit_alg_level(
         (qpeinexact, 3, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamprandom, 3, True),
-        (vqesu2random, 3, True),
-        (vqetwolocalrandom, 3, True),
+        (vqerealamp, 3, True),
+        (vqesu2, 3, True),
+        (vqetwolocal, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
     ],
@@ -247,9 +247,9 @@ def test_quantumcircuit_indep_level(
         (qpeinexact, 3, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamprandom, 3, True),
-        (vqesu2random, 3, True),
-        (vqetwolocalrandom, 3, True),
+        (vqerealamp, 3, True),
+        (vqesu2, 3, True),
+        (vqetwolocal, 3, True),
         (wstate, 3, True),
     ],
 )
@@ -852,3 +852,22 @@ def test_custom_target() -> None:
     qc_mapped = get_mapped_level(qc, qc.num_qubits, target, 0, False, True)
     assert qc_mapped.depth() > 0
     assert qc_mapped.layout is not None
+
+
+@pytest.mark.parametrize(
+    "benchmark",
+    [
+        qnn,
+        quarkcardinality,
+        quarkcopula,
+        vqerealamp,
+        vqesu2,
+        vqetwolocal,
+    ],
+)
+def test_parameterized_circuits(benchmark: types.ModuleType) -> None:
+    """Test that parameterized circuits can be created and processed."""
+    qc = benchmark.create_circuit(4, random_parameters=False)
+    assert len(qc.parameters) > 0, "The circuit should contain parameterized gates."
+    qc = benchmark.create_circuit(4, random_parameters=True)
+    assert len(qc.parameters) == 0, "The circuit should not contain parameterized gates."

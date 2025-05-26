@@ -493,9 +493,9 @@ def get_supported_benchmarks() -> list[str]:
         "qpeinexact",
         "qwalk",
         "randomcircuit",
-        "vqerealamprandom",
-        "vqesu2random",
-        "vqetwolocalrandom",
+        "vqerealamp",
+        "vqesu2",
+        "vqetwolocal",
         "wstate",
         "shor",
     ]
