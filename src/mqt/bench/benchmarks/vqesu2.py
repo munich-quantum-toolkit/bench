@@ -43,7 +43,7 @@ def create_circuit(num_qubits: int, reps: int = 3, random_parameters: bool = Tru
         num_params = qc.num_parameters
         qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
     else:
-        param_vec = ParameterVector("θ", length=qc.num_parameters)
+        param_vec = ParameterVector("p", length=qc.num_parameters)
         qc = qc.assign_parameters(param_vec)
 
     qc.measure_all()
