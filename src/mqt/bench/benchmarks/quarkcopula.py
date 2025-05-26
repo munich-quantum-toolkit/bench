@@ -31,9 +31,10 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
     n = num_qubits // n_registers
     qc = QuantumCircuit(num_qubits)
 
-    num_single_rotations = depth * n_registers * n * 3
-    num_rxx = depth * n_registers * comb(n, 2)
-    total_params = num_single_rotations + num_rxx
+    # === Total number of parameters ===
+    num_rzrxrz = depth * n_registers * n * 3  # 3 rotations per qubit per layer
+    num_rxx = depth * n_registers * comb(n, 2)  # full intra-register RXX
+    total_params = num_rzrxrz + num_rxx
 
     param_vector: ParameterVector | None = None
     if not random_parameters:
@@ -50,16 +51,20 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
         param_index += 1
         return param
 
+    # === Initial Hadamards on first register ===
     for k in range(n):
         qc.h(k)
 
+    # CNOTs from register 0 to 1
     for j in range(n_registers - 1):
         for k in range(n):
             qc.cx(k, k + n * (j + 1))
 
     qc.barrier()
 
+    shift = 0
     for _d in range(depth):
+        # RZ - RX - RZ for each qubit
         for k in range(n):
             for j in range(n_registers):
                 qubit_index = j * n + k
@@ -67,6 +72,8 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
                 qc.rx(get_param(), qubit_index)
                 qc.rz(get_param(), qubit_index)
 
+        # Intra-register RXX
+        k = 3 * n + shift
         for i in range(n):
             for j in range(i + 1, n):
                 for layer in range(n_registers):
@@ -74,6 +81,7 @@ def create_circuit(num_qubits: int, depth: int = 2, random_parameters: bool = Tr
                     q1 = layer * n + j
                     qc.rxx(get_param(), q0, q1)
 
+        shift += 3 * n + comb(n, 2)
         qc.barrier()
 
     qc.measure_all()
