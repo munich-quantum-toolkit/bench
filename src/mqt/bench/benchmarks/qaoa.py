@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import ParameterVector, QuantumCircuit
 
 
 def create_circuit(
@@ -40,8 +40,8 @@ def create_circuit(
         gamma_values = rng.uniform(0, np.pi, repetitions)
         beta_values = rng.uniform(0, np.pi, repetitions)
     else:
-        gamma_values = [Parameter(f"y_{i}") for i in range(repetitions)]
-        beta_values = [Parameter(f"b_{i}") for i in range(repetitions)]
+        gamma_values = ParameterVector("g", repetitions)
+        beta_values = ParameterVector("b", repetitions)
 
     # Initialize QAOA circuit
     qc = QuantumCircuit(num_qubits)
