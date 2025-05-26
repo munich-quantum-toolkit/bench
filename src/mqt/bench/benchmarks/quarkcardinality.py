@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RXXGate
 
 
@@ -23,43 +23,52 @@ def create_circuit(num_qubits: int, depth: int = 3, random_parameters: bool = Tr
         depth: depth of the returned quantum circuit
         random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
     """
-    qc = QuantumCircuit(num_qubits)
     rng = np.random.default_rng(10)
+    qc = QuantumCircuit(num_qubits)
 
-    # === Parameter allocation ===
-    parameters = []
-    param_counter = 0
+    # === Precompute parameter count ===
+    num_initial = 2 * num_qubits
+    num_rxx = depth * (num_qubits - 1)
+    num_mid_layers = (depth - 2) * 2 * num_qubits if depth > 1 else 0
+    num_final_layer = 3 * num_qubits if depth >= 2 else 0
+    total_params = num_initial + num_rxx + num_mid_layers + num_final_layer
 
-    def get_param(name: str) -> Parameter | float:
-        nonlocal param_counter
+    param_vector: ParameterVector | None = None
+    if not random_parameters:
+        param_vector = ParameterVector("θ", length=total_params)
+
+    param_index = 0
+
+    def get_param() -> float | ParameterVector:
+        nonlocal param_index
         if random_parameters:
             return rng.random() * 2 * np.pi
-        p = Parameter(f"{name}_{param_counter}")
-        parameters.append(p)
-        param_counter += 1
-        return p
+        assert param_vector is not None
+        param = param_vector[param_index]
+        param_index += 1
+        return param
 
     # === Initial single-qubit rotations ===
     for q in range(num_qubits):
-        qc.rx(get_param("rx_init"), q)
-        qc.rz(get_param("rz_init"), q)
+        qc.rx(get_param(), q)
+        qc.rz(get_param(), q)
 
     # === Layered structure ===
     for d in range(depth):
         qc.barrier()
-        # RXX entangling layer
         for q in range(num_qubits - 1):
-            qc.append(RXXGate(get_param(f"rxx_d{d}")), [q, q + 1])
+            qc.append(RXXGate(get_param()), [q, q + 1])
         qc.barrier()
 
-        # Mid or final layer single-qubit rotations
-        for q in range(num_qubits):
-            qc.rx(get_param(f"rx1_d{d}"), q)
-            if d == depth - 2:
-                qc.rz(get_param(f"rz_d{d}"), q)
-                qc.rx(get_param(f"rx2_d{d}"), q)
-            elif d < depth - 2:
-                qc.rz(get_param(f"rz_d{d}"), q)
+        if d == depth - 2:
+            for q in range(num_qubits):
+                qc.rx(get_param(), q)
+                qc.rz(get_param(), q)
+                qc.rx(get_param(), q)
+        elif d < depth - 2:
+            for q in range(num_qubits):
+                qc.rx(get_param(), q)
+                qc.rz(get_param(), q)
 
     qc.measure_all()
     qc.name = "quarkcardinality"
