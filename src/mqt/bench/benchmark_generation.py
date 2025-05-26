@@ -511,6 +511,7 @@ def get_supported_benchmarks() -> list[str]:
         "vqetwolocalrandom",
         "wstate",
         "shor",
+        "hhl",
     ]
 
 

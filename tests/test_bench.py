@@ -53,6 +53,7 @@ from mqt.bench.benchmarks import (
     ghz,
     graphstate,
     grover,
+    hhl,
     qaoa,
     qft,
     qftentangled,
@@ -117,6 +118,7 @@ def output_path() -> str:
         (vqetwolocalrandom, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
+        (hhl, 2, False),
     ],
 )
 def test_quantumcircuit_alg_level(
@@ -182,6 +184,7 @@ def test_quantumcircuit_alg_level(
         (vqetwolocalrandom, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
+        (hhl, 2, False),
     ],
 )
 def test_quantumcircuit_indep_level(
@@ -331,6 +334,7 @@ def test_dj_constant_oracle() -> None:
         # Algorithm-level tests
         ("dj", "alg", 3, None, None, None),
         ("wstate", 0, 3, None, None, None),
+        ("hhl", 0, 2, None, None, None),
         ("shor", "alg", None, "xsmall", None, None),
         ("grover", "alg", 3, None, None, None),
         ("qwalk", "alg", 3, None, None, None),
