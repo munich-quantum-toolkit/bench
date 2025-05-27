@@ -28,7 +28,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: Qiskit circuit implementing HHL
     """
     assert num_qubits >= 3, "Number of qubits must be at least 3 for HHL."
-    num_qpe_qubits = num_qubits-2
+    num_qpe_qubits = num_qubits - 2
     qr_sys = QuantumRegister(1, name="sys")  # System qubit (|b⟩)
     qr_eig = QuantumRegister(num_qpe_qubits, name="phase")  # Eigenvalue estimation
     qr_anc = QuantumRegister(1, name="ancilla")  # Ancilla for rotation
