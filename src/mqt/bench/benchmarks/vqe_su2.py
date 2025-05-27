@@ -24,7 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 def create_circuit(
     num_qubits: int,
-    entanglement: str = "full",
+    entanglement: str = "reverse_linear",
     reps: int = 3,
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the EfficientSU2 ansatz.

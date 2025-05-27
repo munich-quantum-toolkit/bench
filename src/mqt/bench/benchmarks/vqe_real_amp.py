@@ -22,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
 
 
-def create_circuit(num_qubits: int, entanglement: str = "full", reps: int = 3) -> QuantumCircuit:
+def create_circuit(num_qubits: int, entanglement: str = "reverse_linear", reps: int = 3) -> QuantumCircuit:
     """Returns a quantum circuit implementing the RealAmplitudes ansatz.
 
     Arguments:
