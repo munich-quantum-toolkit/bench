@@ -12,41 +12,44 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 try:
     from qiskit.circuit.library.n_local.n_local import n_local
 except ImportError:
     from qiskit.circuit.library import TwoLocal as n_local  # noqa: N813
 
-from qiskit.circuit import ParameterVector
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
 
 
-def create_circuit(num_qubits: int, reps: int = 3, random_parameters: bool = True) -> QuantumCircuit:
+def create_circuit(
+    num_qubits: int,
+    rotation_blocks: str = "ry",
+    entanglement_blocks: str = "cx",
+    entanglement: str = "full",
+    reps: int = 3,
+) -> QuantumCircuit:
     """Returns a quantum circuit implementing the TwoLocal ansatz.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
+        rotation_blocks: type of rotation gates to use (default: "ry")
+        entanglement_blocks: type of entanglement gates to use (default: "cx")
+        entanglement: type of entanglement to use (default: "full")
         reps: number of repetitions (layers) in the ansatz
-        random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
 
     Returns:
         QuantumCircuit: a quantum circuit implementing the TwoLocal ansatz
     """
-    qc = n_local(num_qubits, rotation_blocks="ry", entanglement_blocks="cx", entanglement="full", reps=reps)
-
-    if random_parameters:
-        rng = np.random.default_rng(10)
-        num_params = qc.num_parameters
-        qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
-    else:
-        param_vec = ParameterVector("p", length=qc.num_parameters)
-        qc = qc.assign_parameters(param_vec)
+    qc = n_local(
+        num_qubits,
+        rotation_blocks=rotation_blocks,
+        entanglement_blocks=entanglement_blocks,
+        entanglement=entanglement,
+        reps=reps,
+    )
 
     qc.measure_all()
-    qc.name = "vqetwolocal"
+    qc.name = "vqe_two_local"
 
     return qc

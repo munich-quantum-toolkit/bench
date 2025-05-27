@@ -10,20 +10,17 @@
 
 from __future__ import annotations
 
-import numpy as np
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RXXGate
 
 
-def create_circuit(num_qubits: int, depth: int = 3, random_parameters: bool = True) -> QuantumCircuit:
+def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the cardinality circuit architecture from the QUARK framework.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
         depth: depth of the returned quantum circuit
-        random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
     """
-    rng = np.random.default_rng(10)
     qc = QuantumCircuit(num_qubits)
 
     # === Precompute parameter count ===
@@ -33,17 +30,12 @@ def create_circuit(num_qubits: int, depth: int = 3, random_parameters: bool = Tr
     num_final_layer = 3 * num_qubits if depth >= 2 else 0
     total_params = num_initial + num_rxx + num_mid_layers + num_final_layer
 
-    param_vector: ParameterVector | None = None
-    if not random_parameters:
-        param_vector = ParameterVector("θ", length=total_params)
+    param_vector = ParameterVector("p", length=total_params)
 
     param_index = 0
 
     def get_param() -> float | ParameterVector:
         nonlocal param_index
-        if random_parameters:
-            return rng.random() * 2 * np.pi
-        assert param_vector is not None
         param = param_vector[param_index]
         param_index += 1
         return param
@@ -71,6 +63,6 @@ def create_circuit(num_qubits: int, depth: int = 3, random_parameters: bool = Tr
                 qc.rz(get_param(), q)
 
     qc.measure_all()
-    qc.name = "quarkcardinality"
+    qc.name = "bmw_quark_cardinality"
 
     return qc

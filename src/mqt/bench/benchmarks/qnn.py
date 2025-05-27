@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 from qiskit.circuit import QuantumCircuit
 
 try:
@@ -20,7 +19,7 @@ except ImportError:
     from qiskit.circuit.library import ZZFeatureMap as z_feature_map  # noqa: N813
 
 
-def create_circuit(num_qubits: int, random_parameters: bool = True) -> QuantumCircuit:
+def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a ZZ FeatureMap and a RealAmplitudes ansatz.
 
     Arguments:
@@ -31,11 +30,6 @@ def create_circuit(num_qubits: int, random_parameters: bool = True) -> QuantumCi
     ansatz = real_amplitudes(num_qubits=num_qubits, reps=1)
 
     qc = QuantumCircuit(num_qubits)
-
-    if random_parameters:
-        feature_map = feature_map.assign_parameters([1 for _ in range(feature_map.num_parameters)])
-        rng = np.random.default_rng(10)
-        ansatz = ansatz.assign_parameters(rng.random(ansatz.num_parameters) * 2 * np.pi)
 
     qc.compose(feature_map, inplace=True)
     qc.compose(ansatz, inplace=True)

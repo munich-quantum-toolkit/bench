@@ -48,6 +48,8 @@ from mqt.bench.benchmark_generation import (
 )
 from mqt.bench.benchmarks import (
     ae,
+    bmw_quark_cardinality,
+    bmw_quark_copula,
     bv,
     dj,
     ghz,
@@ -59,14 +61,12 @@ from mqt.bench.benchmarks import (
     qnn,
     qpeexact,
     qpeinexact,
-    quarkcardinality,
-    quarkcopula,
     qwalk,
     randomcircuit,
     shor,
-    vqerealamp,
-    vqesu2,
-    vqetwolocal,
+    vqe_real_amp,
+    vqe_su2,
+    vqe_two_local,
     wstate,
 )
 from mqt.bench.output import (
@@ -127,13 +127,13 @@ def sample_filenames() -> list[str]:
         (qnn, 3, True),
         (qpeexact, 3, True),
         (qpeinexact, 3, True),
-        (quarkcardinality, 3, True),
-        (quarkcopula, 4, True),
+        (bmw_quark_cardinality, 3, True),
+        (bmw_quark_copula, 4, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamp, 3, True),
-        (vqesu2, 3, True),
-        (vqetwolocal, 3, True),
+        (vqe_real_amp, 3, True),
+        (vqe_su2, 3, True),
+        (vqe_two_local, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
     ],
@@ -196,9 +196,11 @@ def test_quantumcircuit_alg_level(
         (qpeinexact, 3, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamp, 3, True),
-        (vqesu2, 3, True),
-        (vqetwolocal, 3, True),
+        (vqe_real_amp, 3, True),
+        (vqe_su2, 3, True),
+        (bmw_quark_cardinality, 3, True),
+        (bmw_quark_copula, 4, True),
+        (vqe_two_local, 3, True),
         (wstate, 3, True),
         (shor, 3, False),
     ],
@@ -244,12 +246,14 @@ def test_quantumcircuit_indep_level(
         (qftentangled, 3, True),
         (qnn, 3, True),
         (qpeexact, 3, True),
+        (bmw_quark_cardinality, 3, True),
+        (bmw_quark_copula, 4, True),
         (qpeinexact, 3, True),
         (qwalk, 3, False),
         (randomcircuit, 3, True),
-        (vqerealamp, 3, True),
-        (vqesu2, 3, True),
-        (vqetwolocal, 3, True),
+        (vqe_real_amp, 3, True),
+        (vqe_su2, 3, True),
+        (vqe_two_local, 3, True),
         (wstate, 3, True),
     ],
 )
@@ -859,16 +863,14 @@ def test_custom_target() -> None:
     [
         qaoa,
         qnn,
-        quarkcardinality,
-        quarkcopula,
-        vqerealamp,
-        vqesu2,
-        vqetwolocal,
+        bmw_quark_cardinality,
+        bmw_quark_copula,
+        vqe_real_amp,
+        vqe_su2,
+        vqe_two_local,
     ],
 )
 def test_parameterized_circuits(benchmark: types.ModuleType) -> None:
     """Test that parameterized circuits can be created and processed."""
-    qc = benchmark.create_circuit(4, random_parameters=False)
+    qc = benchmark.create_circuit(4)
     assert len(qc.parameters) > 0, "The circuit should contain parameterized gates."
-    qc = benchmark.create_circuit(4, random_parameters=True)
-    assert len(qc.parameters) == 0, "The circuit should not contain parameterized gates."

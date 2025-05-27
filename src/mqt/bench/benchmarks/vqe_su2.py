@@ -12,41 +12,34 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 try:
     from qiskit.circuit.library import efficient_su2
 except ImportError:
     from qiskit.circuit.library import EfficientSU2 as efficient_su2  # noqa: N813
 
-from qiskit.circuit import ParameterVector
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
 
 
-def create_circuit(num_qubits: int, reps: int = 3, random_parameters: bool = True) -> QuantumCircuit:
+def create_circuit(
+    num_qubits: int,
+    entanglement: str = "full",
+    reps: int = 3,
+) -> QuantumCircuit:
     """Returns a quantum circuit implementing the EfficientSU2 ansatz.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
+        entanglement: type of entanglement to use (default: "full")
         reps: number of repetitions (layers) in the ansatz
-        random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
 
     Returns:
         QuantumCircuit: a quantum circuit implementing the EfficientSU2 ansatz
     """
-    qc = efficient_su2(num_qubits, entanglement="full", reps=reps)
-
-    if random_parameters:
-        rng = np.random.default_rng(10)
-        num_params = qc.num_parameters
-        qc = qc.assign_parameters(2 * np.pi * rng.random(num_params))
-    else:
-        param_vec = ParameterVector("p", length=qc.num_parameters)
-        qc = qc.assign_parameters(param_vec)
+    qc = efficient_su2(num_qubits, entanglement=entanglement, reps=reps)
 
     qc.measure_all()
-    qc.name = "vqesu2"
+    qc.name = "vqe_su2"
 
     return qc
