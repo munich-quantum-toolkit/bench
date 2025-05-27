@@ -93,25 +93,6 @@ def output_path() -> str:
     return str(output_path)
 
 
-@pytest.fixture
-def sample_filenames() -> list[str]:
-    """Fixture to return a list of sample filenames."""
-    return [
-        "ae_indep_qiskit_10.qasm",
-        "ghz_nativegates_rigetti_opt3_54.qasm",
-        "ae_indep_93.qasm",
-        "wstate_nativegates_rigetti_opt0_79.qasm",
-        "ae_mapped_ibm_falcon_27_opt1_9.qasm",
-        "ae_mapped_ibm_falcon_127_opt0_38.qasm",
-        "ae_mapped_oqc_lucy_opt0_5.qasm",
-        "ae_mapped_ibm_falcon_127_opt2_88.qasm",
-        "qnn_mapped_ionq_harmony_opt3_3.qasm",
-        "qnn_mapped_oqc_lucy_2.qasm",
-        "qaoa_mapped_quantinuum_h2_56_graph_2.qasm",
-        "dj_mapped_quantinuum_h2_56_opt3_23.qasm",
-    ]
-
-
 @pytest.mark.parametrize(
     ("benchmark", "input_value", "scalable"),
     [
@@ -214,9 +195,11 @@ def test_quantumcircuit_indep_level(
     if scalable:
         assert qc.num_qubits == input_value
     assert benchmark.__name__.split(".")[-1] in qc.name
+    opt_level = 2
     res = get_indep_level(
         qc,
         input_value,
+        opt_level,
         file_precheck=False,
         return_qc=False,
         target_directory=output_path,
@@ -225,6 +208,7 @@ def test_quantumcircuit_indep_level(
     res = get_indep_level(
         qc,
         input_value,
+        opt_level,
         file_precheck=True,
         return_qc=False,
         target_directory=output_path,
@@ -355,8 +339,8 @@ def test_dj_constant_oracle() -> None:
         ("grover", "alg", 3, None, None, None),
         ("qwalk", "alg", 3, None, None, None),
         # Independent level tests
-        ("ghz", "indep", 3, None, None, None),
-        ("graphstate", 1, 3, None, None, None),
+        ("ghz", "indep", 3, None, CompilerSettings(qiskit=QiskitSettings(optimization_level=2)), None),
+        ("graphstate", 1, 3, None, CompilerSettings(qiskit=QiskitSettings(optimization_level=2)), None),
         # Native gates level tests
         (
             "dj",
@@ -595,7 +579,7 @@ def test_create_ae_circuit_with_invalid_qubit_number() -> None:
     ("level", "target", "expected"),
     [
         ("alg", None, "ghz_alg_5"),
-        ("indep", None, "ghz_indep_5"),
+        ("indep", None, "ghz_indep_opt2_5"),
         ("nativegates", get_target_for_gateset("ibm_falcon", 5), "ghz_nativegates_ibm_falcon_opt2_5"),
         ("mapped", get_device_by_name("ibm_falcon_127"), "ghz_mapped_ibm_falcon_127_opt2_5"),
     ],

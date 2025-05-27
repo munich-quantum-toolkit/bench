@@ -72,6 +72,9 @@ def generate_filename(
         all relevant metadata for reproducibility and clarity.
     """
     base = f"{benchmark_name}_{level}"
+    if level == "indep":
+        assert opt_level is not None
+        return f"{base}_opt{opt_level}_{num_qubits}"
     if level in {"nativegates", "mapped"}:
         assert opt_level is not None
         assert target is not None
@@ -132,6 +135,7 @@ def get_alg_level(
 def get_indep_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
+    opt_level: int,
     file_precheck: bool,
     return_qc: Literal[True],
     target_directory: str = "./",
@@ -144,6 +148,7 @@ def get_indep_level(
 def get_indep_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
+    opt_level: int,
     file_precheck: bool,
     return_qc: Literal[False],
     target_directory: str = "./",
@@ -155,6 +160,7 @@ def get_indep_level(
 def get_indep_level(
     qc: QuantumCircuit,
     num_qubits: int | None,
+    opt_level: int,
     file_precheck: bool,
     return_qc: bool = False,
     target_directory: str = "./",
@@ -166,6 +172,7 @@ def get_indep_level(
     Arguments:
         qc: quantum circuit which the to be created benchmark circuit is based on
         num_qubits: number of qubits
+        opt_level: optimization level
         file_precheck: flag indicating whether to check whether the file already exists before creating it (again)
         return_qc: flag if the actual circuit shall be returned
         target_directory: alternative directory to the default one to store the created circuit
@@ -176,17 +183,21 @@ def get_indep_level(
         if return_qc == True: quantum circuit object
         else: True/False indicating whether the function call was successful or not
     """
-    filename_indep = target_filename or generate_filename(benchmark_name=qc.name, level="indep", num_qubits=num_qubits)
+    filename_indep = target_filename or generate_filename(
+        benchmark_name=qc.name, level="indep", num_qubits=num_qubits, opt_level=opt_level
+    )
     path = Path(target_directory, f"{filename_indep}.{output_format.extension()}")
 
     if file_precheck and path.is_file():
         return True
 
+    compiled = transpile(qc, optimization_level=opt_level, seed_transpiler=10)
+
     if return_qc:
-        return qc
+        return compiled
 
     return save_circuit(
-        qc=qc,
+        qc=compiled,
         filename=filename_indep,
         level="indep",
         output_format=output_format,
@@ -450,7 +461,9 @@ def get_benchmark(
 
     independent_level = 1
     if level in ("indep", independent_level):
-        return get_indep_level(qc, circuit_size, False, True)
+        assert compiler_settings.qiskit is not None
+        opt_level = compiler_settings.qiskit.optimization_level
+        return get_indep_level(qc, circuit_size, opt_level, False, True)
 
     native_gates_level = 2
     if level in ("nativegates", native_gates_level):
