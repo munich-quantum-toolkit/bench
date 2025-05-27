@@ -18,62 +18,63 @@ from qiskit.circuit.library import QFTGate
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """HHL algorithm for a fixed 2x2 Hermitian matrix A using scalable QPE precision.
 
+    This implementation simulates a more accurate model of the HHL algorithm
+    for the matrix A = [[1, 1], [1, 3]] with known eigenvalues.
+
     Args:
         num_qubits: Number of qubits in the phase estimation register (precision control)
 
     Returns:
         QuantumCircuit: Qiskit circuit implementing HHL
     """
-    # Registers:
+    assert num_qubits >= 3, "Number of qubits must be at least 3 for HHL."
+    num_qpe_qubits = num_qubits-2
     qr_sys = QuantumRegister(1, name="sys")  # System qubit (|b⟩)
-    qr_eig = QuantumRegister(num_qubits, name="phase")  # Eigenvalue estimation
+    qr_eig = QuantumRegister(num_qpe_qubits, name="phase")  # Eigenvalue estimation
     qr_anc = QuantumRegister(1, name="ancilla")  # Ancilla for rotation
     cr = ClassicalRegister(1, name="c")  # Classical for system measurement
     qc = QuantumCircuit(qr_sys, qr_eig, qr_anc, cr)
 
-    # Step 1: Prepare |b⟩ = |0⟩ + no gates (b = [1, 0])
-    # (Optionally use other b if desired)
+    # Step 1: Prepare |b⟩ = |1⟩
+    qc.x(qr_sys[0])
 
     # Step 2: Apply Hadamards to phase register (QPE start)
     qc.h(qr_eig)
 
-    # Step 3: Simulate controlled-evolution (U = e^{iAt})
-    # Eigenvalues of A are known: λ1 ≈ 0.38, λ2 ≈ 3.62
-    # Eigenvectors: we can diagonalize A as V† D V
-    # So we simulate the effect of exp(i A t) ≈ V† exp(i D t) V
-    #
-    # For a fixed A and small system, we simulate controlled unitaries with known eigenvalues
-
-    # Evolution time
+    # Step 3: Controlled-unitary approximation simulating controlled-e^{iAt}
+    # A = [[1, 1], [1, 3]], eigenvalues: lam1 ≈ 0.382, lam2 ≈ 3.618
+    # We simulate one eigenvalue's evolution as approximation
     t = 2 * np.pi
+    lam = 3.618  # simulate dominant eigenvalue for better realism
 
-    # Eigenvalues of A (diagonal)
-    lambdas = [0.381966, 3.6180]
-
-    # Simulate controlled-U^2^j for each phase qubit
-    for j in range(num_qubits):
-        # Controlled rotation that approximates controlled-evolution
-        angle = t * lambdas[1] / (2 ** (j + 1))  # simulate highest eigenvalue
-        qc.cp(angle, qr_sys[0], qr_eig[j])
+    for j in range(num_qpe_qubits):
+        angle = t * lam / (2 ** (j + 1))
+        qc.cp(angle, qr_eig[j], qr_sys[0])
 
     # Step 4: Apply inverse QFT
-    qc.append(QFTGate(num_qubits).inverse(), qr_eig)
+    qc.append(QFTGate(num_qpe_qubits).inverse(), qr_eig)
 
-    # Step 5: Controlled Ry rotations on ancilla (1/λ scaling)
-    for j in range(num_qubits):
-        # Simulate λ ≈ 2^j encoded in binary QPE
-        lambda_j = 2**j  # fake lambda to match QPE index
-        theta = 2 * np.arcsin(1.0 / lambda_j)
+    # Step 5: Controlled Ry rotations on ancilla (based on actual eigenvalue)
+    for j in range(num_qpe_qubits):
+        # Approximate eigenvalue encoded in basis state |j⟩
+        # Use inverse λ (scaled appropriately)
+        estimated_lambda = lam / (2 ** (num_qpe_qubits - j))
+        if estimated_lambda > 0:
+            inv_lambda = 1.0 / estimated_lambda
+            inv_lambda = np.clip(inv_lambda, -1, 1)  # valid for arcsin
+            theta = 2 * np.arcsin(inv_lambda)
+        else:
+            theta = 0.0
         qc.cry(theta, qr_eig[j], qr_anc[0])
 
-    # Step 6: QPE uncomputation (apply QFT + unitaries again)
-    qc.append(QFTGate(num_qubits), qr_eig)
-    for j in reversed(range(num_qubits)):
-        angle = -t * lambdas[1] / (2 ** (j + 1))
-        qc.cp(angle, qr_sys[0], qr_eig[j])
-    qc.h(qr_eig)
+    # Step 6: QPE uncomputation (apply QFT + reverse controlled unitary)
+    qc.append(QFTGate(num_qpe_qubits), qr_eig)
+    for j in reversed(range(num_qpe_qubits)):
+        angle = -t * lam / (2 ** (j + 1))
+        qc.cp(angle, qr_eig[j], qr_sys[0])
 
-    # Step 7: Measure the system register
+    # Step 7: Final Hadamards and measurement
+    qc.h(qr_eig)
     qc.measure(qr_sys[0], cr[0])
     qc.name = "hhl"
     return qc
