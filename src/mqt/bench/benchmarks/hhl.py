@@ -64,8 +64,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             inv_lambda = np.clip(inv_lambda, -1, 1)  # valid for arcsin
             theta = 2 * np.arcsin(inv_lambda)
             qc.cry(theta, qr_eig[j], qr_anc[0])
-        else:
-            theta = 0.0
 
     # Step 6: QPE uncomputation (apply QFT + reverse controlled unitary)
     qc.append(QFTGate(num_qpe_qubits), qr_eig)
