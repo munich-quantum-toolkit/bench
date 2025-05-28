@@ -51,7 +51,7 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
 
     param_index = 0
 
-    def get_param() -> float | Parameter:
+    def get_param() -> Parameter:
         nonlocal param_index
         value = param_vector[param_index]
         param_index += 1

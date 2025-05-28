@@ -24,7 +24,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import ParameterVector, QuantumCircuit
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RXXGate
 
 
@@ -48,7 +48,7 @@ def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
 
     param_index = 0
 
-    def get_param() -> float | ParameterVector:
+    def get_param() -> Parameter:
         nonlocal param_index
         param = param_vector[param_index]
         param_index += 1
