@@ -188,7 +188,7 @@ def test_dj_constant_oracle() -> None:
         # Algorithm-level tests
         ("dj", BenchmarkLevel.ALG, 3, None, None),
         ("wstate", BenchmarkLevel.ALG, 3, None, None),
-        ("hhl", BenchmarkLevel.ALG, 3, None, None, None),
+        ("hhl", BenchmarkLevel.ALG, 3, None, None),
         ("shor", BenchmarkLevel.ALG, 18, None, None),
         ("grover", BenchmarkLevel.ALG, 3, None, None),
         ("qwalk", BenchmarkLevel.ALG, 3, None, None),
