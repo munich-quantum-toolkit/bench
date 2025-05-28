@@ -10,7 +10,10 @@
 
 from __future__ import annotations
 
+from ._registry import register
 
+
+@register("quantinuum")
 def get_quantinuum_gateset() -> list[str]:
     """Returns the basis gates of the Quantinuum gateset."""
     return ["rx", "ry", "rz", "rzz"]

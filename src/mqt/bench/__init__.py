@@ -11,13 +11,19 @@
 from __future__ import annotations
 
 from mqt.bench.benchmark_generation import (
-    CompilerSettings,
-    QiskitSettings,
+    BenchmarkLevel,
     get_benchmark,
+    get_benchmark_alg,
+    get_benchmark_indep,
+    get_benchmark_mapped,
+    get_benchmark_native_gates,
 )
 
 __all__ = [
-    "CompilerSettings",
-    "QiskitSettings",
+    "BenchmarkLevel",
     "get_benchmark",
+    "get_benchmark_alg",
+    "get_benchmark_indep",
+    "get_benchmark_mapped",
+    "get_benchmark_native_gates",
 ]

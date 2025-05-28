@@ -15,12 +15,11 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from mqt.bench.targets.devices import get_device_by_name
+from mqt.bench.targets.devices import get_device
 from mqt.bench.targets.gatesets import get_target_for_gateset
 
-from . import CompilerSettings, QiskitSettings
-from .benchmark_generation import generate_filename, get_benchmark
-from .output import OutputFormat, save_circuit, write_circuit
+from .benchmark_generation import BenchmarkLevel, get_benchmark
+from .output import OutputFormat, generate_filename, save_circuit, write_circuit
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
@@ -33,14 +32,6 @@ class CustomArgumentParser(argparse.ArgumentParser):
             f"\nMQT Bench version: {metadata.version('mqt.bench')}\nQiskit version: {metadata.version('qiskit')}\n"
         )
         return help_message + version_info
-
-
-def parse_benchmark_name_and_instance(algorithm: str) -> tuple[str, str | None]:
-    """Parse an algorithm name like "shor_xlarge" into a benchmark and instance name."""
-    if algorithm.startswith("shor_"):
-        parts = algorithm.split("_", 1)
-        return parts[0], parts[1]
-    return algorithm, None
 
 
 def main() -> None:
@@ -56,7 +47,7 @@ def main() -> None:
     parser.add_argument(
         "--algorithm",
         type=str,
-        help="Name of the benchmark (e.g., 'grover', 'shor_xsmall').",
+        help="Name of the benchmark (e.g., 'grover', 'shor').",
         required=True,
     )
     parser.add_argument(
@@ -66,8 +57,9 @@ def main() -> None:
         required=True,
     )
     parser.add_argument(
-        "--qiskit-optimization-level",
+        "--optimization-level",
         type=int,
+        choices=range(4),
         help="Qiskit compiler optimization level (0-3).",
     )
     parser.add_argument(
@@ -96,29 +88,29 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Build Qiskit settings
-    qiskit_settings = QiskitSettings()
-    if args.qiskit_optimization_level is not None:
-        qiskit_settings = QiskitSettings(args.qiskit_optimization_level)
+    if args.level == "alg":
+        level = BenchmarkLevel.ALG
+    elif args.level == "indep":
+        level = BenchmarkLevel.INDEP
+    elif args.level == "nativegates":
+        level = BenchmarkLevel.NATIVEGATES
+    else:
+        level = BenchmarkLevel.MAPPED
 
-    # Parse algorithm and optional instance
-    benchmark_name, benchmark_instance = parse_benchmark_name_and_instance(args.algorithm)
-
-    if args.level == "nativegates":
+    if level == BenchmarkLevel.NATIVEGATES:
         target = get_target_for_gateset(args.target, num_qubits=args.num_qubits)
-    elif args.level == "mapped":
-        target = get_device_by_name(args.target)
+    elif level == BenchmarkLevel.MAPPED:
+        target = get_device(args.target)
     else:
         target = None
 
     # Generate circuit
     circuit = get_benchmark(
-        benchmark_name=benchmark_name,
-        benchmark_instance_name=benchmark_instance,
-        level=args.level,
+        benchmark=args.algorithm,
+        level=level,
         circuit_size=args.num_qubits,
-        compiler_settings=CompilerSettings(qiskit=qiskit_settings),
         target=target,
+        opt_level=args.optimization_level,
     )
 
     try:
@@ -129,21 +121,21 @@ def main() -> None:
 
     # For QASM outputs, serialize and print
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
-        write_circuit(circuit, sys.stdout, args.level, fmt, target)
+        write_circuit(circuit, sys.stdout, level, fmt, target)
         return
 
     # Otherwise, save to file
     filename = generate_filename(
-        benchmark_name=benchmark_name,
-        level=args.level,
+        benchmark_name=args.algorithm,
+        level=level,
         num_qubits=args.num_qubits,
         target=target,
-        opt_level=args.qiskit_optimization_level,
+        opt_level=args.optimization_level,
     )
     success = save_circuit(
         qc=circuit,
         filename=filename,
-        level=args.level,
+        level=level,
         output_format=fmt,
         target=target,
         target_directory=args.target_directory,

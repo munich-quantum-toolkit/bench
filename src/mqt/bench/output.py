@@ -22,6 +22,8 @@ from qiskit.qasm2 import dump as dump2
 from qiskit.qasm3 import dump as dump3
 from qiskit.qpy import dump as dump_qpy
 
+from .benchmark_generation import BenchmarkLevel
+
 if TYPE_CHECKING:  # pragma: no cover
     from typing import BinaryIO
 
@@ -54,7 +56,7 @@ def _attach_metadata(qc: QuantumCircuit, header: str) -> QuantumCircuit:
 
 def generate_header(
     fmt: OutputFormat,
-    level: str,
+    level: BenchmarkLevel,
     target: Target | None = None,
 ) -> str:
     """Generate a standardized header for MQT Bench outputs.
@@ -87,14 +89,14 @@ def generate_header(
         f"// Output format: {fmt.value}",
     ))
 
-    if level in {"nativegates", "mapped"}:
+    if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert target is not None, "Target must be provided for nativegates or mapped level."
         lines.extend((
-            f"// Level: {level}",
+            f"// Level: {level.name.lower()}",
             f"// Target: {target.description}",
             f"// Used gateset: {list(target.operation_names)}",
         ))
-        if level == "mapped":
+        if level == BenchmarkLevel.MAPPED:
             c_map = target.build_coupling_map()
             lines.append(f"// Coupling map: {c_map or 'all-to-all'}")
 
@@ -105,7 +107,7 @@ def generate_header(
 def write_circuit(
     qc: QuantumCircuit,
     destination: Path,
-    level: str,
+    level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:  # pragma: no cover - typing overload only
@@ -116,7 +118,7 @@ def write_circuit(
 def write_circuit(
     qc: QuantumCircuit,
     destination: TextIO | BinaryIO,
-    level: str,
+    level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:  # pragma: no cover - typing overload only
@@ -126,7 +128,7 @@ def write_circuit(
 def write_circuit(
     qc: QuantumCircuit,
     destination: Path | TextIO | BinaryIO,
-    level: str,
+    level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:
@@ -135,7 +137,7 @@ def write_circuit(
     Arguments:
         qc: The QuantumCircuit to export
         destination: Destination file path or stream (including extension)
-        level: The level of the circuit (e.g., "nativegates", "mapped")
+        level: The level of the circuit (e.g., BenchmarkLevel.MAPPED)
         fmt: Desired output format
         target: The target circuit to be transpiled, if any.
 
@@ -199,7 +201,7 @@ def write_circuit(
 def save_circuit(
     qc: QuantumCircuit,
     filename: str,
-    level: str,
+    level: BenchmarkLevel,
     output_format: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
     target_directory: str = "",
@@ -209,7 +211,7 @@ def save_circuit(
     Arguments:
         qc: Circuit to export
         filename: Base filename without extension
-        level: Level of the circuit (e.g., "nativegates", "mapped")
+        level: Level of the circuit (e.g., BenchmarkLevel.MAPPED)
         output_format: One of the supported format values, as defined in `OutputFormat`
         target: Target circuit to be transpiled, if any
         target_directory: Directory to place the output file
@@ -225,3 +227,37 @@ def save_circuit(
         return False
 
     return True
+
+
+def generate_filename(
+    benchmark_name: str,
+    level: BenchmarkLevel,
+    num_qubits: int | None,
+    target: Target | None = None,
+    opt_level: int | None = None,
+) -> str:
+    """Generate a benchmark filename based on the abstraction level and context.
+
+    Arguments:
+        benchmark_name: name of the quantum circuit
+        level: abstraction level
+        num_qubits: number of qubits in the benchmark circuit
+        target: target device (e.g., BenchmarkLevel.MAPPED)
+        opt_level: optional optimization level (used for 'nativegates' and 'mapped')
+
+    Returns:
+        A string representing a filename (excluding extension) that encodes
+        all relevant metadata for reproducibility and clarity.
+    """
+    base = f"{benchmark_name}_{level.name.lower()}"
+    if level == BenchmarkLevel.INDEP:
+        assert opt_level is not None
+        return f"{base}_opt{opt_level}_{num_qubits}"
+    if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
+        assert opt_level is not None
+        assert target is not None
+        # sanitize the target.description to remove any special characters etc.
+        description = target.description.strip().split(" ")[0]
+        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
+
+    return f"{base}_{num_qubits}"

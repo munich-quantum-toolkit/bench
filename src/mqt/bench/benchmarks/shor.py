@@ -34,8 +34,37 @@ from qiskit.circuit import Instruction, ParameterVector, QuantumCircuit, Quantum
 from qiskit.circuit.library import QFTGate
 from qiskit.synthesis import synth_qft_full
 
+_SIZE_TO_PARAMS = {
+    18: (15, 4),  # "small"
+    42: (821, 4),  # "medium"
+    58: (11777, 4),  # "large"
+    74: (201209, 4),  # "xlarge"
+}
 
-def create_circuit(num_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
+
+def create_circuit(circuit_size: int) -> QuantumCircuit:
+    """Construct Shor's circuit based on total qubit count.
+
+    Arguments:
+        circuit_size: one of 18, 42, 58, 74.
+
+    Raises:
+        ValueError: if the size is not available.
+
+    Returns:
+        QuantumCircuit implementing Shor's algorithm for the chosen size.
+    """
+    try:
+        n, a = _SIZE_TO_PARAMS[circuit_size]
+    except KeyError as exc:
+        valid = ", ".join(map(str, sorted(_SIZE_TO_PARAMS)))
+        msg = f"No Shor instance for circuit_size={circuit_size}. Available: {valid}."
+        raise ValueError(msg) from exc
+
+    return create_circuit_from_num_and_coprime(n, a)
+
+
+def create_circuit_from_num_and_coprime(num_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Shor's algorithm.
 
     Arguments:

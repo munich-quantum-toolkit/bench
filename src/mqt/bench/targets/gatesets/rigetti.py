@@ -15,8 +15,11 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import EquivalenceLibrary, Gate, Parameter
 from qiskit.circuit.library.standard_gates import RXGate, RZGate, UGate
 
+from ._registry import register
 
-def get_rigetti_ankaa_gateset() -> list[str]:
+
+@register("rigetti")
+def get_rigetti_gateset() -> list[str]:
     """Returns the basis gates of the Rigetti gateset."""
     return ["rxpi", "rxpi2", "rxpi2dg", "rz", "iswap", "measure"]
 

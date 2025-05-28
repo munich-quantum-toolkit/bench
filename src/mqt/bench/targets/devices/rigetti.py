@@ -16,15 +16,10 @@ from qiskit.transpiler import InstructionProperties, Target
 
 from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate
 
-
-def get_rigetti_target(device_name: str) -> Target:
-    """Get a hardcoded Rigetti target device by name."""
-    if device_name == "rigetti_ankaa_84":
-        return get_rigetti_ankaa_84()
-    msg = f"Unknown Rigetti device: '{device_name}'."
-    raise ValueError(msg)
+from ._registry import register
 
 
+@register("rigetti_ankaa_84")
 def get_rigetti_ankaa_84() -> Target:
     """Get the target device for Rigetti Ankaa 3."""
     num_qubits = 84

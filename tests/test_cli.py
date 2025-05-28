@@ -17,9 +17,8 @@ import pytest
 from pytest_console_scripts import ScriptRunner
 from qiskit.qasm3 import dumps
 
-from mqt.bench import CompilerSettings, QiskitSettings
-from mqt.bench.benchmark_generation import get_benchmark
-from mqt.bench.targets import get_device_by_name, get_target_for_gateset
+from mqt.bench.benchmark_generation import BenchmarkLevel, get_benchmark
+from mqt.bench.targets import get_device, get_target_for_gateset
 
 if TYPE_CHECKING:
     from pytest_console_scripts import ScriptResult, ScriptRunner
@@ -33,41 +32,43 @@ if TYPE_CHECKING:
              "--level", "alg",
              "--algorithm", "ghz",
              "--num-qubits", "10",
-         ], dumps(get_benchmark(level="alg", benchmark_name="ghz", circuit_size=10))),
+         ], dumps(get_benchmark(level=BenchmarkLevel.ALG, benchmark="ghz", circuit_size=10))),
         ([
              "--level", "alg",
-             "--algorithm", "shor_xsmall",
-             "--num-qubits", "10",
+             "--algorithm", "shor",
+             "--num-qubits", "18",
             "--output-format", "qasm2",
          ], "OPENQASM 2.0;"),  # Note: shor is non-deterministic, so just a basic sanity check
         ([
              "--level", "alg",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-         ], dumps(get_benchmark(level="alg", benchmark_name="ghz", circuit_size=20))),
+         ], dumps(get_benchmark(level=BenchmarkLevel.ALG, benchmark="ghz", circuit_size=20))),
         ([
              "--level", "indep",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-         ], dumps(get_benchmark(level="indep", benchmark_name="ghz", circuit_size=20))),
+    "--optimization-level", "2",
+         ], dumps(get_benchmark(level=BenchmarkLevel.INDEP, benchmark="ghz", circuit_size=20, opt_level=2))),
         ([
              "--level", "nativegates",
              "--algorithm", "ghz",
              "--num-qubits", "20",
+            "--optimization-level", "2",
              "--target", "ibm_falcon",
-         ], dumps(get_benchmark(level="nativegates", benchmark_name="ghz", circuit_size=20, target=get_target_for_gateset("ibm_falcon", 20)))),
+         ], dumps(get_benchmark(level=BenchmarkLevel.NATIVEGATES, benchmark="ghz", circuit_size=20, target=get_target_for_gateset("ibm_falcon", 20), opt_level=2))),
         ([
              "--level", "mapped",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-             "--qiskit-optimization-level", "2",
+             "--optimization-level", "2",
              "--target", "ibm_falcon_27",
          ], dumps(get_benchmark(
-            level="mapped",
-            benchmark_name="ghz",
+            level=BenchmarkLevel.MAPPED,
+            benchmark="ghz",
             circuit_size=20,
-            compiler_settings=CompilerSettings(QiskitSettings(optimization_level=2)),
-            target=get_device_by_name("ibm_falcon_27"),
+            opt_level=2,
+            target=get_device("ibm_falcon_27"),
         ))),
         (["--help"], "usage: mqt.bench.cli"),
     ],
@@ -87,6 +88,11 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
         (["asd"], "usage: mqt.bench.cli"),
         (["--benchmark", "ae"], "usage: mqt.bench.cli"),
         # Note: We don't care about the actual error messages in most cases
+        ([
+             "--level", "not-a-valid-level",
+             "--algorithm", "ae",
+             "--num-qubits", "20",
+         ], "invalid choice: 'not-a-valid-level' "),
         ([
              "--level", "alg",
              "--algorithm", "not-a-valid-benchmark",
@@ -148,7 +154,7 @@ def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner)
             "--algorithm", "ghz",
             "--num-qubits", "5",
             "--target", "ibm_falcon",
-            "--qiskit-optimization-level", "1",
+            "--optimization-level", "1",
             "--output-format", "qasm2",
             "--save",
             "--target-directory", target_dir,
@@ -170,7 +176,7 @@ def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> N
             "--algorithm", "ghz",
             "--num-qubits", "5",
             "--target", "ibm_falcon_27",
-            "--qiskit-optimization-level", "1",
+            "--optimization-level", "1",
             "--output-format", "qasm2",
             "--save",
             "--target-directory", target_dir,
