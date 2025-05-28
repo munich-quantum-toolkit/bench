@@ -24,7 +24,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
-        random_parameters: If True, assign random parameter values; if False, use symbolic parameters.
     """
     feature_map = z_feature_map(feature_dimension=num_qubits)
     ansatz = real_amplitudes(num_qubits=num_qubits, reps=1)
