@@ -805,6 +805,10 @@ def test_benchmarks_with_parameters(benchmark: types.ModuleType) -> None:
     circuit_size = 4
     qc = get_benchmark(benchmark, level=BenchmarkLevel.ALG, circuit_size=circuit_size, random_parameters=False)
     assert len(qc.parameters) > 0, f"Benchmark {benchmark} should have parameters on the algorithm level."
+
+    res_indep = get_benchmark(benchmark, level=BenchmarkLevel.INDEP, circuit_size=circuit_size, random_parameters=False)
+    assert len(res_indep.parameters) > 0, f"Benchmark {benchmark} should have parameters on the independent level."
+
     for gateset_name in get_available_native_gatesets():
         if gateset_name == "clifford+t":
             continue
