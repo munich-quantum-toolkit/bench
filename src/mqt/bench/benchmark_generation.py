@@ -109,8 +109,7 @@ def _get_circuit(
         rng = np.random.default_rng(10)
         param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
         qc.assign_parameters(param_dict, inplace=True)
-
-    assert len(qc.parameters) == 0, "Parameters should be empty after assignment."
+        assert len(qc.parameters) == 0, "All parameters should be assigned."
     return qc
 
 
@@ -336,6 +335,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
+    random_parameters: bool = True,
 ) -> QuantumCircuit: ...
 
 
@@ -346,6 +346,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
+    random_parameters: bool = True,
 ) -> QuantumCircuit: ...
 
 
@@ -355,6 +356,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    random_parameters: bool = True,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
@@ -364,6 +366,7 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
+        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
@@ -372,12 +375,14 @@ def get_benchmark(
         return get_benchmark_alg(
             benchmark,
             circuit_size=circuit_size,
+            random_parameters=random_parameters,
         )
     if level is BenchmarkLevel.INDEP:
         return get_benchmark_indep(
             benchmark,
             circuit_size,
             opt_level,
+            random_parameters,
         )
     if level is BenchmarkLevel.NATIVEGATES:
         return get_benchmark_native_gates(
@@ -385,6 +390,7 @@ def get_benchmark(
             circuit_size,
             target,
             opt_level,
+            random_parameters,
         )
     if level is BenchmarkLevel.MAPPED:
         return get_benchmark_mapped(
@@ -392,6 +398,7 @@ def get_benchmark(
             circuit_size,
             target,
             opt_level,
+            random_parameters,
         )
 
     assert_never(level)
