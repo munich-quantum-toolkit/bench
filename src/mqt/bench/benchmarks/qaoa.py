@@ -14,18 +14,18 @@ import numpy as np
 from qiskit.circuit import ParameterVector, QuantumCircuit
 
 
-def create_circuit(num_qubits: int, repetitions: int = 2) -> QuantumCircuit:
+def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> QuantumCircuit:
     """Constructs a quantum circuit implementing QAOA for a Max-Cut example with random parameters.
 
     Arguments:
         num_qubits: Number of qubits in the circuit (equal to the number of graph nodes).
         repetitions: Number of QAOA layers (repetitions of the ansatz).
+        seed: Seed for reproducibility.
 
     Returns:
         QuantumCircuit: Quantum circuit implementing QAOA.
     """
-    # Example adjacency matrix for Max-Cut (toy problem)
-    rng = np.random.default_rng(10)
+    rng = np.random.default_rng(seed)
     adjacency_matrix = rng.integers(0, 2, size=(num_qubits, num_qubits))
     adjacency_matrix = np.triu(adjacency_matrix, 1)  # Upper triangular part for undirected graph
 
