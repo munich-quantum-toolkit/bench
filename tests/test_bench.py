@@ -794,3 +794,30 @@ def test_assert_never_runtime() -> None:
     with pytest.raises(AssertionError):
         # get_benchmark will fall through the if-chain and hit assert_never
         get_benchmark("qft", level=bad_level, circuit_size=3)
+
+
+@pytest.mark.parametrize(
+    ("benchmark"),
+    ["qaoa", "qnn", "bmw_quark_cardinality", "bmw_quark_copula", "vqe_real_amp", "vqe_su2", "vqe_two_local"],
+)
+def test_benchmarks_with_parameters(benchmark: types.ModuleType) -> None:
+    """Test that benchmarks with parameters can be created."""
+    circuit_size = 4
+    qc = get_benchmark(benchmark, level=BenchmarkLevel.ALG, circuit_size=circuit_size, random_parameters=False)
+    assert len(qc.parameters) > 0, f"Benchmark {benchmark} should have parameters on the algorithm level."
+    for gateset_name in get_available_native_gatesets():
+        if gateset_name == "clifford+t":
+            continue
+        gateset = get_target_for_gateset(gateset_name, num_qubits=qc.num_qubits)
+        res_native_gates = get_benchmark_native_gates(qc, None, gateset, 0, random_parameters=False)
+        assert len(res_native_gates.parameters) > 0, (
+            f"Benchmark {benchmark} should have parameters on the native gates level."
+        )
+
+        assert res_native_gates
+        assert res_native_gates.num_qubits == circuit_size
+
+    for device in get_available_devices().values():
+        res_mapped = get_benchmark_mapped(qc, None, device, 0, random_parameters=False)
+        assert res_mapped
+        assert len(res_mapped.parameters) > 0, f"Benchmark {benchmark} should have parameters on the mapped level."
