@@ -310,6 +310,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
+    generate_mirror_circuit: bool = False,
 ) -> QuantumCircuit: ...
 
 
@@ -320,6 +321,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
+    generate_mirror_circuit: bool = False,
 ) -> QuantumCircuit: ...
 
 
@@ -329,43 +331,66 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    generate_mirror_circuit: bool = False,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        level: Choice of level, either as a string ("alg", "indep", "nativegates" or "mapped") or as a number between 0-3 where 0 corresponds to "alg" level and 3 to "mapped" level
+        level: Choice of level (BenchmarkLevel Enum)
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation (only used for "nativegates" and "mapped" level)
+        target: `~qiskit.transpiler.target.Target` for the benchmark generation
+                (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
+        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
     """
+    qc_processed: QuantumCircuit
+
     if level is BenchmarkLevel.ALG:
-        return get_benchmark_alg(
+        qc_processed = get_benchmark_alg(
             benchmark,
             circuit_size=circuit_size,
         )
-    if level is BenchmarkLevel.INDEP:
-        return get_benchmark_indep(
+    elif level is BenchmarkLevel.INDEP:
+        qc_processed = get_benchmark_indep(
             benchmark,
             circuit_size,
             opt_level,
         )
-    if level is BenchmarkLevel.NATIVEGATES:
-        return get_benchmark_native_gates(
-            benchmark,
-            circuit_size,
-            target,
-            opt_level,
-        )
-    if level is BenchmarkLevel.MAPPED:
-        return get_benchmark_mapped(
+    elif level is BenchmarkLevel.NATIVEGATES:
+        if target is None:
+            msg = "Target must be provided for 'nativegates' level."
+            raise ValueError(msg)
+        qc_processed = get_benchmark_native_gates(
             benchmark,
             circuit_size,
             target,
             opt_level,
         )
+    elif level is BenchmarkLevel.MAPPED:
+        if target is None:
+            msg = "Target must be provided for 'mapped' level."
+            raise ValueError(msg)
+        qc_processed = get_benchmark_mapped(
+            benchmark,
+            circuit_size,
+            target,
+            opt_level,
+        )
+    else:
+        assert_never(level)
 
-    assert_never(level)
+    # Mirror circuit generation logic
+    if generate_mirror_circuit:
+        base_name = qc_processed.name
+        qc_processed.remove_final_measurements(inplace=True)
+        qc_inverse = qc_processed.inverse()
+        qc_processed.barrier()
+        qc_processed.compose(qc_inverse, inplace=True)
+        qc_processed.name = f"{base_name}_mirror"
+        qc_processed.measure_all()
+
+    return qc_processed

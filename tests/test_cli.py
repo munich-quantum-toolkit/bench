@@ -70,6 +70,28 @@ if TYPE_CHECKING:
             opt_level=2,
             target=get_device("ibm_falcon_27"),
         ))),
+                ([
+            "--level", "alg",
+            "--algorithm", "ghz",
+            "--num-qubits", "3",
+            "--mirror",
+        ], dumps(get_benchmark(level=BenchmarkLevel.ALG, benchmark="ghz", circuit_size=3, generate_mirror_circuit=True))),
+
+        ([
+            "--level", "mapped",
+            "--algorithm", "ghz",
+            "--num-qubits", "3",
+            "--optimization-level", "0",
+            "--target", "ibm_falcon_27",
+            "--mirror",
+        ], dumps(get_benchmark(
+            level=BenchmarkLevel.MAPPED,
+            benchmark="ghz",
+            circuit_size=3,
+            opt_level=0,
+            target=get_device("ibm_falcon_27"),
+            generate_mirror_circuit=True,
+        ))),
         (["--help"], "usage: mqt.bench.cli"),
     ],
 )

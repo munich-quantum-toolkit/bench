@@ -20,6 +20,9 @@ from typing import TYPE_CHECKING, Callable, NoReturn, cast
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
+from qiskit.compiler import transpile as qiskit_transpile
+from qiskit.qasm2 import dumps as dumps_qasm2
+from qiskit.quantum_info import Operator
 from qiskit.transpiler import InstructionProperties, PassManager, Target
 from qiskit.transpiler.passes import GatesInBasis
 
@@ -307,6 +310,14 @@ def test_get_benchmark_faulty_parameters() -> None:
             1,
         )
 
+    match = "Target must be provided for 'nativegates' level."
+    with pytest.raises(ValueError, match=match):
+        get_benchmark(benchmark="ghz", level=BenchmarkLevel.NATIVEGATES, circuit_size=3, target=None, opt_level=0)
+
+    match = "Target must be provided for 'mapped' level."
+    with pytest.raises(ValueError, match=match):
+        get_benchmark(benchmark="ghz", level=BenchmarkLevel.MAPPED, circuit_size=3, target=None, opt_level=0)
+
 
 @pytest.mark.parametrize(
     "getter",
@@ -414,15 +425,44 @@ def test_create_ae_circuit_with_invalid_qubit_number() -> None:
 
 
 @pytest.mark.parametrize(
-    ("level", "target", "expected"),
+    ("level", "target", "generate_mirror_circuit", "expected"),
     [
-        (BenchmarkLevel.ALG, None, "ghz_alg_5"),
-        (BenchmarkLevel.INDEP, None, "ghz_indep_opt2_5"),
-        (BenchmarkLevel.NATIVEGATES, get_target_for_gateset("ibm_falcon", 5), "ghz_nativegates_ibm_falcon_opt2_5"),
-        (BenchmarkLevel.MAPPED, get_device("ibm_falcon_127"), "ghz_mapped_ibm_falcon_127_opt2_5"),
+        (BenchmarkLevel.ALG, None, False, "ghz_alg_5"),
+        (BenchmarkLevel.ALG, None, True, "ghz_alg_mirror_5"),
+        (BenchmarkLevel.INDEP, None, False, "ghz_indep_opt2_5"),
+        (BenchmarkLevel.INDEP, None, True, "ghz_indep_mirror_opt2_5"),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            get_target_for_gateset("ibm_falcon", 5),
+            False,
+            "ghz_nativegates_ibm_falcon_opt2_5",
+        ),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            get_target_for_gateset("ibm_falcon", 5),
+            True,
+            "ghz_nativegates_mirror_ibm_falcon_opt2_5",
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            get_device("ibm_falcon_127"),
+            False,
+            "ghz_mapped_ibm_falcon_127_opt2_5",
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            get_device("ibm_falcon_127"),
+            True,
+            "ghz_mapped_mirror_ibm_falcon_127_opt2_5",
+        ),
     ],
 )
-def test_generate_filename(level: str, target: Target, expected: str) -> None:
+def test_generate_filename(
+    level: BenchmarkLevel,
+    target: Target | None,
+    generate_mirror_circuit: bool,
+    expected: str,
+) -> None:
     """Test the generation of a filename."""
     filename = generate_filename(
         benchmark_name="ghz",
@@ -430,6 +470,7 @@ def test_generate_filename(level: str, target: Target, expected: str) -> None:
         num_qubits=5,
         target=target,
         opt_level=2,
+        generate_mirror_circuit=generate_mirror_circuit,
     )
     assert filename == expected
 
@@ -797,3 +838,109 @@ def test_assert_never_runtime() -> None:
     with pytest.raises(AssertionError):
         # get_benchmark will fall through the if-chain and hit assert_never
         get_benchmark("qft", level=bad_level, circuit_size=3)
+
+
+def test_get_benchmark_mirror_option() -> None:
+    """Test the creation of mirror benchmarks."""
+    benchmark_name = "ghz"
+    logical_circuit_size = 3
+    opt_level_0 = 0
+    opt_level_1 = 1
+
+    levels_to_test_config = [
+        (BenchmarkLevel.ALG, None, None),
+        (BenchmarkLevel.INDEP, opt_level_0, None),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            opt_level_1,
+            get_target_for_gateset("ibm_falcon", num_qubits=logical_circuit_size),
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            opt_level_1,
+            get_device("ibm_falcon_27"),
+        ),
+    ]
+
+    max_qubits_for_operator_check = 3
+
+    for level_enum, comp_opt_level, target_obj in levels_to_test_config:
+        if level_enum == BenchmarkLevel.MAPPED and target_obj and target_obj.num_qubits < logical_circuit_size:
+            print(f"Skipping MAPPED test for {target_obj.name} due to qubit count.")
+            continue
+
+        qc_base = get_benchmark(
+            benchmark=benchmark_name,
+            level=level_enum,
+            circuit_size=logical_circuit_size,
+            opt_level=comp_opt_level if comp_opt_level is not None else 2,
+            target=target_obj,
+            generate_mirror_circuit=False,
+        )
+
+        # Get the mirror circuit
+        qc_mirror = get_benchmark(
+            benchmark=benchmark_name,
+            level=level_enum,
+            circuit_size=logical_circuit_size,
+            opt_level=comp_opt_level if comp_opt_level is not None else 2,
+            target=target_obj,
+            generate_mirror_circuit=True,
+        )
+
+        assert qc_mirror is not None
+        assert isinstance(qc_mirror, QuantumCircuit)
+        assert qc_mirror.name == f"{qc_base.name}_mirror"
+        expected_q_bits = (
+            target_obj.num_qubits if level_enum == BenchmarkLevel.MAPPED and target_obj else logical_circuit_size
+        )
+        assert qc_mirror.num_qubits == expected_q_bits
+        assert qc_mirror.num_clbits == expected_q_bits
+        assert any(inst.operation.name == "measure" for inst in qc_mirror.data)
+        assert any(inst.operation.name == "barrier" for inst in qc_mirror.data), (
+            f"Mirror circuit for level '{level_enum.name}' should contain a barrier."
+        )
+
+        # Verification of U_inv correctness: U @ U_inv should be Identity
+        # For this verification, we operate on the unitary part and remove the
+        # barrier that MQT Bench adds for the user's benefit.
+
+        qc_mirror_unitary_part = qc_mirror.remove_final_measurements(inplace=False)
+
+        # Create U @ U_inv (without the barrier) for verification
+        circuit_to_verify_identity = QuantumCircuit(
+            qc_mirror_unitary_part.num_qubits, name=f"{qc_mirror_unitary_part.name}_verify_identity"
+        )
+        for instruction in qc_mirror_unitary_part.data:
+            if instruction.operation.name != "barrier":
+                circuit_to_verify_identity.append(instruction)
+
+        # Check if transpilation (level 3) reduces U @ U_inv to only identity gates
+        optimized_circuit = qiskit_transpile(
+            circuit_to_verify_identity,
+            optimization_level=3,
+            basis_gates=["u", "cx", "id"],
+        )
+
+        non_id_ops = 0
+        for instruction in optimized_circuit.data:
+            if instruction.operation.name != "id":
+                non_id_ops += 1
+
+        assert non_id_ops == 0, (
+            f"Unitary part of mirror (U@U_inv, MQT Bench barrier removed for this check) "
+            f"for level '{level_enum.name}' ({circuit_to_verify_identity.num_qubits} qubits) "
+            f"did not optimize to only identity gates. Found {non_id_ops} non-identity ops. "
+            f"Optimized QASM: {dumps_qasm2(optimized_circuit)}"
+        )
+
+        # Operator equivalence for small circuits
+        if circuit_to_verify_identity.num_qubits <= max_qubits_for_operator_check:
+            identity_matrix = Operator(QuantumCircuit(circuit_to_verify_identity.num_qubits))
+            mirror_matrix = Operator(circuit_to_verify_identity)
+            assert mirror_matrix.equiv(identity_matrix), (
+                f"Operator for U@U_inv (MQT Bench barrier removed) "
+                f"for level '{level_enum.name}' ({circuit_to_verify_identity.num_qubits} qubits) "
+                f"is not equivalent to identity. "
+                f"Circuit QASM: {dumps_qasm2(circuit_to_verify_identity)}"
+            )
