@@ -47,6 +47,7 @@ def get_supported_benchmarks() -> list[str]:
         "ghz",
         "graphstate",
         "grover",
+        "hhl",
         "qaoa",
         "qft",
         "qftentangled",

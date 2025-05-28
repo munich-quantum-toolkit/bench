@@ -54,6 +54,7 @@ from mqt.bench.benchmarks import (
     ghz,
     graphstate,
     grover,
+    hhl,
     qaoa,
     qft,
     qftentangled,
@@ -97,6 +98,7 @@ def output_path() -> str:
         (dj, 3),
         (graphstate, 3),
         (grover, 3),
+        (hhl, 3),
         (qaoa, 3),
         (qft, 3),
         (qftentangled, 3),
@@ -186,6 +188,7 @@ def test_dj_constant_oracle() -> None:
         # Algorithm-level tests
         ("dj", BenchmarkLevel.ALG, 3, None, None),
         ("wstate", BenchmarkLevel.ALG, 3, None, None),
+        ("hhl", BenchmarkLevel.ALG, 3, None, None),
         ("shor", BenchmarkLevel.ALG, 18, None, None),
         ("grover", BenchmarkLevel.ALG, 3, None, None),
         ("qwalk", BenchmarkLevel.ALG, 3, None, None),
