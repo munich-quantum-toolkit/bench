@@ -14,33 +14,33 @@ mystnb:
 # Quickstart
 
 ```{code-cell} ipython3
-from mqt.bench import CompilerSettings, QiskitSettings, get_benchmark
+from mqt.bench import BenchmarkLevel, get_benchmark
+from mqt.bench.targets import get_device, get_target_for_gateset
 ```
 
 ## Algorithmic Level
 
 ```{code-cell} ipython3
-qc_algorithmic_level = get_benchmark(benchmark_name="dj", level="alg", circuit_size=5)
+qc_algorithmic_level = get_benchmark(benchmark="dj", level=BenchmarkLevel.ALG, circuit_size=5)
 qc_algorithmic_level.draw(output="mpl")
 ```
 
 ## Target-independent Level
 
 ```{code-cell} ipython3
-qc_target_independent_level = get_benchmark(benchmark_name="dj", level="indep", circuit_size=5)
+qc_target_independent_level = get_benchmark(benchmark="dj", level=BenchmarkLevel.INDEP, circuit_size=5)
 qc_target_independent_level.draw(output="mpl")
 ```
 
 ## Target-dependent Native Gates Level
 
 ```{code-cell} ipython3
-compiler_settings = CompilerSettings(qiskit=QiskitSettings(optimization_level=2))
 qc_native_gates_level = get_benchmark(
-    benchmark_name="dj",
-    level="nativegates",
+    benchmark="dj",
+    level=BenchmarkLevel.NATIVEGATES,
     circuit_size=5,
-    compiler_settings=compiler_settings,
-    gateset="ionq",
+    target=get_target_for_gateset("ionq_forte", 5),
+    opt_level=2,
 )
 qc_native_gates_level.draw(output="mpl")
 ```
@@ -49,10 +49,10 @@ qc_native_gates_level.draw(output="mpl")
 
 ```{code-cell} ipython3
 qc_mapped_level = get_benchmark(
-    benchmark_name="dj",
-    level="mapped",
+    benchmark="dj",
+    level=BenchmarkLevel.MAPPED,
     circuit_size=5,
-    device_name="ionq_harmony",
+    target=get_device("ionq_forte_36"),
 )
 qc_mapped_level.draw(output="mpl")
 ```

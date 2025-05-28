@@ -36,9 +36,9 @@ The available parameters are described on the {doc}`parameter space description 
 For example, in order to obtain the _5_-qubit Deutsch-Josza benchmark on algorithm level, use the following:
 
 ```{code-cell} ipython3
-from mqt.bench import get_benchmark
+from mqt.bench import BenchmarkLevel, get_benchmark
 
-qc = get_benchmark("dj", "alg", 5)
+qc = get_benchmark("dj", BenchmarkLevel.ALG, 5)
 qc.draw(output="mpl")
 ```
 

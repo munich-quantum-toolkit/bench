@@ -44,15 +44,19 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import EquivalenceLibrary, Gate, Parameter
 from qiskit.circuit.library import CXGate, UGate
 
+from ._registry import register
+
 if TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterValueType
 
 
+@register("ionq_forte")
 def get_ionq_forte_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Forte gateset."""
     return ["rz", "gpi", "gpi2", "zz", "measure"]
 
 
+@register("ionq_aria")
 def get_ionq_aria_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Aria gateset."""
     return ["rz", "gpi", "gpi2", "ms", "measure"]
