@@ -131,7 +131,6 @@ def test_quantumcircuit_levels(benchmark: types.ModuleType, input_value: int) ->
     assert res_indep
     assert res_indep.num_qubits == input_value
 
-
     if benchmark != shor:
         for gateset_name in get_available_native_gatesets():
             gateset = get_target_for_gateset(gateset_name, num_qubits=qc.num_qubits)
@@ -187,7 +186,6 @@ def test_dj_constant_oracle() -> None:
     ),
     [
         # Algorithm-level tests
-
         ("dj", BenchmarkLevel.ALG, 3, None, None),
         ("wstate", BenchmarkLevel.ALG, 3, None, None),
         ("hhl", BenchmarkLevel.ALG, 3, None, None, None),
