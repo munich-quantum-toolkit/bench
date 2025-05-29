@@ -235,6 +235,7 @@ def generate_filename(
     num_qubits: int | None,
     target: Target | None = None,
     opt_level: int | None = None,
+    generate_mirror_circuit: bool = False,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
 
@@ -244,18 +245,21 @@ def generate_filename(
         num_qubits: number of qubits in the benchmark circuit
         target: target device (e.g., BenchmarkLevel.MAPPED)
         opt_level: optional optimization level (used for 'nativegates' and 'mapped')
+        generate_mirror_circuit: whether this is a mirror circuit
 
     Returns:
         A string representing a filename (excluding extension) that encodes
         all relevant metadata for reproducibility and clarity.
     """
-    base = f"{benchmark_name}_{level.name.lower()}"
+    base = f"{benchmark_name}_{level.name.lower()}{'_mirror' if generate_mirror_circuit else ''}"
+
     if level == BenchmarkLevel.INDEP:
-        assert opt_level is not None
+        assert opt_level is not None, "opt_level is required for 'indep' level filenames."
         return f"{base}_opt{opt_level}_{num_qubits}"
+
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-        assert opt_level is not None
-        assert target is not None
+        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
+        assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
         # sanitize the target.description to remove any special characters etc.
         description = target.description.strip().split(" ")[0]
         return f"{base}_{description}_opt{opt_level}_{num_qubits}"
