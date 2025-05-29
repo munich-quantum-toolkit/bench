@@ -865,7 +865,6 @@ def test_get_benchmark_mirror_option() -> None:
     max_qubits_for_operator_check = 3
 
     for level_enum, comp_opt_level, target_obj in levels_to_test_config:
-
         qc_base = get_benchmark(
             benchmark=benchmark_name,
             level=level_enum,
