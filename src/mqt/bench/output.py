@@ -251,13 +251,10 @@ def generate_filename(
         A string representing a filename (excluding extension) that encodes
         all relevant metadata for reproducibility and clarity.
     """
-    mirror_suffix = "_mirror" if generate_mirror_circuit else ""
-    level_str = level.name.lower()
-
-    base = f"{benchmark_name}_{level_str}{mirror_suffix}"  # Incorporate suffix directly
+    base = f"{benchmark_name}_{level.name.lower()}{'_mirror' if generate_mirror_circuit else ''}"
 
     if level == BenchmarkLevel.INDEP:
-        assert opt_level is not None, "opt_level is required for 'indep' level filenames."  # Keep assertion
+        assert opt_level is not None, "opt_level is required for 'indep' level filenames."
         return f"{base}_opt{opt_level}_{num_qubits}"
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert opt_level is not None, f"opt_level is required for '{level_str}' level filenames."  # Keep assertion

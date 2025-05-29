@@ -865,9 +865,6 @@ def test_get_benchmark_mirror_option() -> None:
     max_qubits_for_operator_check = 3
 
     for level_enum, comp_opt_level, target_obj in levels_to_test_config:
-        if level_enum == BenchmarkLevel.MAPPED and target_obj and target_obj.num_qubits < logical_circuit_size:
-            print(f"Skipping MAPPED test for {target_obj.name} due to qubit count.")
-            continue
 
         qc_base = get_benchmark(
             benchmark=benchmark_name,
