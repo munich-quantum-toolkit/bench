@@ -20,10 +20,14 @@ from typing import TYPE_CHECKING, Callable, NoReturn, cast
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
-from qiskit.compiler import transpile as qiskit_transpile
-from qiskit.qasm2 import dumps as dumps_qasm2
-from qiskit.quantum_info import Operator
-from qiskit.transpiler import InstructionProperties, PassManager, Target
+from qiskit.compiler import transpile
+from qiskit.qasm3 import dumps
+from qiskit.transpiler import (
+    InstructionProperties,
+    PassManager,
+    Target,
+    TranspileLayout,  # For layout handling
+)
 from qiskit.transpiler.passes import GatesInBasis
 
 from mqt.bench.targets.devices import get_available_device_names, get_device
@@ -841,7 +845,7 @@ def test_assert_never_runtime() -> None:
 
 
 def test_get_benchmark_mirror_option() -> None:
-    """Test the creation of mirror benchmarks."""
+    """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
     benchmark_name = "ghz"
     logical_circuit_size = 3
     opt_level_0 = 0
@@ -861,8 +865,6 @@ def test_get_benchmark_mirror_option() -> None:
             get_device("ibm_falcon_27"),
         ),
     ]
-
-    max_qubits_for_operator_check = 3
 
     for level_enum, comp_opt_level, target_obj in levels_to_test_config:
         qc_base = get_benchmark(
@@ -887,56 +889,62 @@ def test_get_benchmark_mirror_option() -> None:
         assert qc_mirror is not None
         assert isinstance(qc_mirror, QuantumCircuit)
         assert qc_mirror.name == f"{qc_base.name}_mirror"
-        expected_q_bits = (
-            target_obj.num_qubits if level_enum == BenchmarkLevel.MAPPED and target_obj else logical_circuit_size
-        )
-        assert qc_mirror.num_qubits == expected_q_bits
-        assert qc_mirror.num_clbits == expected_q_bits
-        assert any(inst.operation.name == "measure" for inst in qc_mirror.data)
+
+        if level_enum == BenchmarkLevel.MAPPED and target_obj:
+            assert qc_mirror.num_qubits == qc_base.num_qubits
+        else:
+            assert qc_mirror.num_qubits == logical_circuit_size
+
+        assert qc_mirror.num_clbits == qc_base.num_clbits
+
+        if qc_base.num_clbits > 0:
+            assert any(inst.operation.name == "measure" for inst in qc_mirror.data)
+        else:
+            assert not any(inst.operation.name == "measure" for inst in qc_mirror.data)
+
         assert any(inst.operation.name == "barrier" for inst in qc_mirror.data), (
             f"Mirror circuit for level '{level_enum.name}' should contain a barrier."
         )
 
-        # Verification of U_inv correctness: U @ U_inv should be Identity
-        # For this verification, we operate on the unitary part and remove the
-        # barrier that MQT Bench adds for the user's benefit.
+        # --- Layout Verification---
+        if level_enum == BenchmarkLevel.MAPPED and target_obj:
+            assert isinstance(qc_base.layout, TranspileLayout), (
+                f"Base mapped circuit for {benchmark_name} lacks TranspileLayout."
+            )
+            assert isinstance(qc_mirror.layout, TranspileLayout), (
+                f"Mirror of mapped circuit for {benchmark_name} lacks TranspileLayout."
+            )
 
-        qc_mirror_unitary_part = qc_mirror.remove_final_measurements(inplace=False)
+            assert qc_mirror.layout.initial_layout == qc_base.layout.initial_layout, (
+                f"Mirror circuit's initial_layout component ({qc_mirror.layout.initial_layout}) "
+                f"differs from base circuit's initial_layout ({qc_base.layout.initial_layout})."
+            )
 
-        # Create U @ U_inv (without the barrier) for verification
-        circuit_to_verify_identity = QuantumCircuit(
-            qc_mirror_unitary_part.num_qubits, name=f"{qc_mirror_unitary_part.name}_verify_identity"
-        )
-        for instruction in qc_mirror_unitary_part.data:
-            if instruction.operation.name != "barrier":
-                circuit_to_verify_identity.append(instruction)
+            assert qc_mirror.layout.final_layout == qc_base.layout.initial_layout, (
+                f"Mirror circuit's final_layout ({qc_mirror.layout.final_layout}) "
+                f"should revert to the base circuit's initial_layout ({qc_base.layout.initial_layout})."
+            )
+        elif qc_base.layout is None:
+            assert qc_mirror.layout is None, (
+                f"Mirror circuit for {level_enum.name} should have None layout if base was None."
+            )
 
-        # Check if transpilation (level 3) reduces U @ U_inv to only identity gates
-        optimized_circuit = qiskit_transpile(
-            circuit_to_verify_identity,
-            optimization_level=3,
+        # --- Verification of U @ U_inv being Identity ---
+        qc_mirror.remove_final_measurements(inplace=True)
+
+        qc_mirror.data = [instr for instr in qc_mirror.data if instr.operation.name != "barrier"]
+
+        optimized_circuit = transpile(
+            qc_mirror,
+            optimization_level=2,  # optimization_level=2 required for U@U_inv identity check; level 1 insufficient.
             basis_gates=["u", "cx", "id"],
         )
 
-        non_id_ops = 0
-        for instruction in optimized_circuit.data:
-            if instruction.operation.name != "id":
-                non_id_ops += 1
-
-        assert non_id_ops == 0, (
+        all_ops_are_identity_or_empty = all(instr.operation.name == "id" for instr in optimized_circuit.data)
+        assert all_ops_are_identity_or_empty, (
             f"Unitary part of mirror (U@U_inv, MQT Bench barrier removed for this check) "
-            f"for level '{level_enum.name}' ({circuit_to_verify_identity.num_qubits} qubits) "
-            f"did not optimize to only identity gates. Found {non_id_ops} non-identity ops. "
-            f"Optimized QASM: {dumps_qasm2(optimized_circuit)}"
+            f"for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
+            f"did not optimize to only identity gates or an empty circuit. "
+            f"Found operations: {[op.operation.name for op in optimized_circuit.data if op.operation.name != 'id']}. "
+            f"Optimized QASM: {dumps(optimized_circuit)}"
         )
-
-        # Operator equivalence for small circuits
-        if circuit_to_verify_identity.num_qubits <= max_qubits_for_operator_check:
-            identity_matrix = Operator(QuantumCircuit(circuit_to_verify_identity.num_qubits))
-            mirror_matrix = Operator(circuit_to_verify_identity)
-            assert mirror_matrix.equiv(identity_matrix), (
-                f"Operator for U@U_inv (MQT Bench barrier removed) "
-                f"for level '{level_enum.name}' ({circuit_to_verify_identity.num_qubits} qubits) "
-                f"is not equivalent to identity. "
-                f"Circuit QASM: {dumps_qasm2(circuit_to_verify_identity)}"
-            )

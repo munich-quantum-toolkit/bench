@@ -256,9 +256,11 @@ def generate_filename(
     if level == BenchmarkLevel.INDEP:
         assert opt_level is not None, "opt_level is required for 'indep' level filenames."
         return f"{base}_opt{opt_level}_{num_qubits}"
+
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-        assert opt_level is not None, f"opt_level is required for '{level_str}' level filenames."  # Keep assertion
-        assert target is not None, f"target is required for '{level_str}' level filenames."  # Keep assertion
+        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
+        assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
+        # sanitize the target.description to remove any special characters etc.
         description = target.description.strip().split(" ")[0]
         return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
