@@ -14,7 +14,10 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFTGate
 
+from ._registry import register
 
+
+@register("hhl")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """HHL algorithm for a fixed 2x2 Hermitian matrix A using scalable QPE precision.
 

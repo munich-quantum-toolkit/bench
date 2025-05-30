@@ -10,30 +10,37 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.resources as ir
 from functools import cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from . import _registry as gateset_registry
-from . import clifford_t, ibm, ionq, iqm, quantinuum, rigetti
+from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate
+from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from qiskit.transpiler import Target
+
+_pkg_name = __name__
+for entry in ir.files(_pkg_name).iterdir():
+    path = cast("Path", entry)
+    if path.suffix == ".py" and path.stem not in {"__init__", "_registry"}:
+        importlib.import_module(f"{_pkg_name}.{path.stem}")
 
 
 __all__ = [
-    "clifford_t",
     "gateset_registry",
     "get_available_gateset_names",
     "get_available_native_gatesets",
     "get_gateset",
     "get_target_for_gateset",
-    "ibm",
-    "iqm",
-    "quantinuum",
 ]
 
 
@@ -80,19 +87,19 @@ def get_target_for_gateset(name: str, num_qubits: int) -> Target:
         beta = Parameter("beta")
         gamma = Parameter("gamma")
         if gate == "gpi":
-            target.add_instruction(ionq.GPIGate(alpha))
+            target.add_instruction(GPIGate(alpha))
         elif gate == "gpi2":
-            target.add_instruction(ionq.GPI2Gate(alpha))
+            target.add_instruction(GPI2Gate(alpha))
         elif gate == "ms":
-            target.add_instruction(ionq.MSGate(alpha, beta, gamma))
+            target.add_instruction(MSGate(alpha, beta, gamma))
         elif gate == "zz":
-            target.add_instruction(ionq.ZZGate(alpha))
+            target.add_instruction(ZZGate(alpha))
         elif gate == "rxpi":
-            target.add_instruction(rigetti.RXPIGate())
+            target.add_instruction(RXPIGate())
         elif gate == "rxpi2":
-            target.add_instruction(rigetti.RXPI2Gate())
+            target.add_instruction(RXPI2Gate())
         elif gate == "rxpi2dg":
-            target.add_instruction(rigetti.RXPI2DgGate())
+            target.add_instruction(RXPI2DgGate())
         else:
             msg = f"Gate '{gate}' not found in available gatesets."
             raise ValueError(msg) from None

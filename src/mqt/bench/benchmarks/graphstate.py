@@ -13,12 +13,15 @@ from __future__ import annotations
 import networkx as nx
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
+from ._registry import register
+
 try:
     from qiskit.circuit.library import GraphStateGate
 except ImportError:
     from qiskit.circuit.library import GraphState as GraphStateGate
 
 
+@register("graphstate")
 def create_circuit(num_qubits: int, degree: int = 2) -> QuantumCircuit:
     """Returns a quantum circuit implementing a graph state.
 

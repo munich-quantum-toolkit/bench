@@ -18,7 +18,10 @@ except ImportError:
     from qiskit.circuit.library import RealAmplitudes as real_amplitudes  # noqa: N813
     from qiskit.circuit.library import ZZFeatureMap as z_feature_map  # noqa: N813
 
+from ._registry import register
 
+
+@register("qnn")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a ZZ FeatureMap and a RealAmplitudes ansatz.
 

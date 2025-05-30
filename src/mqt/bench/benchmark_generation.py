@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from importlib import import_module
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
@@ -21,11 +20,10 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import Target
 from typing_extensions import assert_never
 
+from .benchmarks import create_circuit, get_available_benchmark_names
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
-    from types import ModuleType
-
     from qiskit.transpiler import Target
 
 
@@ -36,39 +34,6 @@ class BenchmarkLevel(Enum):
     INDEP = auto()
     NATIVEGATES = auto()
     MAPPED = auto()
-
-
-def get_supported_benchmarks() -> list[str]:
-    """Returns a list of all supported benchmarks."""
-    return [
-        "ae",
-        "bv",
-        "dj",
-        "ghz",
-        "graphstate",
-        "grover",
-        "hhl",
-        "qaoa",
-        "qft",
-        "qftentangled",
-        "qnn",
-        "qpeexact",
-        "qpeinexact",
-        "bmw_quark_cardinality",
-        "bmw_quark_copula",
-        "qwalk",
-        "randomcircuit",
-        "shor",
-        "vqe_real_amp",
-        "vqe_su2",
-        "vqe_two_local",
-        "wstate",
-    ]
-
-
-def get_module_for_benchmark(benchmark_name: str) -> ModuleType:
-    """Returns the module for a specific benchmark."""
-    return import_module("mqt.bench.benchmarks." + benchmark_name)
 
 
 def _get_circuit(
@@ -94,17 +59,17 @@ def _get_circuit(
             msg = "`circuit_size` must be omitted or None when `benchmark` is a QuantumCircuit."
             raise ValueError(msg)
         qc = benchmark
+
     else:
         if circuit_size is None or circuit_size <= 0:
             msg = "`circuit_size` must be a positive integer when `benchmark` is a str."
             raise ValueError(msg)
 
-        if benchmark not in get_supported_benchmarks():
-            msg = f"'{benchmark}' is not a supported benchmark. Valid names: {get_supported_benchmarks()}"
+        if benchmark not in get_available_benchmark_names():
+            msg = f"'{benchmark}' is not a supported benchmark. Valid names: {get_available_benchmark_names()}"
             raise ValueError(msg)
 
-        lib = get_module_for_benchmark(benchmark)
-        qc = lib.create_circuit(circuit_size)
+        qc = create_circuit(benchmark, circuit_size)
 
     if len(qc.parameters) > 0 and random_parameters:
         rng = np.random.default_rng(10)

@@ -13,7 +13,10 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
+from ._registry import register
 
+
+@register("wstate")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the W state.
 

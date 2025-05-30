@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ._registry import register
+
 try:
     from qiskit.circuit.library.n_local.n_local import n_local
 except ImportError:
@@ -24,6 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import Gate, QuantumCircuit
 
 
+@register("vqe_two_local")
 def create_circuit(
     num_qubits: int,
     rotation_blocks: str | Gate | Iterable[str | Gate] = "ry",

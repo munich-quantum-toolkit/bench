@@ -229,9 +229,8 @@ class _DummyTarget(Target):
         super().__init__(num_qubits=1)
 
 
-def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dynamic_device_registration() -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
-    monkeypatch.setattr(device_registry, "_REGISTRY", {}, raising=False)
     get_available_device_names.cache_clear()
     get_available_devices.cache_clear()
 
@@ -249,9 +248,8 @@ def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(devs["dummy_device"], _DummyTarget)
 
 
-def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dynamic_gateset_registration() -> None:
     """A gateset registered at runtime should immediately be visible through the public helpers."""
-    monkeypatch.setattr(gateset_registry, "_REGISTRY", {}, raising=False)
     get_available_gateset_names.cache_clear()
     get_available_native_gatesets.cache_clear()
 
@@ -269,9 +267,8 @@ def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert gatesets["dummy_gateset"] == gateset
 
 
-def test_duplicate_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_duplicate_device_registration() -> None:
     """Registering the same name twice must raise ValueError."""
-    monkeypatch.setattr(device_registry, "_REGISTRY", {}, raising=False)
 
     @device_registry.register("dup_device")
     def _factory1() -> Target:
@@ -285,9 +282,8 @@ def test_duplicate_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
             return _DummyTarget()
 
 
-def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_duplicate_gateset_registration() -> None:
     """Registering the same name twice must raise ValueError."""
-    monkeypatch.setattr(gateset_registry, "_REGISTRY", {}, raising=False)
 
     @gateset_registry.register("dup_device")
     def _factory1() -> list[str]:
