@@ -18,10 +18,10 @@ We intend to provide a more comprehensive migration guide for future releases.
 
 So far, we used our own Device and Gateset classes to represent devices and native gatesets.
 In this release, we have switched to using Qiskit's `Target` class as the intermediate representation for both devices and native gatesets.
-This change allows us a more consistent and standardized way to represent quantum devices and their capabilities, modulairt.y, and extensibility.
+This change allows us a more consistent and standardized way to represent quantum devices and their capabilities, modularity, and extensibility.
 
 Most previously used devices and gatesets are still available, but they are now provided as `Target` objects.
-They can be retrieved by
+You can retrieve the available names using:
 
 ```python
 from mqt.bench.targets import get_available_gateset_names, get_available_device_names
@@ -30,7 +30,7 @@ gateset_names = get_available_gateset_names()
 device_names = get_available_device_names()
 ```
 
-Similarly, you can retrieve the `Target` objects by name:
+Similarly, you can retrieve the corresponding `Target` objects by name:
 
 ```python
 from mqt.bench.targets import get_gateset, get_device
@@ -41,13 +41,11 @@ device = get_device("ibm_falcon_27")
 
 This change allows you to use any device or gateset that is compatible with Qiskit's `Target` class, providing greater flexibility and compatibility with other Qiskit components.
 
-## `get_benchmark` function
-
-# parameter names have changed
+## Changes to the `get_benchmark` function
 
 The `get_benchmark` function has been redesigned to provide a more modular and extensible way to retrieve benchmarks.
 As a consequence, the function signature has changed.
-Please check the documentation for the new signature and usage patterns.
+Please see the API documentation for the updated function signature and the examples provided below.
 
 ```python
 from mqt.bench import get_benchmark, BenchmarkLevel
@@ -109,7 +107,7 @@ This allows us to focus on Qiskit's native compilation capabilities and simplifi
 
 ## Removed the local MQT Bench server deployment
 
-With this release, we have removed the local MQT Bench server deployment.
+The local MQT Bench server interface has been removed due to low usage and to reduce maintenance overhead.
 This feature was rarely used and added complexity to the codebase.
 
 ### General
