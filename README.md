@@ -62,10 +62,12 @@ Thank you to all the contributors who have helped make MQT Bench a reality!
 The following code gives an example on the usage:
 
 ```python3
-from mqt.bench import get_benchmark
+from mqt.bench import BenchmarkLevel, get_benchmark
 
 # get a benchmark circuit on algorithmic level representing the GHZ state with 5 qubits
-qc_algorithmic_level = get_benchmark(benchmark_name="ghz", level="alg", circuit_size=5)
+qc_algorithmic_level = get_benchmark(
+    benchmark_name="ghz", level=BenchmarkLevel.ALG, circuit_size=5
+)
 
 # draw the circuit
 print(qc_algorithmic_level.draw())

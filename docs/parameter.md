@@ -15,10 +15,15 @@ mystnb:
 
 The {func}`~mqt.bench.get_benchmark` function has the following signature:
 
-- `benchmark` (see {doc}`details <benchmark_selection>`) : `"ae"`, `"bv"`, `"dj"`, `"grover-noancilla"`, `"grover-v-chain"`, `"ghz"`, `"graphstate"`,
-  `"qaoa"`, `"qft"`, `"qftentangled"`, `"qnn"`, `"qpeexact"`, `"qpeinexact"`,
-  `"qwalk-noancilla"`, `"qwalk-v-chain"`, `"randomcircuit"`, `"vqerealamprandom"`, `"vqesu2random"`, `"vqetwolocalrandom"`,
-  `"wstate"`, `"shor"`
+- `benchmark` (see {doc}`details <benchmark_selection>`):
+
+```{code-cell} ipython3
+:tags: [hide-input]
+from mqt.bench.benchmarks import get_available_benchmark_names
+
+print(get_available_benchmark_names())
+```
+
 - `level`: BenchmarkLevel.ALG, BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED
 - `circuit_size`: for most of the cases this is equal to number of qubits
   (all scalable benchmarks except `"qwalk-v-chain"` and `"grover-v-chain"`) while for all other the qubit number is higher
@@ -47,6 +52,8 @@ print(get_available_device_names())
 (required for "mapped" level)
 
 - `opt_level`: Optimization level for `"qiskit"` (`0`-`3`)
+- `random_parameters`: Assign random parameters to the circuit's parameters if they exist.
+- `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of the benchmark.
 
 ## Native Gate-Set Support
 
