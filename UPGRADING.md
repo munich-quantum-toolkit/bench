@@ -33,9 +33,9 @@ device_names = get_available_device_names()
 Similarly, you can retrieve the corresponding `Target` objects by name:
 
 ```python
-from mqt.bench.targets import get_gateset, get_device
+from mqt.bench.targets import get_target_for_gateset, get_device
 
-gateset = get_gateset("ibm_falcon", num_qubits=5)
+gateset = get_target_for_gateset("ibm_falcon", num_qubits=5)
 device = get_device("ibm_falcon_27")
 ```
 
@@ -60,15 +60,15 @@ benchmark_independent_level = get_benchmark(
 benchmark_native_gates_level = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.NATIVEGATES,
-    target=get_target_for_gateset(name="ionq_forte", num_qubits=5),
     circuit_size=5,
+    target=get_target_for_gateset(name="ionq_forte", num_qubits=5),
     opt_level=2,
 )
 benchmark_device_level = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.MAPPED,
-    target=get_device(name="ionq_forte_36"),
     circuit_size=5,
+    target=get_device(name="ionq_forte_36"),
     opt_level=2,
 )
 ```
@@ -91,12 +91,12 @@ benchmark_alg = get_benchmark_alg(benchmark="dj", circuit_size=5)
 benchmark_independent = get_benchmark_indep(benchmark="dj", circuit_size=5)
 benchmark_native_gates = get_benchmark_native_gates(
     benchmark="dj",
-    target=get_target_for_gateset(name="ionq_forte", num_qubits=5),
     circuit_size=5,
+    target=get_target_for_gateset(name="ionq_forte", num_qubits=5),
     opt_level=2,
 )
 benchmark_device = get_benchmark_mapped(
-    benchmark="dj", target=get_device(name="ionq_forte_36"), circuit_size=5, opt_level=2
+    benchmark="dj", circuit_size=5, target=get_device(name="ionq_forte_36"), opt_level=2
 )
 ```
 
