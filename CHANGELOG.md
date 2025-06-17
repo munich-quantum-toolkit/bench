@@ -56,7 +56,7 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
 ## [1.1.9] - 2024-12-01
 
-_📚 Refer to the [GitHub Release Notes](https://github.com/munich-quantum-toolkit/bench/releases) for previous changelogs._
+_📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
@@ -107,6 +107,3 @@ _📚 Refer to the [GitHub Release Notes](https://github.com/munich-quantum-tool
 [Common Changelog]: https://common-changelog.org
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [GitHub Release Notes]: https://github.com/munich-quantum-toolkit/bench/releases
-[munich-quantum-toolkit]: https://github.com/munich-quantum-toolkit
-[PEP 639]: https://peps.python.org/pep-0639/
-[PEP 735]: https://peps.python.org/pep-0735/
