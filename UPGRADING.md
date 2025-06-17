@@ -6,7 +6,7 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [2.0.0]
 
-This major release introduces several breaking changes and a redesigned API. While the codebase remains familiar, several design decisions were made to improve modularity, extensibility, and alignment with upstream Qiskit standards.
+This major release introduces several breaking changes and a redesigned API. While the codebase remains familiar, several design decisions were made to improve modularity, extensibility, and alignment with upstream standards.
 The following sections describe the most important changes and how to adapt your code accordingly.
 We intend to provide a more comprehensive migration guide for future releases.
 
@@ -116,4 +116,5 @@ MQT Bench has moved to the [munich-quantum-toolkit](https://github.com/munich-qu
 While most links should be automatically redirected, please update any links in your code to point to the new location.
 All links in the documentation have been updated accordingly.
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
