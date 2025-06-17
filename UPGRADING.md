@@ -45,7 +45,7 @@ This change allows you to use any device or gateset that is compatible with Qisk
 
 The `get_benchmark` function has been redesigned to provide a more modular and extensible way to retrieve benchmarks.
 As a consequence, the function signature has changed.
-Please see the API documentation for the updated function signature and the examples provided below.
+Please see the [API documentation](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html) for the updated function signature and the examples provided below.
 
 ```python
 from mqt.bench import get_benchmark, BenchmarkLevel
