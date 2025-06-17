@@ -53,7 +53,6 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 - 🔥 Remove `benchviewer` and `evaluation` modules ([#504]) ([**@burgholzer**, **@nquetschlich**])
 - 🔥 Remove Generation Logic for Webpage ([#538]) ([**@nquetschlich**])
 
-
 ## [1.1.9] - 2024-12-01
 
 _📚 Refer to the [GitHub Release Notes](https://github.com/munich-quantum-toolkit/bench/releases) for previous changelogs._
