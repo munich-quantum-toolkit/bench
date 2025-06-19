@@ -19,6 +19,8 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
 ## [2.0.0] - 2025-06-20
 
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#200)._
+
 ### Added
 
 - ✨ Add support for exporting to OpenQASM 3 ([#518]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
