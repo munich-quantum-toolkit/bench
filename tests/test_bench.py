@@ -694,14 +694,21 @@ def test_custom_target() -> None:
     alpha = Parameter("alpha")
     beta = Parameter("beta")
 
-    target.add_instruction(RXGate(alpha))
-    target.add_instruction(RZGate(beta))
-
-    cx_props = {
-        (0, 1): None,
-        (1, 2): None,
+    single_qubit_props = InstructionProperties(duration=1e-3, error=1e-4)
+    properties = {
+        (0,): single_qubit_props,
+        (1,): single_qubit_props,
+        (2,): single_qubit_props,
     }
-    target.add_instruction(CXGate(), cx_props)
+    target.add_instruction(RXGate(alpha), properties=properties)
+    target.add_instruction(RZGate(beta), properties=properties)
+
+    two_qubit_props = InstructionProperties(duration=1e-2, error=1e-3)
+    cx_props = {
+        (0, 1): two_qubit_props,
+        (1, 2): two_qubit_props,
+    }
+    target.add_instruction(CXGate(), properties=cx_props)
 
     qc = QuantumCircuit(2)
     qc.h(0)
