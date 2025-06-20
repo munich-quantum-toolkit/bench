@@ -25,7 +25,7 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#200)._
 
 ### Added
 
-- ✨ Add mirror circuit option for all benchmarks ([#577]) ([**@CreativeBinBag**], [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add mirror circuit option for all benchmarks ([#577], [#603]) ([**@CreativeBinBag**], [**@burgholzer**], [**@nquetschlich**])
 - ✨ Add arithmetic benchmarks ([#586]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add registry for benchmarks, devices, and native gatesets ([#585], [#572]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add symbolic parameters for variational benchmarks ([#581]) ([**@nquetschlich**], [**@burgholzer**])
@@ -96,6 +96,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#582]: https://github.com/munich-quantum-toolkit/bench/pull/582
 [#585]: https://github.com/munich-quantum-toolkit/bench/pull/585
 [#586]: https://github.com/munich-quantum-toolkit/bench/pull/586
+[#603]: https://github.com/munich-quantum-toolkit/bench/pull/603
 
 <!-- Contributor -->
 
