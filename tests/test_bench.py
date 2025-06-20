@@ -24,8 +24,14 @@ import pytest
 from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
-from qiskit.transpiler import InstructionProperties, PassManager, Target
-from qiskit.transpiler.passes import GatesInBasis
+from qiskit.compiler import transpile
+from qiskit.transpiler import (
+    InstructionProperties,
+    Layout,
+    PassManager,
+    Target,  # For layout handling
+)
+from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
     import types
@@ -348,6 +354,14 @@ def test_get_benchmark_faulty_parameters() -> None:
             1,
         )
 
+    match = "Target must be provided for 'nativegates' level."
+    with pytest.raises(ValueError, match=match):
+        get_benchmark(benchmark="ghz", level=BenchmarkLevel.NATIVEGATES, circuit_size=3, target=None, opt_level=0)
+
+    match = "Target must be provided for 'mapped' level."
+    with pytest.raises(ValueError, match=match):
+        get_benchmark(benchmark="ghz", level=BenchmarkLevel.MAPPED, circuit_size=3, target=None, opt_level=0)
+
 
 @pytest.mark.parametrize(
     "getter",
@@ -454,15 +468,44 @@ def test_create_ae_circuit_with_invalid_qubit_number() -> None:
 
 
 @pytest.mark.parametrize(
-    ("level", "target", "expected"),
+    ("level", "target", "generate_mirror_circuit", "expected"),
     [
-        (BenchmarkLevel.ALG, None, "ghz_alg_5"),
-        (BenchmarkLevel.INDEP, None, "ghz_indep_opt2_5"),
-        (BenchmarkLevel.NATIVEGATES, get_target_for_gateset("ibm_falcon", 5), "ghz_nativegates_ibm_falcon_opt2_5"),
-        (BenchmarkLevel.MAPPED, get_device("ibm_falcon_127"), "ghz_mapped_ibm_falcon_127_opt2_5"),
+        (BenchmarkLevel.ALG, None, False, "ghz_alg_5"),
+        (BenchmarkLevel.ALG, None, True, "ghz_alg_mirror_5"),
+        (BenchmarkLevel.INDEP, None, False, "ghz_indep_opt2_5"),
+        (BenchmarkLevel.INDEP, None, True, "ghz_indep_mirror_opt2_5"),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            get_target_for_gateset("ibm_falcon", 5),
+            False,
+            "ghz_nativegates_ibm_falcon_opt2_5",
+        ),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            get_target_for_gateset("ibm_falcon", 5),
+            True,
+            "ghz_nativegates_mirror_ibm_falcon_opt2_5",
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            get_device("ibm_falcon_127"),
+            False,
+            "ghz_mapped_ibm_falcon_127_opt2_5",
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            get_device("ibm_falcon_127"),
+            True,
+            "ghz_mapped_mirror_ibm_falcon_127_opt2_5",
+        ),
     ],
 )
-def test_generate_filename(level: str, target: Target, expected: str) -> None:
+def test_generate_filename(
+    level: BenchmarkLevel,
+    target: Target | None,
+    generate_mirror_circuit: bool,
+    expected: str,
+) -> None:
     """Test the generation of a filename."""
     filename = generate_filename(
         benchmark_name="ghz",
@@ -470,6 +513,7 @@ def test_generate_filename(level: str, target: Target, expected: str) -> None:
         num_qubits=5,
         target=target,
         opt_level=2,
+        generate_mirror_circuit=generate_mirror_circuit,
     )
     assert filename == expected
 
@@ -694,14 +738,21 @@ def test_custom_target() -> None:
     alpha = Parameter("alpha")
     beta = Parameter("beta")
 
-    target.add_instruction(RXGate(alpha))
-    target.add_instruction(RZGate(beta))
-
-    cx_props = {
-        (0, 1): None,
-        (1, 2): None,
+    single_qubit_props = InstructionProperties(duration=1e-3, error=1e-4)
+    properties = {
+        (0,): single_qubit_props,
+        (1,): single_qubit_props,
+        (2,): single_qubit_props,
     }
-    target.add_instruction(CXGate(), cx_props)
+    target.add_instruction(RXGate(alpha), properties=properties)
+    target.add_instruction(RZGate(beta), properties=properties)
+
+    two_qubit_props = InstructionProperties(duration=1e-2, error=1e-3)
+    cx_props = {
+        (0, 1): two_qubit_props,
+        (1, 2): two_qubit_props,
+    }
+    target.add_instruction(CXGate(), properties=cx_props)
 
     qc = QuantumCircuit(2)
     qc.h(0)
@@ -837,6 +888,97 @@ def test_assert_never_runtime() -> None:
     with pytest.raises(AssertionError):
         # get_benchmark will fall through the if-chain and hit assert_never
         get_benchmark("qft", level=bad_level, circuit_size=3)
+
+
+def test_get_benchmark_mirror_option() -> None:
+    """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
+    benchmark_name = "ghz"
+    logical_circuit_size = 3
+
+    levels_to_test_config = [
+        (BenchmarkLevel.ALG, None, None),
+        (BenchmarkLevel.INDEP, 0, None),
+        (
+            BenchmarkLevel.NATIVEGATES,
+            1,
+            get_target_for_gateset("ibm_falcon", num_qubits=logical_circuit_size),
+        ),
+        (
+            BenchmarkLevel.MAPPED,
+            1,
+            get_device("ibm_falcon_27"),
+        ),
+    ]
+
+    for level_enum, comp_opt_level, target_obj in levels_to_test_config:
+        qc_base = get_benchmark(
+            benchmark=benchmark_name,
+            level=level_enum,
+            circuit_size=logical_circuit_size,
+            opt_level=comp_opt_level if comp_opt_level is not None else 2,
+            target=target_obj,
+            generate_mirror_circuit=False,
+        )
+
+        # Get the mirror circuit
+        qc_mirror = get_benchmark(
+            benchmark=benchmark_name,
+            level=level_enum,
+            circuit_size=logical_circuit_size,
+            opt_level=comp_opt_level if comp_opt_level is not None else 2,
+            target=target_obj,
+            generate_mirror_circuit=True,
+        )
+
+        assert qc_mirror.name == f"{qc_base.name}_mirror"
+
+        assert qc_mirror.num_qubits == qc_base.num_qubits
+
+        # at least each logical qubit should be measured
+        assert sum(inst.operation.name == "measure" for inst in qc_mirror.data) >= logical_circuit_size
+
+        # at least one barrier should be present in the middle of the circuit and one before the measurements at the end
+        assert sum(1 for inst in qc_mirror.data if inst.operation.name == "barrier") >= 2, (
+            f"Mirror circuit for level '{level_enum.name}' should contain at least 2 barriers."
+        )
+
+        # --- Layout Verification ---
+        if level_enum == BenchmarkLevel.MAPPED:
+            assert qc_base.layout is not None, f"Base mapped circuit for {benchmark_name} lacks a layout."
+            assert qc_mirror.layout is not None, f"Mirror of mapped circuit for {benchmark_name} lacks a layout."
+
+            assert qc_mirror.layout.initial_layout == qc_base.layout.initial_layout, (
+                f"Mirror circuit's initial_layout ({qc_mirror.layout.initial_layout}) "
+                f"differs from base circuit's initial_layout ({qc_base.layout.initial_layout})."
+            )
+
+            assert qc_mirror.layout.final_layout == Layout.generate_trivial_layout(*qc_mirror.qregs), (
+                f"Mirror circuit's final_layout ({qc_mirror.layout.final_layout}) "
+                f"should be a trivial layout for the mirror circuit, but it is not."
+            )
+
+            # if the circuit to be mapped has fewer qubits than the target, not every qubit should be measured
+            if qc_base.num_qubits < target_obj.num_qubits:
+                measured_qubits = {inst.qubits[0].index for inst in qc_mirror.data if inst.operation.name == "measure"}
+                assert len(measured_qubits) < target_obj.num_qubits, (
+                    f"Mirror circuit for level '{level_enum.name}' should not measure all qubits of the target "
+                    f"({target_obj.num_qubits}), but measures {len(measured_qubits)}."
+                )
+
+        # --- Verification of U @ U_inv being Identity ---
+        qc_mirror.remove_final_measurements(inplace=True)
+        qc_mirror = RemoveBarriers()(qc_mirror)
+
+        optimized_circuit = transpile(
+            qc_mirror,
+            optimization_level=2,
+            basis_gates=["u", "cx"],
+        )
+
+        assert len(optimized_circuit.data) == 0, (
+            f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
+            "did not optimize to an empty circuit. This means it might not represent the identity."
+        )
 
 
 def test_dynamic_benchmark_registration() -> None:

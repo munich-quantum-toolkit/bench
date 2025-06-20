@@ -54,6 +54,8 @@ test = [
     "pytest>=8.3.5",
     "pytest-console-scripts>=1.4.1",
     "pytest-cov>=6.1.1",
+    "pytest-sugar>=1.0.0",
+    "pytest-xdist>=3.7.0",
 ]
 docs = [
     "furo>=2024.8.6",
@@ -97,8 +99,14 @@ version-file = "src/mqt/bench/_version.py"
 
 [tool.pytest.ini_options]
 minversion = "7.2"
-testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--strict-config", "--showlocals"]
+testpaths = ["tests/"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+    "--numprocesses=auto",  # Automatically use all available CPU cores for parallel testing
+]
 log_cli_level = "INFO"
 xfail_strict = true
 filterwarnings = [
@@ -109,6 +117,9 @@ filterwarnings = [
     'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
+    # Qiskit 2.1 starts to warn about the upcoming Python 3.9 removal in Qiskit 2.3.
+    # We will drop 3.9 support around the same time, at which point this warning filter can be removed
+    'ignore:.*Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release.*:DeprecationWarning:',
 ]
 
 [tool.coverage]
@@ -118,6 +129,9 @@ report.exclude_also = [
     'if TYPE_CHECKING:',
     'raise AssertionError',
     'raise NotImplementedError',
+]
+run.disable_warnings = [
+    "no-sysmon",
 ]
 
 show_missing = true
