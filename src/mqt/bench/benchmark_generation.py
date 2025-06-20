@@ -99,7 +99,8 @@ def _create_mirror_circuit(qc_original: QuantumCircuit, inplace: bool = False) -
     target_qc.remove_final_measurements(inplace=True)
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
-    active_qubits = [qubit for qubit in target_qc.qubits if qubit not in circuit_to_dag(target_qc).idle_wires()]
+    idle_wires = circuit_to_dag(target_qc).idle_wires()
+    active_qubits = [qubit for qubit in target_qc.qubits if qubit not in idle_wires]
     target_qc.barrier(active_qubits)
 
     # Form the mirror circuit by composing the original circuit with its inverse
