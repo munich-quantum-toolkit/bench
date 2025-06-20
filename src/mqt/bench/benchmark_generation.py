@@ -124,6 +124,7 @@ def _validate_opt_level(opt_level: int) -> None:
 def get_benchmark_alg(
     benchmark: str,
     circuit_size: int,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -133,6 +134,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -141,6 +143,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit:
@@ -166,6 +169,7 @@ def get_benchmark_indep(
     benchmark: str,
     circuit_size: int,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -176,6 +180,7 @@ def get_benchmark_indep(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -185,6 +190,7 @@ def get_benchmark_indep(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit:
@@ -201,6 +207,7 @@ def get_benchmark_indep(
             Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
     """
     _validate_opt_level(opt_level)
+
     circuit = _get_circuit(benchmark, circuit_size, random_parameters)
     qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
     if generate_mirror_circuit:
@@ -214,6 +221,7 @@ def get_benchmark_native_gates(
     circuit_size: int,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -225,6 +233,7 @@ def get_benchmark_native_gates(
     circuit_size: None,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -235,6 +244,7 @@ def get_benchmark_native_gates(
     circuit_size: int | None,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit:
@@ -294,6 +304,7 @@ def get_benchmark_mapped(
     circuit_size: int,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -305,6 +316,7 @@ def get_benchmark_mapped(
     circuit_size: None,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -315,6 +327,7 @@ def get_benchmark_mapped(
     circuit_size: int | None,
     target: Target,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit:
@@ -358,6 +371,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -370,6 +384,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit: ...
@@ -381,6 +396,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
 ) -> QuantumCircuit:
