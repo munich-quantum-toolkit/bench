@@ -18,4 +18,6 @@ try:
 
     coverage.process_startup()
 except ImportError:
+    # The 'coverage' module is optional. If it is not installed, 
+    # we skip enabling multiprocess coverage collection.
     pass
