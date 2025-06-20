@@ -130,6 +130,9 @@ report.exclude_also = [
     'raise AssertionError',
     'raise NotImplementedError',
 ]
+run.disable_warnings = [
+    "no-sysmon",
+]
 
 show_missing = true
 skip_empty = true

@@ -52,6 +52,8 @@ def _run_tests(
 
     if extra_command:
         session.run(*extra_command, env=env)
+    if "--cov" in session.posargs:
+        env["COVERAGE_CORE"] = "sysmon"
     session.run(
         "uv",
         "run",
