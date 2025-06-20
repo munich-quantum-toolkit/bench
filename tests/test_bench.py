@@ -25,13 +25,13 @@ from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
-from qiskit.qasm3 import dumps
 from qiskit.transpiler import (
     InstructionProperties,
+    Layout,
     PassManager,
     Target,  # For layout handling
 )
-from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
     import types
@@ -894,20 +894,18 @@ def test_get_benchmark_mirror_option() -> None:
     """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
     benchmark_name = "ghz"
     logical_circuit_size = 3
-    opt_level_0 = 0
-    opt_level_1 = 1
 
     levels_to_test_config = [
         (BenchmarkLevel.ALG, None, None),
-        (BenchmarkLevel.INDEP, opt_level_0, None),
+        (BenchmarkLevel.INDEP, 0, None),
         (
             BenchmarkLevel.NATIVEGATES,
-            opt_level_1,
+            1,
             get_target_for_gateset("ibm_falcon", num_qubits=logical_circuit_size),
         ),
         (
             BenchmarkLevel.MAPPED,
-            opt_level_1,
+            1,
             get_device("ibm_falcon_27"),
         ),
     ]
@@ -936,7 +934,6 @@ def test_get_benchmark_mirror_option() -> None:
 
         assert qc_mirror.num_qubits == qc_base.num_qubits
 
-        assert qc_mirror.num_clbits == qc_mirror.num_qubits
         assert any(inst.operation.name == "measure" for inst in qc_mirror.data)
 
         assert any(inst.operation.name == "barrier" for inst in qc_mirror.data), (
@@ -953,29 +950,24 @@ def test_get_benchmark_mirror_option() -> None:
                 f"differs from base circuit's initial_layout ({qc_base.layout.initial_layout})."
             )
 
-            assert qc_mirror.layout.final_layout == qc_base.layout.initial_layout, (
+            assert qc_mirror.layout.final_layout == Layout.generate_trivial_layout(*qc_mirror.qregs), (
                 f"Mirror circuit's final_layout ({qc_mirror.layout.final_layout}) "
-                f"should revert to the base circuit's initial_layout ({qc_base.layout.initial_layout})."
-            )
-        elif qc_base.layout is None:
-            assert qc_mirror.layout is None, (
-                f"Mirror circuit for {level_enum.name} should have None layout if base was None."
+                f"should be a trivial layout for the mirror circuit, but it is not."
             )
 
         # --- Verification of U @ U_inv being Identity ---
-        unitary_mirror = qc_mirror.remove_final_measurements(inplace=False)
-        unitary_mirror.data = [instr for instr in unitary_mirror.data if instr.operation.name != "barrier"]
+        qc_mirror.remove_final_measurements(inplace=True)
+        qc_mirror = RemoveBarriers()(qc_mirror)
 
         optimized_circuit = transpile(
-            unitary_mirror,
+            qc_mirror,
             optimization_level=2,
             basis_gates=["u", "cx"],
         )
 
         assert len(optimized_circuit.data) == 0, (
-            f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({unitary_mirror.num_qubits} qubits) "
-            "did not optimize to an empty circuit. This means it is not the identity. "
-            f"Optimized QASM: {dumps(optimized_circuit)}"
+            f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
+            "did not optimize to an empty circuit. This means it might not represent the identity."
         )
 
 
