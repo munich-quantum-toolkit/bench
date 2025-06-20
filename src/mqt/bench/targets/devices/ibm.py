@@ -86,7 +86,9 @@ def get_ibm_falcon_27() -> Target:
         [25, 26],
         [26, 25],
     ]
-    backend = GenericBackendV2(num_qubits=27, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True)
+    backend = GenericBackendV2(
+        num_qubits=27, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True, seed=42
+    )
     target = backend.target
     target.description = "ibm_falcon_27"
     return target
@@ -387,7 +389,7 @@ def get_ibm_falcon_127() -> Target:
     """Get the target for a 127-qubit IBM Falcon architecture."""
     cmap = _get_127_qubit_cmap()
     backend = GenericBackendV2(
-        num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True
+        num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True, seed=42
     )
     target = backend.target
     target.description = "ibm_falcon_127"
@@ -398,7 +400,9 @@ def get_ibm_falcon_127() -> Target:
 def get_ibm_eagle_127() -> Target:
     """Get the target for a 127-qubit IBM Eagle architecture."""
     cmap = _get_127_qubit_cmap()
-    backend = GenericBackendV2(num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_eagle"), noise_info=True)
+    backend = GenericBackendV2(
+        num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_eagle"), noise_info=True, seed=42
+    )
     target = backend.target
     target.description = "ibm_eagle_127"
     return target
@@ -709,7 +713,9 @@ def get_ibm_heron_133() -> Target:
         [131, 122],
         [132, 126],
     ]
-    backend = GenericBackendV2(num_qubits=133, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True)
+    backend = GenericBackendV2(
+        num_qubits=133, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True, seed=42
+    )
     target = backend.target
     target.description = "ibm_heron_133"
     return target
@@ -1072,7 +1078,9 @@ def get_ibm_heron_156() -> Target:
         [155, 139],
         [155, 154],
     ]
-    backend = GenericBackendV2(num_qubits=156, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True)
+    backend = GenericBackendV2(
+        num_qubits=156, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True, seed=42
+    )
     target = backend.target
     target.description = "ibm_heron_156"
     return target
