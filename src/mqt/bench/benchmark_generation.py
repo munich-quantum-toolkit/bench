@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import generate_preset_pass_manager
 from qiskit.circuit import QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
-from qiskit.transpiler import Target, TranspileLayout
+from qiskit.transpiler import Layout, Target
 from typing_extensions import assert_never
 
 from .benchmarks import create_circuit
@@ -93,30 +93,18 @@ def _create_mirror_circuit(qc_original: QuantumCircuit, inplace: bool = False) -
         The mirrored quantum circuit.
     """
     target_qc = qc_original if inplace else qc_original.copy()
-
-    # --- Layout Handling ---
-    original_initial_virtual_layout = None
-    if target_qc.layout:
-        original_initial_virtual_layout = target_qc.layout.initial_layout
-
-    unitary_part = target_qc.remove_final_measurements(inplace=False)
-    qc_inv = unitary_part.inverse()
-
-    target_qc = unitary_part
+    target_qc.remove_final_measurements(inplace=True)
+    qc_inv = target_qc.inverse()
     target_qc.barrier()
     target_qc.compose(qc_inv, inplace=True)
     target_qc.name = f"{target_qc.name}_mirror"
 
-    # --- Ensure Final Layout of Mirror Circuit ---
-    if original_initial_virtual_layout:
-        if target_qc.layout is None:
-            target_qc.layout = TranspileLayout(
-                initial_layout=original_initial_virtual_layout, final_layout=original_initial_virtual_layout
-            )
-        else:
-            target_qc.layout.final_layout = original_initial_virtual_layout
+    # Reset the permutation caused by routing back to the identity (all SWAPs are undone by the inverse).
+    if target_qc.layout is not None:
+        target_qc.layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
 
-    target_qc.measure_all()
+    # Add measurements to all non-idle qubits in the circuit.
+    target_qc.measure_active(inplace=True)
 
     return target_qc
 
