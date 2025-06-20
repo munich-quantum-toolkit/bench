@@ -15,8 +15,9 @@ from typing import TYPE_CHECKING, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 from typing_extensions import assert_never
 
@@ -93,18 +94,30 @@ def _create_mirror_circuit(qc_original: QuantumCircuit, inplace: bool = False) -
         The mirrored quantum circuit.
     """
     target_qc = qc_original if inplace else qc_original.copy()
+
+    # Remove measurements and barriers at the end of the circuit before mirroring.
     target_qc.remove_final_measurements(inplace=True)
+
+    # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
+    active_qubits = [qubit for qubit in target_qc.qubits if qubit not in circuit_to_dag(target_qc).idle_wires()]
+    target_qc.barrier(active_qubits)
+
+    # Form the mirror circuit by composing the original circuit with its inverse
     qc_inv = target_qc.inverse()
-    target_qc.barrier()
     target_qc.compose(qc_inv, inplace=True)
+
+    # Add final measurements to all active qubits
+    target_qc.barrier(active_qubits)
+    new_creg = ClassicalRegister(len(active_qubits), "meas")
+    target_qc.add_register(new_creg)
+    target_qc.measure(active_qubits, new_creg)
+
+    # Adjust circuit name to indicate it is a mirror circuit.
     target_qc.name = f"{target_qc.name}_mirror"
 
     # Reset the permutation caused by routing back to the identity (all SWAPs are undone by the inverse).
     if target_qc.layout is not None:
         target_qc.layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
-
-    # Add measurements to all non-idle qubits in the circuit.
-    target_qc.measure_active(inplace=True)
 
     return target_qc
 
