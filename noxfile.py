@@ -53,6 +53,7 @@ def _run_tests(
     if extra_command:
         session.run(*extra_command, env=env)
     if "--cov" in session.posargs:
+        # Try to use the lighter-weight `sys.monitoring` coverage core available in Python 3.12+ to speed up coverage collection.
         env["COVERAGE_CORE"] = "sysmon"
     session.run(
         "uv",
