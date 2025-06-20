@@ -404,7 +404,7 @@ def get_benchmark(
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        level: Choice of level (BenchmarkLevel Enum)
+        level: Choice of level
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
