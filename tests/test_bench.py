@@ -934,10 +934,12 @@ def test_get_benchmark_mirror_option() -> None:
 
         assert qc_mirror.num_qubits == qc_base.num_qubits
 
-        assert any(inst.operation.name == "measure" for inst in qc_mirror.data)
+        # at least each logical qubit should be measured
+        assert sum(inst.operation.name == "measure" for inst in qc_mirror.data) >= logical_circuit_size
 
-        assert any(inst.operation.name == "barrier" for inst in qc_mirror.data), (
-            f"Mirror circuit for level '{level_enum.name}' should contain a barrier."
+        # at least one barrier should be present in the middle of the circuit and one before the measurements at the end
+        assert sum(1 for inst in qc_mirror.data if inst.operation.name == "barrier") >= 2, (
+            f"Mirror circuit for level '{level_enum.name}' should contain at least 2 barriers."
         )
 
         # --- Layout Verification ---
@@ -954,6 +956,14 @@ def test_get_benchmark_mirror_option() -> None:
                 f"Mirror circuit's final_layout ({qc_mirror.layout.final_layout}) "
                 f"should be a trivial layout for the mirror circuit, but it is not."
             )
+
+            # if the circuit to be mapped has fewer qubits than the target, not every qubit should be measured
+            if qc_base.num_qubits < target_obj.num_qubits:
+                measured_qubits = {inst.qubits[0].index for inst in qc_mirror.data if inst.operation.name == "measure"}
+                assert len(measured_qubits) < target_obj.num_qubits, (
+                    f"Mirror circuit for level '{level_enum.name}' should not measure all qubits of the target "
+                    f"({target_obj.num_qubits}), but measures {len(measured_qubits)}."
+                )
 
         # --- Verification of U @ U_inv being Identity ---
         qc_mirror.remove_final_measurements(inplace=True)
