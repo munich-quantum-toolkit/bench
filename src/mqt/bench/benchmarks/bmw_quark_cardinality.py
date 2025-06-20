@@ -24,11 +24,13 @@
 
 from __future__ import annotations
 
-import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RXXGate
 
+from ._registry import register_benchmark
 
+
+@register_benchmark("bmw_quark_cardinality")
 def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the cardinality circuit architecture from the QUARK framework.
 
@@ -36,31 +38,48 @@ def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
         num_qubits: number of qubits of the returned quantum circuit
         depth: depth of the returned quantum circuit
     """
-    rng = np.random.default_rng(10)
     qc = QuantumCircuit(num_qubits)
 
-    for k in range(num_qubits):
-        qc.rx(rng.random() * 2 * np.pi, k)
-        qc.rz(rng.random() * 2 * np.pi, k)
+    # === Precompute parameter count ===
+    num_initial = 2 * num_qubits
+    num_rxx = depth * (num_qubits - 1)
+    num_mid_layers = (depth - 2) * 2 * num_qubits if depth > 1 else 0
+    num_final_layer = 3 * num_qubits if depth >= 2 else 0
+    total_params = num_initial + num_rxx + num_mid_layers + num_final_layer
 
+    param_vector = ParameterVector("p", length=total_params)
+
+    param_index = 0
+
+    def get_param() -> Parameter:
+        nonlocal param_index
+        param = param_vector[param_index]
+        param_index += 1
+        return param
+
+    # === Initial single-qubit rotations ===
+    for q in range(num_qubits):
+        qc.rx(get_param(), q)
+        qc.rz(get_param(), q)
+
+    # === Layered structure ===
     for d in range(depth):
         qc.barrier()
-        for k in range(num_qubits - 1):
-            qc.append(RXXGate(rng.random() * 2 * np.pi), [k, k + 1])
-
+        for q in range(num_qubits - 1):
+            qc.append(RXXGate(get_param()), [q, q + 1])
         qc.barrier()
 
         if d == depth - 2:
-            for k in range(num_qubits):
-                qc.rx(rng.random() * 2 * np.pi, k)
-                qc.rz(rng.random() * 2 * np.pi, k)
-                qc.rx(rng.random() * 2 * np.pi, k)
+            for q in range(num_qubits):
+                qc.rx(get_param(), q)
+                qc.rz(get_param(), q)
+                qc.rx(get_param(), q)
         elif d < depth - 2:
-            for k in range(num_qubits):
-                qc.rx(rng.random() * 2 * np.pi, k)
-                qc.rz(rng.random() * 2 * np.pi, k)
+            for q in range(num_qubits):
+                qc.rx(get_param(), q)
+                qc.rz(get_param(), q)
 
     qc.measure_all()
-    qc.name = "quarkcardinality"
+    qc.name = "bmw_quark_cardinality"
 
     return qc

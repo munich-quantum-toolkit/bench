@@ -16,7 +16,7 @@ _GatesetFactory = Callable[[], list[str]]
 _REGISTRY: dict[str, _GatesetFactory] = {}
 
 
-def register(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetFactory]:
+def register_gateset(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetFactory]:
     """Decorator to register a gateset factory under a unique gateset_name.
 
     Arguments:
@@ -61,18 +61,3 @@ def gateset_names() -> list[str]:
         List of strings in registration order.
     """
     return list(_REGISTRY)
-
-
-def all_gatesets() -> dict[str, list[str]]:
-    """Provides a dictionary containing predefined gate sets.
-
-    This function returns a dictionary that maps the names of predefined gatesets
-    to their respective lists of gate names. Each gate set in the
-    dictionary is represented as a key, with its value being the list of gate
-    names belonging to that set.
-
-    Returns:
-        dict[str, list[str]]: A dictionary where keys are the names of
-        gate sets and values are lists of gate names.
-    """
-    return {n: f() for n, f in _REGISTRY.items()}

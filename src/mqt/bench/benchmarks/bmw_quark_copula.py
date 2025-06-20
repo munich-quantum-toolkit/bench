@@ -26,10 +26,12 @@ from __future__ import annotations
 
 from math import comb
 
-import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
+
+from ._registry import register_benchmark
 
 
+@register_benchmark("bmw_quark_copula")
 def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the copula circuit architecture from the QUARK framework.
 
@@ -37,41 +39,55 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
         num_qubits: number of qubits of the returned quantum circuit
         depth: depth of the returned quantum circuit
     """
-    rng = np.random.default_rng(10)
+    assert num_qubits % 2 == 0, "Number of qubits must be divisible by 2."
 
     n_registers = 2
     n = num_qubits // n_registers
-
     qc = QuantumCircuit(num_qubits)
 
-    for k in range(n):
-        qc.h(k)
+    # === Compute number of parameters ===
+    num_single_qubit_gates = depth * n_registers * n * 3
+    num_rxx_gates = depth * n_registers * comb(n, 2)
+    total_params = num_single_qubit_gates + num_rxx_gates
 
-    for j in range(n_registers - 1):
-        for k in range(n):
-            qc.cx(k, k + n * (j + 1))
+    param_vector = ParameterVector("p", total_params)
+
+    param_index = 0
+
+    def get_param() -> Parameter:
+        nonlocal param_index
+        value = param_vector[param_index]
+        param_index += 1
+        return value
+
+    # === Initial Hadamards on first register ===
+    for q in range(n):
+        qc.h(q)
+
+    # === CNOTs to entangle registers ===
+    for q in range(n):
+        qc.cx(q, q + n)
 
     qc.barrier()
 
-    shift = 0
+    # === Layered RZ-RX-RZ and RXX ===
     for _ in range(depth):
-        for k in range(n):
-            for j in range(n_registers):
-                qubit_index = j * n + k
-                qc.rz(rng.random() * 2 * np.pi, qubit_index)
-                qc.rx(rng.random() * 2 * np.pi, qubit_index)
-                qc.rz(rng.random() * 2 * np.pi, qubit_index)
+        # Apply RZ-RX-RZ to each qubit
+        for q in range(num_qubits):
+            qc.rz(get_param(), q)
+            qc.rx(get_param(), q)
+            qc.rz(get_param(), q)
 
-        k = 3 * n + shift
-        for i in range(n):
-            for j in range(i + 1, n):
-                for layer in range(n_registers):
-                    qc.rxx(rng.random() * 2 * np.pi, layer * n + i, layer * n + j)
+        # Intra-register RXX (full connectivity)
+        for reg in range(n_registers):
+            base = reg * n
+            for i in range(n):
+                for j in range(i + 1, n):
+                    qc.rxx(get_param(), base + i, base + j)
 
-            k += 1
-        shift += 3 * n + comb(n, 2)
+        qc.barrier()
 
     qc.measure_all()
-    qc.name = "quarkcopula"
+    qc.name = "bmw_quark_copula"
 
     return qc

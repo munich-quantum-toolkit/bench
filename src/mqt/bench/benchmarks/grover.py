@@ -12,13 +12,12 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import grover_operator
 
-try:
-    from qiskit.circuit.library.grover_operator import grover_operator
-except ImportError:
-    from qiskit.circuit.library import GroverOperator as grover_operator  # noqa: N813
+from ._registry import register_benchmark
 
 
+@register_benchmark("grover")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing Grover's algorithm.
 

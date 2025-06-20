@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
-from ._registry import register
+from ._registry import register_gateset
 
 
-@register("iqm")
+@register_gateset("iqm")
 def get_iqm_gateset() -> list[str]:
     """Returns the basis gates of the IQM gateset."""
     return ["r", "cz"]

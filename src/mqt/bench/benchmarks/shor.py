@@ -34,6 +34,8 @@ from qiskit.circuit import Instruction, ParameterVector, QuantumCircuit, Quantum
 from qiskit.circuit.library import QFTGate
 from qiskit.synthesis import synth_qft_full
 
+from ._registry import register_benchmark
+
 _SIZE_TO_PARAMS = {
     18: (15, 4),  # "small"
     42: (821, 4),  # "medium"
@@ -42,6 +44,7 @@ _SIZE_TO_PARAMS = {
 }
 
 
+@register_benchmark("shor")
 def create_circuit(circuit_size: int) -> QuantumCircuit:
     """Construct Shor's circuit based on total qubit count.
 
@@ -73,7 +76,7 @@ def create_circuit_from_num_and_coprime(num_to_be_factorized: int, a: int = 2) -
     """
     qc = Shor().construct_circuit(num_to_be_factorized, a)
     qc.measure_all()
-    qc.name = "shor_" + str(num_to_be_factorized) + "_" + str(a)
+    qc.name = "shor"
 
     return qc
 

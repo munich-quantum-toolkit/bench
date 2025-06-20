@@ -338,3 +338,30 @@ If you don't want to use {code}`nox`, you can also build the documentation direc
 
 The docs can then be found in the {code}`docs/_build` directory.
 :::
+
+### Naming Conventions for Benchmarks, Gatesets, and Devices
+
+To ensure the automatic discovery/registration logic finds your contribution, follow these rules whenever you add **benchmarks**, **gatesets**, or **devices**.
+
+| Artifact      | File location                 | File name & module     | Registration decorator                              | Naming pattern                                                                                                                                                                                  |
+| ------------- | ----------------------------- | ---------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Benchmark** | `mqt/bench/benchmarks/`       | `my_benchmark.py`      | `@register_benchmark("my_benchmark")`               | **File name ≡ registered name**. Only lower-case letters, digits, and underscores.                                                                                                              |
+| **Gateset**   | `mqt/bench/targets/gatesets/` | `ibm.py`, `ionq.py`, … | `@register_gateset("ibm_falcon")` (inside `ibm.py`) | `<vendor>_<family>`. Everything **before** the first `_` is the module name. Special cases: `clifford+t`, `clifford+t+rotations` → module `clifford_t` (handled via `_SPECIAL_NAME_TO_MODULE`). |
+| **Device**    | `mqt/bench/targets/devices/`  | `ibm.py`, `ionq.py`, … | `@register_device("ibm_falcon_27")`                 | Same rule as gatesets: module is the part before the first underscore.                                                                                                                          |
+
+#### Guidelines & Gotchas
+
+1. **Register the correct factory**
+
+   - Benchmarks → `create_circuit(circuit_size: int, …) -> QuantumCircuit`
+   - Gatesets → `get_<vendor>_<family>_gateset() -> list[str]`
+   - Devices → `get_<vendor>_<family>() -> Target`
+
+2. **One module = one vendor/family**
+   Keep all variants sharing the same prefix in a single file, e.g. _ibm.py_ registers `ibm_falcon_27`, `ibm_falcon_65`, and `ibm_eagle_127`.
+
+3. **Use Python-identifier-friendly names**
+   Dashes (`-`) break `import` semantics—use underscores (`_`) instead.
+
+4. **Special names**
+   If you need an unusual name for a gateset (e.g. containing `+`), map it in `_SPECIAL_NAME_TO_MODULE` inside `mqt/bench/targets/gatesets/__init__.py`.

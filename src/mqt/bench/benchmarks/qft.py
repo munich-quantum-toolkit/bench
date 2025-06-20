@@ -13,7 +13,10 @@ from __future__ import annotations
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFTGate
 
+from ._registry import register_benchmark
 
+
+@register_benchmark("qft")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm.
 

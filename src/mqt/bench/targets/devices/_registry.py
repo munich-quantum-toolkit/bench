@@ -18,7 +18,7 @@ _DeviceFactory = Callable[[], Target]
 _REGISTRY: dict[str, _DeviceFactory] = {}
 
 
-def register(device_name: str) -> Callable[[_DeviceFactory], _DeviceFactory]:
+def register_device(device_name: str) -> Callable[[_DeviceFactory], _DeviceFactory]:
     """Decorator to register a device factory under a unique device_name.
 
     Arguments:
@@ -57,23 +57,5 @@ def get_device_by_name(device_name: str) -> Target:
 
 
 def device_names() -> list[str]:
-    """Return all registered device names.
-
-    Returns:
-        List of strings in registration order.
-    """
+    """Return all registered device names."""
     return list(_REGISTRY)
-
-
-def all_devices() -> dict[str, Target]:
-    """Provides a dictionary containing predefined devices.
-
-    This function returns a dictionary that maps the names of predefined devices
-    to their respective Targets. Each device in the
-    dictionary is represented as a key, with its value being the instantiated Target.
-
-    Returns:
-        dict[str, Target]: A dictionary where keys are the names of
-        devices and values are instantiated Targets.
-    """
-    return {n: f() for n, f in _REGISTRY.items()}

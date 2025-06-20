@@ -16,10 +16,10 @@ from qiskit.transpiler import InstructionProperties, Target
 
 from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate
 
-from ._registry import register
+from ._registry import register_device
 
 
-@register("rigetti_ankaa_84")
+@register_device("rigetti_ankaa_84")
 def get_rigetti_ankaa_84() -> Target:
     """Get the target device for Rigetti Ankaa 3."""
     num_qubits = 84

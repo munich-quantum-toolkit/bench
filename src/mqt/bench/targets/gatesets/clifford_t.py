@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
-from ._registry import register
+from ._registry import register_gateset
 
 
-@register("clifford+t")
+@register_gateset("clifford+t")
 def get_clifford_t_gateset() -> list[str]:
     """Returns the native gateset for Clifford+T."""
     return [
@@ -38,7 +38,7 @@ def get_clifford_t_gateset() -> list[str]:
     ]
 
 
-@register("clifford+t+rotations")
+@register_gateset("clifford+t+rotations")
 def get_clifford_t_rotations_gateset() -> list[str]:
     """Returns the native gateset for the Clifford+T plus rotation gates."""
     return [

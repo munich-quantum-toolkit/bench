@@ -15,10 +15,10 @@ from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
 from ..gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate
-from ._registry import register
+from ._registry import register_device
 
 
-@register("ionq_aria_25")
+@register_device("ionq_aria_25")
 def get_ionq_aria_25() -> Target:
     """Get the target device for IonQ Aria 1."""
     num_qubits = 25
@@ -35,7 +35,7 @@ def get_ionq_aria_25() -> Target:
     )
 
 
-@register("ionq_forte_36")
+@register_device("ionq_forte_36")
 def get_ionq_forte_36() -> Target:
     """Get the target device for IonQ Forte 1."""
     num_qubits = 36

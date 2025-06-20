@@ -11,30 +11,29 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ParameterVector, QuantumCircuit
+
+from ._registry import register_benchmark
 
 
-def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 42) -> QuantumCircuit:
+@register_benchmark("qaoa")
+def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> QuantumCircuit:
     """Constructs a quantum circuit implementing QAOA for a Max-Cut example with random parameters.
 
     Arguments:
         num_qubits: Number of qubits in the circuit (equal to the number of graph nodes).
         repetitions: Number of QAOA layers (repetitions of the ansatz).
-        seed: Random seed for reproducibility.
+        seed: Seed for reproducibility.
 
     Returns:
         QuantumCircuit: Quantum circuit implementing QAOA.
     """
-    # Set the random number generator
     rng = np.random.default_rng(seed)
-
-    # Example adjacency matrix for Max-Cut (toy problem)
     adjacency_matrix = rng.integers(0, 2, size=(num_qubits, num_qubits))
     adjacency_matrix = np.triu(adjacency_matrix, 1)  # Upper triangular part for undirected graph
 
-    # Random initialization of parameters
-    gamma_values = rng.uniform(0, np.pi, repetitions)
-    beta_values = rng.uniform(0, np.pi, repetitions)
+    gamma_values = ParameterVector("g", repetitions)
+    beta_values = ParameterVector("b", repetitions)
 
     # Initialize QAOA circuit
     qc = QuantumCircuit(num_qubits)

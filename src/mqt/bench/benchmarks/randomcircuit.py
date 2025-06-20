@@ -14,10 +14,13 @@ from typing import TYPE_CHECKING
 
 from qiskit.circuit.random import random_circuit
 
+from ._registry import register_benchmark
+
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
+@register_benchmark("randomcircuit")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a random quantum circuit twice as deep as wide. The random gate span over four qubits maximum.
 

@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit
 
+from ._registry import register_benchmark
 
+
+@register_benchmark("bv")
 def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | None = None) -> QuantumCircuit:
     """Create a quantum circuit for the Bernstein-Vazirani algorithm.
 

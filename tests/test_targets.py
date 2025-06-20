@@ -17,12 +17,18 @@ from typing import TYPE_CHECKING
 import pytest
 from qiskit.transpiler import Target
 
-from mqt.bench.targets.devices import device_registry, get_available_device_names, get_available_devices, get_device
+from mqt.bench.targets.devices import (
+    _module_from_device_name,  # noqa: PLC2701
+    get_available_device_names,
+    get_device,
+    register_device,
+)
 from mqt.bench.targets.gatesets import (
-    gateset_registry,
+    _module_from_gateset_name,  # noqa: PLC2701
     get_available_gateset_names,
-    get_available_native_gatesets,
     get_gateset,
+    get_target_for_gateset,
+    register_gateset,
 )
 
 if TYPE_CHECKING:
@@ -215,8 +221,9 @@ def test_device_spec(spec: DeviceSpec) -> None:
 def test_get_unknown_device() -> None:
     """Requesting an unavailable device must raise *ValueError*."""
     unknown_name = "unknown_device"
-    available = get_available_device_names()
-    pattern = rf"Unknown device '{unknown_name}'. Available devices: {re.escape(str(available))}"
+    pattern = re.escape(
+        f"'{unknown_name}' is not a supported device. Known modules: ['ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
+    )
 
     with pytest.raises(ValueError, match=pattern):
         get_device(unknown_name)
@@ -229,13 +236,10 @@ class _DummyTarget(Target):
         super().__init__(num_qubits=1)
 
 
-def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dynamic_device_registration() -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
-    monkeypatch.setattr(device_registry, "_REGISTRY", {}, raising=False)
-    get_available_device_names.cache_clear()
-    get_available_devices.cache_clear()
 
-    @device_registry.register("dummy_device")
+    @register_device("dummy_device")
     def _dummy_factory() -> Target:
         return _DummyTarget()
 
@@ -245,17 +249,11 @@ def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     dev = get_device("dummy_device")
     assert isinstance(dev, _DummyTarget)
 
-    devs = get_available_devices()
-    assert isinstance(devs["dummy_device"], _DummyTarget)
 
-
-def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dynamic_gateset_registration() -> None:
     """A gateset registered at runtime should immediately be visible through the public helpers."""
-    monkeypatch.setattr(gateset_registry, "_REGISTRY", {}, raising=False)
-    get_available_gateset_names.cache_clear()
-    get_available_native_gatesets.cache_clear()
 
-    @gateset_registry.register("dummy_gateset")
+    @register_gateset("dummy_gateset")
     def _dummy_factory() -> list[str]:
         return ["dummy_gate"]
 
@@ -265,37 +263,88 @@ def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     gateset = get_gateset("dummy_gateset")
     assert gateset == ["dummy_gate"]
 
-    gatesets = get_available_native_gatesets()
-    assert gatesets["dummy_gateset"] == gateset
+    with pytest.raises(ValueError, match=re.escape("Gate 'dummy_gate' not found in available custom gates.")):
+        get_target_for_gateset("dummy_gateset", 2)
 
 
-def test_duplicate_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_duplicate_device_registration() -> None:
     """Registering the same name twice must raise ValueError."""
-    monkeypatch.setattr(device_registry, "_REGISTRY", {}, raising=False)
 
-    @device_registry.register("dup_device")
+    @register_device("dup_device")
     def _factory1() -> Target:
         return _DummyTarget()
 
     # second registration with same name should fail
     with pytest.raises(ValueError, match="already registered"):
 
-        @device_registry.register("dup_device")
+        @register_device("dup_device")
         def _factory2() -> Target:
             return _DummyTarget()
 
 
-def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_duplicate_gateset_registration() -> None:
     """Registering the same name twice must raise ValueError."""
-    monkeypatch.setattr(gateset_registry, "_REGISTRY", {}, raising=False)
 
-    @gateset_registry.register("dup_device")
+    @register_gateset("dup_device")
     def _factory1() -> list[str]:
         return ["dummy_gate"]
 
     # second registration with same name should fail
     with pytest.raises(ValueError, match="already registered"):
 
-        @gateset_registry.register("dup_device")
+        @register_gateset("dup_device")
         def _factory2() -> list[str]:
             return ["dummy_gate"]
+
+
+def test_get_device_immutability() -> None:
+    """Changes to a device retrieved by get_device should not affect the device in the registry. Same for device names."""
+    device = get_device("ionq_aria_25")
+    device.description = "dummy_description"
+    assert device.description == "dummy_description"
+
+    device2 = get_device("ionq_aria_25")
+    assert device2.description == "ionq_aria_25"
+
+    device_names = get_available_device_names()
+    device_names.append("dummy_devicename")
+
+    device_names2 = get_available_device_names()
+    assert "dummy_devicename" not in device_names2
+
+
+def test_get_gateset_immutability() -> None:
+    """Changes to a gateset retrieved by get_gateset should not affect the gateset in the registry. Sames for gateset names."""
+    gateset = get_gateset("ibm_falcon")
+    gateset.append("dummy_gate")
+    assert "dummy_gate" in gateset
+
+    gateset2 = get_gateset("ibm_falcon")
+    assert "dummy_gate" not in gateset2
+
+    gateset_names = get_available_gateset_names()
+    assert "dummy_gatesetname" not in gateset_names
+    gateset_names.append("dummy_gatesetname")
+
+    gateset_names2 = get_available_gateset_names()
+    assert "dummy_gatesetname" not in gateset_names2
+
+
+@pytest.mark.parametrize(
+    ("gateset_name", "module_name"),
+    [
+        ("rigetti", "rigetti"),
+        ("ionq_aria", "ionq"),
+        ("clifford+t", "clifford_t"),
+        ("clifford+t+rotations", "clifford_t"),
+    ],
+)
+def test_module_from_gateset_name(gateset_name: str, module_name: str) -> None:
+    """Test module name extraction from gateset name."""
+    assert _module_from_gateset_name(gateset_name) == module_name
+
+
+@pytest.mark.parametrize(("device_name", "module_name"), [("rigetti_ankaa_84", "rigetti"), ("ionq_aria_25", "ionq")])
+def test_module_from_device_name(device_name: str, module_name: str) -> None:
+    """Test module name extraction from device name."""
+    assert _module_from_device_name(device_name) == module_name

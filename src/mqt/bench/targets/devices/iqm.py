@@ -14,10 +14,10 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import CZGate, Measure, RGate
 from qiskit.transpiler import InstructionProperties, Target
 
-from ._registry import register
+from ._registry import register_device
 
 
-@register("iqm_crystal_5")
+@register_device("iqm_crystal_5")
 def get_iqm_crystal_5() -> Target:
     """Get the target for a 5-qubit IQM Crystal architecture."""
     return _build_iqm_target(
@@ -33,7 +33,7 @@ def get_iqm_crystal_5() -> Target:
     )
 
 
-@register("iqm_crystal_20")
+@register_device("iqm_crystal_20")
 def get_iqm_crystal_20() -> Target:
     """Get the target for a 20-qubit IQM Crystal architecture."""
     return _build_iqm_target(
@@ -80,7 +80,7 @@ def get_iqm_crystal_20() -> Target:
     )
 
 
-@register("iqm_crystal_54")
+@register_device("iqm_crystal_54")
 def get_iqm_crystal_54() -> Target:
     """Get the target for a 54-qubit IQM Crystal architecture."""
     return _build_iqm_target(
