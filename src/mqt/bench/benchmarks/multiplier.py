@@ -16,7 +16,7 @@ from qiskit.circuit.library import MultiplierGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("multiplier")
+@register_benchmark("multiplier", description="Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a multiplier circuit.
 

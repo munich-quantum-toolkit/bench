@@ -16,7 +16,7 @@ from qiskit.circuit.library import QFTGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("qftentangled")
+@register_benchmark("qftentangled", description="QFT with GHZ state input")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm using entangled qubits.
 

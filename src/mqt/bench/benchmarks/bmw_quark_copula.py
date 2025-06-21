@@ -31,7 +31,7 @@ from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from ._registry import register_benchmark
 
 
-@register_benchmark("bmw_quark_copula")
+@register_benchmark("bmw_quark_copula", description="Copula Circuit (QUARK)")
 def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the copula circuit architecture from the QUARK framework.
 

@@ -30,7 +30,7 @@ from qiskit.synthesis import adder_ripple_c04
 from ._registry import register_benchmark
 
 
-@register_benchmark("hrs_cumulative_multiplier")
+@register_benchmark("hrs_cumulative_multiplier", description="Häner-Roetteler-Svore (HRS) Cumulative Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a hrs cumulative multiplier circuit.
 

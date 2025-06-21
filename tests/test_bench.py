@@ -47,6 +47,8 @@ from mqt.bench.benchmark_generation import (
 from mqt.bench.benchmarks import (
     create_circuit,
     get_available_benchmark_names,
+    get_benchmark_catalog,
+    get_benchmark_description,
     register_benchmark,
     shor,
 )
@@ -984,12 +986,14 @@ def test_get_benchmark_mirror_option() -> None:
 def test_dynamic_benchmark_registration() -> None:
     """A benchmark registered at runtime should immediately be visible through the public helpers."""
 
-    @register_benchmark("dummy_benchmark")
+    @register_benchmark("dummy_benchmark", description="Dummy benchmark")
     def _dummy_factory(num_qubits: int) -> QuantumCircuit:
         return QuantumCircuit(num_qubits, name="dummy_benchmark")
 
     names = get_available_benchmark_names()
     assert "dummy_benchmark" in names
+    assert get_benchmark_catalog()["dummy_benchmark"] == "Dummy benchmark"
+    assert get_benchmark_description("dummy_benchmark") == "Dummy benchmark"
 
     benchmark = create_circuit("dummy_benchmark", 3)
     assert benchmark.name == "dummy_benchmark"
@@ -1021,6 +1025,20 @@ def test_duplicate_benchmark_registration() -> None:
         @register_benchmark("dup_benchmark")
         def _dummy_factory2(num_qubits: int) -> QuantumCircuit:
             return QuantumCircuit(num_qubits, name=_dummy_factory2.__benchmark_name__)
+
+
+def test_catalogue_and_names_match() -> None:
+    """Every entry returned by benchmark_catalogue must appear in benchmark_names and vice-versa."""
+    names = set(get_available_benchmark_names())
+    cat = get_benchmark_catalog()
+
+    assert set(cat) == names, "Name → description mapping is out of sync with benchmark_names()"
+
+    # all descriptions are strings (may be empty)
+    assert all(isinstance(desc, str) for desc in cat.values())
+
+    for name in names:
+        assert get_benchmark_description(name) == cat[name]
 
 
 @pytest.mark.parametrize(

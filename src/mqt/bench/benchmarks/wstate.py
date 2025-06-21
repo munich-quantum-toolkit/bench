@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("wstate")
+@register_benchmark("wstate", description="W-State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the W state.
 

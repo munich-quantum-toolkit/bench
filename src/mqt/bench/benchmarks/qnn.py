@@ -16,7 +16,7 @@ from qiskit.circuit.library import real_amplitudes, z_feature_map
 from ._registry import register_benchmark
 
 
-@register_benchmark("qnn")
+@register_benchmark("qnn", description="Quantum Neural Network (QNN)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a ZZ FeatureMap and a RealAmplitudes ansatz.
 

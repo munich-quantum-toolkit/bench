@@ -31,7 +31,7 @@ from qiskit.synthesis import synth_qft_full
 from ._registry import register_benchmark
 
 
-@register_benchmark("draper_qft_adder")
+@register_benchmark("draper_qft_adder", description="Draper QFT Adder")
 def create_circuit(num_qubits: int, kind: str = "fixed") -> QuantumCircuit:
     """Create a draper QFT adder circuit.
 

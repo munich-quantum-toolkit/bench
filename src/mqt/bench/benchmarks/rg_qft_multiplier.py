@@ -31,7 +31,7 @@ from qiskit.synthesis import synth_qft_full
 from ._registry import register_benchmark
 
 
-@register_benchmark("rg_qft_multiplier")
+@register_benchmark("rg_qft_multiplier", description="Ruiz-Garcia (RG) QFT Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a rg qft multiplier circuit.
 

@@ -17,7 +17,7 @@ from qiskit.circuit.library import QFTGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("hhl")
+@register_benchmark("hhl", description="Harrow-Hassidim-Lloyd Algorithm (HHL)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """HHL algorithm for a fixed 2x2 Hermitian matrix A using scalable QPE precision.
 

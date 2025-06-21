@@ -44,7 +44,7 @@ _SIZE_TO_PARAMS = {
 }
 
 
-@register_benchmark("shor")
+@register_benchmark("shor", description="Shor's Algorithm")
 def create_circuit(circuit_size: int) -> QuantumCircuit:
     """Construct Shor's circuit based on total qubit count.
 

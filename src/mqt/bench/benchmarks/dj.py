@@ -71,7 +71,7 @@ def dj_algorithm(oracle: QuantumCircuit, n: int) -> QuantumCircuit:
     return dj_circuit
 
 
-@register_benchmark("dj")
+@register_benchmark("dj", description="Deutsch-Jozsa")
 def create_circuit(num_qubits: int, balanced: bool = True) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Deutsch-Josza algorithm.
 

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
-@register_benchmark("cdkm_ripple_carry_adder")
+@register_benchmark("cdkm_ripple_carry_adder", description="Cuccaro-Draper-Kutin-Moulton (CDKM) Ripple-Carry Adder")
 def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
     """Create a CDKM ripple-carry adder circuit.
 

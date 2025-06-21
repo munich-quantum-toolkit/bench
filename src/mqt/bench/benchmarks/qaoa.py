@@ -16,7 +16,7 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from ._registry import register_benchmark
 
 
-@register_benchmark("qaoa")
+@register_benchmark("qaoa", description="Quantum Approximation Optimization Algorithm (QAOA)")
 def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> QuantumCircuit:
     """Constructs a quantum circuit implementing QAOA for a Max-Cut example with random parameters.
 

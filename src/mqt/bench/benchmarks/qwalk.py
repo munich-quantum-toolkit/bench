@@ -15,7 +15,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("qwalk")
+@register_benchmark("qwalk", description="Quantum Walk")
 def create_circuit(
     num_qubits: int,
     depth: int = 3,

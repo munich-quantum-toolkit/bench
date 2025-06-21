@@ -22,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import Gate, QuantumCircuit
 
 
-@register_benchmark("vqe_two_local")
+@register_benchmark("vqe_two_local", description="Two-local ansatz")
 def create_circuit(
     num_qubits: int,
     rotation_blocks: str | Gate | Iterable[str | Gate] = "ry",

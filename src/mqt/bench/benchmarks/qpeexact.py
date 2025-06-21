@@ -20,7 +20,7 @@ from qiskit.synthesis import synth_qft_full
 from ._registry import register_benchmark
 
 
-@register_benchmark("qpeexact")
+@register_benchmark("qpeexact", description="Quantum Phase Estimation (QPE) exactly representable phase")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.
 

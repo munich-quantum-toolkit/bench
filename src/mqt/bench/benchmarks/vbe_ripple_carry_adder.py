@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
-@register_benchmark("vbe_ripple_carry_adder")
+@register_benchmark("vbe_ripple_carry_adder", description="Vedral-Barenco-Eker (VBE) Ripple-Carry Adder")
 def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
     """Create a vbe ripple-carry adder circuit.
 

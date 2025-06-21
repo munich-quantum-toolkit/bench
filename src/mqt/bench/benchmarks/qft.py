@@ -16,7 +16,7 @@ from qiskit.circuit.library import QFTGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("qft")
+@register_benchmark("qft", description="Quantum Fourier Transformation (QFT)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm.
 

@@ -16,7 +16,7 @@ from qiskit.circuit.library import HalfAdderGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("half_adder")
+@register_benchmark("half_adder", description="Half Adder")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a half adder circuit.
 

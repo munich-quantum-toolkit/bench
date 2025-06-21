@@ -16,7 +16,7 @@ from qiskit.circuit.library import FullAdderGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("full_adder")
+@register_benchmark("full_adder", description="Full Adder")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a full adder circuit.
 

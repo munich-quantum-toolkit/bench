@@ -30,7 +30,7 @@ from qiskit.circuit.library import RXXGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("bmw_quark_cardinality")
+@register_benchmark("bmw_quark_cardinality", description="Cardinality Circuit (QUARK)")
 def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the cardinality circuit architecture from the QUARK framework.
 

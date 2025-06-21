@@ -20,7 +20,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import QuantumCircuit
 
 
-@register_benchmark("vqe_su2")
+@register_benchmark("vqe_su2", description="Efficient SU2 ansatz")
 def create_circuit(
     num_qubits: int,
     entanglement: str = "reverse_linear",

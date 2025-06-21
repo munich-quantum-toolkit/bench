@@ -15,9 +15,16 @@ import importlib.resources as ir
 from functools import cache
 from typing import TYPE_CHECKING, Any, Callable, cast
 
-from ._registry import benchmark_names, get_benchmark_by_name, register_benchmark
+from ._registry import (
+    benchmark_catalog,
+    benchmark_description,
+    benchmark_names,
+    get_benchmark_by_name,
+    register_benchmark,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
     from qiskit.circuit import QuantumCircuit
@@ -34,6 +41,8 @@ _IMPORTED_BENCHMARKS: set[str] = set()
 __all__ = [
     "create_circuit",
     "get_available_benchmark_names",
+    "get_benchmark_catalog",
+    "get_benchmark_description",
     "register_benchmark",
 ]
 
@@ -68,6 +77,20 @@ def _ensure_loaded(benchmark_name: str) -> None:
 def get_available_benchmark_names() -> list[str]:
     """Return a list of available benchmark names."""
     return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names())).copy()
+
+
+@cache
+def get_benchmark_description(benchmark_name: str) -> str:
+    """Return the benchmark description given a benchmark name."""
+    _ensure_loaded(benchmark_name)
+    return benchmark_description(benchmark_name)
+
+
+def get_benchmark_catalog() -> Mapping[str, str]:
+    """Return the benchmark catalog given a benchmark name."""
+    for benchmark_name in get_available_benchmark_names():
+        _ensure_loaded(benchmark_name)
+    return benchmark_catalog()
 
 
 @cache

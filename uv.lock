@@ -1519,6 +1519,7 @@ dependencies = [
 dev = [
     { name = "furo" },
     { name = "myst-nb" },
+    { name = "openqasm-pygments" },
     { name = "pytest" },
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
@@ -1539,6 +1540,7 @@ dev = [
 docs = [
     { name = "furo" },
     { name = "myst-nb" },
+    { name = "openqasm-pygments" },
     { name = "qiskit", extra = ["visualization"] },
     { name = "setuptools-scm" },
     { name = "sphinx", version = "7.4.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -1574,6 +1576,7 @@ requires-dist = [
 dev = [
     { name = "furo", specifier = ">=2024.8.6" },
     { name = "myst-nb", specifier = ">=1.2.0" },
+    { name = "openqasm-pygments", specifier = ">=0.1.2" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
@@ -1594,6 +1597,7 @@ dev = [
 docs = [
     { name = "furo", specifier = ">=2024.8.6" },
     { name = "myst-nb", specifier = ">=1.2.0" },
+    { name = "openqasm-pygments", specifier = ">=0.1.2" },
     { name = "qiskit", extras = ["visualization"], specifier = ">=1.2.1" },
     { name = "setuptools-scm", specifier = ">=8.2" },
     { name = "sphinx", specifier = ">=7.4.7" },
@@ -1942,6 +1946,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/a3/1e536797fd10eb3c5dbd2e376671667c9af19e241843548575267242ea02/numpy-2.3.0-pp311-pypy311_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:33a5a12a45bb82d9997e2c0b12adae97507ad7c347546190a18ff14c28bbca12", size = 14398078, upload-time = "2025-06-07T14:52:00.122Z" },
     { url = "https://files.pythonhosted.org/packages/7c/61/9d574b10d9368ecb1a0c923952aa593510a20df4940aa615b3a71337c8db/numpy-2.3.0-pp311-pypy311_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:54dfc8681c1906d239e95ab1508d0a533c4a9505e52ee2d71a5472b04437ef97", size = 16751324, upload-time = "2025-06-07T14:52:25.077Z" },
     { url = "https://files.pythonhosted.org/packages/39/de/bcad52ce972dc26232629ca3a99721fd4b22c1d2bda84d5db6541913ef9c/numpy-2.3.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:e017a8a251ff4d18d71f139e28bdc7c31edba7a507f72b1414ed902cbe48c74d", size = 12924237, upload-time = "2025-06-07T14:52:44.713Z" },
+]
+
+[[package]]
+name = "openqasm-pygments"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/84/4c3fa01bd772b0b9250d3b4628bd3555487e866a82ce02f210abf98f578c/openqasm_pygments-0.2.0.tar.gz", hash = "sha256:e9cb60f1f1cb665ceda90f0132316a5c552b92bbdca1c30d8a639a4c0464b5ac", size = 56605, upload-time = "2025-06-06T12:55:07.215Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/92/350f5535c67426b54edc20b62c94ba4fa57ea67e4828bb6df39d98c4f172/openqasm_pygments-0.2.0-py3-none-any.whl", hash = "sha256:6508502d62b0b6157732ebd92d26d8cd1fe091d177213609f5d22e0fbfa3f6f3", size = 18699, upload-time = "2025-06-06T12:55:05.749Z" },
 ]
 
 [[package]]

@@ -15,7 +15,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("ghz")
+@register_benchmark("ghz", description="GHZ State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the GHZ state.
 

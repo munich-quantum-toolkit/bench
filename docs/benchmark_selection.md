@@ -1,51 +1,34 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+mystnb:
+  number_source_lines: true
+---
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+%config InlineBackend.figure_formats = ['svg']
+```
+
 # Supported Benchmark Algorithms
 
 The current release includes the following benchmark algorithms, with each abbreviated `benchmark_name` mapped to its full description in the table below:
 
-```{eval-rst}
-.. list-table::
-   :header-rows: 1
+```{code-cell} ipython3
+:tags: [hide-input]
+from mqt.bench.benchmarks import get_benchmark_catalog
+import pandas as pd
+from IPython.display import HTML
 
-   * - Actual Benchmark
-     - ``benchmark_name``
-   * - Amplitude Estimation (AE)
-     - ``"ae"``
-   * - Bernstein‑Vazirani
-     - ``"bv"``
-   * - Deutsch‑Jozsa
-     - ``"dj"``
-   * - Grover's
-     - ``"grover"``
-   * - GHZ State
-     - ``"ghz"``
-   * - Graph State
-     - ``"graphstate"``
-   * - Quantum Approximation Optimization Algorithm (QAOA)
-     - ``"qaoa"``
-   * - Quantum Fourier Transformation (QFT)
-     - ``"qft"``
-   * - QFT Entangled
-     - ``"qftentangled"``
-   * - Quantum Neural Network (QNN)
-     - ``"qnn"``
-   * - Quantum Phase Estimation (QPE) exact
-     - ``"qpeexact"``
-   * - Quantum Phase Estimation (QPE) inexact
-     - ``"qpeinexact"``
-   * - Quantum Walk
-     - ``"qwalk"``
-   * - Random Quantum Circuit
-     - ``"randomcircuit"``
-   * - Real Amplitudes ansatz with Random Parameters
-     - ``"vqerealamprandom"``
-   * - Efficient SU2 ansatz with Random Parameters
-     - ``"vqesu2random"``
-   * - Two‑local ansatz with Random Parameters
-     - ``"vqetwolocalrandom"``
-   * - W‑State
-     - ``"wstate"``
-   * - Shor's
-     - ``"shor"``
+df = pd.DataFrame(
+    [
+        {"Actual Benchmark": desc or name, "benchmark_name": name}
+        for name, desc in sorted(get_benchmark_catalog().items())
+    ]
+)
+
+HTML(df.to_html(index=False, escape=False))
 ```
 
 See the [benchmark description](https://www.cda.cit.tum.de/mqtbench/benchmark_description) for further details on the individual benchmarks.

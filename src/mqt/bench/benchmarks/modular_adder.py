@@ -16,7 +16,7 @@ from qiskit.circuit.library import ModularAdderGate
 from ._registry import register_benchmark
 
 
-@register_benchmark("modular_adder")
+@register_benchmark("modular_adder", description="Modular Adder")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a modular adder circuit.
 
