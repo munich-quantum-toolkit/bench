@@ -43,13 +43,15 @@ if TYPE_CHECKING:
              "--level", "alg",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-         ], dumps(get_benchmark(level=BenchmarkLevel.ALG, benchmark="ghz", circuit_size=20))),
+             "--random-parameters"
+         ], dumps(get_benchmark(level=BenchmarkLevel.ALG, benchmark="ghz", circuit_size=20, random_parameters=True))),
         ([
              "--level", "indep",
              "--algorithm", "ghz",
              "--num-qubits", "20",
-    "--optimization-level", "2",
-         ], dumps(get_benchmark(level=BenchmarkLevel.INDEP, benchmark="ghz", circuit_size=20, opt_level=2))),
+             "--optimization-level", "2",
+             "--no-random-parameters"
+         ], dumps(get_benchmark(level=BenchmarkLevel.INDEP, benchmark="ghz", circuit_size=20, opt_level=2, random_parameters=False))),
         ([
              "--level", "nativegates",
              "--algorithm", "ghz",
