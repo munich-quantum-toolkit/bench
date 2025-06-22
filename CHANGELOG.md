@@ -19,7 +19,7 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
 ### Fixed
 
-## [2.0.0] - 2025-06-20
+## [2.0.0] - 2025-06-23
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#200)._
 
