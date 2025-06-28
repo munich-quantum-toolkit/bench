@@ -352,7 +352,6 @@ To ensure the automatic discovery/registration logic finds your contribution, fo
 #### Guidelines & Gotchas
 
 1. **Register the correct factory**
-
    - Benchmarks → `create_circuit(circuit_size: int, …) -> QuantumCircuit`
    - Gatesets → `get_<vendor>_<family>_gateset() -> list[str]`
    - Devices → `get_<vendor>_<family>() -> Target`
