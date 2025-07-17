@@ -31,7 +31,18 @@ jobs:
     name: 🐍 Test
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-python-tests)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-ci.yml@v1.14
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@v1.14
+    with:
+      runs-on: ubuntu-24.04
+  
+  python-coverage:
+    name: 🐍 Coverage
+    needs: [change-detection, python-tests]
+    if: fromJSON(needs.change-detection.outputs.run-python-tests) && ${{ always() && !failure() && !cancelled() }}
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-coverage.yml@v1.14
+    permissions:
+      contents: read
+      id-token: write
 
   code-ql:
     name: 📝 CodeQL
@@ -44,7 +55,9 @@ jobs:
     if: always()
     needs:
       - change-detection
+      - python-linter
       - python-tests
+      - python-coverage
       - code-ql
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +67,7 @@ jobs:
           allowed-skips: >-
             ${{
               fromJSON(needs.change-detection.outputs.run-python-tests)
-              && '' || 'python-tests,'
+              && '' || 'python-linter,python-tests,python-coverage,'
             }}
             ${{
               fromJSON(needs.change-detection.outputs.run-code-ql)
