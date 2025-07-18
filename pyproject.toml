@@ -80,7 +80,7 @@ dev = [
 [project.scripts]
 "create_mqt_bench_zip" = "mqt.bench.utils:create_zip_file"
 "generate_mqt_bench" = "mqt.bench.benchmark_generator:generate"
-"mqt.bench.cli" = "mqt.bench.cli:main"
+"mqt-bench" = "mqt.bench.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/cda-tum/mqtbench"

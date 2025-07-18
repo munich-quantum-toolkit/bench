@@ -94,12 +94,12 @@ if TYPE_CHECKING:
             target=get_device("ibm_falcon_27"),
             generate_mirror_circuit=True,
         ))),
-        (["--help"], "usage: mqt.bench.cli"),
+        (["--help"], "usage: mqt-bench"),
     ],
 )
 def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
     """Test the CLI with different arguments."""
-    ret = script_runner.run(["mqt.bench.cli", *args])
+    ret = script_runner.run(["mqt-bench", *args])
     assert ret.success
     assert expected_output in ret.stdout
 
@@ -108,9 +108,9 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
 @pytest.mark.parametrize(
     ("args", "expected_output"),
     [
-        ([], "usage: mqt.bench.cli"),
-        (["asd"], "usage: mqt.bench.cli"),
-        (["--benchmark", "ae"], "usage: mqt.bench.cli"),
+        ([], "usage: mqt-bench"),
+        (["asd"], "usage: mqt-bench"),
+        (["--benchmark", "ae"], "usage: mqt-bench"),
         # Note: We don't care about the actual error messages in most cases
         ([
              "--level", "not-a-valid-level",
@@ -126,14 +126,14 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
 )
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
     """Test the CLI with different error cases."""
-    ret = script_runner.run(["mqt.bench.cli", *args])
+    ret = script_runner.run(["mqt-bench", *args])
     assert not ret.success
     assert expected_output in ret.stderr
 
 
 def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> ScriptResult:
-    """Run *mqt.bench.cli* with default GHZ/ALG/5 settings plus *extra_args*."""
-    cmd = ["mqt.bench.cli", "--level", "alg", "--algorithm", "ghz", "--num-qubits", "5", *extra_args]
+    """Run *mqt-bench* with default GHZ/ALG/5 settings plus *extra_args*."""
+    cmd = ["mqt-bench", "--level", "alg", "--algorithm", "ghz", "--num-qubits", "5", *extra_args]
     return script_runner.run(cmd)
 
 
@@ -173,7 +173,7 @@ def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner)
     target_dir = str(tmp_path)
     ret = script_runner.run(
         [
-            "mqt.bench.cli",
+            "mqt-bench",
             "--level", "nativegates",
             "--algorithm", "ghz",
             "--num-qubits", "5",
@@ -195,7 +195,7 @@ def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> N
     target_dir = str(tmp_path)
     ret = script_runner.run(
         [
-            "mqt.bench.cli",
+            "mqt-bench",
             "--level", "mapped",
             "--algorithm", "ghz",
             "--num-qubits", "5",
