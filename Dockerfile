@@ -52,7 +52,7 @@ groupadd -r mqt-bench
 useradd -r -d /mqt-bench -g mqt-bench -N mqt-bench
 EOT
 
-ENTRYPOINT ["mqt.bench.cli"]
+ENTRYPOINT ["mqt-bench"]
 STOPSIGNAL SIGINT
 
 # Note how the runtime dependencies differ from build-time ones.
@@ -78,5 +78,5 @@ WORKDIR /mqt-bench
 
 RUN <<EOT
 python -V
-mqt.bench.cli --help
+mqt-bench --help
 EOT
