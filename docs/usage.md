@@ -55,3 +55,56 @@ pip install .
 ```
 
 Afterwards, the package can be used as described {ref}`above <pip-usage>`.
+
+## Usage via the Command Line Interface (CLI)
+
+In addition to the Python API, **MQT Bench** provides a flexible and lightweight command-line interface (CLI) to generate individual benchmark circuits.
+
+After installing the package, the CLI tool `mqt-bench` becomes available.
+
+### Getting Started
+
+Make sure the package is installed:
+
+```bash
+pip install mqt.bench
+```
+
+You can then view the available CLI options with:
+
+```bash
+mqt-bench --help
+```
+
+### CLI Options
+
+```bash
+options:
+  -h, --help            show this help message and exit
+  --level {alg,indep,nativegates,mapped}: Level to generate benchmarks for ("alg", "indep", "nativegates" or "mapped").
+  --algorithm ALGORITHM: Name of the benchmark (e.g., 'grover', 'shor').
+  --num-qubits NUM_QUBITS: Number of qubits for the benchmark.
+  --optimization-level {0,1,2,3}: Qiskit compiler optimization level (0-3).
+  --target TARGET: Target name for native gates and mapped level (e.g., 'ibm_falcon' or 'ibm_washington').
+  --random-parameters, --no-random-parameters: Whether to assign random parameters to parametric circuits (default: True). Use --no-random-parameters to disable.
+  --output-format {qasm2,qasm3,qpy}: Output format. Possible values: ['qasm2', 'qasm3', 'qpy'].
+  --target-directory TARGET_DIRECTORY: Directory to save the output file (only used for 'qpy' or if --save is specified).
+  --save: If set, save the output to a file instead of printing to stdout (e.g. for 'qpy', which is not available as text).
+  --mirror: If set, generate the mirror version of the benchmark (circuit @ circuit.inverse()).
+```
+
+### Example Usage
+
+To generate a 5-qubit Deutsch-Josza benchmark circuit at the algorithm level and print it in QASM 2 format, you can use the following command:
+
+```bash
+mqt-bench --level alg --algorithm dj --num-qubits 5 --output-format qasm2
+```
+
+To generate a 5-qubit Deutsch-Josza benchmark circuit at the mapped level for the IBM Falcon target and save it in QASM 3 format, you can use:
+
+```bash
+mqt-bench --level mapped --algorithm dj --num-qubits 5 --optimization-level 3 --target ibm_falcon_27 --output-format qasm3 --save
+```
+
+For more information on the available benchmarks and their parameters, please refer to the [parameter space description](parameter) and the [algorithm selection page](benchmark_selection).
