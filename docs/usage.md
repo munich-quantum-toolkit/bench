@@ -80,7 +80,7 @@ mqt-bench --help
 
 ```bash
 options:
-  -h, --help            show this help message and exit
+  -h, --help: show this help message and exit
   --level {alg,indep,nativegates,mapped}: Level to generate benchmarks for ("alg", "indep", "nativegates" or "mapped").
   --algorithm ALGORITHM: Name of the benchmark (e.g., 'grover', 'shor').
   --num-qubits NUM_QUBITS: Number of qubits for the benchmark.
