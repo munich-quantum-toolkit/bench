@@ -9,11 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
-
 ### Changed
 
 - 🎨 Rename CLI from `mqt.bench.cli` to `mqt-bench` ([#625]) ([**@burgholzer**], [**@nquetschlich**])
+- 📝 Rewrite the usage documentation to include the CLI ([#625]) ([**@burgholzer**], [**@nquetschlich**])
 
 ## [2.0.0] - 2025-06-24
 
