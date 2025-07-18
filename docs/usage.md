@@ -108,3 +108,13 @@ mqt-bench --level mapped --algorithm dj --num-qubits 5 --optimization-level 3 --
 ```
 
 For more information on the available benchmarks and their parameters, please refer to the [parameter space description](parameter) and the [algorithm selection page](benchmark_selection).
+
+### CLI Usage without Installation
+
+If you prefer not to install the package, you can still use the CLI by running the following command from the root directory of the cloned repository:
+
+```bash
+uvx --from mqt-bench mqt-bench --level alg --algorithm ghz --num-qubits 5
+```
+
+This command uses `uvx` to run the CLI directly from the source code without installation.
