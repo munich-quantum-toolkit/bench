@@ -15,7 +15,7 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
 ### Changed
 
-- 🎨 Rename CLI to improve usability ([#625]) ([**@burgholzer**], [**@nquetschlich**])
+- 🎨 Rename CLI from `mqt.bench.cli` to `mqt-bench` ([#625]) ([**@burgholzer**], [**@nquetschlich**])
 
 ### Removed
 
