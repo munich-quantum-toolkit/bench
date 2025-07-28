@@ -61,7 +61,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...HEAD
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
 [1.1.9]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v1.1.9
