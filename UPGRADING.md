@@ -4,6 +4,11 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [Unreleased]
 
+## [2.0.1]
+
+This release renames the CLI from `mqt.bench.cli` to `mqt-bench`. While we keep the old CLI for compatibility, we recommend using the new name for future development.
+The documentation on how to use the CLI has been rewritten to reflect this change.
+
 ## [2.0.0]
 
 This major release introduces several breaking changes and a redesigned API. While the codebase remains familiar, several design decisions were made to improve modularity, extensibility, and alignment with upstream standards.
