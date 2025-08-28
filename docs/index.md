@@ -56,10 +56,10 @@ api/mqt/bench/index
 
 ````{only} html
 ## Contributors and Supporters
-The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/)
-and supported by the [Munich Quantum Software Company (MQSC)](https://munichquantum.software).
-Among others, it is part of the [Munich Quantum Software Stack (MQSS)](https://www.munich-quantum-valley.de/research/research-areas/mqss) ecosystem,
-which is being developed as part of the [Munich Quantum Valley (MQV)](https://www.munich-quantum-valley.de) initiative.
+
+The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/) and supported by the [Munich Quantum Software Company (MQSC)](https://munichquantum.software).
+Among others, it is part of the [Munich Quantum Software Stack (MQSS)](https://www.munich-quantum-valley.de/research/research-areas/mqss) ecosystem, which is being developed as part of the [Munich Quantum Valley (MQV)](https://www.munich-quantum-valley.de) initiative.
+
 <div style="margin-top: 0.5em">
 <div class="only-light" align="center">
   <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-light.svg" width="90%" alt="MQT Banner">
@@ -68,29 +68,27 @@ which is being developed as part of the [Munich Quantum Valley (MQV)](https://ww
   <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-logo-banner-dark.svg" width="90%" alt="MQT Banner">
 </div>
 </div>
+
 Thank you to all the contributors who have helped make MQT Bench a reality!
+
 <p align="center">
 <a href="https://github.com/munich-quantum-toolkit/bench/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=munich-quantum-toolkit/bench" />
 </a>
 </p>
 
-## Cite This
+The MQT will remain free, open-source, and permissively licensed—now and in the future.
+We are firmly committed to keeping it open and actively maintained for the quantum computing community.
 
-If you want to cite MQT Bench, please use the following BibTeX entry:
+To support this endeavor, please consider:
 
-```bibtex
-@article{quetschlich2023mqtbench,
-  title         = {{{MQT Bench}}: {Benchmarking Software and Design Automation Tools for Quantum Computing}},
-  shorttitle    = {{MQT Bench}},
-  journal       = {{Quantum}},
-  author        = {Quetschlich, Nils and Burgholzer, Lukas and Wille, Robert},
-  year          = {2023},
-  doi           = {10.22331/q-2023-07-20-1062},
-  eprint        = {2204.13719},
-  primaryclass  = {quant-ph},
-  archiveprefix = {arxiv},
-  note          = {{{MQT Bench}} is available at \url{https://www.cda.cit.tum.de/mqtbench/}},
-}
-```
+- Starring and sharing our repositories: [https://github.com/munich-quantum-toolkit](https://github.com/munich-quantum-toolkit)
+- Contributing code, documentation, tests, or examples via issues and pull requests
+- Citing the MQT in your publications (see {doc}`References <references>`)
+- Using the MQT in research and teaching, and sharing feedback and use cases
+- Sponsoring us on GitHub: [https://github.com/sponsors/munich-quantum-toolkit](https://github.com/sponsors/munich-quantum-toolkit)
+
+<p align="center">
+<iframe src="https://github.com/sponsors/munich-quantum-toolkit/button" title="Sponsor munich-quantum-toolkit" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
+</p>
 ````
