@@ -124,7 +124,12 @@ When citing the software itself or results produced with it, cite the MQT Bench 
   author       = {Quetschlich, Nils and Burgholzer, Lukas and Wille, Robert},
   year         = {2023},
   journal      = {{Quantum}},
-  note         = {{{MQT Bench}} is available at \url{https://www.cda.cit.tum.de/mqtbench/}}
+  volume       = {7},
+  pages        = {1062},
+  doi          = {10.22331/q-2023-07-20-1062},
+  note         = {{{MQT Bench}} is available at \url{https://www.cda.cit.tum.de/mqtbench/}},
+  eprint       = {2204.13719},
+  eprinttype   = {arxiv}
 }
 ```
 
