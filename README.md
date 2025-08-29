@@ -1,7 +1,6 @@
 [![PyPI](https://img.shields.io/pypi/v/mqt.bench?logo=pypi&style=flat-square)](https://pypi.org/project/mqt.bench/)
 ![OS](https://img.shields.io/badge/os-linux%20%7C%20macos%20%7C%20windows-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![DOI](https://img.shields.io/badge/JOSS-10.21105/joss.07478-blue.svg?style=flat-square)](https://doi.org/10.21105/joss.07478)
 [![CI](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/bench/ci.yml?branch=main&style=flat-square&logo=github&label=ci)](https://github.com/munich-quantum-toolkit/bench/actions/workflows/ci.yml)
 [![CD](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/bench/cd.yml?style=flat-square&logo=github&label=cd)](https://github.com/munich-quantum-toolkit/bench/actions/workflows/cd.yml)
 [![Documentation](https://img.shields.io/readthedocs/mqt-bench?logo=readthedocs&style=flat-square)](https://mqt.readthedocs.io/projects/bench)
@@ -19,7 +18,7 @@
 # MQT Bench - Benchmarking Software and Design Automation Tools for Quantum Computing
 
 MQT Bench is a quantum circuit benchmark suite with cross-level support, i.e., providing the same benchmark algorithms for different abstraction levels throughout the quantum computing software stack.
-It is hosted at [https://www.cda.cit.tum.de/mqtbench/](https://www.cda.cit.tum.de/mqtbench/).
+MQT Bench is hosted at [https://www.cda.cit.tum.de/mqtbench/](https://www.cda.cit.tum.de/mqtbench/).
 It is part of the [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
