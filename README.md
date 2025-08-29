@@ -29,9 +29,13 @@ It is part of the [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 ## Key Features
 
-- TODO.
-- TODO.
-- TODO.
+- **Comprehensive Quantum Benchmark Suite:** Provides a wide range of quantum circuit benchmarks, including algorithms such as GHZ, QAOA, QFT, Grover, Shor, and many more. [List of benchmarks](https://www.cda.cit.tum.de/mqtbench/benchmark_description)
+- **Cross-Level Benchmark Generation:** Supports four abstraction levels—algorithmic, target-independent, target-dependent native gates, and target-dependent mapped—enabling benchmarking across the entire quantum software stack. [Abstraction levels](https://mqt.readthedocs.io/projects/bench/en/latest/abstraction_levels.html)
+- **Flexible Target and Gateset Support:** Generate circuits for various hardware targets and native gatesets, including IBM, IonQ, Quantinuum, Rigetti, and more. [Supported devices and gatesets](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html)
+- **Python API, CLI, and Web Interface:** Use MQT Bench programmatically via Python, from the command line, or through an interactive web interface—whichever fits your workflow. [Usage guide](https://mqt.readthedocs.io/projects/bench/en/latest/usage.html)
+- **Parameterized and Mirror Circuits:** Easily generate parameterized circuits (with random or symbolic parameters) and mirror circuits for robust benchmarking and error detection. [Quickstart](https://mqt.readthedocs.io/projects/bench/en/latest/quickstart.html)
+- **Export to Standard Formats:** Save generated circuits in OpenQASM 2, OpenQASM 3, and QPY formats for compatibility with other quantum tools. [Output formats](https://mqt.readthedocs.io/projects/bench/en/latest/quickstart.html#output-formats)
+- **Extensible and Open Source:** Actively maintained, fully open-source, and designed for easy integration and extension within the quantum computing community.
 
 If you have any questions, feel free to create a [discussion](https://github.com/munich-quantum-toolkit/bench/discussions) or an [issue](https://github.com/munich-quantum-toolkit/bench/issues) on [GitHub](https://github.com/munich-quantum-toolkit/bench).
 
