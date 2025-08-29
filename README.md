@@ -96,6 +96,9 @@ qc_algorithmic_level = get_benchmark(
 print(qc_algorithmic_level.draw())
 ```
 
+> [!NOTE]
+> MQT Bench is also available as a [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
+
 **Detailed documentation and examples are available at [ReadTheDocs](https://mqt.readthedocs.io/projects/bench).**
 
 ## System Requirements
