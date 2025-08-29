@@ -1,15 +1,18 @@
 # Welcome to MQT Bench's documentation!
 
-MQT Bench is a tool for benchmarking quantum software tools developed as part of the [Munich Quantum Toolkit](https://mqt.readthedocs.io) (_MQT_).
+MQT Bench is a tool for benchmarking quantum software tools.
+It is part of the _{doc}`Munich Quantum Toolkit (MQT) <mqt:index>`_.
 
 This documentation provides a comprehensive guide to the MQT Bench library, including {doc}`installation instructions <installation>`, a {doc}`quickstart guide <quickstart>`, and detailed {doc}`API documentation <api/mqt/bench/index>`.
 The source code of MQT Bench is publicly available on GitHub at [munich-quantum-toolkit/bench](https://github.com/munich-quantum-toolkit/bench), while pre-built binaries are available via [PyPI](https://pypi.org/project/mqt.bench/) for all major operating systems and all modern Python versions.
 MQT Bench is fully compatible with Qiskit 1.2 and above.
 
-If you are interested in the theory behind MQT Bench, have a look at the publication {cite:labelpar}`quetschlich2023mqtbench`.
+If you are interested in the theory behind MQT Bench, have a look at the publication {cite:p}`quetschlich2023mqtbench`.
 Furthermore, MQT Bench is also available as a [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
-We appreciate any feedback and contributions to the project. If you want to contribute, you can find more information in the {doc}`Contribution <contributing>` guide. If you are having trouble with the installation or the usage of MQT Bench, please let us know at our {doc}`Support <support>` page.
+We appreciate any feedback and contributions to the project.
+If you want to contribute, you can find more information in the {doc}`contribution guide <contributing>`.
+If you are having trouble with the installation or the usage of MQT Bench, please let us know on our {doc}`support page <support>`.
 
 ---
 
@@ -21,8 +24,9 @@ self
 
 ```{toctree}
 :caption: User Guide
-:glob: true
-:maxdepth: 2
+:glob:
+:hidden:
+:maxdepth: 1
 
 installation
 quickstart
@@ -36,10 +40,10 @@ UPGRADING
 ```
 
 ```{toctree}
-:maxdepth: 2
-:titlesonly:
 :caption: Developers
 :glob:
+:hidden:
+:maxdepth: 1
 
 contributing
 support
@@ -47,9 +51,10 @@ development_guide
 ```
 
 ```{toctree}
-:hidden:
-:maxdepth: 6
 :caption: Python API Reference
+:glob:
+:hidden:
+:maxdepth: 3
 
 api/mqt/bench/index
 ```
