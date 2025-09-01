@@ -47,7 +47,6 @@ UPGRADING
 
 contributing
 support
-development_guide
 ```
 
 ```{toctree}
