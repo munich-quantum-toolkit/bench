@@ -4,6 +4,12 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [Unreleased]
 
+### End of support for x86 macOS systems
+
+Starting with this release, we can no longer guarantee support for x86 macOS systems.
+This comes as a result of GitHub removing the `macos-13` runners from their infrastructure.
+x86 macOS systems are no longer tested in our CI and we can no longer guarantee that MQT Bench installs and runs correctly on them.
+
 ## [2.0.1]
 
 This release renames the CLI from `mqt.bench.cli` to `mqt-bench`. While we keep the old CLI for compatibility, we recommend using the new name for future development.

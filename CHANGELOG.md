@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- 🔥 Stop testing on x86 macOS systems ([#666]) ([**@denialhaag**])
+
 ## [2.0.1] - 2025-07-28
 
 ### Changed
@@ -68,6 +72,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#666]: https://github.com/munich-quantum-toolkit/bench/pull/666
 [#504]: https://github.com/munich-quantum-toolkit/bench/pull/504
 [#505]: https://github.com/munich-quantum-toolkit/bench/pull/505
 [#506]: https://github.com/munich-quantum-toolkit/bench/pull/506
@@ -104,6 +109,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@nquetschlich**]: https://github.com/nquetschlich
 [**@fkiwit**]: https://github.com/fkiwit
 [**@CreativeBinBag**]: https://github.com/CreativeBinBag
+[**@denialhaag**]: https://github.com/denialhaag
 
 <!-- General links -->
 
