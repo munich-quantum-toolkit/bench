@@ -66,41 +66,41 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- Version links -->
 
 [unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...HEAD
-[2.0.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...v2.0.1
-[2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
+[2.0.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.1
+[2.0.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.0
 [1.1.9]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v1.1.9
 
 <!-- PR links -->
 
 [#666]: https://github.com/munich-quantum-toolkit/bench/pull/666
-[#504]: https://github.com/munich-quantum-toolkit/bench/pull/504
-[#505]: https://github.com/munich-quantum-toolkit/bench/pull/505
-[#506]: https://github.com/munich-quantum-toolkit/bench/pull/506
-[#507]: https://github.com/munich-quantum-toolkit/bench/pull/507
-[#508]: https://github.com/munich-quantum-toolkit/bench/pull/508
-[#510]: https://github.com/munich-quantum-toolkit/bench/pull/510
-[#518]: https://github.com/munich-quantum-toolkit/bench/pull/518
-[#519]: https://github.com/munich-quantum-toolkit/bench/pull/519
-[#531]: https://github.com/munich-quantum-toolkit/bench/pull/531
-[#538]: https://github.com/munich-quantum-toolkit/bench/pull/538
-[#541]: https://github.com/munich-quantum-toolkit/bench/pull/541
-[#544]: https://github.com/munich-quantum-toolkit/bench/pull/544
-[#548]: https://github.com/munich-quantum-toolkit/bench/pull/548
-[#555]: https://github.com/munich-quantum-toolkit/bench/pull/555
-[#560]: https://github.com/munich-quantum-toolkit/bench/pull/560
-[#566]: https://github.com/munich-quantum-toolkit/bench/pull/566
-[#567]: https://github.com/munich-quantum-toolkit/bench/pull/567
-[#570]: https://github.com/munich-quantum-toolkit/bench/pull/570
-[#571]: https://github.com/munich-quantum-toolkit/bench/pull/571
-[#572]: https://github.com/munich-quantum-toolkit/bench/pull/572
-[#577]: https://github.com/munich-quantum-toolkit/bench/pull/577
-[#580]: https://github.com/munich-quantum-toolkit/bench/pull/580
-[#581]: https://github.com/munich-quantum-toolkit/bench/pull/581
-[#582]: https://github.com/munich-quantum-toolkit/bench/pull/582
-[#585]: https://github.com/munich-quantum-toolkit/bench/pull/585
-[#586]: https://github.com/munich-quantum-toolkit/bench/pull/586
-[#603]: https://github.com/munich-quantum-toolkit/bench/pull/603
 [#625]: https://github.com/munich-quantum-toolkit/bench/pull/625
+[#603]: https://github.com/munich-quantum-toolkit/bench/pull/603
+[#586]: https://github.com/munich-quantum-toolkit/bench/pull/586
+[#585]: https://github.com/munich-quantum-toolkit/bench/pull/585
+[#582]: https://github.com/munich-quantum-toolkit/bench/pull/582
+[#581]: https://github.com/munich-quantum-toolkit/bench/pull/581
+[#580]: https://github.com/munich-quantum-toolkit/bench/pull/580
+[#577]: https://github.com/munich-quantum-toolkit/bench/pull/577
+[#572]: https://github.com/munich-quantum-toolkit/bench/pull/572
+[#571]: https://github.com/munich-quantum-toolkit/bench/pull/571
+[#570]: https://github.com/munich-quantum-toolkit/bench/pull/570
+[#567]: https://github.com/munich-quantum-toolkit/bench/pull/567
+[#566]: https://github.com/munich-quantum-toolkit/bench/pull/566
+[#560]: https://github.com/munich-quantum-toolkit/bench/pull/560
+[#555]: https://github.com/munich-quantum-toolkit/bench/pull/555
+[#548]: https://github.com/munich-quantum-toolkit/bench/pull/548
+[#544]: https://github.com/munich-quantum-toolkit/bench/pull/544
+[#541]: https://github.com/munich-quantum-toolkit/bench/pull/541
+[#538]: https://github.com/munich-quantum-toolkit/bench/pull/538
+[#531]: https://github.com/munich-quantum-toolkit/bench/pull/531
+[#519]: https://github.com/munich-quantum-toolkit/bench/pull/519
+[#518]: https://github.com/munich-quantum-toolkit/bench/pull/518
+[#510]: https://github.com/munich-quantum-toolkit/bench/pull/510
+[#508]: https://github.com/munich-quantum-toolkit/bench/pull/508
+[#507]: https://github.com/munich-quantum-toolkit/bench/pull/507
+[#506]: https://github.com/munich-quantum-toolkit/bench/pull/506
+[#505]: https://github.com/munich-quantum-toolkit/bench/pull/505
+[#504]: https://github.com/munich-quantum-toolkit/bench/pull/504
 
 <!-- Contributor -->
 
