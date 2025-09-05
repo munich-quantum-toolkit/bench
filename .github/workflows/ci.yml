@@ -34,8 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on:
-          [ubuntu-24.04, ubuntu-24.04-arm, macos-14, windows-2022]
+        runs-on: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, windows-2022]
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@v1.16
     with:
       runs-on: ${{ matrix.runs-on }}
