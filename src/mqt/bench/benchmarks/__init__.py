@@ -13,7 +13,7 @@ from __future__ import annotations
 import importlib
 import importlib.resources as ir
 from functools import cache
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from ._registry import (
     benchmark_catalog,
@@ -24,7 +24,7 @@ from ._registry import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from qiskit.circuit import QuantumCircuit

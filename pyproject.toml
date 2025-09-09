@@ -16,7 +16,7 @@ authors = [
 keywords = ["MQT",  "quantum computing", "benchmarking", "performance", "testing"]
 license = "MIT"
 license-files = ["LICENSE.md"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dynamic = ["version"]
 
 dependencies = [
@@ -38,7 +38,6 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -119,9 +118,6 @@ filterwarnings = [
     'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
-    # Qiskit 2.1 starts to warn about the upcoming Python 3.9 removal in Qiskit 2.3.
-    # We will drop 3.9 support around the same time, at which point this warning filter can be removed
-    'ignore:.*Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release.*:DeprecationWarning:',
 ]
 
 [tool.coverage]
@@ -143,7 +139,7 @@ precision = 1
 [tool.mypy]
 mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
 files = ["src", "tests"]
-python_version = "3.9"
+python_version = "3.10"
 strict = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true

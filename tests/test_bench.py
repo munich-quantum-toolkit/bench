@@ -18,7 +18,7 @@ from datetime import date
 from enum import Enum
 from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, NoReturn, cast
+from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
@@ -35,6 +35,7 @@ from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
     import types
+    from collections.abc import Callable
 
 from mqt.bench.benchmark_generation import (
     BenchmarkLevel,

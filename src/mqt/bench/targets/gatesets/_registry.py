@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 _GatesetFactory = Callable[[], list[str]]
 _REGISTRY: dict[str, _GatesetFactory] = {}

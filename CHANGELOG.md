@@ -9,8 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Changed
+### Removed
 
+- 🔥 Drop support for Python 3.9 ([#667]) ([**@denialhaag**])
 - 🔥 Stop testing on x86 macOS systems ([#666]) ([**@denialhaag**])
 
 ## [2.0.1] - 2025-07-28
@@ -72,6 +73,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#667]: https://github.com/munich-quantum-toolkit/bench/pull/667
 [#666]: https://github.com/munich-quantum-toolkit/bench/pull/666
 [#625]: https://github.com/munich-quantum-toolkit/bench/pull/625
 [#603]: https://github.com/munich-quantum-toolkit/bench/pull/603

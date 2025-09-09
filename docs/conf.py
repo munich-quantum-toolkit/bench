@@ -84,6 +84,7 @@ myst_enable_extensions = [
 ]
 
 nb_execution_mode = "cache"
+nb_execution_raise_on_error = True
 
 autosectionlabel_prefix_document = True
 
