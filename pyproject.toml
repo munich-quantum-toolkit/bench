@@ -68,8 +68,7 @@ docs = [
     "sphinxext-opengraph>=0.10.0",
     "qiskit[visualization]>=1.2.1",
     "openqasm-pygments>=0.1.2",
-    "sphinx>=7.4.7",
-    "sphinx>=8.1.3; python_version >= '3.10'",
+    "sphinx>=8.1.3",
     "sphinx>=8.2.3; python_version >= '3.11'",
 ]
 dev = [
