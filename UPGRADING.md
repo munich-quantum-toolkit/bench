@@ -14,7 +14,7 @@ x86 macOS systems are no longer tested in our CI and we can no longer guarantee 
 
 Starting with this release, MQT Bench no longer supports Python 3.9.
 This is in line with the scheduled end of life of the version.
-As a result, MQT Bench is no longer tested under Python 3.9 and no longer ships Python 3.9 wheels.
+As a result, MQT Bench is no longer tested under Python 3.9 and requires Python 3.10+.
 
 ## [2.0.1]
 
