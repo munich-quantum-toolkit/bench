@@ -25,10 +25,14 @@
 from __future__ import annotations
 
 from math import comb
+from typing import TYPE_CHECKING
 
-from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
+from qiskit.circuit import ParameterVector, QuantumCircuit
 
 from ._registry import register_benchmark
+
+if TYPE_CHECKING:
+    from qiskit.circuit import Parameter
 
 
 @register_benchmark("bmw_quark_copula", description="Copula Circuit (QUARK)")

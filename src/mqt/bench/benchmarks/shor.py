@@ -26,10 +26,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy.typing import NDArray
+    from qiskit.circuit import Instruction
 import math
 
 import numpy as np
-from qiskit.circuit import Instruction, ParameterVector, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ParameterVector, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFTGate
 from qiskit.synthesis import synth_qft_full
 

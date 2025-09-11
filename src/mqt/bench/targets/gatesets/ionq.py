@@ -41,12 +41,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import EquivalenceLibrary, Gate, Parameter
+from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import CXGate, UGate
 
 from ._registry import register_gateset
 
 if TYPE_CHECKING:
+    from qiskit.circuit import EquivalenceLibrary
     from qiskit.circuit.parameterexpression import ParameterValueType
 
 

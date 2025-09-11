@@ -24,10 +24,15 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
+from typing import TYPE_CHECKING
+
+from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RXXGate
 
 from ._registry import register_benchmark
+
+if TYPE_CHECKING:
+    from qiskit.circuit import Parameter
 
 
 @register_benchmark("bmw_quark_cardinality", description="Cardinality Circuit (QUARK)")
