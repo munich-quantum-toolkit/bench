@@ -74,7 +74,7 @@ repos:
     rev: 1.19.1
     hooks:
       - id: blacken-docs
-        additional_dependencies: [black==24.*]
+        additional_dependencies: [black==25.*]
 
   # Format configuration files with prettier
   - repo: https://github.com/rbubley/mirrors-prettier
