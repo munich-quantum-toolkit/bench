@@ -4,7 +4,7 @@
 # Installation
 
 MQT Bench is a Python package available on [PyPI](https://pypi.org/project/mqt.bench/).
-It can be installed on all major operating systems with all supported Python versions.
+It can be installed on all major operating systems with all [officially supported Python versions](https://devguide.python.org/versions/).
 
 :::::{tip}
 :name: uv-recommendation
