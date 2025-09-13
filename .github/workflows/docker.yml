@@ -47,7 +47,7 @@ jobs:
       - name: Docker meta
         if: env.DOCKER_CREDENTIALS_SET == 'true'
         id: meta
-        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/mqt-bench
 
