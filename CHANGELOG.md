@@ -12,7 +12,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Removed
 
 - 🔥 Drop support for Python 3.9 ([#671]) ([**@denialhaag**])
-- 🔥 Stop testing on x86 macOS systems ([#666]) ([**@denialhaag**])
 
 ## [2.0.1] - 2025-07-28
 
