@@ -117,6 +117,8 @@ filterwarnings = [
     'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
     'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
+    # Qiskit-internal warning
+    'ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*',
 ]
 
 [tool.coverage]
