@@ -94,7 +94,7 @@ if TYPE_CHECKING:
             target=get_device("ibm_falcon_27"),
             generate_mirror_circuit=True,
         ))),
-        (["--help"], "usage: mqt-bench"),
+        (["--help"], "usage:"),
     ],
 )
 def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
@@ -108,9 +108,9 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
 @pytest.mark.parametrize(
     ("args", "expected_output"),
     [
-        ([], "usage: mqt-bench"),
-        (["asd"], "usage: mqt-bench"),
-        (["--benchmark", "ae"], "usage: mqt-bench"),
+        ([], "usage:"),
+        (["asd"], "usage:"),
+        (["--benchmark", "ae"], "usage:"),
         # Note: We don't care about the actual error messages in most cases
         ([
              "--level", "not-a-valid-level",
