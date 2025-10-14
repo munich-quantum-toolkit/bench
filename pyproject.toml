@@ -29,6 +29,7 @@ dependencies = [
     "numpy>=2.1; python_version >= '3.13'",
     "numpy>=2.3.2; python_version >= '3.14'",
     "scikit-learn>=1.5.2",
+    "scikit-learn>=1.7.2; python_version >= '3.14'",
 ]
 
 
