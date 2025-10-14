@@ -222,12 +222,21 @@ known-first-party = ["mqt.bench"]
 convention = "google"
 
 
+[tool.uv]
+# symengine>=0.11,<0.14 (optional dependency of qiskit) is incompatible with Python 3.14
+override-dependencies = [
+    "symengine>=0.11,<0.14",
+    "symengine>=0.14.1; python_version >= '3.14'",
+]
+
+
 [tool.typos]
 default.extend-ignore-re = [
   '"id": ".*",',
   "(?Rm)^.*(#|//)\\s*spellchecker:disable-line$",  # ignore line
   "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on" # ignore block
 ]
+
 [tool.typos.default.extend-words]
 wille = "wille"
 anc = "anc"
@@ -235,6 +244,7 @@ aer = "aer"
 fom = "fom"
 bench = "bench"
 benchs = "benchs"
+
 
 [tool.repo-review]
 ignore = ["GH200"]
