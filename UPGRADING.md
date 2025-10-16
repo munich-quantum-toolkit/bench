@@ -4,6 +4,8 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [Unreleased]
 
+## [2.1.0]
+
 ### End of support for Python 3.9
 
 Starting with this release, MQT Bench no longer supports Python 3.9.
@@ -127,6 +129,9 @@ MQT Bench has moved to the [munich-quantum-toolkit](https://github.com/munich-qu
 While most links should be automatically redirected, please update any links in your code to point to the new location.
 All links in the documentation have been updated accordingly.
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...HEAD
+<!-- Version links -->
+
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
