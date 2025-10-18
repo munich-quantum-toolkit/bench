@@ -937,6 +937,11 @@ def test_get_benchmark_mirror_option() -> None:
 
         assert qc_mirror.num_qubits == qc_base.num_qubits
 
+        # Ensure the mirror circuit contains only native gates for the given target.
+        pm = PassManager(GatesInBasis(target=target_obj))
+        pm.run(qc_mirror)
+        assert pm.property_set["all_gates_in_basis"]
+
         # at least each logical qubit should be measured
         assert sum(inst.operation.name == "measure" for inst in qc_mirror.data) >= logical_circuit_size
 

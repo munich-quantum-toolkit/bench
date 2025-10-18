@@ -75,20 +75,26 @@ def _get_circuit(
     return qc
 
 
-def _create_mirror_circuit(qc_original: QuantumCircuit, inplace: bool = False) -> QuantumCircuit:
+def _create_mirror_circuit(
+    qc_original: QuantumCircuit, *, inplace: bool = False, target: Target | None = None, optimization_level: int = 2
+) -> QuantumCircuit:
     """Generates the mirror version (qc @ qc.inverse()) of a given quantum circuit.
 
     For circuits with an initial layout (e.g., mapped circuits), this function ensures
     that the final layout of the mirrored circuit matches the initial layout of the
     original circuit. While Qiskit's `inverse()` and `compose()` methods correctly track
     the permutation of qubits, this benchmark requires that the final qubit permutation
-    is identical to the initial one, necessitating the explicit layout handling herein.
+    is identical to the initial one, requiring the explicit layout handling herein.
+    Also ensures that the mirrored circuit respects the native gate set of the target device
+    if a target is provided.
 
     All qubits are measured at the end of the mirror circuit.
 
     Args:
         qc_original: The quantum circuit to mirror.
         inplace: If True, modifies the circuit in place. Otherwise, returns a new circuit.
+        target: Target device for transpilation. If provided, ensures native gate set compliance.
+        optimization_level: Optimization level of the transpilation.
 
     Returns:
         The mirrored quantum circuit.
@@ -106,6 +112,20 @@ def _create_mirror_circuit(qc_original: QuantumCircuit, inplace: bool = False) -
 
     # Form the mirror circuit by composing the original circuit with its inverse.
     target_qc.compose(qc_inv, inplace=True)
+
+    # Transpile to ensure the final circuit uses only native gates while preserving the initial layout.
+    if target is not None:
+        layout = target_qc.layout.initial_layout if target_qc.layout is not None else None
+        target_qc = transpile(
+            target_qc,
+            target=target,
+            optimization_level=optimization_level,
+            layout_method=None,
+            routing_method=None,
+            seed_transpiler=10,
+        )
+        if layout is not None:
+            target_qc.layout.initial_layout = layout
 
     # Add final measurements to all active qubits
     target_qc.barrier(active_qubits)
@@ -308,7 +328,7 @@ def get_benchmark_native_gates(
 
     compiled_circuit = pm.run(circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(compiled_circuit, inplace=True)
+        return _create_mirror_circuit(compiled_circuit, inplace=True, target=target, optimization_level=opt_level)
     return compiled_circuit
 
 
@@ -374,7 +394,7 @@ def get_benchmark_mapped(
         seed_transpiler=10,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, inplace=True)
+        return _create_mirror_circuit(mapped_circuit, inplace=True, target=target, optimization_level=opt_level)
     return mapped_circuit
 
 

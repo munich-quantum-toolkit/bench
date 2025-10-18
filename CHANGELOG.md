@@ -17,6 +17,10 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
 
 - 👷 Enable testing on Python 3.14 ([#705]) ([**@denialhaag**])
 
+### Fixed
+
+- 🐛 Fix layout preservation and ensure native gate compliance for mirror circuit generation ([#709]) ([**@soroushfathi**], [**@burgholzer**])
+
 ### Removed
 
 - 🔥 Drop support for Python 3.9 ([#671]) ([**@denialhaag**])
@@ -81,6 +85,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
 [#671]: https://github.com/munich-quantum-toolkit/bench/pull/671
 [#666]: https://github.com/munich-quantum-toolkit/bench/pull/666
@@ -121,6 +126,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@fkiwit**]: https://github.com/fkiwit
 [**@CreativeBinBag**]: https://github.com/CreativeBinBag
 [**@denialhaag**]: https://github.com/denialhaag
+[**@soroushfathi**]: https://github.com/soroushfathi
 
 <!-- General links -->
 
