@@ -9,7 +9,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [2.1.0] - 2025-10-16
+## [2.1.0] - 2025-10-18
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
 
