@@ -15,7 +15,7 @@ mystnb:
 
 There are multiple ways how to use this repository and the MQT Bench package.
 
-1. Via the webpage hosted at [https://www.cda.cit.tum.de/mqtbench/](https://www.cda.cit.tum.de/mqtbench/),
+1. Via the webpage hosted at [https://mqt-bench.app/](https://mqt-bench.app/),
 2. Programmatically via the Python package [`mqt-bench`](https://pypi.org/project/mqt-bench/), or
 3. Via the command line interface (CLI) of the [`mqt-bench`](https://pypi.org/project/mqt-bench/) package.
 
@@ -23,7 +23,7 @@ There are multiple ways how to use this repository and the MQT Bench package.
 
 The MQT Bench webpage provides an interactive, no-code interface to generate and download
 benchmark circuits.
-You can access it at [https://www.cda.cit.tum.de/mqtbench/](https://www.cda.cit.tum.de/mqtbench/).
+You can access it at [https://mqt-bench.app/](https://mqt-bench.app/).
 
 ## Usage via the `mqt-bench` Python package
 

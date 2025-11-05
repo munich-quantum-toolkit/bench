@@ -83,7 +83,7 @@ def generate_header(
     lines: list[str] = []
     lines.extend((
         f"// Benchmark created by MQT Bench on {date.today()}",
-        "// For more info: https://www.cda.cit.tum.de/mqtbench/",
+        "// For more info: https://mqt-bench.app/",
         f"// MQT Bench version: {version}",
         f"// Qiskit version: {__qiskit_version__}",
         f"// Output format: {fmt.value}",

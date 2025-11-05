@@ -536,7 +536,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     # first line has today's date
     assert lines[0] == f"// Benchmark created by MQT Bench on {date.today()}"
     # contains the fixed info lines
-    assert "// For more info: https://www.cda.cit.tum.de/mqtbench/" in hdr
+    assert "// For more info: https://mqt-bench.app/" in hdr
     assert "// MQT Bench version: 9.9.9" in hdr
     assert f"// Qiskit version: {__qiskit_version__}" in hdr
     assert f"// Output format: {OutputFormat.QASM3.value}" in hdr

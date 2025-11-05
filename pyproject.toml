@@ -86,9 +86,9 @@ dev = [
 "mqt-bench" = "mqt.bench.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/cda-tum/mqtbench"
-"Bug Tracker" = "https://github.com/cda-tum/mqtbench/issues"
-Discussions = "https://github.com/cda-tum/mqtbench/discussions"
+Homepage = "https://github.com/munich-quantum-toolkit/bench"
+"Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
+Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
 Research = "https://www.cda.cit.tum.de/research/quantum/"
 
 [tool.hatch.build.targets.wheel]
