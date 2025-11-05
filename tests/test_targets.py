@@ -229,25 +229,18 @@ def test_get_unknown_device() -> None:
         get_device(unknown_name)
 
 
-class _DummyTarget(Target):
-    """Very small Target subclass for tests."""
-
-    def __init__(self) -> None:
-        super().__init__(num_qubits=1)
-
-
 def test_dynamic_device_registration() -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
 
     @register_device("dummy_device")
     def _dummy_factory() -> Target:
-        return _DummyTarget()
+        return Target(num_qubits=1)
 
     names = get_available_device_names()
     assert "dummy_device" in names
 
     dev = get_device("dummy_device")
-    assert isinstance(dev, _DummyTarget)
+    assert isinstance(dev, Target)
 
 
 def test_dynamic_gateset_registration() -> None:
@@ -272,14 +265,14 @@ def test_duplicate_device_registration() -> None:
 
     @register_device("dup_device")
     def _factory1() -> Target:
-        return _DummyTarget()
+        return Target(num_qubits=1)
 
     # second registration with same name should fail
     with pytest.raises(ValueError, match="already registered"):
 
         @register_device("dup_device")
         def _factory2() -> Target:
-            return _DummyTarget()
+            return Target(num_qubits=1)
 
 
 def test_duplicate_gateset_registration() -> None:
