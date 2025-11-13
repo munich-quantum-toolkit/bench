@@ -18,17 +18,18 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("graphstate", description="Graph State")
-def create_circuit(num_qubits: int, degree: int = 2) -> QuantumCircuit:
+def create_circuit(num_qubits: int, degree: int = 2, seed = 0) -> QuantumCircuit:
     """Returns a quantum circuit implementing a graph state.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
         degree: number of edges per node
+        seed: seed for the random graph generator
     """
     q = QuantumRegister(num_qubits, "q")
     qc = QuantumCircuit(q, name="graphstate")
 
-    g = nx.random_regular_graph(degree, num_qubits)
+    g = nx.random_regular_graph(degree, num_qubits, seed=seed)
     a = nx.convert_matrix.to_numpy_array(g)
     qc.compose(GraphStateGate(a), inplace=True)
     qc.measure_all()

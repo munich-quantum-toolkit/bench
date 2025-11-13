@@ -41,6 +41,7 @@ def _get_circuit(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Creates a raw quantum circuit based on the specified benchmark.
 
@@ -51,6 +52,7 @@ def _get_circuit(
         benchmark: Name of the benchmark for which the circuit is to be created.
         circuit_size: Size of the circuit to be created, required for benchmarks other than "shor".
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
         QuantumCircuit: Constructed quantum circuit based on the given parameters.
@@ -65,7 +67,7 @@ def _get_circuit(
         if circuit_size is None:
             msg = "`circuit_size` cannot be None when `benchmark` is a str."
             raise ValueError(msg)
-        qc = create_circuit(benchmark, circuit_size)
+        qc = create_circuit(benchmark, circuit_size, **kwargs)
 
     if len(qc.parameters) > 0 and random_parameters:
         rng = np.random.default_rng(10)
@@ -161,6 +163,7 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -171,6 +174,7 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -180,19 +184,21 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Return an algorithm-level benchmark circuit.
 
     Arguments:
-            benchmark: QuantumCircuit or name of the benchmark to be generated
-            circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-            generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-            random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        benchmark: QuantumCircuit or name of the benchmark to be generated
+        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
+        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-            Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
+        Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
     """
-    qc = _get_circuit(benchmark, circuit_size, random_parameters)
+    qc = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc, inplace=True)
     return qc
@@ -206,6 +212,7 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -217,6 +224,7 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -227,22 +235,24 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Return a target-independent benchmark circuit.
 
     Arguments:
-            benchmark: QuantumCircuit or name of the benchmark to be generated
-            circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-            opt_level: Optimization level to be used by the transpiler.
-            generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-            random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        benchmark: QuantumCircuit or name of the benchmark to be generated
+        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        opt_level: Optimization level to be used by the transpiler.
+        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
+        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-            Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
+        Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
     """
     _validate_opt_level(opt_level)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters)
+    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc_processed, inplace=True)
@@ -258,6 +268,7 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -270,6 +281,7 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -281,23 +293,25 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Return a benchmark compiled to the target's native gate set.
 
     Arguments:
-            benchmark: QuantumCircuit or name of the benchmark to be generated
-            circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-            target: `~qiskit.transpiler.target.Target` for the benchmark generation
-            opt_level: Optimization level to be used by the transpiler.
-            generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-            random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        benchmark: QuantumCircuit or name of the benchmark to be generated
+        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        target: `~qiskit.transpiler.target.Target` for the benchmark generation
+        opt_level: Optimization level to be used by the transpiler.
+        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
+        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-            Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
+        Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
     """
     _validate_opt_level(opt_level)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters)
+    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
     if target.description == "clifford+t":
         from qiskit.transpiler import PassManager  # noqa: PLC0415
@@ -341,6 +355,7 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -353,6 +368,7 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -364,23 +380,25 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Return a benchmark fully compiled and qubit-mapped to a device.
 
     Arguments:
-            benchmark: QuantumCircuit or name of the benchmark to be generated
-            circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-            target: `~qiskit.transpiler.target.Target` for the benchmark generation
-            opt_level: Optimization level to be used by the transpiler.
-            generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-            random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        benchmark: QuantumCircuit or name of the benchmark to be generated
+        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        target: `~qiskit.transpiler.target.Target` for the benchmark generation
+        opt_level: Optimization level to be used by the transpiler.
+        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
+        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-            Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
+        Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
     """
     _validate_opt_level(opt_level)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters)
+    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
     if "rigetti" in target.description:
         rigetti.add_equivalences(SessionEquivalenceLibrary)
@@ -408,6 +426,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -421,6 +440,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit: ...
 
 
@@ -433,6 +453,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
+    **kwargs,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
@@ -445,6 +466,7 @@ def get_benchmark(
         opt_level: Optimization level to be used by the transpiler.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
@@ -455,6 +477,7 @@ def get_benchmark(
             circuit_size=circuit_size,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            **kwargs,
         )
 
     if level is BenchmarkLevel.INDEP:
@@ -464,6 +487,7 @@ def get_benchmark(
             opt_level=opt_level,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            **kwargs,
         )
 
     if level is BenchmarkLevel.NATIVEGATES:
@@ -477,6 +501,7 @@ def get_benchmark(
             opt_level=opt_level,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            **kwargs,
         )
 
     if level is BenchmarkLevel.MAPPED:
@@ -490,6 +515,7 @@ def get_benchmark(
             opt_level=opt_level,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            **kwargs,
         )
 
     assert_never(level)
