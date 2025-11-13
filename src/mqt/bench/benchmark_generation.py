@@ -25,6 +25,8 @@ from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
+    from typing import Any
+
     from qiskit.transpiler import Target
 
 
@@ -41,7 +43,7 @@ def _get_circuit(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Creates a raw quantum circuit based on the specified benchmark.
 
@@ -163,7 +165,7 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -174,7 +176,7 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -184,7 +186,7 @@ def get_benchmark_alg(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Return an algorithm-level benchmark circuit.
 
@@ -212,7 +214,7 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -224,7 +226,7 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -235,7 +237,7 @@ def get_benchmark_indep(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Return a target-independent benchmark circuit.
 
@@ -268,7 +270,7 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -281,7 +283,7 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -293,7 +295,7 @@ def get_benchmark_native_gates(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Return a benchmark compiled to the target's native gate set.
 
@@ -355,7 +357,7 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -368,7 +370,7 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -380,7 +382,7 @@ def get_benchmark_mapped(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Return a benchmark fully compiled and qubit-mapped to a device.
 
@@ -426,7 +428,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -440,7 +442,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit: ...
 
 
@@ -453,7 +455,7 @@ def get_benchmark(
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> QuantumCircuit:
     """Returns one benchmark as a qiskit.QuantumCircuit object.
 
