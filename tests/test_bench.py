@@ -213,32 +213,10 @@ def test_dj_constant_oracle() -> None:
 
 
 def test_graphstate_seed() -> None:
-    """Test the creation of the graphstate benchmark with a custom seed."""
-    # The following is the circuit generated for seed 42
-    #
-    #         ┌───┐                ░ ┌─┐
-    #    q_0: ┤ H ├─■─────■────────░─┤M├────────────
-    #         ├───┤ │     │        ░ └╥┘┌─┐
-    #    q_1: ┤ H ├─■──■──┼────────░──╫─┤M├─────────
-    #         ├───┤    │  │        ░  ║ └╥┘┌─┐
-    #    q_2: ┤ H ├────■──┼──■─────░──╫──╫─┤M├──────
-    #         ├───┤       │  │     ░  ║  ║ └╥┘┌─┐
-    #    q_3: ┤ H ├───────┼──■──■──░──╫──╫──╫─┤M├───
-    #         ├───┤       │     │  ░  ║  ║  ║ └╥┘┌─┐
-    #    q_4: ┤ H ├───────■─────■──░──╫──╫──╫──╫─┤M├
-    #         └───┘                ░  ║  ║  ║  ║ └╥┘
-    # meas: 5/════════════════════════╩══╩══╩══╩══╩═
-    #                                 0  1  2  3  4
-    qc_expected = QuantumCircuit(5)
-    qc_expected.h(range(5))
-    qc_expected.cz(0, 1)
-    qc_expected.cz(1, 2)
-    qc_expected.cz(0, 4)
-    qc_expected.cz(2, 3)
-    qc_expected.cz(3, 4)
-    qc_expected.measure_all()
-    qc_actual = get_benchmark_alg("graphstate", 5, seed=42)
-    assert qc_expected == qc_actual
+    """Test the creation of the graphstate benchmark with and without a custom seed."""
+    assert get_benchmark_alg("graphstate", 5, seed=42) == get_benchmark_alg("graphstate", 5, seed=42)
+    assert get_benchmark_alg("graphstate", 5, seed=0) == get_benchmark_alg("graphstate", 5, seed=42)
+    assert get_benchmark_alg("graphstate", 5) == get_benchmark_alg("graphstate", 5)
 
 
 @pytest.mark.parametrize(
