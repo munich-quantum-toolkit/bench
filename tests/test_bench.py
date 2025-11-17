@@ -37,6 +37,9 @@ if TYPE_CHECKING:  # pragma: no cover
     import types
     from collections.abc import Callable
 
+    from mqt.bench.configuration_options import ConfigurationOptions
+
+import mqt.bench.configuration_options
 from mqt.bench.benchmark_generation import (
     BenchmarkLevel,
     get_benchmark,
@@ -1087,3 +1090,20 @@ def test_benchmarks_with_parameters(benchmark: types.ModuleType) -> None:
         res_mapped = get_benchmark_mapped(qc, None, device, 0, random_parameters=False)
         assert res_mapped
         assert len(res_mapped.parameters) > 0, f"Benchmark {benchmark} should have parameters on the mapped level."
+
+
+def test_configuration_options() -> None:
+    """Test ConfigurationOptions TypedDict structure and usage."""
+    assert "ConfigurationOptions" in mqt.bench.configuration_options.__all__
+
+    # Test valid configurations
+    valid_config: ConfigurationOptions = {"seed": 42}
+    assert valid_config["seed"] == 42
+
+    # Test with None seed
+    config_with_none: ConfigurationOptions = {"seed": None}
+    assert config_with_none["seed"] is None
+
+    # Test empty dict (all fields are optional due to total=False)
+    empty_config: ConfigurationOptions = {}
+    assert len(empty_config) == 0
