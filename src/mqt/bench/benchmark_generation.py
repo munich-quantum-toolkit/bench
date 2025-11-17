@@ -23,12 +23,18 @@ from typing_extensions import assert_never
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
-from .configuration_options import ConfigurationOptions
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Any
+    import sys
+
+    if sys.version_info >= (3, 11):
+        from typing import Unpack
+    else:
+        from typing_extensions import Unpack
 
     from qiskit.transpiler import Target
+
+    from .configuration_options import ConfigurationOptions
 
 
 class BenchmarkLevel(Enum):

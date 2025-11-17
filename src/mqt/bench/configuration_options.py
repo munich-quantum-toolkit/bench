@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-
 __all__ = ["ConfigurationOptions"]
 
 
@@ -23,4 +22,4 @@ class ConfigurationOptions(TypedDict, total=False):
     The values are the values of the configuration options.
     """
 
-    seed: None | int
+    seed: int | None
