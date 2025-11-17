@@ -16,10 +16,12 @@ __all__ = ["ConfigurationOptions"]
 
 
 class ConfigurationOptions(TypedDict, total=False):
-    """A dictionary of configuration options.
+    """Configuration options for benchmark generation.
 
-    The keys of this dictionary are the names of the configuration options.
-    The values are the values of the configuration options.
+    All fields are optional. Currently supported options:
+
+    Attributes:
+        seed: Random seed for deterministic benchmark generation (None for random behavior).
     """
 
     seed: int | None
