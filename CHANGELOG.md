@@ -89,7 +89,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
-[#731]: https://github.com/munich-quantum-toolkit/bench/pull/709
+[#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
 [#671]: https://github.com/munich-quantum-toolkit/bench/pull/671
