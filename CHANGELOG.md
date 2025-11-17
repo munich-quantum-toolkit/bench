@@ -17,6 +17,10 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
 
 - 👷 Enable testing on Python 3.14 ([#705]) ([**@denialhaag**])
 
+### Changed
+
+- ✨ Expose seed of graphstate generation ([#731]) ([**@ystade**])
+
 ### Fixed
 
 - 🐛 Fix layout preservation and ensure native gate compliance for mirror circuit generation ([#709]) ([**@soroushfathi**], [**@burgholzer**])
@@ -85,6 +89,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#731]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
 [#671]: https://github.com/munich-quantum-toolkit/bench/pull/671
@@ -121,6 +126,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- Contributor -->
 
 [**@burgholzer**]: https://github.com/burgholzer
+[**@ystade**]: https://github.com/ystade
 [**@simon1hofmann**]: https://github.com/simon1hofmann
 [**@nquetschlich**]: https://github.com/nquetschlich
 [**@fkiwit**]: https://github.com/fkiwit
