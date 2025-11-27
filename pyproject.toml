@@ -79,7 +79,7 @@ dev = [
     {include-group = "docs"},
     "nox>=2025.11.12",
     "ruff>=0.14.6",
-    "ty>=0.0.1a27",
+    "ty==0.0.1a28",
 ]
 
 [project.scripts]
