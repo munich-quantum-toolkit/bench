@@ -75,8 +75,11 @@ docs = [
     "qiskit[visualization]>=1.2.1",
 ]
 dev = [
-  {include-group = "test"},
-  {include-group = "docs"},
+    {include-group = "test"},
+    {include-group = "docs"},
+    "nox>=2025.11.12",
+    "ruff>=0.14.6",
+    "ty>=0.0.1a27",
 ]
 
 [project.scripts]
