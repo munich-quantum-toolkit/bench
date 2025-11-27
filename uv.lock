@@ -1478,26 +1478,13 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "furo" },
-    { name = "myst-nb" },
     { name = "nox" },
-    { name = "openqasm-pygments" },
     { name = "pytest" },
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
     { name = "pytest-sugar" },
     { name = "pytest-xdist" },
-    { name = "qiskit", extra = ["visualization"] },
     { name = "ruff" },
-    { name = "setuptools-scm" },
-    { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "sphinx-autoapi" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-design" },
-    { name = "sphinxcontrib-bibtex" },
-    { name = "sphinxcontrib-svg2pdfconverter" },
-    { name = "sphinxext-opengraph" },
     { name = "ty" },
 ]
 docs = [
@@ -1538,26 +1525,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "furo", specifier = ">=2025.9.25" },
-    { name = "myst-nb", specifier = ">=1.3.0" },
     { name = "nox", specifier = ">=2025.11.12" },
-    { name = "openqasm-pygments", specifier = ">=0.2.0" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-sugar", specifier = ">=1.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
-    { name = "qiskit", extras = ["visualization"], specifier = ">=1.2.1" },
     { name = "ruff", specifier = ">=0.14.6" },
-    { name = "setuptools-scm", specifier = ">=9.2.2" },
-    { name = "sphinx", specifier = ">=8.1.3" },
-    { name = "sphinx", marker = "python_full_version >= '3.11'", specifier = ">=8.2.3" },
-    { name = "sphinx-autoapi", specifier = ">=3.6.0" },
-    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
-    { name = "sphinx-design", specifier = ">=0.6.1" },
-    { name = "sphinxcontrib-bibtex", specifier = ">=2.6.5" },
-    { name = "sphinxcontrib-svg2pdfconverter", specifier = ">=1.3.0" },
-    { name = "sphinxext-opengraph", specifier = ">=0.13.0" },
     { name = "ty", specifier = "==0.0.1a28" },
 ]
 docs = [
