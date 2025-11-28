@@ -379,28 +379,21 @@ def test_get_benchmark_faulty_parameters() -> None:
         get_benchmark(benchmark="ghz", level=BenchmarkLevel.MAPPED, circuit_size=3, target=None, opt_level=0)
 
 
-getters = {
-    "get_benchmark_alg_1": get_benchmark_alg,
-    "get_benchmark_indep_1": get_benchmark_indep,
-    "get_benchmark_native_gates_1": functools.partial(
-        get_benchmark_native_gates, target=get_target_for_gateset("ionq_forte", 3)
-    ),
-    "get_benchmark_mapped_1": functools.partial(get_benchmark_mapped, target=get_device("ionq_forte_36")),
-    "get_benchmark_alg_2": functools.partial(get_benchmark, level=BenchmarkLevel.ALG),
-    "get_benchmark_indep_2": functools.partial(get_benchmark, level=BenchmarkLevel.INDEP),
-    "get_benchmark_native_gates_2": functools.partial(
-        get_benchmark, level=BenchmarkLevel.NATIVEGATES, target=get_target_for_gateset("ionq_forte", 3)
-    ),
-    "get_benchmark_mapped_2": functools.partial(
-        get_benchmark, level=BenchmarkLevel.MAPPED, target=get_device("ionq_forte_36")
-    ),
-}
-
-
 @pytest.mark.parametrize(
     "getter",
-    list(getters.values()),
-    ids=list(getters.keys()),
+    [
+        get_benchmark_alg,
+        get_benchmark_indep,
+        functools.partial(get_benchmark_native_gates, target=get_target_for_gateset("ionq_forte", 3)),
+        functools.partial(get_benchmark_mapped, target=get_device("ionq_forte_36")),
+        functools.partial(get_benchmark, level=BenchmarkLevel.ALG),
+        functools.partial(get_benchmark, level=BenchmarkLevel.INDEP),
+        functools.partial(
+            get_benchmark, level=BenchmarkLevel.NATIVEGATES, target=get_target_for_gateset("ionq_forte", 3)
+        ),
+        functools.partial(get_benchmark, level=BenchmarkLevel.MAPPED, target=get_device("ionq_forte_36")),
+    ],
+    ids=lambda fn: fn.func.__name__ if isinstance(fn, functools.partial) else fn.__name__,
 )
 def test_invalid_circuit_size_combinations(getter: Callable[..., QuantumCircuit]) -> None:
     """All get_benchmark_* helpers must reject the two illegal argument combos."""
