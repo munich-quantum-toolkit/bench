@@ -393,7 +393,6 @@ def test_get_benchmark_faulty_parameters() -> None:
         ),
         functools.partial(get_benchmark, level=BenchmarkLevel.MAPPED, target=get_device("ionq_forte_36")),
     ],
-    ids=lambda fn: fn.func.__name__ if isinstance(fn, functools.partial) else fn.__name__,
 )
 def test_invalid_circuit_size_combinations(getter: Callable[..., QuantumCircuit]) -> None:
     """All get_benchmark_* helpers must reject the two illegal argument combos."""
