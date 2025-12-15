@@ -102,6 +102,10 @@ source = "vcs"
 version-file = "src/mqt/bench/_version.py"
 
 
+[tool.check-sdist]
+sdist-only = ["src/mqt/bench/_version.py"]
+
+
 [tool.pytest]
 minversion = "9.0"
 testpaths = ["tests"]
