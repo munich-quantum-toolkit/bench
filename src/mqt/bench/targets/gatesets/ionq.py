@@ -63,7 +63,7 @@ def get_ionq_aria_gateset() -> list[str]:
     return ["rz", "gpi", "gpi2", "ms", "measure"]
 
 
-class GPIGate(Gate):  # type: ignore[misc]
+class GPIGate(Gate):
     r"""Single-qubit GPI gate.
 
     **Circuit symbol:**
@@ -96,7 +96,7 @@ class GPIGate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-class GPI2Gate(Gate):  # type: ignore[misc]
+class GPI2Gate(Gate):
     r"""Single-qubit GPI2 gate.
 
     **Circuit symbol:**
@@ -132,7 +132,7 @@ class GPI2Gate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-class MSGate(Gate):  # type: ignore[misc]
+class MSGate(Gate):
     r"""Entangling 2-Qubit MS gate.
 
     **Circuit symbol:**
@@ -204,7 +204,7 @@ class MSGate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-class ZZGate(Gate):  # type: ignore[misc]
+class ZZGate(Gate):
     r"""Two-qubit ZZ-rotation gate.
 
     **Circuit Symbol:**

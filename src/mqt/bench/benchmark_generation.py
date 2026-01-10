@@ -134,7 +134,7 @@ def _create_mirror_circuit(
             routing_method=None,
             seed_transpiler=10,
         )
-        if layout is not None:
+        if layout is not None and target_qc.layout is not None:
             target_qc.layout.initial_layout = layout
 
     # Add final measurements to all active qubits
@@ -186,6 +186,17 @@ def get_benchmark_alg(
 ) -> QuantumCircuit: ...
 
 
+@overload
+def get_benchmark_alg(
+    benchmark: str | QuantumCircuit,
+    circuit_size: int | None = None,
+    *,
+    generate_mirror_circuit: bool = False,
+    random_parameters: bool = True,
+    **kwargs: Unpack[ConfigurationOptions],
+) -> QuantumCircuit: ...
+
+
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
@@ -228,6 +239,18 @@ def get_benchmark_indep(
 def get_benchmark_indep(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
+    opt_level: int = 2,
+    *,
+    generate_mirror_circuit: bool = False,
+    random_parameters: bool = True,
+    **kwargs: Unpack[ConfigurationOptions],
+) -> QuantumCircuit: ...
+
+
+@overload
+def get_benchmark_indep(
+    benchmark: str | QuantumCircuit,
+    circuit_size: int | None = None,
     opt_level: int = 2,
     *,
     generate_mirror_circuit: bool = False,
@@ -293,6 +316,19 @@ def get_benchmark_native_gates(
 ) -> QuantumCircuit: ...
 
 
+@overload
+def get_benchmark_native_gates(
+    benchmark: str | QuantumCircuit,
+    circuit_size: int | None,
+    target: Target,
+    opt_level: int = 2,
+    *,
+    generate_mirror_circuit: bool = False,
+    random_parameters: bool = True,
+    **kwargs: Unpack[ConfigurationOptions],
+) -> QuantumCircuit: ...
+
+
 def get_benchmark_native_gates(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None,
@@ -336,7 +372,7 @@ def get_benchmark_native_gates(
         # Synthesize the rotations to Clifford+T gates
         # Measurements are removed and added back after the synthesis to avoid errors in the Solovay-Kitaev pass
         pm = PassManager(SolovayKitaev())
-        circuit = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))
+        circuit = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))  # ty:ignore[invalid-argument-type]
         circuit.measure_all()
 
     if "rigetti" in target.description:
@@ -371,6 +407,19 @@ def get_benchmark_mapped(
 def get_benchmark_mapped(
     benchmark: QuantumCircuit,
     circuit_size: None,
+    target: Target,
+    opt_level: int = 2,
+    *,
+    generate_mirror_circuit: bool = False,
+    random_parameters: bool = True,
+    **kwargs: Unpack[ConfigurationOptions],
+) -> QuantumCircuit: ...
+
+
+@overload
+def get_benchmark_mapped(
+    benchmark: str | QuantumCircuit,
+    circuit_size: int | None,
     target: Target,
     opt_level: int = 2,
     *,
@@ -443,6 +492,20 @@ def get_benchmark(
     benchmark: QuantumCircuit,
     level: BenchmarkLevel,
     circuit_size: None,
+    target: Target | None = None,
+    opt_level: int = 2,
+    *,
+    generate_mirror_circuit: bool = False,
+    random_parameters: bool = True,
+    **kwargs: Unpack[ConfigurationOptions],
+) -> QuantumCircuit: ...
+
+
+@overload
+def get_benchmark(
+    benchmark: str | QuantumCircuit,
+    level: BenchmarkLevel,
+    circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
     *,

@@ -29,7 +29,7 @@ def get_rigetti_gateset() -> list[str]:
     return ["rxpi", "rxpi2", "rxpi2dg", "rz", "iswap", "measure"]
 
 
-class RXPIGate(Gate):  # type: ignore[misc]
+class RXPIGate(Gate):
     r"""Single-qubit RX(π) gate.
 
     **Circuit symbol:**
@@ -61,7 +61,7 @@ class RXPIGate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-class RXPI2Gate(Gate):  # type: ignore[misc]
+class RXPI2Gate(Gate):
     r"""Single-qubit RX(π/2) gate.
 
     **Circuit symbol:**
@@ -93,7 +93,7 @@ class RXPI2Gate(Gate):  # type: ignore[misc]
         self.definition = qc
 
 
-class RXPI2DgGate(Gate):  # type: ignore[misc]
+class RXPI2DgGate(Gate):
     r"""Single-qubit RX(-π/2) gate.
 
     **Circuit symbol:**

@@ -14,7 +14,8 @@ import copy
 import importlib
 import importlib.resources as ir
 from functools import cache
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -23,15 +24,13 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from ._registry import gateset_names, get_gateset_by_name, register_gateset
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from qiskit.circuit import Gate
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
     path.stem
-    for entry in ir.files(__package__).iterdir()
-    if (path := cast("Path", entry)).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    for entry in ir.files(__name__).iterdir()
+    if (path := Path(str(entry))).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
 }
 
 _IMPORTED_MODULES: set[str] = set()
@@ -105,13 +104,13 @@ def _lazy_custom_gates() -> dict[str, Gate]:
     from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # noqa: PLC0415
 
     return {
-        "gpi": lambda: GPIGate(Parameter("alpha")),
-        "gpi2": lambda: GPI2Gate(Parameter("alpha")),
-        "ms": lambda: MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
-        "zz": lambda: ZZGate(Parameter("alpha")),
-        "rxpi": RXPIGate,
-        "rxpi2": RXPI2Gate,
-        "rxpi2dg": RXPI2DgGate,
+        "gpi": GPIGate(Parameter("alpha")),
+        "gpi2": GPI2Gate(Parameter("alpha")),
+        "ms": MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
+        "zz": ZZGate(Parameter("alpha")),
+        "rxpi": RXPIGate(),
+        "rxpi2": RXPI2Gate(),
+        "rxpi2dg": RXPI2DgGate(),
     }
 
 
@@ -136,7 +135,7 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
         if gate_name not in custom_factory:
             msg = f"Gate '{gate_name}' not found in available custom gates."
             raise ValueError(msg)
-        target.add_instruction(custom_factory[gate_name]())
+        target.add_instruction(custom_factory[gate_name])
 
     return target
 

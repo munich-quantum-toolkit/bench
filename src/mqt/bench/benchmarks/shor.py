@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from numpy.typing import NDArray
-    from qiskit.circuit import Instruction
 import math
 
 import numpy as np
@@ -154,7 +153,8 @@ class Shor:
         circuit.x(b_qreg[-1])
         circuit.compose(qft, b_qreg, inplace=True)
 
-        return circuit.compose(cc_phi_add_a, [*ctrl_qreg, *b_qreg])
+        circuit.compose(cc_phi_add_a, [*ctrl_qreg, *b_qreg], inplace=True)
+        return circuit
 
     def _controlled_multiple_mod_n(
         self,
@@ -180,7 +180,7 @@ class Shor:
         def append_adder(adder: QuantumCircuit, constant: int, idx: int) -> None:
             partial_constant = (pow(2, idx, to_be_factored_number) * constant) % to_be_factored_number
             angles = self._get_angles(partial_constant, num_bits_necessary + 1)
-            bound = adder.assign_parameters({angle_params: angles})
+            bound = adder.assign_parameters(angles)
             circuit.append(bound, [*ctrl_qreg, x_qreg[idx], *b_qreg, *flag_qreg])
 
         circuit.compose(qft, b_qreg, inplace=True)
@@ -203,10 +203,11 @@ class Shor:
         for i in reversed(range(num_bits_necessary)):
             append_adder(modulo_adder_inv, a_inv, i)
 
-        return circuit.compose(iqft, b_qreg)
+        circuit.compose(iqft, b_qreg, inplace=True)
+        return circuit
 
-    def _power_mod_n(self, num_bits_necessary: int, to_be_factored_number: int, a: int) -> Instruction:
-        """Implements modular exponentiation a^x as an instruction."""
+    def _power_mod_n(self, num_bits_necessary: int, to_be_factored_number: int, a: int) -> QuantumCircuit:
+        """Implements modular exponentiation a^x as a quantum circuit."""
         up_qreg = QuantumRegister(2 * num_bits_necessary, name="up")
         down_qreg = QuantumRegister(num_bits_necessary, name="down")
         aux_qreg = QuantumRegister(num_bits_necessary + 2, name="aux")
@@ -296,4 +297,5 @@ class Shor:
 
         # Apply inverse QFT
         iqft = QFTGate(len(up_qreg)).inverse()
-        return circuit.compose(iqft, up_qreg)
+        circuit.compose(iqft, up_qreg, inplace=True)
+        return circuit
