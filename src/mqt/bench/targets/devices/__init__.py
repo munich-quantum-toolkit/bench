@@ -14,19 +14,18 @@ import copy
 import importlib
 import importlib.resources as ir
 from functools import cache
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ._registry import device_names, get_device_by_name, register_device
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
     path.stem
-    for entry in ir.files(__package__).iterdir()
-    if (path := cast("Path", entry)).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    for entry in ir.files(__name__).iterdir()
+    if (path := Path(str(entry))).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
 }
 
 _IMPORTED_MODULES: set[str] = set()

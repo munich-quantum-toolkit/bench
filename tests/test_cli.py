@@ -21,7 +21,7 @@ from mqt.bench.benchmark_generation import BenchmarkLevel, get_benchmark
 from mqt.bench.targets import get_device, get_target_for_gateset
 
 if TYPE_CHECKING:
-    from pytest_console_scripts import ScriptResult, ScriptRunner
+    from pytest_console_scripts import RunResult, ScriptRunner
 
 
 # fmt: off
@@ -131,7 +131,7 @@ def test_cli_errors(args: list[str], expected_output: str, script_runner: Script
     assert expected_output in ret.stderr
 
 
-def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> ScriptResult:
+def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> RunResult:
     """Run *mqt-bench* with default GHZ/ALG/5 settings plus *extra_args*."""
     cmd = ["mqt-bench", "--level", "alg", "--algorithm", "ghz", "--num-qubits", "5", *extra_args]
     return script_runner.run(cmd)

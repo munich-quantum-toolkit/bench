@@ -10,13 +10,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
 from ._registry import register_benchmark
 
+if TYPE_CHECKING:
+    from qiskit.circuit.gate import Gate
 
-def dj_oracle(case: str, n: int) -> QuantumCircuit:
+
+def dj_oracle(case: str, n: int) -> Gate:
     """Returns a quantum circuit implementing the Deutsch-Josza oracle."""
     # plus one output qubit
     oracle_qc = QuantumCircuit(n + 1)
@@ -49,7 +54,7 @@ def dj_oracle(case: str, n: int) -> QuantumCircuit:
     return oracle_gate
 
 
-def dj_algorithm(oracle: QuantumCircuit, n: int) -> QuantumCircuit:
+def dj_algorithm(oracle: Gate, n: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Deutsch-Josza algorithm."""
     dj_circuit = QuantumCircuit(n + 1, n)
 

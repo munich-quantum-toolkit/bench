@@ -15,12 +15,12 @@ from enum import Enum
 from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
-from typing import TYPE_CHECKING, TextIO, overload
+from typing import TYPE_CHECKING, overload
 
-from qiskit import __version__ as __qiskit_version__
 from qiskit.qasm2 import dump as dump2
 from qiskit.qasm3 import dump as dump3
 from qiskit.qpy import dump as dump_qpy
+from qiskit.version import __version__ as __qiskit_version__
 
 from .benchmark_generation import BenchmarkLevel
 
@@ -117,7 +117,7 @@ def write_circuit(
 @overload
 def write_circuit(
     qc: QuantumCircuit,
-    destination: TextIO | BinaryIO,
+    destination: TextIOBase | BinaryIO,
     level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
@@ -127,7 +127,7 @@ def write_circuit(
 
 def write_circuit(
     qc: QuantumCircuit,
-    destination: Path | TextIO | BinaryIO,
+    destination: Path | TextIOBase | BinaryIO,
     level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
@@ -147,14 +147,9 @@ def write_circuit(
     header = generate_header(fmt, level, target)
 
     if not isinstance(destination, Path):
-        is_text = isinstance(destination, TextIOBase)
-
         if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
-            if not is_text:
-                msg = "QASM output requires a *text* stream."
-                raise MQTBenchExporterError(msg)
+            assert isinstance(destination, TextIOBase), "QASM output requires a *text* stream."
             try:
-                assert isinstance(destination, TextIOBase)
                 destination.write(header)
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
             except Exception as exc:  # pragma: no cover - unforeseen I/O
@@ -163,9 +158,7 @@ def write_circuit(
             return
 
         if fmt is OutputFormat.QPY:
-            if is_text:
-                msg = "QPY output requires a *binary* stream."
-                raise MQTBenchExporterError(msg)
+            assert not isinstance(destination, TextIOBase), "QPY output requires a *binary* stream."
             try:
                 dump_qpy(_attach_metadata(qc, header), destination)
             except Exception as exc:
