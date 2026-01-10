@@ -105,7 +105,7 @@ repos:
           - pytest
 
   # Check for spelling
-  - repo: https://github.com/crate-ci/typos
+  - repo: https://github.com/adhtruong/mirrors-typos
     rev: v1.42.0
     hooks:
       - id: typos
