@@ -77,6 +77,7 @@ docs = [
 dev = [
     {include-group = "test"},
     "nox>=2025.11.12",
+    "prek>=0.2.27",
 ]
 
 [project.scripts]
@@ -126,6 +127,8 @@ filterwarnings = [
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
     # Qiskit-internal warning
     'ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*',
+    # Qiskit 2.3 deprecations
+    'ignore:.*argument ``annotated`` is deprecated as of Qiskit 2.3.*:DeprecationWarning:',
 ]
 
 [tool.coverage]
@@ -214,6 +217,7 @@ ignore = [
     "E501",    # Line too long (Black is enough)
     "PLR",     # Design related pylint codes
     "S101",    # Use of assert detected
+    "RUF067",  # `__init__` module should only contain docstrings and re-exports (we heavily use it for package initialization)
 ]
 flake8-unused-arguments.ignore-variadic-names = true
 future-annotations = true
@@ -261,4 +265,7 @@ benchs = "benchs"
 
 
 [tool.repo-review]
-ignore = ["GH200"]
+ignore = [
+    "GH200", # We use Renovate instead of Dependabot
+    "PC160", # We use a mirror of crate-ci/typos
+]

@@ -66,13 +66,13 @@ repos:
 
   # Ensure uv lock file is up-to-date
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.21
+    rev: 0.9.24
     hooks:
       - id: uv-lock
 
   # Python linting and formatting using ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.10
+    rev: v0.14.11
     hooks:
       - id: ruff-check
       - id: ruff-format
@@ -105,7 +105,7 @@ repos:
           - pytest
 
   # Check for spelling
-  - repo: https://github.com/crate-ci/typos
+  - repo: https://github.com/adhtruong/mirrors-typos
     rev: v1.42.0
     hooks:
       - id: typos
@@ -137,7 +137,7 @@ repos:
 
   # Check the pyproject.toml file
   - repo: https://github.com/henryiii/validate-pyproject-schema-store
-    rev: 2026.01.02
+    rev: 2026.01.10
     hooks:
       - id: validate-pyproject
 
