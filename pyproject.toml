@@ -214,6 +214,7 @@ ignore = [
     "E501",    # Line too long (Black is enough)
     "PLR",     # Design related pylint codes
     "S101",    # Use of assert detected
+    "RUF067",  # `__init__` module should only contain docstrings and re-exports (we heavily use it for package initialization)
 ]
 flake8-unused-arguments.ignore-variadic-names = true
 future-annotations = true
