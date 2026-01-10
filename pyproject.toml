@@ -126,6 +126,8 @@ filterwarnings = [
     'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
     # Qiskit-internal warning
     'ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*',
+    # Qiskit 2.3 deprecations
+    'ignore:.*argument ``annotated`` is deprecated as of Qiskit 2.3.*:DeprecationWarning:',
 ]
 
 [tool.coverage]
