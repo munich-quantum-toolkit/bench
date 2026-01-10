@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- 🏷️ Replace `mypy` with `ty` for static type checking ([#794]) ([**@burgholzer**])
+
 ## [2.1.0] - 2025-10-18
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
@@ -89,6 +93,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#794]: https://github.com/munich-quantum-toolkit/bench/pull/794
 [#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
