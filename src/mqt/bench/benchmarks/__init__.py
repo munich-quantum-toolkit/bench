@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 
 _DISCOVERED_BENCHMARKS: set[str] = {
-    entry.name[:-3]
+    entry.name.removesuffix(".py")
     for entry in ir.files(__name__).iterdir()
     if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
