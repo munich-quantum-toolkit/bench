@@ -13,7 +13,6 @@ from __future__ import annotations
 import importlib
 import importlib.resources as ir
 from functools import cache
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ._registry import (
@@ -31,9 +30,9 @@ if TYPE_CHECKING:
 
 
 _DISCOVERED_BENCHMARKS: set[str] = {
-    path.stem
+    entry.name[:-3]
     for entry in ir.files(__name__).iterdir()
-    if (path := Path(str(entry))).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
 
 _IMPORTED_BENCHMARKS: set[str] = set()
@@ -70,7 +69,7 @@ def _ensure_loaded(benchmark_name: str) -> None:
         raise ValueError(msg)
 
     if benchmark_name not in _IMPORTED_BENCHMARKS:
-        importlib.import_module(f"{__package__}.{benchmark_name}")
+        importlib.import_module(f"{__name__}.{benchmark_name}")
         _IMPORTED_BENCHMARKS.add(benchmark_name)
 
 

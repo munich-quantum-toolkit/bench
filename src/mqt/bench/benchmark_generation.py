@@ -372,7 +372,7 @@ def get_benchmark_native_gates(
         # Synthesize the rotations to Clifford+T gates
         # Measurements are removed and added back after the synthesis to avoid errors in the Solovay-Kitaev pass
         pm = PassManager(SolovayKitaev())
-        circuit = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))  # ty:ignore[invalid-argument-type]
+        circuit = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))  # ty: ignore[invalid-argument-type]
         circuit.measure_all()
 
     if "rigetti" in target.description:

@@ -275,7 +275,7 @@ def test_get_benchmark(
     level: BenchmarkLevel,
     circuit_size: int | None,
     target: Target | None,
-    opt_level: int,
+    opt_level: int | None,
 ) -> None:
     """Test the creation of the benchmarks using the get_benchmark method."""
     qc = get_benchmark(
@@ -738,11 +738,11 @@ def test_stream_mode_mismatch_raises() -> None:
     qc = QuantumCircuit(1)
 
     # Binary stream + QASM → error
-    with pytest.raises(AssertionError):
+    with pytest.raises(MQTBenchExporterError):
         write_circuit(qc, io.BytesIO(), BenchmarkLevel.INDEP, fmt=OutputFormat.QASM3)
 
     # Text stream + QPY → error
-    with pytest.raises(AssertionError):
+    with pytest.raises(MQTBenchExporterError):
         write_circuit(qc, io.StringIO(), BenchmarkLevel.INDEP, fmt=OutputFormat.QPY)
 
 

@@ -180,7 +180,7 @@ class Shor:
         def append_adder(adder: QuantumCircuit, constant: int, idx: int) -> None:
             partial_constant = (pow(2, idx, to_be_factored_number) * constant) % to_be_factored_number
             angles = self._get_angles(partial_constant, num_bits_necessary + 1)
-            bound = adder.assign_parameters(angles)
+            bound = adder.assign_parameters({angle_params: angles})
             circuit.append(bound, [*ctrl_qreg, x_qreg[idx], *b_qreg, *flag_qreg])
 
         circuit.compose(qft, b_qreg, inplace=True)

@@ -148,7 +148,9 @@ def write_circuit(
 
     if not isinstance(destination, Path):
         if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
-            assert isinstance(destination, TextIOBase), "QASM output requires a *text* stream."
+            if not isinstance(destination, TextIOBase):
+                msg = "QASM output requires a *text* stream."
+                raise MQTBenchExporterError(msg)
             try:
                 destination.write(header)
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
@@ -158,7 +160,9 @@ def write_circuit(
             return
 
         if fmt is OutputFormat.QPY:
-            assert not isinstance(destination, TextIOBase), "QPY output requires a *binary* stream."
+            if isinstance(destination, TextIOBase):
+                msg = "QPY output requires a *binary* stream."
+                raise MQTBenchExporterError(msg)
             try:
                 dump_qpy(_attach_metadata(qc, header), destination)
             except Exception as exc:
