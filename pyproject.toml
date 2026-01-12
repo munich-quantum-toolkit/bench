@@ -148,21 +148,6 @@ skip_empty = true
 precision = 1
 
 
-[tool.mypy]
-mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
-files = ["src", "tests"]
-python_version = "3.10"
-strict = true
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-warn_unreachable = true
-explicit_package_bases = true
-pretty = true
-
-[[tool.mypy.overrides]]
-module = ["qiskit.*", "networkx.*", "pandas.*", "qiskit_ibm_runtime.*", "pytest_console_scripts.*"]
-ignore_missing_imports = true
-
-
 [tool.ruff]
 line-length = 120
 namespace-packages = ["mqt"]
@@ -268,6 +253,7 @@ benchs = "benchs"
 [tool.repo-review]
 ignore = [
     "GH200", # We use Renovate instead of Dependabot
+    "MY100", # We use ty instead of mypy
     "PC140", # We use ty instead of mypy
     "PC160", # We use a mirror of crate-ci/typos
 ]
