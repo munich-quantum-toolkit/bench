@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import Parameter
+from qiskit.circuit import IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -224,6 +224,25 @@ def test_graphstate_seed() -> None:
     qc_no_seed = get_benchmark_alg("graphstate", 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == "graphstate"
+
+
+def test_shors_nine_qubit_code_has_conditional_operations() -> None:
+    """Test that the Shor's 9-qubit code circuit contains conditional operations for error correction."""
+    qc = create_circuit("shors_nine_qubit_code", 17)
+
+    # Check quantum registers: logical (9) + bit-flip syndrome (6) + phase-flip syndrome (2)
+    assert len(qc.qregs) == 3
+    qreg_sizes = {qreg.name: qreg.size for qreg in qc.qregs}
+    assert qreg_sizes == {"q": 9, "bs": 6, "ps": 2}
+
+    # Check classical registers: bit-flip syndrome (6) + phase-flip syndrome (2) + measure_all (17)
+    assert len(qc.cregs) == 3
+    creg_sizes = {creg.name: creg.size for creg in qc.cregs}
+    assert creg_sizes == {"bsm": 6, "psm": 2, "meas": 17}
+
+    # Check number of if-else operations: 9 bit-flip corrections + 3 phase-flip corrections
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    assert if_else_count == 12, f"Expected 12 conditional operations, found {if_else_count}"
 
 
 @pytest.mark.parametrize(
