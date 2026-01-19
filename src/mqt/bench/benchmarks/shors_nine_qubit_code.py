@@ -36,7 +36,7 @@ def _get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
 
 
 def _get_three_qubit_bit_flip_syndrome_extraction_circuit() -> QuantumCircuit:
-    """Error in qubit 0 gives syndrome 01, qubit 1 10, qubit 2 11."""
+    """Error in qubit 0 -> syndrome 01, qubit 1 -> 10, qubit 2 -> 11."""
     out = QuantumCircuit(5)
     out.cx(0, 3)
     out.cx(1, 4)
@@ -66,9 +66,10 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
     return out
 
 
-def _apply_nine_qubit_shors_code_bit_flip_correction(qc: QuantumCircuit) -> None:
-    clreg = qc.cregs[0]
-    qc.measure(qc.qubits[9 : 9 + 6], clreg)
+def _apply_nine_qubit_shors_code_bit_flip_correction(
+    qc: QuantumCircuit, bit_flip_syndrome_measurement: ClassicalRegister
+) -> None:
+    qc.measure(qc.qubits[9 : 9 + 6], bit_flip_syndrome_measurement)
     for index, syndrome in enumerate([
         0b000001,
         0b000010,
@@ -80,18 +81,19 @@ def _apply_nine_qubit_shors_code_bit_flip_correction(qc: QuantumCircuit) -> None
         0b100000,
         0b110000,
     ]):
-        with qc.if_test((clreg, syndrome)):
+        with qc.if_test((bit_flip_syndrome_measurement, syndrome)):
             qc.x(index)
 
 
-def _apply_nine_qubit_shors_code_phase_flip_correction(qc: QuantumCircuit) -> None:
-    clreg = qc.cregs[-1]
-    qc.measure(qc.qubits[-2:], clreg)
-    with qc.if_test((clreg, 0b01)):
+def _apply_nine_qubit_shors_code_phase_flip_correction(
+    qc: QuantumCircuit, phase_flip_syndrome_measurement: ClassicalRegister
+) -> None:
+    qc.measure(qc.qubits[-2:], phase_flip_syndrome_measurement)
+    with qc.if_test((phase_flip_syndrome_measurement, 0b01)):
         qc.z(0)
-    with qc.if_test((clreg, 0b10)):
+    with qc.if_test((phase_flip_syndrome_measurement, 0b10)):
         qc.z(3)
-    with qc.if_test((clreg, 0b11)):
+    with qc.if_test((phase_flip_syndrome_measurement, 0b11)):
         qc.z(6)
 
 
@@ -107,7 +109,7 @@ def _get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
 
 @register_benchmark("shors_nine_qubit_code", description="Shor's 9 Qubit Code")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm.
+    """Returns a quantum circuit implementing Shor's 9 Qubit Code.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit (must be a multiple of 17)
@@ -115,7 +117,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     Returns:
         QuantumCircuit: a quantum circuit implementing Shor's 9 Qubit Code
     """
-    if not num_qubits % 17:
+    if num_qubits % 17:
         msg = "num_qubits must be divisible by 17"
         raise ValueError(msg)
     # TODO implement multiples
@@ -168,9 +170,9 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     )
     qc.barrier()
     # == Error correction ==
-    _apply_nine_qubit_shors_code_bit_flip_correction(qc)
+    _apply_nine_qubit_shors_code_bit_flip_correction(qc, bit_flip_syndrome_measurement)
     qc.barrier()
-    _apply_nine_qubit_shors_code_phase_flip_correction(qc)
+    _apply_nine_qubit_shors_code_phase_flip_correction(qc, phase_flip_syndrome_measurement)
     qc.barrier()
     # == Decoding ==
     qc.compose(_get_three_qubit_bit_flip_encoding_decoding_circuit(), qubits=logical_qubit[:3], inplace=True)
@@ -182,5 +184,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         inplace=True,
     )
     qc.barrier()
+    # Measurement
     qc.measure_all()
     return qc
