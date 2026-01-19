@@ -24,9 +24,10 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from ._registry import gateset_names, get_gateset_by_name, register_gateset
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
-    from qiskit.circuit import Gate
+    from qiskit.circuit import Gate, Instruction
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
@@ -106,7 +107,7 @@ def get_gateset_without_control_flow_ops(gateset_name: str) -> list[str]:
     return [gate for gate in _get_gateset(gateset_name) if gate not in CONTROL_FLOW_OP_NAMES]
 
 
-def _lazy_custom_gates() -> dict[str, Gate]:
+def _lazy_custom_gates() -> dict[str, type[Gate] | Callable[[], Gate | type[Instruction]]]:
     """Import custom gates only when needed."""
     from qiskit.circuit import IfElseOp  # noqa: PLC0415
 
