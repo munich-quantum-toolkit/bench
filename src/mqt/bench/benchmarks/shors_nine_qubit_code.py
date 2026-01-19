@@ -118,7 +118,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: a quantum circuit implementing Shor's 9 Qubit Code
     """
     if num_qubits % 17:
-        msg = "num_qubits must be divisible by 17"
+        msg = "num_qubits must be divisible by 17."
         raise ValueError(msg)
     # TODO implement multiples
     logical_qubit = QuantumRegister(9, "q")

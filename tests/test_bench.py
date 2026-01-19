@@ -81,6 +81,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "modular_adder": 4,
     "rg_qft_multiplier": 4,
     "vbe_ripple_carry_adder": 4,
+    "shors_nine_qubit_code": 17,
 }
 
 
@@ -180,6 +181,7 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
             re.escape("num_qubits must be an integer ≥ 2 and (num_qubits + 1) must be divisible by 3."),
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
+        ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
