@@ -233,12 +233,12 @@ def test_shors_nine_qubit_code_has_conditional_operations() -> None:
     # Check quantum registers: logical (9) + bit-flip syndrome (6) + phase-flip syndrome (2)
     assert len(qc.qregs) == 3
     qreg_sizes = {qreg.name: qreg.size for qreg in qc.qregs}
-    assert qreg_sizes == {"q": 9, "bs": 6, "ps": 2}
+    assert qreg_sizes == {"q0": 9, "bs0": 6, "ps0": 2}
 
     # Check classical registers: bit-flip syndrome (6) + phase-flip syndrome (2) + measure_all (17)
     assert len(qc.cregs) == 3
     creg_sizes = {creg.name: creg.size for creg in qc.cregs}
-    assert creg_sizes == {"bsm": 6, "psm": 2, "meas": 17}
+    assert creg_sizes == {"bsm0": 6, "psm0": 2, "meas": 17}
 
     # Check number of if-else operations: 9 bit-flip corrections + 3 phase-flip corrections
     if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))

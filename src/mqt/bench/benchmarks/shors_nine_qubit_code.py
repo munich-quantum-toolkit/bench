@@ -66,10 +66,23 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
     return out
 
 
+def _get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
+    out = QuantumCircuit(3)
+    out.h(0)
+    out.h(1)
+    out.h(2)
+    out.cx(0, 1)
+    out.cx(0, 2)
+    return out
+
+
 def _apply_nine_qubit_shors_code_bit_flip_correction(
-    qc: QuantumCircuit, bit_flip_syndrome_measurement: ClassicalRegister
+    qc: QuantumCircuit,
+    logical_qubit: QuantumRegister,
+    bit_flip_syndrome: QuantumRegister,
+    bit_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
-    qc.measure(qc.qubits[9 : 9 + 6], bit_flip_syndrome_measurement)
+    qc.measure(bit_flip_syndrome, bit_flip_syndrome_measurement)
     for index, syndrome in enumerate([
         0b000001,
         0b000010,
@@ -82,95 +95,44 @@ def _apply_nine_qubit_shors_code_bit_flip_correction(
         0b110000,
     ]):
         with qc.if_test((bit_flip_syndrome_measurement, syndrome)):
-            qc.x(index)
+            qc.x(logical_qubit[index])
 
 
 def _apply_nine_qubit_shors_code_phase_flip_correction(
-    qc: QuantumCircuit, phase_flip_syndrome_measurement: ClassicalRegister
+    qc: QuantumCircuit,
+    logical_qubit: QuantumRegister,
+    phase_flip_syndrome: QuantumRegister,
+    phase_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
-    qc.measure(qc.qubits[-2:], phase_flip_syndrome_measurement)
+    qc.measure(phase_flip_syndrome, phase_flip_syndrome_measurement)
     with qc.if_test((phase_flip_syndrome_measurement, 0b01)):
-        qc.z(0)
+        qc.z(logical_qubit[0])
     with qc.if_test((phase_flip_syndrome_measurement, 0b10)):
-        qc.z(3)
+        qc.z(logical_qubit[3])
     with qc.if_test((phase_flip_syndrome_measurement, 0b11)):
-        qc.z(6)
+        qc.z(logical_qubit[6])
 
 
-def _get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
-    out = QuantumCircuit(3)
-    out.h(0)
-    out.h(1)
-    out.h(2)
-    out.cx(0, 1)
-    out.cx(0, 2)
-    return out
-
-
-@register_benchmark("shors_nine_qubit_code", description="Shor's 9 Qubit Code")
-def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing Shor's 9 Qubit Code.
-
-    Shor's code is a quantum error-correcting code, capable of correcting arbitrary
-    single-qubit errors. It encodes 1 logical qubit into 9 physical qubits using a
-    concatenation of the 3-qubit bit-flip and phase-flip repetition codes.
-
-    Encoding:
-        1. Phase-flip encoding: The logical qubit is encoded across three blocks using
-           |0⟩ → |+++⟩ and |1⟩ → |--->⟩ on qubits 0, 3, and 6.
-        2. Bit-flip encoding: Each of the three qubits is then encoded using the
-           3-qubit repetition code (|0⟩ → |000⟩, |1⟩ → |111⟩), giving three blocks
-           of three qubits each (0-2, 3-5, 6-8).
-        3. So the overall encoding is
-           - |0> -> (|000> + |111>) ⊗ (|000> + |111>) ⊗ (|000> + |111>)
-           - |1> -> (|000> - |111>) ⊗ (|000> - |111>) ⊗ (|000> - |111>)
-
-    Syndrome Extraction:
-        - Bit-flip syndrome: For each block, 2 ancilla qubits measure the parity of
-          qubit pairs to detect which qubit (if any) experienced a bit flip.
-          Syndrome 01 → qubit 0, syndrome 10 → qubit 1, syndrome 11 → qubit 2.
-        - Phase-flip syndrome: 2 ancilla qubits detect phase differences between
-          the three blocks. Syndrome 01 → block 1 (qubits 0-2), syndrome 10 → block 2
-          (qubits 3-5), syndrome 11 → block 3 (qubits 6-8).
-
-    Error Correction:
-        - Bit-flip correction: Based on the 6-bit syndrome measurement, X gates are
-          conditionally applied to correct bit flips on any of the 9 data qubits.
-        - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
-          conditionally applied to the first qubit of the affected block.
-
-    Circuit Structure:
-        - 17 qubits:
-            - 9 data qubits (q): The encoded logical qubit
-            - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
-            - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
-        - 8 (+9) classical bits:
-            - 6 bit-flip syndrome measurement bits (bsm)
-            - 2 phase-flip syndrome measurement bits (psm)
-            - (+9 measurement bits for the final measure_all (meas))
+def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
+    """Create a complete Shor code circuit for one logical qubit.
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit (must be divisible by 17)
+        index: Index used to create unique register names (q0, bs0, ps0, etc.)
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing Shor's 9 Qubit Code
+        QuantumCircuit with 17 qubits and 8 classical bits for one logical qubit
     """
-    if num_qubits % 17:
-        msg = "num_qubits must be divisible by 17."
-        raise ValueError(msg)
-    # TODO implement multiples
-    logical_qubit = QuantumRegister(9, "q")
-    bit_flip_syndrome = QuantumRegister(6, "bs")
-    phase_flip_syndrome = QuantumRegister(2, "ps")
-    bit_flip_syndrome_measurement = ClassicalRegister(6, "bsm")
-    phase_flip_syndrome_measurement = ClassicalRegister(2, "psm")
+    logical_qubit = QuantumRegister(9, f"q{index}")
+    bit_flip_syndrome = QuantumRegister(6, f"bs{index}")
+    phase_flip_syndrome = QuantumRegister(2, f"ps{index}")
+    bit_flip_syndrome_measurement = ClassicalRegister(6, f"bsm{index}")
+    phase_flip_syndrome_measurement = ClassicalRegister(2, f"psm{index}")
     qc = QuantumCircuit(
         logical_qubit,
         bit_flip_syndrome,
         phase_flip_syndrome,
         bit_flip_syndrome_measurement,
         phase_flip_syndrome_measurement,
-        name="shors_nine_qubit_code",
     )
     # == Encoding ==
     # Apply phase flip encoding on the first qubit of each bit-flip block
@@ -208,9 +170,13 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     )
     qc.barrier()
     # == Error correction ==
-    _apply_nine_qubit_shors_code_bit_flip_correction(qc, bit_flip_syndrome_measurement)
+    _apply_nine_qubit_shors_code_bit_flip_correction(
+        qc, logical_qubit, bit_flip_syndrome, bit_flip_syndrome_measurement
+    )
     qc.barrier()
-    _apply_nine_qubit_shors_code_phase_flip_correction(qc, phase_flip_syndrome_measurement)
+    _apply_nine_qubit_shors_code_phase_flip_correction(
+        qc, logical_qubit, phase_flip_syndrome, phase_flip_syndrome_measurement
+    )
     qc.barrier()
     # == Decoding ==
     qc.compose(_get_three_qubit_bit_flip_encoding_decoding_circuit(), qubits=logical_qubit[:3], inplace=True)
@@ -221,7 +187,74 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         qubits=[logical_qubit[0], logical_qubit[3], logical_qubit[6]],
         inplace=True,
     )
+    return qc
+
+
+@register_benchmark("shors_nine_qubit_code", description="Shor's 9 Qubit Code")
+def create_circuit(num_qubits: int) -> QuantumCircuit:
+    """Returns a quantum circuit implementing Shor's 9 Qubit Code.
+
+    Shor's code is a quantum error-correcting code, capable of correcting arbitrary
+    single-qubit errors. It encodes 1 logical qubit into 9 physical qubits using a
+    concatenation of the 3-qubit bit-flip and phase-flip repetition codes.
+
+    Encoding:
+        1. Phase-flip encoding: The logical qubit is encoded across three blocks using
+           |0⟩ → |+++⟩ and |1⟩ → |--->⟩ on qubits 0, 3, and 6.
+        2. Bit-flip encoding: Each of the three qubits is then encoded using the
+           3-qubit repetition code (|0⟩ → |000⟩, |1⟩ → |111⟩), giving three blocks
+           of three qubits each (0-2, 3-5, 6-8).
+        3. So the overall encoding is
+           - |0> -> (|000> + |111>) ⊗ (|000> + |111>) ⊗ (|000> + |111>)
+           - |1> -> (|000> - |111>) ⊗ (|000> - |111>) ⊗ (|000> - |111>)
+
+    Syndrome Extraction:
+        - Bit-flip syndrome: For each block, 2 ancilla qubits measure the parity of
+          qubit pairs to detect which qubit (if any) experienced a bit flip.
+          Syndrome 01 → qubit 0, syndrome 10 → qubit 1, syndrome 11 → qubit 2.
+        - Phase-flip syndrome: 2 ancilla qubits detect phase differences between
+          the three blocks. Syndrome 01 → block 1 (qubits 0-2), syndrome 10 → block 2
+          (qubits 3-5), syndrome 11 → block 3 (qubits 6-8).
+
+    Error Correction:
+        - Bit-flip correction: Based on the 6-bit syndrome measurement, X gates are
+          conditionally applied to correct bit flips on any of the 9 data qubits.
+        - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
+          conditionally applied to the first qubit of the affected block.
+
+    Circuit Structure (per logical qubit):
+        - 17 qubits:
+            - 9 data qubits (q): The encoded logical qubit
+            - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
+            - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
+        - 8 classical bits (per logical qubit):
+            - 6 bit-flip syndrome measurement bits (bsm)
+            - 2 phase-flip syndrome measurement bits (psm)
+        - Plus additional measurement bits from the final measure_all
+
+    Arguments:
+        num_qubits: number of qubits of the returned quantum circuit (must be divisible by 17)
+
+    Returns:
+        QuantumCircuit: a quantum circuit implementing Shor's 9 Qubit Code
+    """
+    if num_qubits % 17:
+        msg = "num_qubits must be divisible by 17."
+        raise ValueError(msg)
+
+    num_logical_qubits = num_qubits // 17
+
+    # Start with the first logical qubit circuit as the base
+    qc = _create_single_logical_qubit_circuit(0)
+    qc.name = "shors_nine_qubit_code"
+
+    # Compose additional logical qubit circuits
+    for i in range(1, num_logical_qubits):
+        single = _create_single_logical_qubit_circuit(i)
+        qc.add_register(*single.qregs)
+        qc.add_register(*single.cregs)
+        qc.compose(single, qubits=single.qubits, clbits=single.clbits, inplace=True)
+
     qc.barrier()
-    # Measurement
     qc.measure_all()
     return qc
