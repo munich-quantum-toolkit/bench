@@ -94,6 +94,7 @@ def get_ibm_falcon_27() -> Target:
         basis_gates=get_gateset_without_control_flow_ops("ibm_falcon"),
         noise_info=True,
         seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_falcon_27"
@@ -400,6 +401,7 @@ def get_ibm_falcon_127() -> Target:
         basis_gates=get_gateset_without_control_flow_ops("ibm_falcon"),
         noise_info=True,
         seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_falcon_127"
@@ -416,6 +418,7 @@ def get_ibm_eagle_127() -> Target:
         basis_gates=get_gateset_without_control_flow_ops("ibm_eagle"),
         noise_info=True,
         seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_eagle_127"
@@ -733,6 +736,7 @@ def get_ibm_heron_133() -> Target:
         basis_gates=get_gateset_without_control_flow_ops("ibm_heron"),
         noise_info=True,
         seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_heron_133"
@@ -1102,6 +1106,7 @@ def get_ibm_heron_156() -> Target:
         basis_gates=get_gateset_without_control_flow_ops("ibm_heron"),
         noise_info=True,
         seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_heron_156"
