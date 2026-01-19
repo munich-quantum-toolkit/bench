@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Parameter
+from qiskit.circuit import IfElseOp, Parameter
 from qiskit.circuit.library import Measure, RXGate, RYGate, RZGate, RZZGate
 from qiskit.transpiler import InstructionProperties, Target
 
@@ -59,5 +59,8 @@ def _build_quantinuum_target(
     connectivity = [(i, j) for i in range(num_qubits) for j in range(num_qubits) if i != j]
     rzz_props = {(q1, q2): InstructionProperties(error=twoq_error) for q1, q2 in connectivity}
     target.add_instruction(RZZGate(alpha), rzz_props)
+
+    # === Add control-flow ops ===
+    target.add_instruction(IfElseOp, name="if_else")
 
     return target

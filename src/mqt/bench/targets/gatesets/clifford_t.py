@@ -35,6 +35,7 @@ def get_clifford_t_gateset() -> list[str]:
         "iswap",
         "dcx",
         "ecr",
+        "if_else",
     ]
 
 

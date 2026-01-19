@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 from qiskit.providers.fake_provider import GenericBackendV2
 
-from ..gatesets import get_gateset
+from ..gatesets import get_gateset_without_control_flow_ops
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,12 @@ def get_ibm_falcon_27() -> Target:
         [26, 25],
     ]
     backend = GenericBackendV2(
-        num_qubits=27, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True, seed=DEFAULT_SEED
+        num_qubits=27,
+        coupling_map=cmap,
+        basis_gates=get_gateset_without_control_flow_ops("ibm_falcon"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_falcon_27"
@@ -391,7 +396,12 @@ def get_ibm_falcon_127() -> Target:
     """Get the target for a 127-qubit IBM Falcon architecture."""
     cmap = _get_127_qubit_cmap()
     backend = GenericBackendV2(
-        num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_falcon"), noise_info=True, seed=DEFAULT_SEED
+        num_qubits=127,
+        coupling_map=cmap,
+        basis_gates=get_gateset_without_control_flow_ops("ibm_falcon"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_falcon_127"
@@ -403,7 +413,12 @@ def get_ibm_eagle_127() -> Target:
     """Get the target for a 127-qubit IBM Eagle architecture."""
     cmap = _get_127_qubit_cmap()
     backend = GenericBackendV2(
-        num_qubits=127, coupling_map=cmap, basis_gates=get_gateset("ibm_eagle"), noise_info=True, seed=DEFAULT_SEED
+        num_qubits=127,
+        coupling_map=cmap,
+        basis_gates=get_gateset_without_control_flow_ops("ibm_eagle"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_eagle_127"
@@ -716,7 +731,12 @@ def get_ibm_heron_133() -> Target:
         [132, 126],
     ]
     backend = GenericBackendV2(
-        num_qubits=133, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True, seed=DEFAULT_SEED
+        num_qubits=133,
+        coupling_map=cmap,
+        basis_gates=get_gateset_without_control_flow_ops("ibm_heron"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_heron_133"
@@ -1081,7 +1101,12 @@ def get_ibm_heron_156() -> Target:
         [155, 154],
     ]
     backend = GenericBackendV2(
-        num_qubits=156, coupling_map=cmap, basis_gates=get_gateset("ibm_heron"), noise_info=True, seed=DEFAULT_SEED
+        num_qubits=156,
+        coupling_map=cmap,
+        basis_gates=get_gateset_without_control_flow_ops("ibm_heron"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
     )
     target = backend.target
     target.description = "ibm_heron_156"
