@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
+
 ## [2.1.0] - 2025-10-18
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
@@ -89,6 +91,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#805]: https://github.com/munich-quantum-toolkit/bench/pull/805
 [#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
@@ -133,6 +136,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@CreativeBinBag**]: https://github.com/CreativeBinBag
 [**@denialhaag**]: https://github.com/denialhaag
 [**@soroushfathi**]: https://github.com/soroushfathi
+[**@adnathanail**]: https://github.com/adnathanail
 
 <!-- General links -->
 
