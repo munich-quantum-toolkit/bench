@@ -54,13 +54,13 @@ if TYPE_CHECKING:
 @register_gateset("ionq_forte")
 def get_ionq_forte_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Forte gateset."""
-    return ["rz", "gpi", "gpi2", "zz", "measure"]
+    return ["rz", "gpi", "gpi2", "zz", "measure", "if_else"]
 
 
 @register_gateset("ionq_aria")
 def get_ionq_aria_gateset() -> list[str]:
     """Returns the basis gates of the IonQ Aria gateset."""
-    return ["rz", "gpi", "gpi2", "ms", "measure"]
+    return ["rz", "gpi", "gpi2", "ms", "measure", "if_else"]
 
 
 class GPIGate(Gate):  # type: ignore[misc]
