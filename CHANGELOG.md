@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
-- ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
+- ✨ Add Shor's 9 Qubit Code algorithm ([#803]) ([**@adnathanail**])
 
 ### Changed
 
@@ -99,6 +99,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#805]: https://github.com/munich-quantum-toolkit/bench/pull/805
+[#803]: https://github.com/munich-quantum-toolkit/bench/pull/803
 [#794]: https://github.com/munich-quantum-toolkit/bench/pull/794
 [#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
