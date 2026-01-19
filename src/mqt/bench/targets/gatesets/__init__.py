@@ -147,7 +147,7 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
         if gate_name not in custom_factory:
             msg = f"Gate '{gate_name}' not found in available custom gates."
             raise ValueError(msg)
-        # Control-flow operations are Instructions, but not Gates, and therefore must have their name manually specified
+        # Classes (like control-flow operations) must have their name manually specified; instances derive their name automatically
         instruction = custom_factory[gate_name]()
         target.add_instruction(instruction, name=gate_name if inspect.isclass(instruction) else None)
 
