@@ -226,8 +226,14 @@ def test_graphstate_seed() -> None:
     assert qc_no_seed.name == "graphstate"
 
 
-def test_shors_nine_qubit_code_has_conditional_operations() -> None:
-    """Test that the Shor's 9-qubit code circuit contains conditional operations for error correction."""
+def test_shors_nine_qubit_code_circuit_structure() -> None:
+    """Test that the Shor's 9-qubit code circuit has the expected structure.
+
+    Verifies:
+        - Quantum registers: 9 data qubits, 6 bit-flip syndrome, 2 phase-flip syndrome
+        - Classical registers: 6 bit-flip syndrome, 2 phase-flip syndrome, 17 measurement
+        - 12 conditional operations for error correction (9 bit-flip + 3 phase-flip)
+    """
     qc = create_circuit("shors_nine_qubit_code", 17)
 
     # Check quantum registers: logical (9) + bit-flip syndrome (6) + phase-flip syndrome (2)
@@ -243,6 +249,33 @@ def test_shors_nine_qubit_code_has_conditional_operations() -> None:
     # Check number of if-else operations: 9 bit-flip corrections + 3 phase-flip corrections
     if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
     assert if_else_count == 12, f"Expected 12 conditional operations, found {if_else_count}"
+
+
+@pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
+def test_shors_nine_qubit_code_multiple_logical_qubits(num_qubits: int) -> None:
+    """Test that circuits with multiple logical qubits have the correct structure.
+
+    For n logical qubits (num_qubits = 17n):
+        - 17n total qubits
+        - 25n total classical bits (8n syndrome + 17n measure_all)
+        - 12n conditional operations (9 bit-flip + 3 phase-flip per logical qubit)
+    """
+    qc = create_circuit("shors_nine_qubit_code", num_qubits)
+    num_logical_qubits = num_qubits // 17
+
+    # Check total qubits: 17 per logical qubit
+    assert qc.num_qubits == num_qubits
+
+    # Check total classical bits: 8 per logical qubit (syndrome) + 17 per logical qubit (measure_all)
+    expected_clbits = 8 * num_logical_qubits + num_qubits
+    assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
+
+    # Check total if-else operations: 12 per logical qubit
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    expected_if_else = 12 * num_logical_qubits
+    assert if_else_count == expected_if_else, (
+        f"Expected {expected_if_else} conditional operations, found {if_else_count}"
+    )
 
 
 @pytest.mark.parametrize(
