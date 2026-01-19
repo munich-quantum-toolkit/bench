@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
-- ✨ Add Shor's 9 Qubit Code algorithm ([#803]) ([**@adnathanail**])
+- ✨ Add Shor's 9 Qubit Code benchmark ([#803]) ([**@adnathanail**])
 
 ### Changed
 
