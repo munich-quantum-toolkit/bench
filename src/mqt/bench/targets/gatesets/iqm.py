@@ -16,4 +16,4 @@ from ._registry import register_gateset
 @register_gateset("iqm")
 def get_iqm_gateset() -> list[str]:
     """Returns the basis gates of the IQM gateset."""
-    return ["r", "cz"]
+    return ["r", "cz", "if_else"]

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Parameter
+from qiskit.circuit import IfElseOp, Parameter
 from qiskit.circuit.library import Measure, RZGate
 from qiskit.transpiler import InstructionProperties, Target
 
@@ -101,4 +101,8 @@ def _build_ionq_target(
     else:
         msg = f"Unknown entangling gate: '{entangling_gate}'."
         raise ValueError(msg)
+
+    # === Add control-flow ops ===
+    target.add_instruction(IfElseOp, name="if_else")
+
     return target

@@ -16,4 +16,4 @@ from ._registry import register_gateset
 @register_gateset("quantinuum")
 def get_quantinuum_gateset() -> list[str]:
     """Returns the basis gates of the Quantinuum gateset."""
-    return ["rx", "ry", "rz", "rzz"]
+    return ["rx", "ry", "rz", "rzz", "if_else"]

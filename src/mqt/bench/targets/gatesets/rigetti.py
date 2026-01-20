@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 @register_gateset("rigetti")
 def get_rigetti_gateset() -> list[str]:
     """Returns the basis gates of the Rigetti gateset."""
-    return ["rxpi", "rxpi2", "rxpi2dg", "rz", "iswap", "measure"]
+    return ["rxpi", "rxpi2", "rxpi2dg", "rz", "iswap", "measure", "if_else"]
 
 
 class RXPIGate(Gate):

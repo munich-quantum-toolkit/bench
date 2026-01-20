@@ -13,11 +13,12 @@ from __future__ import annotations
 import copy
 import importlib
 import importlib.resources as ir
+import inspect
 from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import Parameter
+from qiskit.circuit import CONTROL_FLOW_OP_NAMES, Parameter
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -25,6 +26,10 @@ from ._registry import gateset_names, get_gateset_by_name, register_gateset
 
 if TYPE_CHECKING:
     from qiskit.circuit import Gate
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from qiskit.circuit import Gate, Instruction
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
@@ -38,6 +43,7 @@ _IMPORTED_MODULES: set[str] = set()
 __all__ = [
     "get_available_gateset_names",
     "get_gateset",
+    "get_gateset_without_control_flow_ops",
     "get_target_for_gateset",
     "register_gateset",
 ]
@@ -98,19 +104,27 @@ def get_gateset(gateset_name: str) -> list[str]:
     return _get_gateset(gateset_name).copy()
 
 
-def _lazy_custom_gates() -> dict[str, Gate]:
+def get_gateset_without_control_flow_ops(gateset_name: str) -> list[str]:
+    """Return the basis-gate list for gateset_name, without control-flow operations."""
+    return [gate for gate in _get_gateset(gateset_name) if gate not in CONTROL_FLOW_OP_NAMES]
+
+
+def _lazy_custom_gates() -> dict[str, type[Gate] | Callable[[], Gate | type[Instruction]]]:
     """Import custom gates only when needed."""
+    from qiskit.circuit import IfElseOp  # noqa: PLC0415
+
     from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate  # noqa: PLC0415
     from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # noqa: PLC0415
 
     return {
-        "gpi": GPIGate(Parameter("alpha")),
-        "gpi2": GPI2Gate(Parameter("alpha")),
-        "ms": MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
-        "zz": ZZGate(Parameter("alpha")),
-        "rxpi": RXPIGate(),
-        "rxpi2": RXPI2Gate(),
-        "rxpi2dg": RXPI2DgGate(),
+        "gpi": lambda: GPIGate(Parameter("alpha")),
+        "gpi2": lambda: GPI2Gate(Parameter("alpha")),
+        "ms": lambda: MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
+        "zz": lambda: ZZGate(Parameter("alpha")),
+        "rxpi": RXPIGate,
+        "rxpi2": RXPI2Gate,
+        "rxpi2dg": RXPI2DgGate,
+        "if_else": lambda: IfElseOp,
     }
 
 
@@ -135,7 +149,9 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
         if gate_name not in custom_factory:
             msg = f"Gate '{gate_name}' not found in available custom gates."
             raise ValueError(msg)
-        target.add_instruction(custom_factory[gate_name])
+        # Classes (like control-flow operations) must have their name manually specified; instances derive their name automatically
+        instruction = custom_factory[gate_name]()
+        target.add_instruction(instruction, name=gate_name if inspect.isclass(instruction) else None)
 
     return target
 
