@@ -20,7 +20,7 @@
 
 """Modified Solovay-Kitaev transpiler.
 
-Remove once Qiskit minimum version is increased to 2.0.0
+TODO Remove once Qiskit minimum version is increased to 2.0.0
 """
 
 from __future__ import annotations
