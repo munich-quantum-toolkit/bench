@@ -16,8 +16,28 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
+def _get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
+    """Create 3-qubit bit-flip encoding/decoding circuit.
+
+    Encodes |0⟩ → |000⟩ and |1⟩ → |111⟩. Self-inverse, so used for both encoding and decoding.
+
+    Returns:
+        QuantumCircuit: 3-qubit circuit (qubit 0 is the input/output qubit).
+    """
+    out = QuantumCircuit(3)
+    out.cx(0, 1)
+    out.cx(0, 2)
+    return out
+
+
 def _get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
-    """Encode |0> as (|+++>) and |1> as (|--->)."""
+    """Create 3-qubit phase-flip encoding circuit.
+
+    Encodes |0⟩ → |+++⟩ and |1⟩ → |---⟩
+
+    Returns:
+        QuantumCircuit: 3-qubit encoding circuit (qubit 0 is the input qubit).
+    """
     out = QuantumCircuit(3)
     out.cx(0, 1)
     out.cx(0, 2)
@@ -27,16 +47,32 @@ def _get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
     return out
 
 
-def _get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
-    """Encode |0> as |000> and |1> as |111>."""
+def _get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
+    """Create 3-qubit phase-flip decoding circuit.
+
+    Reverses the phase-flip encoding.
+
+    Returns:
+        QuantumCircuit: 3-qubit decoding circuit (qubit 0 is the output qubit).
+    """
     out = QuantumCircuit(3)
+    out.h(0)
+    out.h(1)
+    out.h(2)
     out.cx(0, 1)
     out.cx(0, 2)
     return out
 
 
 def _get_three_qubit_bit_flip_syndrome_extraction_circuit() -> QuantumCircuit:
-    """Error in qubit 0 -> syndrome 01, qubit 1 -> 10, qubit 2 -> 11."""
+    """Create circuit to extract bit-flip syndrome from a 3-qubit block.
+
+    Uses 2 ancilla qubits to measure parity and identify which qubit (if any) flipped.
+    Syndrome mapping: 01 → qubit 0, 10 → qubit 1, 11 → qubit 2, 00 → no error.
+
+    Returns:
+        QuantumCircuit: 5-qubit circuit (qubits 0-2 are data, qubits 3-4 are syndrome ancillas).
+    """
     out = QuantumCircuit(5)
     out.cx(0, 3)
     out.cx(1, 4)
@@ -46,7 +82,15 @@ def _get_three_qubit_bit_flip_syndrome_extraction_circuit() -> QuantumCircuit:
 
 
 def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> QuantumCircuit:
-    """Error in qubits 0-2 -> syndrome 01, qubits 3-5 -> 10, qubits 6-8 -> 11."""
+    """Create circuit to extract phase-flip syndrome across the three 3-qubit blocks.
+
+    Detects which block (if any) experienced a phase flip using 2 ancilla qubits.
+    Syndrome mapping: 01 → block 1 (qubits 0-2), 10 → block 2 (qubits 3-5),
+    11 → block 3 (qubits 6-8), 00 → no error.
+
+    Returns:
+        QuantumCircuit: 11-qubit circuit (qubits 0-8 are data, qubits 9-10 are syndrome ancillas).
+    """
     logical_qubit, phase_flip_syndrome = QuantumRegister(9), QuantumRegister(2)
     out = QuantumCircuit(logical_qubit, phase_flip_syndrome)
     out.h(phase_flip_syndrome[0])
@@ -66,22 +110,23 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
     return out
 
 
-def _get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
-    out = QuantumCircuit(3)
-    out.h(0)
-    out.h(1)
-    out.h(2)
-    out.cx(0, 1)
-    out.cx(0, 2)
-    return out
-
-
 def _apply_nine_qubit_shors_code_bit_flip_correction(
     qc: QuantumCircuit,
     logical_qubit: QuantumRegister,
     bit_flip_syndrome: QuantumRegister,
     bit_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
+    """Apply bit-flip correction based on syndrome measurement.
+
+    Measures the 6 syndrome qubits and conditionally applies X gates to correct
+    bit-flip errors on any of the 9 data qubits.
+
+    Arguments:
+        qc: The quantum circuit to modify.
+        logical_qubit: Register containing the 9 data qubits.
+        bit_flip_syndrome: Register containing the 6 syndrome qubits.
+        bit_flip_syndrome_measurement: Classical register for syndrome measurement results.
+    """
     qc.measure(bit_flip_syndrome, bit_flip_syndrome_measurement)
     for index, syndrome in enumerate([
         0b000001,
@@ -104,6 +149,17 @@ def _apply_nine_qubit_shors_code_phase_flip_correction(
     phase_flip_syndrome: QuantumRegister,
     phase_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
+    """Apply phase-flip correction based on syndrome measurement.
+
+    Measures the 2 syndrome qubits and conditionally applies Z gates to correct
+    phase-flip errors on the first qubit of the affected block.
+
+    Arguments:
+        qc: The quantum circuit to modify.
+        logical_qubit: Register containing the 9 data qubits.
+        phase_flip_syndrome: Register containing the 2 syndrome qubits.
+        phase_flip_syndrome_measurement: Classical register for syndrome measurement results.
+    """
     qc.measure(phase_flip_syndrome, phase_flip_syndrome_measurement)
     with qc.if_test((phase_flip_syndrome_measurement, 0b01)):
         qc.z(logical_qubit[0])
@@ -116,11 +172,14 @@ def _apply_nine_qubit_shors_code_phase_flip_correction(
 def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
     """Create a complete Shor code circuit for one logical qubit.
 
+    Builds a circuit with encoding, syndrome extraction, error correction, and decoding stages.
+
     Arguments:
-        index: Index used to create unique register names (q0, bs0, ps0, etc.)
+        index: Index for unique register names (e.g., q0, bs0, ps0 for index=0).
 
     Returns:
-        QuantumCircuit with 17 qubits and 8 classical bits for one logical qubit
+        QuantumCircuit: Circuit with 17 qubits (9 data + 6 bit-flip + 2 phase-flip syndrome)
+            and 8 classical bits for syndrome measurements.
     """
     logical_qubit = QuantumRegister(9, f"q{index}")
     bit_flip_syndrome = QuantumRegister(6, f"bs{index}")
