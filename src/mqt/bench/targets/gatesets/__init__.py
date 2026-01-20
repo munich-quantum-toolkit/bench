@@ -15,7 +15,6 @@ import importlib
 import importlib.resources as ir
 import inspect
 from functools import cache
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qiskit.circuit import CONTROL_FLOW_OP_NAMES, Parameter
@@ -31,9 +30,9 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
-    path.stem
+    entry.name.removesuffix(".py")
     for entry in ir.files(__name__).iterdir()
-    if (path := Path(str(entry))).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
 
 _IMPORTED_MODULES: set[str] = set()
