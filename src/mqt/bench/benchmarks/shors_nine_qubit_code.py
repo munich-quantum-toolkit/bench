@@ -19,7 +19,7 @@ from ._registry import register_benchmark
 def _get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
     """Create 3-qubit bit-flip encoding/decoding circuit.
 
-    Encodes |0⟩ → |000⟩ and |1⟩ → |111⟩. Self-inverse, so used for both encoding and decoding.
+    Encodes |0> → |000> and |1> → |111>. Self-inverse, so used for both encoding and decoding.
 
     Returns:
         QuantumCircuit: 3-qubit circuit (qubit 0 is the input/output qubit).
@@ -33,7 +33,7 @@ def _get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
 def _get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
     """Create 3-qubit phase-flip encoding circuit.
 
-    Encodes |0⟩ → |+++⟩ and |1⟩ → |---⟩
+    Encodes |0> → |+++> and |1> → |--->
 
     Returns:
         QuantumCircuit: 3-qubit encoding circuit (qubit 0 is the input qubit).
@@ -93,6 +93,11 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
     """
     logical_qubit, phase_flip_syndrome = QuantumRegister(9), QuantumRegister(2)
     out = QuantumCircuit(logical_qubit, phase_flip_syndrome)
+    # The order on the CNOT gates below is reversed when compared to what one might expect
+    #   with the control being the ancilla, and the target being one of the component qubits of the logical qubit
+    # This is because we put Hadamards at the starts and ends of the ancilla bits, in order to check the phase
+    #   of the logical qubits as opposed to the amplitude.
+    # But this also effectively swaps the order of the control and target, so we swap them back to normal
     out.h(phase_flip_syndrome[0])
     out.h(phase_flip_syndrome[1])
     # Syndrome 01 (block 1)
@@ -128,6 +133,7 @@ def _apply_nine_qubit_shors_code_bit_flip_correction(
         bit_flip_syndrome_measurement: Classical register for syndrome measurement results.
     """
     qc.measure(bit_flip_syndrome, bit_flip_syndrome_measurement)
+    # Note that Qiskit uses little-endian bit order
     for index, syndrome in enumerate([
         0b000001,
         0b000010,
@@ -259,9 +265,9 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     Encoding:
         1. Phase-flip encoding: The logical qubit is encoded across three blocks using
-           |0⟩ → |+++⟩ and |1⟩ → |--->⟩ on qubits 0, 3, and 6.
+           |0> → |+++> and |1> → |---> on qubits 0, 3, and 6.
         2. Bit-flip encoding: Each of the three qubits is then encoded using the
-           3-qubit repetition code (|0⟩ → |000⟩, |1⟩ → |111⟩), giving three blocks
+           3-qubit repetition code (|0> → |000>, |1> → |111>), giving three blocks
            of three qubits each (0-2, 3-5, 6-8).
         3. So the overall encoding is
            - |0> -> (|000> + |111>) ⊗ (|000> + |111>) ⊗ (|000> + |111>)

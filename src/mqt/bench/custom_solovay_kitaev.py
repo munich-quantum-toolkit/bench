@@ -18,7 +18,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Modified Solovay-Kitaev transpiler."""
+"""Modified Solovay-Kitaev transpiler.
+
+Remove once Qiskit minimum version is increased to 2.0.0
+"""
 
 from __future__ import annotations
 
@@ -49,9 +52,6 @@ class CustomSolovayKitaev(SolovayKitaev):  # type: ignore[misc]
         Returns:
             Output dag with 1q gates synthesized in the discrete target basis.
 
-        Raises:
-            TranspilerError: if a gates does not have to_matrix
-
         Copied from https://github.com/alexanderivrii/qiskit-terra/blob/5d819130c4e47f4a81be1522365e92a66c55958b/qiskit/transpiler/passes/synthesis/solovay_kitaev_synthesis.py
         """
         for node in dag.op_nodes():
@@ -59,13 +59,14 @@ class CustomSolovayKitaev(SolovayKitaev):  # type: ignore[misc]
             if (node.op.num_qubits != 1) or node.is_parameterized() or (not hasattr(node.op, "to_matrix")):
                 continue
 
-            # we do not check the input matrix as we know it comes from a Qiskit gate, as this
+            # we do not check the input matrix as we know it comes from a Qiskit gate, so
             # we know it will generate a valid SU(2) matrix
             check_input = not isinstance(node.op, Gate)
 
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
+            # *accessing private attribute is necessary for this backport*
             approximation = self._sk.run(matrix, self.recursion_degree, return_dag=True, check_input=check_input)
 
             # convert to a dag and replace the gate by the approximation
