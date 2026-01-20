@@ -25,9 +25,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from ._registry import gateset_names, get_gateset_by_name, register_gateset
 
 if TYPE_CHECKING:
-    from qiskit.circuit import Gate
     from collections.abc import Callable
-    from pathlib import Path
 
     from qiskit.circuit import Gate, Instruction
     from qiskit.transpiler import Target
