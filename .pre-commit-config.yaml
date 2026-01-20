@@ -11,7 +11,7 @@ ci:
   autoupdate_commit_msg: "⬆️🪝 update pre-commit hooks"
   autofix_commit_msg: "🎨 pre-commit fixes"
   autoupdate_schedule: quarterly
-  skip: [mypy]
+  skip: [ty-check]
 
 repos:
   # Standard hooks
@@ -91,18 +91,16 @@ repos:
       - id: prettier
         types_or: [yaml, markdown, html, css, scss, javascript, json]
 
-  # Check static types with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+  # Static type checking using ty
+  - repo: local
     hooks:
-      - id: mypy
-        files: ^(src/mqt|test/python|noxfile.py)
-        args: []
-        additional_dependencies:
-          - importlib_resources
-          - numpy
-          - nox
-          - pytest
+      - id: ty-check
+        name: ty check
+        entry: uv run ty check
+        language: unsupported
+        require_serial: true
+        types_or: [python, pyi, jupyter]
+        exclude: ^(docs/)
 
   # Check for spelling
   - repo: https://github.com/adhtruong/mirrors-typos

@@ -13,7 +13,7 @@ from __future__ import annotations
 import importlib
 import importlib.resources as ir
 from functools import cache
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from ._registry import (
     benchmark_catalog,
@@ -25,15 +25,14 @@ from ._registry import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
-    from pathlib import Path
 
     from qiskit.circuit import QuantumCircuit
 
 
 _DISCOVERED_BENCHMARKS: set[str] = {
-    path.stem
-    for entry in ir.files(__package__).iterdir()
-    if (path := cast("Path", entry)).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    entry.name.removesuffix(".py")
+    for entry in ir.files(__name__).iterdir()
+    if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
 
 _IMPORTED_BENCHMARKS: set[str] = set()
@@ -70,7 +69,7 @@ def _ensure_loaded(benchmark_name: str) -> None:
         raise ValueError(msg)
 
     if benchmark_name not in _IMPORTED_BENCHMARKS:
-        importlib.import_module(f"{__package__}.{benchmark_name}")
+        importlib.import_module(f"{__name__}.{benchmark_name}")
         _IMPORTED_BENCHMARKS.add(benchmark_name)
 
 
