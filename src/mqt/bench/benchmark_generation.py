@@ -359,8 +359,7 @@ def get_benchmark_native_gates(
 
     if target.description == "clifford+t":
         from qiskit.transpiler import PassManager  # noqa: PLC0415
-
-        from .custom_solovay_kitaev import CustomSolovayKitaev  # noqa: PLC0415
+        from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
 
         # Transpile the circuit to single- and two-qubit gates including rotations
         clifford_t_rotations = get_target_for_gateset("clifford+t+rotations", num_qubits=circuit.num_qubits)
@@ -372,7 +371,7 @@ def get_benchmark_native_gates(
         )
         # Synthesize the rotations to Clifford+T gates
         # Measurements are removed and added back after the synthesis to avoid errors in the Solovay-Kitaev pass
-        pm = PassManager(CustomSolovayKitaev())
+        pm = PassManager(SolovayKitaev())
         circuit = pm.run(compiled_for_sk.remove_final_measurements(inplace=False))  # ty: ignore[invalid-argument-type]
         circuit.measure_all()
 
