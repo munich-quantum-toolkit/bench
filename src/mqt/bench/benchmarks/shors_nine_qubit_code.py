@@ -306,9 +306,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     if num_qubits % 17:
         msg = "num_qubits must be divisible by 17."
         raise ValueError(msg)
-    if num_qubits < 17:
-        msg = "num_qubits must be at least 17."
-        raise ValueError(msg)
 
     num_logical_qubits = num_qubits // 17
 
