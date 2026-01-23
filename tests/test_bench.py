@@ -227,21 +227,18 @@ def test_graphstate_seed() -> None:
 def test_dynamical_qft() -> None:
     """Test the creation of the Dynamical Quantum Fourier Transform + Measurement."""
     qc = create_circuit("dynamical_qft", 5)
-
-    # Check Qubit number and Classical register number
     assert qc.num_qubits == 5
     assert qc.num_clbits == 5
+    assert qc.name == "dynamical_qft"
 
-
-def test_dynamical_qft_gates() -> None:
-    """Test the gates used in the Dynamical Quantum Fourier Transform + Measurement."""
-    qc = create_circuit("dynamical_qft", 5)
-
-    # Check the number of Hadamard gates and Measurements
+    # Check the number of Hadamard gates, Measurements and if_else blocks
     hadamard_count = sum(1 for inst in qc.data if inst.operation.name == "h")
     measurement_count = sum(1 for inst in qc.data if inst.operation.name == "measure")
+    if_else_count = sum(1 for inst in qc.data if inst.operation.name == "if_else")
     assert hadamard_count == 5
     assert measurement_count == 5
+    assert if_else_count == 5
+
 
 
 @pytest.mark.parametrize(

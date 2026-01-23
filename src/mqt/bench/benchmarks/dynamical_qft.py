@@ -18,7 +18,7 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("dynamical_qft", description=" Dynamic Quantum Fourier Transformation and Measurement (DQFT + M)")
+@register_benchmark("dynamical_qft", description="Dynamic Quantum Fourier Transformation and Measurement (DQFT + M)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Dynamic Quantum Fourier Transform and Measurement algorithm.
 
