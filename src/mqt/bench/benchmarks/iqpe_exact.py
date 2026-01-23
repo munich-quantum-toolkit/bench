@@ -35,7 +35,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     # will be encoded. Only the ancillary qubit is measured, and the result will
     # be stored in "c", the classical register.
     if num_qubits < 2:
-        raise ValueError("num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)")
+        msg = "num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)"
+        raise ValueError(msg)
     num_qubits = num_qubits - 1  # because of ancilla qubit
     q0 = QuantumRegister(1, "q0")
     q1 = QuantumRegister(num_qubits, "q1")
