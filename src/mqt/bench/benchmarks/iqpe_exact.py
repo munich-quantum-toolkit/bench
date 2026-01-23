@@ -6,6 +6,8 @@
 #
 # Licensed under the MIT License
 
+"""Iterative Quantum Phase Estimation (IQPE)."""
+
 from __future__ import annotations
 
 import random
