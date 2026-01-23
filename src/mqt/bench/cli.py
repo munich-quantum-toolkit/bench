@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import sys
 from importlib import metadata
+from io import TextIOBase
 from pathlib import Path
 
 from mqt.bench.targets.devices import get_device
@@ -135,6 +136,7 @@ def main() -> None:
 
     # For QASM outputs, serialize and print
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
+        assert isinstance(sys.stdout, TextIOBase)
         write_circuit(circuit, sys.stdout, level, fmt, target)
         return
 

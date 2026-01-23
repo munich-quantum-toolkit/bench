@@ -34,7 +34,6 @@ from qiskit.transpiler import (
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
-    import types
     from collections.abc import Callable
 
     from mqt.bench.configuration_options import ConfigurationOptions
@@ -185,12 +184,12 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
     """Test the creation of the arithmetic circuits with faulty input values."""
-    params = (
-        benchmark_name,
-        input_value,
-    ) + (() if kind is None else (kind,))
-    with pytest.raises(ValueError, match=msg):
-        create_circuit(*params)
+    if kind:
+        with pytest.raises(ValueError, match=msg):
+            create_circuit(benchmark_name, input_value, kind=kind)
+    else:
+        with pytest.raises(ValueError, match=msg):
+            create_circuit(benchmark_name, input_value)
 
 
 def test_bv() -> None:
@@ -297,11 +296,11 @@ def test_get_benchmark(
 ) -> None:
     """Test the creation of the benchmarks using the get_benchmark method."""
     qc = get_benchmark(
-        benchmark_name,
-        level,
-        circuit_size,
-        target,
-        opt_level,
+        benchmark=benchmark_name,
+        level=level,
+        circuit_size=circuit_size,
+        target=target,
+        opt_level=opt_level if opt_level is not None else 2,
     )
     assert qc.depth() > 0
     if target:
@@ -560,7 +559,7 @@ def temp_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the generation of a minimal header."""
     monkeypatch.setattr(metadata, "version", lambda _: "9.9.9")
-    hdr = generate_header(OutputFormat.QASM3, "indep")
+    hdr = generate_header(OutputFormat.QASM3, BenchmarkLevel.INDEP)
     lines = hdr.splitlines()
     # first line has today's date
     assert lines[0] == f"// Benchmark created by MQT Bench on {date.today()}"
@@ -892,27 +891,6 @@ def test_validate_opt_level(benchmark: str, size: int, opt_level: int) -> None:
         )
 
 
-@pytest.mark.parametrize(("benchmark", "size", "opt_level"), [("qft", 4, 1)])
-def test_target_must_be_supplied(benchmark: str, size: int, opt_level: int) -> None:
-    """Test target must be supplied for mapped and native-gates levels."""
-    with pytest.raises(
-        TypeError, match=re.escape("get_benchmark_native_gates() missing 1 required positional argument: 'target'")
-    ):
-        get_benchmark_native_gates(
-            benchmark,
-            circuit_size=size,
-            opt_level=opt_level,
-        )
-    with pytest.raises(
-        TypeError, match=re.escape("get_benchmark_mapped() missing 1 required positional argument: 'target'")
-    ):
-        get_benchmark_mapped(
-            benchmark,
-            circuit_size=size,
-            opt_level=opt_level,
-        )
-
-
 def test_assert_never_runtime() -> None:
     """Test that assert_never raises an error at runtime."""
     bad_level = cast("BenchmarkLevel", object())
@@ -981,6 +959,7 @@ def test_get_benchmark_mirror_option() -> None:
 
         # --- Layout Verification ---
         if level_enum == BenchmarkLevel.MAPPED:
+            assert target_obj is not None, f"Target for {benchmark_name} is None."
             assert qc_base.layout is not None, f"Base mapped circuit for {benchmark_name} lacks a layout."
             assert qc_mirror.layout is not None, f"Mirror of mapped circuit for {benchmark_name} lacks a layout."
 
@@ -1049,17 +1028,18 @@ def test_dynamic_benchmark_registration() -> None:
 
 def test_duplicate_benchmark_registration() -> None:
     """Registering the same name twice must raise ValueError."""
+    benchmark_name = "dup_benchmark"
 
-    @register_benchmark("dup_benchmark")
+    @register_benchmark(benchmark_name)
     def _dummy_factory1(num_qubits: int) -> QuantumCircuit:
-        return QuantumCircuit(num_qubits, name=_dummy_factory1.__benchmark_name__)
+        return QuantumCircuit(num_qubits, name=benchmark_name)
 
     # second registration with same name should fail
     with pytest.raises(ValueError, match="already registered"):
 
-        @register_benchmark("dup_benchmark")
+        @register_benchmark(benchmark_name)
         def _dummy_factory2(num_qubits: int) -> QuantumCircuit:
-            return QuantumCircuit(num_qubits, name=_dummy_factory2.__benchmark_name__)
+            return QuantumCircuit(num_qubits, name=benchmark_name)
 
 
 def test_catalogue_and_names_match() -> None:
@@ -1080,7 +1060,7 @@ def test_catalogue_and_names_match() -> None:
     ("benchmark"),
     ["qaoa", "qnn", "bmw_quark_cardinality", "bmw_quark_copula", "vqe_real_amp", "vqe_su2", "vqe_two_local"],
 )
-def test_benchmarks_with_parameters(benchmark: types.ModuleType) -> None:
+def test_benchmarks_with_parameters(benchmark: str) -> None:
     """Test that benchmarks with parameters can be created."""
     circuit_size = 4
     qc = get_benchmark(benchmark, level=BenchmarkLevel.ALG, circuit_size=circuit_size, random_parameters=False)

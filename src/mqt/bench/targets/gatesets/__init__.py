@@ -15,7 +15,7 @@ import importlib
 import importlib.resources as ir
 import inspect
 from functools import cache
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from qiskit.circuit import CONTROL_FLOW_OP_NAMES, Parameter
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -25,15 +25,14 @@ from ._registry import gateset_names, get_gateset_by_name, register_gateset
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from qiskit.circuit import Gate, Instruction
     from qiskit.transpiler import Target
 
 _DISCOVERED_MODULES: set[str] = {
-    path.stem
-    for entry in ir.files(__package__).iterdir()
-    if (path := cast("Path", entry)).is_file() and path.suffix == ".py" and not path.stem.startswith("_")
+    entry.name.removesuffix(".py")
+    for entry in ir.files(__name__).iterdir()
+    if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
 
 _IMPORTED_MODULES: set[str] = set()
