@@ -240,7 +240,6 @@ def test_dynamical_qft() -> None:
     assert if_else_count == 5
 
 
-
 @pytest.mark.parametrize(
     (
         "benchmark_name",
