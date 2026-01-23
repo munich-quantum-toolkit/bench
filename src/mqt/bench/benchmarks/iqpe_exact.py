@@ -15,6 +15,7 @@ from fractions import Fraction
 
 import numpy as np
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+
 from ._registry import register_benchmark
 
 
