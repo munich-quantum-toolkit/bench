@@ -55,7 +55,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     for k in range(num_qubits):
         index = num_qubits - 1 - k
-        # We reset the ancillary qubit in order to reuse in each interation
+        # We reset the ancillary qubit in order to reuse in each iteration
         qc.reset(q[0])
         qc.h(q[0])
 
