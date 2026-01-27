@@ -36,7 +36,7 @@ def create_circuit(num_qubits: int, kind: str = "fixed") -> QuantumCircuit:
     """Create a draper QFT adder circuit.
 
     Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit
+            num_qubits: Number of qubits of the returned quantum circuit. Must be odd and ≥ 3 for half adders, and even and ≥ 2 for fixed adders.
             kind: The kind of adder, can be ``"half"`` for a half adder or
                ``"fixed"`` for a fixed-sized adder. A half adder contains a carry-out to represent
                the most-significant bit, but the fixed-sized adder doesn't and hence performs

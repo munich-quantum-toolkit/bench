@@ -180,6 +180,10 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
             re.escape("num_qubits must be an integer ≥ 2 and (num_qubits + 1) must be divisible by 3."),
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
+        ("hhl", 2, None, "Number of qubits must be at least 3 for HHL."),
+        ("qpeexact", 1, None, "Number of qubits must be at least 2 for QPE exact."),
+        ("bmw_quark_copula", 3, None, "Number of qubits must be divisible by 2."),
+        ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -473,12 +477,6 @@ def test_validate_input() -> None:
         shor.create_circuit_from_num_and_coprime(15, 2)
     except ValueError as e:
         pytest.fail(f"Unexpected ValueError raised for valid input: {e}")
-
-
-def test_create_ae_circuit_with_invalid_qubit_number() -> None:
-    """Testing the minimum number of qubits in the amplitude estimation circuit."""
-    with pytest.raises(ValueError, match=r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."):
-        get_benchmark("ae", BenchmarkLevel.INDEP, 1)
 
 
 @pytest.mark.parametrize(

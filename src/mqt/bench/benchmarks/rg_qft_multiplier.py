@@ -36,7 +36,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a rg qft multiplier circuit.
 
     Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit, must be divisible by 4.
+            num_qubits: Number of qubits of the returned quantum circuit. Must be an integer ≥ 4 and divisible by 4.
 
     Returns:
            QuantumCircuit: The constructed rg qft multiplier circuit.

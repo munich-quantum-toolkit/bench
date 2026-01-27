@@ -25,12 +25,15 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     for the matrix A = [[1, 1], [1, 3]] with known eigenvalues.
 
     Args:
-        num_qubits: Number of qubits in the phase estimation register (precision control)
+        num_qubits: Number of qubits in the phase estimation register (precision control). Must be at least 3.
 
     Returns:
         QuantumCircuit: Qiskit circuit implementing HHL
     """
-    assert num_qubits >= 3, "Number of qubits must be at least 3 for HHL."
+    if num_qubits < 3:
+        msg = "Number of qubits must be at least 3 for HHL."
+        raise ValueError(msg)
+
     num_qpe_qubits = num_qubits - 2
     qr_sys = QuantumRegister(1, name="sys")  # System qubit (|b⟩)
     qr_eig = QuantumRegister(num_qpe_qubits, name="phase")  # Eigenvalue estimation

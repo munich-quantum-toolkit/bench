@@ -21,7 +21,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a modular adder circuit.
 
     Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit, must be even and bigger than 2
+            num_qubits: Number of qubits of the returned quantum circuit. Must be even and bigger than 2
                 so that they can be divided by 2 for both registers.
 
     Returns:
