@@ -25,11 +25,15 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be
+        QuantumCircuit: A quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.
     """
+    if num_qubits <= 1:
+        msg = "Number of qubits must be at least 2 for QPE exact."
+        raise ValueError(msg)
+
     num_qubits = num_qubits - 1  # because of ancilla qubit
     q = QuantumRegister(num_qubits, "q")
     psi = QuantumRegister(1, "psi")

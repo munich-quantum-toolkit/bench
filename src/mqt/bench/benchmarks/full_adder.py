@@ -21,7 +21,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Create a full adder circuit.
 
     Arguments:
-            num_qubits: number of qubits of the returned quantum circuit, must be even and bigger than 4
+            num_qubits: Number of qubits of the returned quantum circuit. Must be even and bigger than 4
                 so that there is a carry-in bit, carry-out bit, and the rest can be divided by 2 for both registers.
 
     Returns:

@@ -48,7 +48,7 @@ def create_circuit(circuit_size: int) -> QuantumCircuit:
     """Construct Shor's circuit based on total qubit count.
 
     Arguments:
-        circuit_size: one of 18, 42, 58, 74.
+        circuit_size: Must be one of 18, 42, 58, 74.
 
     Raises:
         ValueError: if the size is not available.
