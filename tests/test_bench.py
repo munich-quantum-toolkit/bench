@@ -82,6 +82,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "rg_qft_multiplier": 4,
     "vbe_ripple_carry_adder": 4,
     "shors_nine_qubit_code": 17,
+    "seven_qubit_steane_code": 13,
 }
 
 
@@ -185,6 +186,7 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
+        ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -261,6 +263,58 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     # Check total if-else operations: 12 per logical qubit (9 bit-flip + 3 phase-flip)
     if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
     expected_if_else = 12 * num_logical_qubits
+    assert if_else_count == expected_if_else, (
+        f"Expected {expected_if_else} conditional operations, found {if_else_count}"
+    )
+
+
+def test_seven_qubit_steane_code_circuit_structure() -> None:
+    """Test that the Steane 7-qubit code circuit has the expected structure.
+
+    Verifies:
+        - Quantum registers: 7 data qubits, 3 bit-flip syndrome, 3 phase-flip syndrome
+        - Classical registers: 3 bit-flip syndrome, 3 phase-flip syndrome, 13 measurement
+        - 14 conditional operations for error correction (7 bit-flip + 7 phase-flip)
+    """
+    qc = create_circuit("seven_qubit_steane_code", 13)
+
+    # Check quantum registers: logical (7) + bit-flip syndrome (3) + phase-flip syndrome (3)
+    assert len(qc.qregs) == 3
+    qreg_sizes = {qreg.name: qreg.size for qreg in qc.qregs}
+    assert qreg_sizes == {"q0": 7, "bfs0": 3, "pfs0": 3}
+
+    # Check classical registers: bit-flip syndrome (3) + phase-flip syndrome (3) + measure_all (13)
+    assert len(qc.cregs) == 3
+    creg_sizes = {creg.name: creg.size for creg in qc.cregs}
+    assert creg_sizes == {"bfsm0": 3, "pfsm0": 3, "meas": 13}
+
+    # Check number of if-else operations: 7 bit-flip corrections + 7 phase-flip corrections
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    assert if_else_count == 14, f"Expected 14 conditional operations, found {if_else_count}"
+
+
+@pytest.mark.parametrize("num_qubits", [13, 26, 39, 52])
+def test_seven_qubit_steane_code_multiple_logical_qubits(num_qubits: int) -> None:
+    """Test that circuits with multiple logical qubits have the correct structure.
+
+    For n logical qubits (num_qubits = 13n):
+        - 13n total qubits
+        - 19n total classical bits (6n syndrome + 13n measure_all)
+        - 14n conditional operations (7 bit-flip + 7 phase-flip per logical qubit)
+    """
+    qc = create_circuit("seven_qubit_steane_code", num_qubits)
+    num_logical_qubits = num_qubits // 13
+
+    # Check total qubits: 13 per logical qubit
+    assert qc.num_qubits == num_qubits
+
+    # Check total classical bits: 6 per logical qubit (syndrome) + 13 per logical qubit (measure_all)
+    expected_clbits = 6 * num_logical_qubits + num_qubits
+    assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
+
+    # Check total if-else operations: 14 per logical qubit
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    expected_if_else = 14 * num_logical_qubits
     assert if_else_count == expected_if_else, (
         f"Expected {expected_if_else} conditional operations, found {if_else_count}"
     )
