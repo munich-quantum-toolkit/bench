@@ -224,6 +224,41 @@ def test_graphstate_seed() -> None:
     assert qc_no_seed.name == "graphstate"
 
 
+# Test the dynamic GHZ circuit
+@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
+def test_dynamic_ghz_circuit_structure(num_qubits) -> None:
+    # Generate the circuit
+    qc = create_circuit("ghz_dynamic", num_qubits)
+
+    # Check Quantum Registers
+    assert qc.qregs[0].size == num_qubits
+
+    # Check Classical Registers, mid measurement and final measurement
+
+    # Mid measurement registers
+    mid_meas_regs = [reg for reg in qc.cregs if reg.name == "mid_measurement"]
+    assert mid_meas_regs[0].size == num_qubits // 2
+
+    # Final measure_all registers
+    measure_all_regs = [reg for reg in qc.cregs if reg.name == "meas"]
+    assert measure_all_regs[0].size == num_qubits
+
+    # Check Gate Counts
+    ops = qc.count_ops()
+
+    # Check H gates
+    expected_h = (num_qubits + 1) // 2
+    assert ops.get("h", 0) == expected_h
+
+    # Check CNOT gates
+    expected_cnot = 2 * max(0, ((num_qubits + 1) // 2) - 1) + (num_qubits // 2)
+    assert ops.get("cx", 0) == expected_cnot
+
+    # Check if_test
+    expected_if_test = max(0, ((num_qubits - 1) // 2) + (num_qubits // 2))
+    assert ops.get("if_else", 0) == expected_if_test
+
+
 @pytest.mark.parametrize(
     (
         "benchmark_name",
