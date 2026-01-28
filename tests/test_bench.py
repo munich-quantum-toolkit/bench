@@ -118,6 +118,9 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
 
         for device_name in get_available_device_names():
             device = get_device(device_name)
+            if device.num_qubits < qc.num_qubits:
+                # E.g. shors_nine_qubit_code on iqm_crystal_5
+                continue
             res_mapped = get_benchmark_mapped(
                 qc,
                 None,

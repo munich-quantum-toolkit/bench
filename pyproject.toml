@@ -21,7 +21,7 @@ dynamic = ["version"]
 
 dependencies = [
     # Qiskit 1.3.2 contains some fixes for exporting OpenQASM 3 files
-    "qiskit[qasm3-import]>=1.3.2",
+    "qiskit[qasm3-import]>=2.0.0",
     "networkx>=2.8.8",
     "numpy>=1.22",
     "numpy>=1.24; python_version >= '3.11'",
