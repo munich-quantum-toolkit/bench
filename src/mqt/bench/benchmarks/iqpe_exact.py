@@ -35,11 +35,21 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     # will be encoded. Only the ancillary qubit is measured, and the result will
     # be stored in "c", the classical register.
     if num_qubits < 2:
+<<<<<<< HEAD
         raise ValueError("num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)")
     num_bits = num_qubits - 1  # because of ancilla qubit
     q = QuantumRegister(num_qubits, "q")
     c = ClassicalRegister(num_bits, "c")
     qc = QuantumCircuit(q, c, name="iqpeexact")
+=======
+        msg = "num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)"
+        raise ValueError(msg)
+    num_qubits = num_qubits - 1  # because of ancilla qubit
+    q0 = QuantumRegister(1, "q0")
+    q1 = QuantumRegister(num_qubits, "q1")
+    c = ClassicalRegister(num_qubits, "c")
+    qc = QuantumCircuit(q0, q1, c, name="iqpeexact")
+>>>>>>> 27061228820a714057682df966e1cbb469f36e32
 
     # Generate a random n-bit integer as a target phase "theta". The phase can be exactly
     # estimated
