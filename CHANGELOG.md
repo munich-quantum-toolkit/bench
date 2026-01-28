@@ -17,7 +17,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - 🏷️ Replace `mypy` with `ty` for static type checking ([#794]) ([**@burgholzer**])
-- - ⬆️ Increase minimum Qiskit version to 2.0.0 ([#803]) ([**@adnathanail**])
+- ⬆️ Increase minimum Qiskit version to 2.0.0 ([#803]) ([**@adnathanail**])
 
 ## [2.1.0] - 2025-10-18
 
