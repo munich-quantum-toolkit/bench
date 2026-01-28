@@ -287,8 +287,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
           conditionally applied to the first qubit of the affected block.
 
-    Circuit Structure (per logical qubit):
-        - 17 qubits:
+    Circuit Structure:
+        - 17 qubits (per logical qubit):
             - 9 data qubits (q): The encoded logical qubit
             - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
             - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
