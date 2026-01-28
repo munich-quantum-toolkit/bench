@@ -14,7 +14,7 @@ import random
 from fractions import Fraction
 
 import numpy as np
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, IfElseOp
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 
 from ._registry import register_benchmark
 
@@ -35,7 +35,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     # will be encoded. Only the ancillary qubit is measured, and the result will
     # be stored in "c", the classical register.
     if num_qubits < 2:
-        raise ValueError("num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)")
+        msg = "num_qubits must be >= 2 (1 ancilla + at least 1 phase bit)"
+        raise ValueError(msg)
     num_bits = num_qubits - 1  # because of ancilla qubit
     q = QuantumRegister(num_qubits, "q")
     c = ClassicalRegister(num_bits, "c")
