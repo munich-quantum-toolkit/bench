@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import Parameter
+from qiskit.circuit import IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -81,6 +81,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "modular_adder": 4,
     "rg_qft_multiplier": 4,
     "vbe_ripple_carry_adder": 4,
+    "shors_nine_qubit_code": 17,
 }
 
 
@@ -117,6 +118,9 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
 
         for device_name in get_available_device_names():
             device = get_device(device_name)
+            if device.num_qubits < qc.num_qubits:
+                # E.g. shors_nine_qubit_code on iqm_crystal_5
+                continue
             res_mapped = get_benchmark_mapped(
                 qc,
                 None,
@@ -180,6 +184,7 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
             re.escape("num_qubits must be an integer ≥ 2 and (num_qubits + 1) must be divisible by 3."),
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
+        ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -222,6 +227,43 @@ def test_graphstate_seed() -> None:
     qc_no_seed = get_benchmark_alg("graphstate", 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == "graphstate"
+
+
+@pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
+def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
+    """Test that Shor's 9-qubit code circuits have the expected structure.
+
+    For n logical qubits (num_qubits = 17n):
+        - Quantum registers: n of size 9 (data), n of size 6 (bit-flip syndrome), n of size 2 (phase-flip syndrome)
+        - Classical registers: n of size 6 (bit-flip), n of size 2 (phase-flip)
+        - 12n conditional operations (9 bit-flip + 3 phase-flip per logical qubit)
+    """
+    qc = create_circuit("shors_nine_qubit_code", num_qubits)
+    num_logical_qubits = num_qubits // 17
+
+    # Check total qubits
+    assert qc.num_qubits == num_qubits
+
+    # Check total classical bits: 8 per logical qubit (6 bit-flip syndrome + 2 phase-flip syndrome)
+    expected_clbits = 8 * num_logical_qubits
+    assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
+
+    # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
+    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
+    expected_qreg_sizes = sorted([9] * num_logical_qubits + [6] * num_logical_qubits + [2] * num_logical_qubits)
+    assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes}"
+
+    # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip)
+    creg_sizes = sorted(creg.size for creg in qc.cregs)
+    expected_creg_sizes = sorted([6] * num_logical_qubits + [2] * num_logical_qubits)
+    assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes}"
+
+    # Check total if-else operations: 12 per logical qubit (9 bit-flip + 3 phase-flip)
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    expected_if_else = 12 * num_logical_qubits
+    assert if_else_count == expected_if_else, (
+        f"Expected {expected_if_else} conditional operations, found {if_else_count}"
+    )
 
 
 @pytest.mark.parametrize(

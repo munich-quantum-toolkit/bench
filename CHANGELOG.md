@@ -12,10 +12,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
+- ✨ Add Shor's 9 Qubit Code benchmark ([#803]) ([**@adnathanail**])
 
 ### Changed
 
 - 🏷️ Replace `mypy` with `ty` for static type checking ([#794]) ([**@burgholzer**])
+- ⬆️ Increase minimum Qiskit version to 2.0.0 ([#803]) ([**@adnathanail**])
 
 ## [2.1.0] - 2025-10-18
 
@@ -98,6 +100,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#805]: https://github.com/munich-quantum-toolkit/bench/pull/805
+[#803]: https://github.com/munich-quantum-toolkit/bench/pull/803
 [#794]: https://github.com/munich-quantum-toolkit/bench/pull/794
 [#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
