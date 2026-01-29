@@ -227,7 +227,7 @@ def test_graphstate_seed() -> None:
 # Test the dynamic GHZ circuit
 @pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
 def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
-    """Verify the structure od the dynamic GHZ circuit for various qubit counts."""
+    """Verify the structure of the dynamic GHZ circuit for various qubit counts."""
     # Generate the circuit
     qc = create_circuit("ghz_dynamic", num_qubits)
 
