@@ -44,8 +44,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
     for i in range(1, num_qubits, 2):
-        qc.measure(i,j)
-        with qc.if_test((c[j],1)):
+        qc.measure(i, j)
+        with qc.if_test((c[j], 1)):
             qc.x(i)
         j += 1
 
