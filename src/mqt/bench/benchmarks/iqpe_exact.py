@@ -19,7 +19,7 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("iqpeexact", description="Iterative Quantum Phase Estimation (IQPE)")
+@register_benchmark("iqpe_exact", description="Iterative Quantum Phase Estimation (IQPE)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a dynamic quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
 
@@ -55,7 +55,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     # We apply an X gate to the q[1] qubit, to prepare the target qubit in the
     # |1> state
-    qc.x(q[0])
+    qc.x(q[1])
 
     for k in range(num_bits):
         index = num_bits - 1 - k
