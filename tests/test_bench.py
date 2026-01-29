@@ -237,10 +237,12 @@ def test_dynamic_ghz_circuit_structure(num_qubits) -> None:
 
     # Mid measurement registers
     mid_meas_regs = [reg for reg in qc.cregs if reg.name == "mid_measurement"]
+    assert len(mid_meas_regs) == 1
     assert mid_meas_regs[0].size == num_qubits // 2
 
     # Final measure_all registers
     measure_all_regs = [reg for reg in qc.cregs if reg.name == "meas"]
+    assert len(measure_all_regs) == 1
     assert measure_all_regs[0].size == num_qubits
 
     # Check Gate Counts

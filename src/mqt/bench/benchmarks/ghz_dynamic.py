@@ -27,7 +27,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     c = ClassicalRegister(num_qubits // 2, "mid_measurement")
     qc = QuantumCircuit(q, c, name="ghz_dynamic")
 
-    # Apply Haddamard gates to all even qubits
+    # Apply Hadamard gates to all even qubits
     for i in range(0, num_qubits, 2):
         qc.h(i)
 
@@ -44,10 +44,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
     for i in range(1, num_qubits, 2):
-        qc.measure(i, j)
-        j += 1
-        with qc.if_test((c[0], 1)):
+        qc.measure(i,j)
+        with qc.if_test((c[j],1)):
             qc.x(i)
+        j += 1
 
     j = 0
     if num_qubits > 1:
