@@ -247,7 +247,8 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     assert measure_all_regs[0].size == num_qubits
 
     # Check Gate Counts
-    ops = qc.count_ops()  # type: dict[str, int]
+    ops = qc.count_ops() # type: dict[str, int] 
+    ops = dict(ops)
 
     # Check H gates
     expected_h = (num_qubits + 1) // 2
