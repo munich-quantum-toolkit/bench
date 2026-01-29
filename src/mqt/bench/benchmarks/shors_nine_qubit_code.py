@@ -287,15 +287,14 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
           conditionally applied to the first qubit of the affected block.
 
-    Circuit Structure:
-        - 17 qubits (per logical qubit):
+    Circuit Structure (per logical qubit):
+        - 17 qubits:
             - 9 data qubits (q): The encoded logical qubit
             - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
             - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
-        - 8 classical bits (per logical qubit):
+        - 8 classical bits:
             - 6 bit-flip syndrome measurement bits (bsm)
             - 2 phase-flip syndrome measurement bits (psm)
-        - Plus additional measurement bits from the final measure_all
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit (must be divisible by 17)
@@ -321,5 +320,4 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         qc.compose(single, qubits=single.qubits, clbits=single.clbits, inplace=True)
 
     qc.barrier()
-    qc.measure_all()
     return qc
