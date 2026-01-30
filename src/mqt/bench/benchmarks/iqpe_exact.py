@@ -40,7 +40,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     num_bits = num_qubits - 1  # because of ancilla qubit
     q = QuantumRegister(num_qubits, "q")
     c = ClassicalRegister(num_bits, "c")
-    qc = QuantumCircuit(q, c, name="iqpeexact")
+    qc = QuantumCircuit(q, c, name="iqpe_exact")
 
     # Generate a random n-bit integer as a target phase "theta". The phase can be exactly
     # estimated
@@ -60,7 +60,9 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     for k in range(num_bits):
         index = num_bits - 1 - k
         # We reset the ancillary qubit in order to reuse in each iteration
-        qc.reset(q[0])
+        qc.measure(q[0], c[0])
+        with qc.if_test((c[0], 1)):
+            qc.x(q[0])
         qc.h(q[0])
 
         # Controlled unitary. The angle is normalized from
