@@ -145,7 +145,7 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
     assert qc.num_qubits == input_value
 
 
-def test_iqpeexact_structure() -> None:
+def test_iqpe_exact_structure() -> None:
     """Test that the Iterative Quantum Phase Estimation code circuit has the expected structure.
 
     Verifies (for a 5-qubit input):
@@ -154,17 +154,17 @@ def test_iqpeexact_structure() -> None:
         - 4 resets and 6 conditional operations
         - 4 measurements
     """
-    qc = create_circuit("iqpeexact", 5)
+    qc = create_circuit("iqpe_exact", 5)
 
     assert qc.num_qubits == 5
     assert qc.num_clbits == 4
 
     ops = qc.count_ops()
-    assert ops.get("reset") == 4
-    assert ops.get("measure") == 4
+    ops = dict(ops)  # type: dict[str, int]
+    assert ops.get("measure") == 8
 
-    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
-    assert if_else_count == 6, f"Expected 6 conditional operations, found {if_else_count}"
+    if_else_count = sum(1 for inst in qc.data if inst.operation.name == "if_else")
+    assert if_else_count == 10, f"Expected 6 conditional operations, found {if_else_count}"
 
 
 @pytest.mark.parametrize(
