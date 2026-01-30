@@ -146,6 +146,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@denialhaag**]: https://github.com/denialhaag
 [**@soroushfathi**]: https://github.com/soroushfathi
 [**@adnathanail**]: https://github.com/adnathanail
+[**@TomasVF**]: https://github.com/TomasVF
 
 <!-- General links -->
 
