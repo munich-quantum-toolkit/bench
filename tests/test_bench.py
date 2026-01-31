@@ -151,8 +151,8 @@ def test_iqpe_exact_structure() -> None:
     Verifies (for a 5-qubit input):
         - Quantum registers: 4 target qubits and 1 ancillary qubit
         - Classical register: num_qubits - 1 (4 bits)
-        - 4 resets and 6 conditional operations
-        - 4 measurements
+        - 8 measurements (4 resets + 4 final measurements)
+        - 10 conditional operations (4 reset conditionals + 6 correction conditionals)
     """
     qc = create_circuit("iqpe_exact", 5)
 
@@ -164,7 +164,7 @@ def test_iqpe_exact_structure() -> None:
     assert ops.get("measure") == 8
 
     if_else_count = sum(1 for inst in qc.data if inst.operation.name == "if_else")
-    assert if_else_count == 10, f"Expected 6 conditional operations, found {if_else_count}"
+    assert if_else_count == 10, f"Expected 10 conditional operations, found {if_else_count}"
 
 
 def test_iqpe_exact_invalid_qubit_number() -> None:
