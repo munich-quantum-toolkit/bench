@@ -167,6 +167,12 @@ def test_iqpe_exact_structure() -> None:
     assert if_else_count == 10, f"Expected 6 conditional operations, found {if_else_count}"
 
 
+def test_iqpe_exact_invalid_qubit_number() -> None:
+    """Test that the Iterative Quantum Phase Estimation code circuit raises an error for invalid qubit numbers."""
+    with pytest.raises(ValueError, match=r"num_qubits must be >= 2"):
+        create_circuit("iqpe_exact", 1)
+
+
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind", "msg"),
     [
