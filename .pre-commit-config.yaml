@@ -50,7 +50,7 @@ repos:
       - id: disallow-caps
         name: Disallow improper capitalization
         language: pygrep
-        entry: Nanobind|Numpy|Github|PyTest|Mqt|Tum
+        entry: Numpy|Github|PyTest|Mqt|Tum
         exclude: .pre-commit-config.yaml
         priority: 0
 
@@ -138,7 +138,7 @@ repos:
     hooks:
       - id: ty-check
         name: ty check
-        entry: uvx python -c "import subprocess; import sys; r = subprocess.run(['uv', 'sync', '--no-install-project', '--inexact']); sys.exit(r.returncode or subprocess.run(['uv', 'run', '--no-sync', 'ty', 'check']).returncode)"
+        entry: uv run ty check
         language: unsupported
         require_serial: true
         types_or: [python, pyi, jupyter]
