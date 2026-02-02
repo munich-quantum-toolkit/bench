@@ -145,6 +145,34 @@ def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> Non
     assert qc.num_qubits == input_value
 
 
+def test_iqpe_exact_structure() -> None:
+    """Test that the Iterative Quantum Phase Estimation code circuit has the expected structure.
+
+    Verifies (for a 5-qubit input):
+        - Quantum registers: 4 target qubits and 1 ancillary qubit
+        - Classical register: num_qubits - 1 (4 bits)
+        - 8 measurements (4 resets + 4 final measurements)
+        - 10 conditional operations (4 reset conditionals + 6 correction conditionals)
+    """
+    qc = create_circuit("iqpe_exact", 5)
+
+    assert qc.num_qubits == 5
+    assert qc.num_clbits == 4
+
+    ops = qc.count_ops()
+    ops = dict(ops)  # type: dict[str, int]
+    assert ops.get("measure") == 8
+
+    if_else_count = sum(1 for inst in qc.data if inst.operation.name == "if_else")
+    assert if_else_count == 10, f"Expected 10 conditional operations, found {if_else_count}"
+
+
+def test_iqpe_exact_invalid_qubit_number() -> None:
+    """Test that the Iterative Quantum Phase Estimation code circuit raises an error for invalid qubit numbers."""
+    with pytest.raises(ValueError, match=r"num_qubits must be >= 2"):
+        create_circuit("iqpe_exact", 1)
+
+
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind", "msg"),
     [
