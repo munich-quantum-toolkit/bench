@@ -235,7 +235,7 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
 
     For n logical qubits (num_qubits = 17n):
         - Quantum registers: n of size 9 (data), n of size 6 (bit-flip syndrome), n of size 2 (phase-flip syndrome)
-        - Classical registers: n of size 6 (bit-flip), n of size 2 (phase-flip), n of size 9 (measurement)
+        - Classical registers: n of size 6 (bit-flip), n of size 2 (phase-flip), n of size 1 (measurement)
         - 12n conditional operations (9 bit-flip + 3 phase-flip per logical qubit)
     """
     qc = create_circuit("shors_nine_qubit_code", num_qubits)
@@ -244,8 +244,8 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     # Check total qubits
     assert qc.num_qubits == num_qubits
 
-    # Check total classical bits: 17 per logical qubit (6 bit-flip + 2 phase-flip + 9 measurement)
-    expected_clbits = 17 * num_logical_qubits
+    # Check total classical bits: 9 per logical qubit (6 bit-flip + 2 phase-flip + 1 measurement)
+    expected_clbits = 9 * num_logical_qubits
     assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
 
     # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
@@ -253,9 +253,9 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     expected_qreg_sizes = sorted([9] * num_logical_qubits + [6] * num_logical_qubits + [2] * num_logical_qubits)
     assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes}"
 
-    # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 9n (measurement)
+    # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1n (measurement)
     creg_sizes = sorted(creg.size for creg in qc.cregs)
-    expected_creg_sizes = sorted([6] * num_logical_qubits + [2] * num_logical_qubits + [9] * num_logical_qubits)
+    expected_creg_sizes = sorted([6] * num_logical_qubits + [2] * num_logical_qubits + [1] * num_logical_qubits)
     assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes}"
 
     # Check total if-else operations: 12 per logical qubit (9 bit-flip + 3 phase-flip)
