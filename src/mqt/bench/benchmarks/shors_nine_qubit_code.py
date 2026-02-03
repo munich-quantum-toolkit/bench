@@ -185,19 +185,21 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
 
     Returns:
         QuantumCircuit: Circuit with 17 qubits (9 data + 6 bit-flip + 2 phase-flip syndrome)
-            and 8 classical bits for syndrome measurements.
+            and 17 classical bits (8 for syndrome measurements + 9 for logical qubit measurements).
     """
     logical_qubit = QuantumRegister(9, f"q{index}")
     bit_flip_syndrome = AncillaRegister(6, f"bs{index}")
     phase_flip_syndrome = AncillaRegister(2, f"ps{index}")
     bit_flip_syndrome_measurement = ClassicalRegister(6, f"bsm{index}")
     phase_flip_syndrome_measurement = ClassicalRegister(2, f"psm{index}")
+    logical_qubit_measurement = ClassicalRegister(9, f"m{index}")
     qc = QuantumCircuit(
         logical_qubit,
         bit_flip_syndrome,
         phase_flip_syndrome,
         bit_flip_syndrome_measurement,
         phase_flip_syndrome_measurement,
+        logical_qubit_measurement,
     )
     # == Encoding ==
     # Apply phase flip encoding on the first qubit of each bit-flip block
@@ -252,6 +254,8 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
         qubits=[logical_qubit[0], logical_qubit[3], logical_qubit[6]],
         inplace=True,
     )
+    # == Measurement ==
+    qc.measure(logical_qubit, logical_qubit_measurement)
     return qc
 
 
@@ -292,9 +296,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             - 9 data qubits (q): The encoded logical qubit
             - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
             - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
-        - 8 classical bits:
+        - 17 classical bits:
             - 6 bit-flip syndrome measurement bits (bsm)
             - 2 phase-flip syndrome measurement bits (psm)
+            - 9 logical qubit measurement bits (m)
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit (must be divisible by 17)
