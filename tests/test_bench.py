@@ -273,7 +273,7 @@ def test_seven_qubit_steane_code_circuit_structure() -> None:
 
     Verifies:
         - Quantum registers: 7 data qubits, 3 bit-flip syndrome, 3 phase-flip syndrome
-        - Classical registers: 3 bit-flip syndrome, 3 phase-flip syndrome, 13 measurement
+        - Classical registers: 3 bit-flip syndrome, 3 phase-flip syndrome, 1 measurement
         - 14 conditional operations for error correction (7 bit-flip + 7 phase-flip)
     """
     qc = create_circuit("seven_qubit_steane_code", 13)
@@ -283,10 +283,10 @@ def test_seven_qubit_steane_code_circuit_structure() -> None:
     qreg_sizes = {qreg.name: qreg.size for qreg in qc.qregs}
     assert qreg_sizes == {"q0": 7, "bfs0": 3, "pfs0": 3}
 
-    # Check classical registers: bit-flip syndrome (3) + phase-flip syndrome (3) + measure_all (13)
+    # Check classical registers: bit-flip syndrome (3) + phase-flip syndrome (3) + measurement (1)
     assert len(qc.cregs) == 3
     creg_sizes = {creg.name: creg.size for creg in qc.cregs}
-    assert creg_sizes == {"bfsm0": 3, "pfsm0": 3, "meas": 13}
+    assert creg_sizes == {"bfsm0": 3, "pfsm0": 3, "m0": 1}
 
     # Check number of if-else operations: 7 bit-flip corrections + 7 phase-flip corrections
     if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
@@ -299,7 +299,7 @@ def test_seven_qubit_steane_code_multiple_logical_qubits(num_qubits: int) -> Non
 
     For n logical qubits (num_qubits = 13n):
         - 13n total qubits
-        - 19n total classical bits (6n syndrome + 13n measure_all)
+        - 7n total classical bits (6n syndrome + 1n measurement)
         - 14n conditional operations (7 bit-flip + 7 phase-flip per logical qubit)
     """
     qc = create_circuit("seven_qubit_steane_code", num_qubits)
@@ -308,8 +308,8 @@ def test_seven_qubit_steane_code_multiple_logical_qubits(num_qubits: int) -> Non
     # Check total qubits: 13 per logical qubit
     assert qc.num_qubits == num_qubits
 
-    # Check total classical bits: 6 per logical qubit (syndrome) + 13 per logical qubit (measure_all)
-    expected_clbits = 6 * num_logical_qubits + num_qubits
+    # Check total classical bits: 7 per logical qubit (6 syndrome + 1 measurement)
+    expected_clbits = 7 * num_logical_qubits
     assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
 
     # Check total if-else operations: 14 per logical qubit

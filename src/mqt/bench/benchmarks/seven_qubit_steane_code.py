@@ -146,19 +146,21 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
 
     Returns:
         QuantumCircuit: Circuit with 13 qubits (7 data + 3 bit-flip + 3 phase-flip syndrome)
-            and 6 classical bits for syndrome measurements.
+            and 7 classical bits (6 for syndrome measurements + 1 for logical qubit measurement).
     """
     logical_qubit = QuantumRegister(7, f"q{index}")
     bit_flip_syndrome = QuantumRegister(3, f"bfs{index}")
     phase_flip_syndrome = QuantumRegister(3, f"pfs{index}")
     bit_flip_syndrome_measurement = ClassicalRegister(3, f"bfsm{index}")
     phase_flip_syndrome_measurement = ClassicalRegister(3, f"pfsm{index}")
+    logical_qubit_measurement = ClassicalRegister(1, f"m{index}")
     qc = QuantumCircuit(
         logical_qubit,
         bit_flip_syndrome,
         phase_flip_syndrome,
         bit_flip_syndrome_measurement,
         phase_flip_syndrome_measurement,
+        logical_qubit_measurement,
     )
     # == Encoding ==
     qc.compose(
@@ -190,6 +192,8 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
         qubits=logical_qubit[:],
         inplace=True,
     )
+    # == Measurement ==
+    qc.measure(logical_qubit[0], logical_qubit_measurement)
     return qc
 
 
@@ -227,10 +231,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             - 7 data qubits (q): The encoded logical qubit
             - 3 bit-flip syndrome qubits (bfs): For X-error detection
             - 3 phase-flip syndrome qubits (pfs): For Z-error detection
-        - 6 classical bits (per logical qubit):
+        - 7 classical bits (per logical qubit):
             - 3 bit-flip syndrome measurement bits (bfsm)
             - 3 phase-flip syndrome measurement bits (pfsm)
-        - Plus additional measurement bits from the final measure_all
+            - 1 logical qubit measurement bit (m)
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit (must be divisible by 13)
@@ -256,5 +260,4 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         qc.compose(single, qubits=single.qubits, clbits=single.clbits, inplace=True)
 
     qc.barrier()
-    qc.measure_all()
     return qc
