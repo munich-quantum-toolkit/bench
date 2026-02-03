@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from qiskit import ClassicalRegister
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
 from ._registry import register_benchmark
 
@@ -91,7 +91,7 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
     Returns:
         QuantumCircuit: 11-qubit circuit (qubits 0-8 are data, qubits 9-10 are syndrome ancillas).
     """
-    logical_qubit, phase_flip_syndrome = QuantumRegister(9), QuantumRegister(2)
+    logical_qubit, phase_flip_syndrome = QuantumRegister(9), AncillaRegister(2)
     out = QuantumCircuit(logical_qubit, phase_flip_syndrome)
     # The order on the CNOT gates below is reversed when compared to what one might expect
     #   with the control being the ancilla, and the target being one of the component qubits of the logical qubit
@@ -118,7 +118,7 @@ def _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quant
 def _apply_nine_qubit_shors_code_bit_flip_correction(
     qc: QuantumCircuit,
     logical_qubit: QuantumRegister,
-    bit_flip_syndrome: QuantumRegister,
+    bit_flip_syndrome: AncillaRegister,
     bit_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
     """Apply bit-flip correction based on syndrome measurement.
@@ -129,7 +129,7 @@ def _apply_nine_qubit_shors_code_bit_flip_correction(
     Arguments:
         qc: The quantum circuit to modify.
         logical_qubit: Register containing the 9 data qubits.
-        bit_flip_syndrome: Register containing the 6 syndrome qubits.
+        bit_flip_syndrome: Ancilla register containing the 6 syndrome qubits.
         bit_flip_syndrome_measurement: Classical register for syndrome measurement results.
     """
     qc.measure(bit_flip_syndrome, bit_flip_syndrome_measurement)
@@ -152,7 +152,7 @@ def _apply_nine_qubit_shors_code_bit_flip_correction(
 def _apply_nine_qubit_shors_code_phase_flip_correction(
     qc: QuantumCircuit,
     logical_qubit: QuantumRegister,
-    phase_flip_syndrome: QuantumRegister,
+    phase_flip_syndrome: AncillaRegister,
     phase_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
     """Apply phase-flip correction based on syndrome measurement.
@@ -163,7 +163,7 @@ def _apply_nine_qubit_shors_code_phase_flip_correction(
     Arguments:
         qc: The quantum circuit to modify.
         logical_qubit: Register containing the 9 data qubits.
-        phase_flip_syndrome: Register containing the 2 syndrome qubits.
+        phase_flip_syndrome: Ancilla register containing the 2 syndrome qubits.
         phase_flip_syndrome_measurement: Classical register for syndrome measurement results.
     """
     qc.measure(phase_flip_syndrome, phase_flip_syndrome_measurement)
@@ -188,8 +188,8 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
             and 8 classical bits for syndrome measurements.
     """
     logical_qubit = QuantumRegister(9, f"q{index}")
-    bit_flip_syndrome = QuantumRegister(6, f"bs{index}")
-    phase_flip_syndrome = QuantumRegister(2, f"ps{index}")
+    bit_flip_syndrome = AncillaRegister(6, f"bs{index}")
+    phase_flip_syndrome = AncillaRegister(2, f"ps{index}")
     bit_flip_syndrome_measurement = ClassicalRegister(6, f"bsm{index}")
     phase_flip_syndrome_measurement = ClassicalRegister(2, f"psm{index}")
     qc = QuantumCircuit(
