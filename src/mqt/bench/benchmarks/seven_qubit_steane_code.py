@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from qiskit import ClassicalRegister
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
 from ._registry import register_benchmark
 
@@ -106,8 +106,8 @@ def _get_seven_qubit_steane_code_syndrome_extraction_circuit() -> QuantumCircuit
 def _apply_seven_qubit_steane_code_correction(
     qc: QuantumCircuit,
     logical_qubit: QuantumRegister,
-    bit_flip_syndrome: QuantumRegister,
-    phase_flip_syndrome: QuantumRegister,
+    bit_flip_syndrome: AncillaRegister,
+    phase_flip_syndrome: AncillaRegister,
     bit_flip_syndrome_measurement: ClassicalRegister,
     phase_flip_syndrome_measurement: ClassicalRegister,
 ) -> None:
@@ -149,8 +149,8 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
             and 7 classical bits (6 for syndrome measurements + 1 for logical qubit measurement).
     """
     logical_qubit = QuantumRegister(7, f"q{index}")
-    bit_flip_syndrome = QuantumRegister(3, f"bfs{index}")
-    phase_flip_syndrome = QuantumRegister(3, f"pfs{index}")
+    bit_flip_syndrome = AncillaRegister(3, f"bfs{index}")
+    phase_flip_syndrome = AncillaRegister(3, f"pfs{index}")
     bit_flip_syndrome_measurement = ClassicalRegister(3, f"bfsm{index}")
     phase_flip_syndrome_measurement = ClassicalRegister(3, f"pfsm{index}")
     logical_qubit_measurement = ClassicalRegister(1, f"m{index}")
