@@ -80,7 +80,7 @@ def _get_seven_qubit_steane_code_syndrome_extraction_circuit() -> QuantumCircuit
         QuantumCircuit: 13-qubit circuit (qubits 0-6 are data, 7-9 are bit-flip
             syndrome ancillas, 10-12 are phase-flip syndrome ancillas).
     """
-    logical_qubit, bit_flip_syndrome, phase_flip_syndrome = QuantumRegister(7), QuantumRegister(3), QuantumRegister(3)
+    logical_qubit, bit_flip_syndrome, phase_flip_syndrome = QuantumRegister(7), AncillaRegister(3), AncillaRegister(3)
     out = QuantumCircuit(logical_qubit, bit_flip_syndrome, phase_flip_syndrome)
     # Bit-flip
     for ctrl in (0, 2, 4, 6):
