@@ -80,7 +80,7 @@ dev = [
     {include-group = "test"},
     "nox>=2025.11.12",
     "prek>=0.2.27",
-    "ty==0.0.14",
+    "ty==0.0.15",
 ]
 
 [project.scripts]
