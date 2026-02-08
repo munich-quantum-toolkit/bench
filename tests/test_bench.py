@@ -271,6 +271,8 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     # Check if_test
     expected_if_test = max(0, ((num_qubits - 1) // 2) + (num_qubits // 2))
     assert ops.get("if_else", 0) == expected_if_test
+
+
 @pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
 def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     """Test that Shor's 9-qubit code circuits have the expected structure.
