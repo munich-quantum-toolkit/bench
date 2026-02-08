@@ -59,21 +59,22 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             qc.x(i)
         classical_register += 1
 
-    j = 0
+    mid_measure_indx = 0
     condition = mid_measure[0]
 
     # We apply a X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
     for i in range(2, num_qubits, 2):
         with qc.if_test(expr.equal(condition, True)):
             qc.x(i)
-        j += 1
-        if j < num_qubits // 2:
-            condition = expr.bit_xor(condition, mid_measure[j])
+        mid_measure_indx += 1
+        if mid_measure_indx < num_qubits // 2:
+            condition = expr.bit_xor(condition, mid_measure[mid_measure_indx])
 
+    next_qubit = 0
     # We apply CNOT gates to the qubits we measured before and reset from the previous qubit
     for i in range(0, num_qubits - 1, 2):
-        j = i + 1
-        qc.cx(i, j)
+        next_qubit = i + 1
+        qc.cx(i, next_qubit)
 
     qc.measure(q, final_measure)
     return qc
