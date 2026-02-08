@@ -18,8 +18,8 @@ from ._registry import register_benchmark
 
 @register_benchmark("ghz_dynamic", description="Dynamic GHZ State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a dynamic quantum circuit implementing the GHZ state. Going from a circuit depth dependant on the number of qubits to a constant depth by using intermediate measurements.
-    A clear example on how to transform the clasical GHZ circuit to the dynamic version can be seen in https://arxiv.org/pdf/2308.13065 Fig 5
+    """Returns a dynamic quantum circuit implementing the GHZ state. Going from a circuit depth dependent on the number of qubits to a constant depth by using intermediate measurements.
+    A clear example on how to transform the classical GHZ circuit to the dynamic version can be seen in https://arxiv.org/pdf/2308.13065 Fig 5
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
@@ -50,18 +50,17 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         if next_qubit < num_qubits - 1:
             qc.cx(i, next_qubit)
 
-    clasical_register = 0
+    classical_register = 0
 
     # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
     for i in range(1, num_qubits, 2):
-        qc.measure(i, clasical_register)
-        with qc.if_test((mid_measure[clasical_register], 1)):
+        qc.measure(i, classical_register)
+        with qc.if_test((mid_measure[classical_register], 1)):
             qc.x(i)
-        clasical_register += 1
+        classical_register += 1
 
     j = 0
-    if num_qubits > 1:
-        condition = mid_measure[0]
+    condition = mid_measure[0]
 
     # We apply a X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
     for i in range(2, num_qubits, 2):
