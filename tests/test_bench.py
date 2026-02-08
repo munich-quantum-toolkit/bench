@@ -238,11 +238,14 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
 
     # Mid measurement registers
     mid_meas_regs = [reg for reg in qc.cregs if reg.name == "mid_measurement"]
-    assert len(mid_meas_regs) == 1
-    assert mid_meas_regs[0].size == num_qubits // 2
+    if num_qubits == 1:
+        assert len(mid_meas_regs) == 0
+    else:
+        assert len(mid_meas_regs) == 1
+        assert mid_meas_regs[0].size == num_qubits // 2
 
     # Final measure_all registers
-    measure_all_regs = [reg for reg in qc.cregs if reg.name == "meas"]
+    measure_all_regs = [reg for reg in qc.cregs if reg.name == "final_measurement"]
     assert len(measure_all_regs) == 1
     assert measure_all_regs[0].size == num_qubits
 
