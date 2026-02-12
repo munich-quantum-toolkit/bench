@@ -25,7 +25,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     for the matrix A = [[1, 1], [1, 3]] with known eigenvalues.
 
     Args:
-        num_qubits: Number of qubits in the phase estimation register (precision control). Must be at least 3.
+        num_qubits: Total number of qubits (1 system + phase-estimation register + 1 ancilla). Must be at least 3.
 
     Returns:
         QuantumCircuit: Qiskit circuit implementing HHL
