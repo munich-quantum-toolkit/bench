@@ -19,7 +19,7 @@ from ._registry import register_benchmark
 @register_benchmark("ghz_dynamic", description="Dynamic GHZ State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a dynamic quantum circuit implementing the GHZ state. Going from a circuit depth dependent on the number of qubits to a constant depth by using intermediate measurements.
-    
+
     A clear example on how to transform the classical GHZ circuit to the dynamic version can be seen in https://arxiv.org/pdf/2308.13065 Fig 5.
 
     Arguments:
@@ -73,7 +73,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         if mid_measure_index < num_qubits // 2:
             condition = expr.bit_xor(condition, mid_measure[mid_measure_index])
 
-    
     # We apply CNOT gates to the qubits we measured before and reset from the previous qubit
     for i in range(0, num_qubits - 1, 2):
         next_qubit = i + 1
