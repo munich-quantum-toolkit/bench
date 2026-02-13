@@ -51,7 +51,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         if next_qubit < num_qubits - 1:
             qc.cx(i, next_qubit)
 
-
     # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
     for classical_register, i in enumerate(range(1, num_qubits, 2)):
         qc.measure(i, classical_register)
