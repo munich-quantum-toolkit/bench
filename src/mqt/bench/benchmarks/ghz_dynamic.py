@@ -38,9 +38,6 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     mid_measure = ClassicalRegister(num_qubits // 2, "mid_measurement")
     qc = QuantumCircuit(q, mid_measure, final_measure, name="ghz_dynamic")
 
-    next_qubit = 0
-    mid_measure_index = 0
-
     # Apply Hadamard gates to all even qubits
     for i in range(0, num_qubits, 2):
         qc.h(i)
@@ -66,10 +63,9 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     condition = mid_measure[0]
 
     # We apply a X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
-    for i in range(2, num_qubits, 2):
+    for mid_measure_index, i in enumerate(range(2, num_qubits, 2), start=1):
         with qc.if_test(expr.equal(condition, True)):
             qc.x(i)
-        mid_measure_index += 1
         if mid_measure_index < num_qubits // 2:
             condition = expr.bit_xor(condition, mid_measure[mid_measure_index])
 
