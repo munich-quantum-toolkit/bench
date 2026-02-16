@@ -22,7 +22,7 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
     """Returns a quantum circuit implementing Quantum Amplitude Estimation.
 
     Arguments:
-        num_qubits: Total number of qubits, including evaluation and target qubits.
+        num_qubits: Total number of qubits, including evaluation and target qubits. Must be at least 2 (1 evaluation + 1 target).
         probability: Probability of the "good" state.
 
     Returns:

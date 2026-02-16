@@ -25,7 +25,7 @@ def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
     """Create a CDKM ripple-carry adder circuit.
 
     Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit
+            num_qubits: Number of qubits of the returned quantum circuit. Must be even and ≥ 4 for full and half adders, and odd and ≥ 3 for fixed adders.
             kind: The kind of adder, can be ``"full"`` for a full adder, ``"half"`` for a half
                adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
                and carry-out, a half ader only carry-out, but an additional helper qubit, and a fixed-sized

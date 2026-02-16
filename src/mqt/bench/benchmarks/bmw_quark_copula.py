@@ -40,10 +40,12 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the copula circuit architecture from the QUARK framework.
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
-        depth: depth of the returned quantum circuit
+        num_qubits: Number of qubits of the returned quantum circuit. Must be divisible by 2.
+        depth: Depth of the returned quantum circuit.
     """
-    assert num_qubits % 2 == 0, "Number of qubits must be divisible by 2."
+    if num_qubits % 2 != 0:
+        msg = "Number of qubits must be divisible by 2."
+        raise ValueError(msg)
 
     n_registers = 2
     n = num_qubits // n_registers

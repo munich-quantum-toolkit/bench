@@ -106,7 +106,7 @@ def get_gateset_without_control_flow_ops(gateset_name: str) -> list[str]:
     return [gate for gate in _get_gateset(gateset_name) if gate not in CONTROL_FLOW_OP_NAMES]
 
 
-def _lazy_custom_gates() -> dict[str, type[Gate] | Callable[[], Gate | type[Instruction]]]:
+def _lazy_custom_gates() -> dict[str, Callable[[], Gate | type[Instruction]]]:
     """Import custom gates only when needed."""
     from qiskit.circuit import IfElseOp  # noqa: PLC0415
 
@@ -118,9 +118,9 @@ def _lazy_custom_gates() -> dict[str, type[Gate] | Callable[[], Gate | type[Inst
         "gpi2": lambda: GPI2Gate(Parameter("alpha")),
         "ms": lambda: MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
         "zz": lambda: ZZGate(Parameter("alpha")),
-        "rxpi": RXPIGate,
-        "rxpi2": RXPI2Gate,
-        "rxpi2dg": RXPI2DgGate,
+        "rxpi": lambda: RXPIGate,
+        "rxpi2": lambda: RXPI2Gate,
+        "rxpi2dg": lambda: RXPI2DgGate,
         "if_else": lambda: IfElseOp,
     }
 
