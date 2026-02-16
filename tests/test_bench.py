@@ -34,6 +34,7 @@ from qiskit.transpiler import (
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
+    from collections import OrderedDict
     from collections.abc import Callable
 
     from mqt.bench.configuration_options import ConfigurationOptions
@@ -233,6 +234,49 @@ def test_graphstate_seed() -> None:
     qc_no_seed = get_benchmark_alg("graphstate", 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == "graphstate"
+
+
+# Test the dynamic GHZ circuit
+@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
+def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
+    """Verify the structure of the dynamic GHZ circuit for various qubit counts."""
+    # Generate the circuit
+    qc = create_circuit("ghz_dynamic", num_qubits)
+
+    # Check Quantum Registers
+    assert qc.qregs[0].size == num_qubits
+
+    # Check Classical Registers, mid measurement and final measurement
+
+    # Mid measurement registers
+    mid_meas_regs = [reg for reg in qc.cregs if reg.name == "mid_measurement"]
+    if num_qubits == 1:
+        assert len(mid_meas_regs) == 0
+    else:
+        assert len(mid_meas_regs) == 1
+        assert mid_meas_regs[0].size == num_qubits // 2
+
+    # Final measure_all registers
+    measure_all_regs = [reg for reg in qc.cregs if reg.name == "final_measurement"]
+    assert len(measure_all_regs) == 1
+    assert measure_all_regs[0].size == num_qubits
+
+    # Check Gate Counts
+    # TODO: The typing of `QuantumCircuit.count_ops()` is incorrect.
+    #  This will be fixed in Qiskit 2.3.1
+    ops: OrderedDict[str, int] = qc.count_ops()  # ty: ignore[invalid-assignment]
+
+    # Check H gates
+    expected_h = (num_qubits + 1) // 2
+    assert ops.get("h", 0) == expected_h
+
+    # Check CNOT gates
+    expected_cnot = 2 * max(0, ((num_qubits + 1) // 2) - 1) + (num_qubits // 2)
+    assert ops.get("cx", 0) == expected_cnot
+
+    # Check if_test
+    expected_if_test = max(0, ((num_qubits - 1) // 2) + (num_qubits // 2))
+    assert ops.get("if_else", 0) == expected_if_test
 
 
 @pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
