@@ -34,6 +34,7 @@ from qiskit.transpiler import (
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
+    from collections import OrderedDict
     from collections.abc import Callable
 
     from mqt.bench.configuration_options import ConfigurationOptions
@@ -261,8 +262,9 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     assert measure_all_regs[0].size == num_qubits
 
     # Check Gate Counts
-    ops = qc.count_ops()  # type: dict[str, int]
-    ops = dict(ops)
+    # TODO: The typing of `QuantumCircuit.count_ops()` is incorrect.
+    #  This will be fixed in Qiskit 2.3.1
+    ops: OrderedDict[str, int] = qc.count_ops()  # ty: ignore[invalid-assignment]
 
     # Check H gates
     expected_h = (num_qubits + 1) // 2
