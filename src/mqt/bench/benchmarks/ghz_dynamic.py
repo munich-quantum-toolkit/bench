@@ -27,22 +27,21 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     """
     q = QuantumRegister(num_qubits, "q")
     final_measure = ClassicalRegister(num_qubits, "final_measurement")
+    qc = QuantumCircuit(q, final_measure, name="ghz_dynamic")
 
-    # If num_qubits = 1 then we just apply a Hadamard gate to the qubit
+    # If num_qubits = 1, then we just apply a Hadamard gate to the qubit
     if num_qubits == 1:
-        qc = QuantumCircuit(q, final_measure, name="ghz_dynamic")
         qc.h(0)
         qc.measure(q, final_measure)
         return qc
 
     mid_measure = ClassicalRegister(num_qubits // 2, "mid_measurement")
-    qc = QuantumCircuit(q, mid_measure, final_measure, name="ghz_dynamic")
+    qc.add_register(mid_measure)
 
     # Apply Hadamard gates to all even qubits
-    for i in range(0, num_qubits, 2):
-        qc.h(i)
+    qc.h(range(0, num_qubits, 2))
 
-    # Apply CNOT gates from all even qubits to the previous and next one, if total number of qubits is even we ignore the last CNOT
+    # Apply CNOT gates from all even qubits to the previous and next one, if the total number of qubits is even, we ignore the last CNOT
     for i in range(0, num_qubits, 2):
         previous_qubit = i - 1
         next_qubit = i + 1
@@ -52,24 +51,23 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             qc.cx(i, next_qubit)
 
     # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
-    for classical_register, i in enumerate(range(1, num_qubits, 2)):
-        qc.measure(i, classical_register)
-        with qc.if_test((mid_measure[classical_register], 1)):
-            qc.x(i)
+    for classical_bit, qubit in zip(mid_measure, range(1, num_qubits, 2), strict=True):
+        qc.measure(qubit, classical_bit)
+        with qc.if_test((classical_bit, 1)):
+            qc.x(qubit)
 
     condition = mid_measure[0]
 
-    # We apply a X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
-    for mid_measure_index, i in enumerate(range(2, num_qubits, 2), start=1):
+    # We apply an X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
+    for i in range(2, num_qubits, 2):
         with qc.if_test(expr.equal(condition, True)):
             qc.x(i)
-        if mid_measure_index < num_qubits // 2:
-            condition = expr.bit_xor(condition, mid_measure[mid_measure_index])
+        if i // 2 < len(mid_measure):
+            condition = expr.bit_xor(condition, mid_measure[i // 2])
 
     # We apply CNOT gates to the qubits we measured before and reset from the previous qubit
     for i in range(0, num_qubits - 1, 2):
-        next_qubit = i + 1
-        qc.cx(i, next_qubit)
+        qc.cx(i, i + 1)
 
     qc.measure(q, final_measure)
     return qc
