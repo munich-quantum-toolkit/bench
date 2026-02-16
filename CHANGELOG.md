@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- ✨ Add Dynamic QFT circuit as a dynamical benchmarking circuit ([#807]) ([**@morrishuismans**])
 - ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
 - ✨ Add Shor's 9 Qubit Code benchmark ([#803]) ([**@adnathanail**])
 - ✨ Add 7 Qubit Steane Code benchmark ([#814]) ([**@adnathanail**])
@@ -100,7 +101,6 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
-[#814]: https://github.com/munich-quantum-toolkit/bench/pull/814
 [#805]: https://github.com/munich-quantum-toolkit/bench/pull/805
 [#803]: https://github.com/munich-quantum-toolkit/bench/pull/803
 [#794]: https://github.com/munich-quantum-toolkit/bench/pull/794
@@ -149,6 +149,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@denialhaag**]: https://github.com/denialhaag
 [**@soroushfathi**]: https://github.com/soroushfathi
 [**@adnathanail**]: https://github.com/adnathanail
+[**@morrishuismans**]: https://github.com/morrishuismans
 
 <!-- General links -->
 
