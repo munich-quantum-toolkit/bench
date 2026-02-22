@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+import datetime
 from enum import Enum
 from importlib import metadata
 from io import TextIOBase
@@ -78,11 +78,11 @@ def generate_header(
             "    pip install mqt.bench\n\n"
             f"and try again. (Original error: {exc})"
         )
-        raise MQTBenchExporterError(msg) from None
+        raise MQTBenchExporterError(msg) from exc
 
     lines: list[str] = []
     lines.extend((
-        f"// Benchmark created by MQT Bench on {date.today()}",
+        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}",
         "// For more info: https://mqt-bench.app/",
         f"// MQT Bench version: {version}",
         f"// Qiskit version: {__qiskit_version__}",
@@ -156,7 +156,7 @@ def write_circuit(
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
             except Exception as exc:  # pragma: no cover - unforeseen I/O
                 msg = f"Failed to write QASM stream. (Original error: {exc})"
-                raise MQTBenchExporterError(msg) from None
+                raise MQTBenchExporterError(msg) from exc
             return
 
         if fmt is OutputFormat.QPY:
@@ -167,7 +167,7 @@ def write_circuit(
                 dump_qpy(_attach_metadata(qc, header), destination)
             except Exception as exc:
                 msg = f"Failed to write QPY stream. (Original error: {exc})"
-                raise MQTBenchExporterError(msg) from None
+                raise MQTBenchExporterError(msg) from exc
             return
 
         msg = f"Unsupported output format {fmt}. Supported formats are {[m.value for m in OutputFormat]}."
@@ -180,7 +180,7 @@ def write_circuit(
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, f)
         except Exception as exc:
             msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
-            raise MQTBenchExporterError(msg) from None
+            raise MQTBenchExporterError(msg) from exc
 
     elif fmt is OutputFormat.QPY:
         try:
@@ -188,7 +188,7 @@ def write_circuit(
                 dump_qpy(_attach_metadata(qc, header), f)
         except Exception as exc:
             msg = f"Failed to write QPY file to {destination}. (Original error: {exc})"
-            raise MQTBenchExporterError(msg) from None
+            raise MQTBenchExporterError(msg) from exc
 
     else:
         msg = f"Unsupported output format {fmt}. Supported formats are {[m.value for m in OutputFormat]}."

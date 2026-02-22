@@ -11,10 +11,10 @@
 from __future__ import annotations
 
 import builtins
+import datetime
 import functools
 import io
 import re
-from datetime import date
 from enum import Enum
 from importlib import metadata
 from pathlib import Path
@@ -668,7 +668,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     hdr = generate_header(OutputFormat.QASM3, BenchmarkLevel.INDEP)
     lines = hdr.splitlines()
     # first line has today's date
-    assert lines[0] == f"// Benchmark created by MQT Bench on {date.today()}"
+    assert lines[0] == f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
     # contains the fixed info lines
     assert "// For more info: https://mqt-bench.app/" in hdr
     assert "// MQT Bench version: 9.9.9" in hdr
@@ -756,7 +756,9 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert isinstance(circ, QuantumCircuit)
 
     header = circ.metadata["mqt_bench"]
-    assert header.startswith(f"// Benchmark created by MQT Bench on {date.today()}")
+    assert header.startswith(
+        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
+    )
     assert "// MQT Bench version:" in header
     assert "// Output format: qpy" in header
 
