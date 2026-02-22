@@ -76,7 +76,7 @@ def generate_header(
             "The Python package `mqt.bench` is not installed in the current "
             "environment. Install it with\n\n"
             "    pip install mqt.bench\n\n"
-            f"and try again. (Original error: {exc})"
+            "and try again."
         )
         raise MQTBenchExporterError(msg) from exc
 
@@ -155,7 +155,7 @@ def write_circuit(
                 destination.write(header)
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
             except Exception as exc:  # pragma: no cover - unforeseen I/O
-                msg = f"Failed to write QASM stream. (Original error: {exc})"
+                msg = "Failed to write QASM stream."
                 raise MQTBenchExporterError(msg) from exc
             return
 
@@ -166,7 +166,7 @@ def write_circuit(
             try:
                 dump_qpy(_attach_metadata(qc, header), destination)
             except Exception as exc:
-                msg = f"Failed to write QPY stream. (Original error: {exc})"
+                msg = "Failed to write QPY stream."
                 raise MQTBenchExporterError(msg) from exc
             return
 
@@ -179,7 +179,7 @@ def write_circuit(
                 f.write(header)
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, f)
         except Exception as exc:
-            msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
+            msg = f"Failed to write {fmt.value.upper()} file to {destination}."
             raise MQTBenchExporterError(msg) from exc
 
     elif fmt is OutputFormat.QPY:
@@ -187,7 +187,7 @@ def write_circuit(
             with destination.open("wb") as f:
                 dump_qpy(_attach_metadata(qc, header), f)
         except Exception as exc:
-            msg = f"Failed to write QPY file to {destination}. (Original error: {exc})"
+            msg = f"Failed to write QPY file to {destination}."
             raise MQTBenchExporterError(msg) from exc
 
     else:
