@@ -220,7 +220,8 @@ def save_circuit(
     try:
         write_circuit(qc, path, level, output_format, target)
     except MQTBenchExporterError as e:
-        print(e)
+        cause = f": {e.__cause__}" if e.__cause__ else ""
+        print(f"{e}{cause}")
         return False
 
     return True
