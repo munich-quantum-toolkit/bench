@@ -50,11 +50,11 @@ def create_circuit(circuit_size: int) -> QuantumCircuit:
     Arguments:
         circuit_size: Must be one of 18, 42, 58, 74.
 
-    Raises:
-        ValueError: if the size is not available.
-
     Returns:
         QuantumCircuit implementing Shor's algorithm for the chosen size.
+
+    Raises:
+        ValueError: if the size is not available.
     """
     try:
         n, a = _SIZE_TO_PARAMS[circuit_size]
