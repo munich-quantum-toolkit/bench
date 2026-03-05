@@ -46,6 +46,7 @@ UPGRADING
 :maxdepth: 1
 
 contributing
+tooling
 support
 ```
 
