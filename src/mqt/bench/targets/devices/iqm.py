@@ -187,6 +187,53 @@ def get_iqm_crystal_54() -> Target:
     )
 
 
+@register_device("iqm_garnet_20")
+def get_iqm_garnet_20() -> Target:
+    """Get the target for a 20-qubit IQM Garnet architecture."""
+    return _build_iqm_target(
+        name="iqm_garnet_20",
+        num_qubits=20,
+        connectivity=[
+            [1, 0],
+            [1, 4],
+            [3, 0],
+            [3, 2],
+            [3, 4],
+            [3, 8],
+            [5, 4],
+            [5, 6],
+            [5, 10],
+            [7, 2],
+            [7, 8],
+            [7, 12],
+            [9, 4],
+            [9, 8],
+            [9, 10],
+            [9, 14],
+            [11, 6],
+            [11, 10],
+            [11, 16],
+            [13, 8],
+            [13, 12],
+            [13, 14],
+            [13, 17],
+            [15, 10],
+            [15, 14],
+            [15, 16],
+            [15, 19],
+            [18, 14],
+            [18, 17],
+            [18, 19],
+        ],
+        oneq_error=0.001002,
+        twoq_error=0.007530,
+        readout_error=0.020400,
+        oneq_duration=20e-9,
+        twoq_duration=40e-9,
+        readout_duration=1.5e-5,
+    )
+
+
 def _build_iqm_target(
     *,
     name: str,
