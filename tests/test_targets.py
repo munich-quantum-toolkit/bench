@@ -138,6 +138,12 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
         single_qubit_gates={"sx", "rz", "x", "measure"},
         two_qubit_gates={"cz"},
     ),
+    DeviceSpec(
+        name="ibm_boston_156",
+        num_qubits=156,
+        single_qubit_gates={"sx", "rz", "x", "measure"},
+        two_qubit_gates={"cz"},
+    ),
     # ────────────────────────────────────────────────────────────────── IonQ ──
     DeviceSpec(
         name="ionq_aria_25",
@@ -170,6 +176,12 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
     DeviceSpec(
         name="iqm_crystal_54",
         num_qubits=54,
+        single_qubit_gates={"r", "measure"},
+        two_qubit_gates={"cz"},
+    ),
+    DeviceSpec(
+        name="iqm_garnet_20",
+        num_qubits=20,
         single_qubit_gates={"r", "measure"},
         two_qubit_gates={"cz"},
     ),
