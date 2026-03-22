@@ -262,9 +262,7 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     assert measure_all_regs[0].size == num_qubits
 
     # Check Gate Counts
-    # TODO: The typing of `QuantumCircuit.count_ops()` is incorrect.
-    #  This will be fixed in Qiskit 2.3.1
-    ops: OrderedDict[str, int] = qc.count_ops()  # ty: ignore[invalid-assignment]
+    ops: OrderedDict[str, int] = qc.count_ops()
 
     # Check H gates
     expected_h = (num_qubits + 1) // 2
