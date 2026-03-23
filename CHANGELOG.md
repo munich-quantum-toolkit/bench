@@ -9,9 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [2.1.1] - 2026-03-23
+## [2.2.0] - 2026-03-23
 
-_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#211)._
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#220)._
 
 ### Added
 
@@ -101,8 +101,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.1...HEAD
-[2.1.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.1.1
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.0
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.1.0
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.0

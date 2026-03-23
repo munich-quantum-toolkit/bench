@@ -4,7 +4,15 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [Unreleased]
 
-## [2.1.1]
+## [2.2.0]
+
+### Dynamic benchmarks and device support for control flow
+
+**Summary:** This release grows the catalog of **dynamic** quantum circuits (mid-circuit measurement and classical branching). New benchmarks include **`ghz_dynamic`** (constant-depth GHZ via intermediate measurements and `if_test`), **`shors_nine_qubit_code`**, and **`seven_qubit_steane_code`** (syndrome extraction and conditional recovery using control flow).
+
+**Compilation:** Dynamic circuits that use Qiskit control flow (`if_test`, `IfElseOp`) can be compiled to **every** bundled native gateset and **every** bundled device target.
+
+**Device models:** All bundled **device** `Target` definitions now declare the **`if_else`** (IfElse) instruction, so the transpiler can treat dynamic circuits as mappable to those backends. (IBM-style targets enable this through Qiskit’s control-flow support on the target; other backends add `IfElseOp` explicitly.)
 
 ### Minimum Qiskit version
 
@@ -149,8 +157,8 @@ All links in the documentation have been updated accordingly.
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.1...HEAD
-[2.1.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...v2.1.1
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
