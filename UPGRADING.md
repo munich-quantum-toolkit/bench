@@ -20,7 +20,7 @@ That updates the lockfile and installs the new resolution. If you only want to i
 
 ### `multiplier` and `vbe_ripple_carry_adder` circuit sizes
 
-Bug fixes correct how `num_state_qubits` is derived from the requested `num_qubits` / `circuit_size`. As a result, **generated circuits can have a different width than in 2.1.0** for the same arguments.
+Bug fixes changed how `num_state_qubits` is derived from the requested `num_qubits` / `circuit_size` for the respective benchmarks. As a result, **generated circuits can have a different width than in 2.1.0** for the same arguments.
 
 ## [2.1.0]
 
