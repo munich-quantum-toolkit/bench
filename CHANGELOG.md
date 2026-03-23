@@ -13,8 +13,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Rerelease of 2.2.0: no code changes. The CD pipeline failed for v2.2.0 and release artifacts are immutable, so this patch version republishes the same release contents.
 
-_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#221)._
-
 ## [2.2.0] - 2026-03-23
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#220)._
