@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-03-23
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#211)._
+
 ### Added
 
 - ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
@@ -20,6 +24,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - 🏷️ Replace `mypy` with `ty` for static type checking ([#794]) ([**@burgholzer**])
 - ⬆️ Increase minimum Qiskit version to 2.0.0 ([#803]) ([**@adnathanail**])
+
+### Fixed
+
+- 🐛 Fixed `num_state_qubits` calculation in `multiplier` and `vbe_ripple_carry_adder` circuits ([#865]) ([**@simon1hofmann**])
 
 ## [2.1.0] - 2025-10-18
 
@@ -93,7 +101,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.1.1
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.1.0
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.0.0
@@ -101,6 +110,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#865]: https://github.com/munich-quantum-toolkit/bench/pull/865
 [#816]: https://github.com/munich-quantum-toolkit/bench/pull/816
 [#814]: https://github.com/munich-quantum-toolkit/bench/pull/814
 [#805]: https://github.com/munich-quantum-toolkit/bench/pull/805

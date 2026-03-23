@@ -4,6 +4,21 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ## [Unreleased]
 
+## [2.1.1]
+
+### Minimum Qiskit version
+
+This release requires **Qiskit 2.0.0 or later**. After upgrading `mqt_bench` or updating your `uv.lock`, run **`uv sync`** so your environment resolves to a compatible Qiskit. To refresh Qiskit in the lockfile first:
+
+```bash
+uv lock --upgrade-package qiskit
+uv sync
+```
+
+### `multiplier` and `vbe_ripple_carry_adder` circuit sizes
+
+Bug fixes correct how `num_state_qubits` is derived from the requested `num_qubits` / `circuit_size`. As a result, **generated circuits can have a different width than in 2.1.0** for the same arguments.
+
 ## [2.1.0]
 
 ### End of support for Python 3.9
@@ -131,7 +146,8 @@ All links in the documentation have been updated accordingly.
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/munich-quantum-toolkit/bench/compare/v1.1.9...v2.0.0
