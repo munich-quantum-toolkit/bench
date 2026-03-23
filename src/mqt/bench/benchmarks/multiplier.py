@@ -33,7 +33,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         msg = "num_qubits must be an integer ≥ 4 and divisible by 4."
         raise ValueError(msg)
 
-    num_state_qubits = num_qubits // 2 - 1
+    num_state_qubits = num_qubits // 4
     gate = MultiplierGate(num_state_qubits)
 
     qc = QuantumCircuit(gate.num_qubits)

@@ -44,7 +44,7 @@ def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
         if num_qubits % 3 or num_qubits < 3:
             msg = "num_qubits must be an integer ≥ 3 and divisible by 3."
             raise ValueError(msg)
-        num_state_qubits = num_qubits // 2
+        num_state_qubits = num_qubits // 3
     elif kind == "full":
         if (num_qubits - 1) % 3 or num_qubits < 4:
             msg = "num_qubits must be an integer ≥ 4 and (num_qubits - 1) must be divisible by 3."
