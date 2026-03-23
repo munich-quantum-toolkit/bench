@@ -8,12 +8,15 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ### Minimum Qiskit version
 
-This release requires **Qiskit 2.0.0 or later**. After upgrading `mqt_bench` or updating your `uv.lock`, run **`uv sync`** so your environment resolves to a compatible Qiskit. To refresh Qiskit in the lockfile first:
+This release requires **Qiskit 2.0.0 or later**. After upgrading MQT Bench or pulling an updated `uv.lock`, run **`uv sync`** so your environment matches the lockfile.
+
+If you already depend on MQT Bench and **only need to refresh Qiskit** (for example your lockfile still pins Qiskit 1.x), upgrade it in one step:
 
 ```bash
-uv lock --upgrade-package qiskit
-uv sync
+uv sync --upgrade-package qiskit
 ```
+
+That updates the lockfile and installs the new resolution. If you only want to install what is already locked, use **`uv sync`** without `--upgrade-package`.
 
 ### `multiplier` and `vbe_ripple_carry_adder` circuit sizes
 
