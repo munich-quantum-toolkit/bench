@@ -135,19 +135,35 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind"),
     [
-        ("cdkm_ripple_carry_adder", 4, "half"),
-        ("cdkm_ripple_carry_adder", 4, "full"),
-        ("cdkm_ripple_carry_adder", 3, "fixed"),
-        ("draper_qft_adder", 3, "half"),
-        ("draper_qft_adder", 2, "fixed"),
-        ("vbe_ripple_carry_adder", 3, "half"),
-        ("vbe_ripple_carry_adder", 4, "full"),
-        ("vbe_ripple_carry_adder", 2, "fixed"),
+        *[("cdkm_ripple_carry_adder", n, "half") for n in (4, 6, 8, 10)],
+        *[("cdkm_ripple_carry_adder", n, "full") for n in (4, 6, 8, 10)],
+        *[("cdkm_ripple_carry_adder", n, "fixed") for n in (3, 5, 7, 9)],
+        *[("draper_qft_adder", n, "half") for n in (3, 5, 7, 9)],
+        *[("draper_qft_adder", n, "fixed") for n in (2, 4, 6, 8)],
+        *[("vbe_ripple_carry_adder", n, "half") for n in (3, 6, 9, 12)],
+        *[("vbe_ripple_carry_adder", n, "full") for n in (4, 7, 10, 13)],
+        *[("vbe_ripple_carry_adder", n, "fixed") for n in (2, 5, 8, 11)],
     ],
 )
 def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> None:
-    """Test the creation of the arithmetic circuits."""
+    """Adder benchmarks: circuit qubit count matches the requested size."""
     qc = create_circuit(benchmark_name, input_value, kind)
+    assert qc.num_qubits == input_value
+
+
+@pytest.mark.parametrize(
+    ("benchmark_name", "input_value"),
+    [
+        *[("full_adder", n) for n in (4, 8, 12, 16)],
+        *[("modular_adder", n) for n in (2, 4, 6, 8)],
+        *[("multiplier", n) for n in (4, 8, 12, 16)],
+        *[("rg_qft_multiplier", n) for n in (4, 8, 12, 16)],
+        *[("hrs_cumulative_multiplier", n) for n in (5, 9, 13, 17)],
+    ],
+)
+def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
+    """Arithmetic benchmarks without ``kind``: circuit qubit count matches the requested size."""
+    qc = create_circuit(benchmark_name, input_value)
     assert qc.num_qubits == input_value
 
 
