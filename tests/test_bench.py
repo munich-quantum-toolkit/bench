@@ -812,7 +812,7 @@ def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     qc = QuantumCircuit(1)
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, tmp_path / "foo.fake", BenchmarkLevel.INDEP, fmt=FakeFormat.FAKE)  # type: ignore[arg-type]
+        write_circuit(qc, tmp_path / "foo.fake", BenchmarkLevel.INDEP, fmt=FakeFormat.FAKE)  # ty: ignore[no-matching-overload]
 
     msg = str(exc.value)
     assert "unsupported output format" in msg.lower()
