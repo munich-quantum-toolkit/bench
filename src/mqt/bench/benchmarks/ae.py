@@ -48,7 +48,7 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
     num_eval_qubits = num_qubits - 1
 
     # Build the phase estimation circuit with the specified number of evaluation qubits and the Grover operator.
-    pe = phase_estimation(num_eval_qubits, grover_operator)
+    pe = phase_estimation(num_eval_qubits, grover_operator.to_gate(label="Q"))
 
     # Create the overall circuit using the quantum registers from the phase estimation circuit.
     qc = QuantumCircuit(*pe.qregs)
