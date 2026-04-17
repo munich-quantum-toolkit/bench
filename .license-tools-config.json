@@ -35,6 +35,7 @@
     ".*build.*",
     ".*\\.rst",
     ".*\\.ipynb",
-    "Dockerfile"
+    "Dockerfile",
+    "LICENSE"
   ]
 }
