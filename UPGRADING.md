@@ -90,12 +90,8 @@ Please see the [API documentation](https://mqt.readthedocs.io/projects/bench/en/
 from mqt.bench import get_benchmark, BenchmarkLevel
 from mqt.bench.targets import get_target_for_gateset, get_device
 
-benchmark_alg_level = get_benchmark(
-    benchmark="dj", level=BenchmarkLevel.ALG, circuit_size=5
-)
-benchmark_independent_level = get_benchmark(
-    benchmark="dj", level=BenchmarkLevel.INDEP, circuit_size=5
-)
+benchmark_alg_level = get_benchmark(benchmark="dj", level=BenchmarkLevel.ALG, circuit_size=5)
+benchmark_independent_level = get_benchmark(benchmark="dj", level=BenchmarkLevel.INDEP, circuit_size=5)
 benchmark_native_gates_level = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.NATIVEGATES,
