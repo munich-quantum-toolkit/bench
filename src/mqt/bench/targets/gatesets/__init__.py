@@ -17,7 +17,7 @@ import inspect
 from functools import cache
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import CONTROL_FLOW_OP_NAMES, Parameter
+from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -40,7 +40,6 @@ _IMPORTED_MODULES: set[str] = set()
 __all__ = [
     "get_available_gateset_names",
     "get_gateset",
-    "get_gateset_without_control_flow_ops",
     "get_target_for_gateset",
     "register_gateset",
 ]
@@ -101,15 +100,8 @@ def get_gateset(gateset_name: str) -> list[str]:
     return _get_gateset(gateset_name).copy()
 
 
-def get_gateset_without_control_flow_ops(gateset_name: str) -> list[str]:
-    """Return the basis-gate list for gateset_name, without control-flow operations."""
-    return [gate for gate in _get_gateset(gateset_name) if gate not in CONTROL_FLOW_OP_NAMES]
-
-
 def _lazy_custom_gates() -> dict[str, Callable[[], Gate | type[Instruction]]]:
     """Import custom gates only when needed."""
-    from qiskit.circuit import IfElseOp  # noqa: PLC0415
-
     from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate  # noqa: PLC0415
     from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # noqa: PLC0415
 
@@ -121,7 +113,6 @@ def _lazy_custom_gates() -> dict[str, Callable[[], Gate | type[Instruction]]]:
         "rxpi": lambda: RXPIGate,
         "rxpi2": lambda: RXPI2Gate,
         "rxpi2dg": lambda: RXPI2DgGate,
-        "if_else": lambda: IfElseOp,
     }
 
 
@@ -137,7 +128,7 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
             standard_gates.append(gate)
         else:
             other_gates.append(gate)
-    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates)
+    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates, control_flow=True)
     target = backend.target
     target.description = gateset_name
 
