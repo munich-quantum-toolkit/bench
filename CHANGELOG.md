@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-04-20
+
 ### Fixed
 
 - 🚸 Fix compatibility with Qiskit 2.4 ([#895]) ([**@burgholzer**])
@@ -109,7 +111,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.1...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.2
 [2.2.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.1
 [2.2.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.0
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.1.0
