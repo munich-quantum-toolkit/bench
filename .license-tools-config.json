@@ -36,6 +36,6 @@
     ".*\\.rst",
     ".*\\.ipynb",
     "Dockerfile",
-    "LICENSE"
+    "(^|/)LICENSE$"
   ]
 }
