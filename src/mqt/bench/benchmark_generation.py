@@ -480,6 +480,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
+    code: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -494,6 +495,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
+    code: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -508,6 +510,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    code: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -521,6 +524,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    code: str = "",  # noqa: ARG001
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -535,6 +539,7 @@ def get_benchmark(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
+        code: Error correction code to be used (currently unused).
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
