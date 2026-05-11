@@ -199,7 +199,7 @@ def _build_iqm_target(
     twoq_duration: float,
     readout_duration: float,
 ) -> Target:
-    """Construct a hardcoded IQM target using mean values."""
+    """Construct a hardcoded IQM target using mean values and bidirectional connectivity."""
     target = Target(num_qubits=num_qubits, description=name)
 
     theta = Parameter("theta")
