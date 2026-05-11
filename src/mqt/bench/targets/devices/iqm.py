@@ -23,7 +23,7 @@ def get_iqm_crystal_5() -> Target:
     return _build_iqm_target(
         name="iqm_crystal_5",
         num_qubits=5,
-        connectivity=[[0, 2], [2, 0], [1, 2], [2, 1], [3, 2], [2, 3], [4, 2], [2, 4]],
+        connectivity=[[0, 2], [1, 2], [3, 2], [4, 2]],
         oneq_error=0.00132,
         twoq_error=0.0311,
         readout_error=0.0278,
@@ -215,6 +215,8 @@ def _build_iqm_target(
     target.add_instruction(Measure(), measure_props)
 
     # === Add two-qubit gates ===
+    # Account for bidirectionality of CZ gate
+    connectivity += [[q1, q0] for q0, q1 in connectivity]
     cz_props = {(q1, q2): InstructionProperties(duration=twoq_duration, error=twoq_error) for q1, q2 in connectivity}
     target.add_instruction(CZGate(), cz_props)
 
