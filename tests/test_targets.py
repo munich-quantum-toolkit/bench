@@ -166,12 +166,14 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
         num_qubits=20,
         single_qubit_gates={"r", "measure"},
         two_qubit_gates={"cz"},
+        symmetric_connectivity={"cz": True},
     ),
     DeviceSpec(
         name="iqm_crystal_54",
         num_qubits=54,
         single_qubit_gates={"r", "measure"},
         two_qubit_gates={"cz"},
+        symmetric_connectivity={"cz": True},
     ),
     # ────────────────────────────────────────────────────────────── Quantinuum ──
     DeviceSpec(
