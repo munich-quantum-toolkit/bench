@@ -200,7 +200,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
-    code:str = "",
+    encoding:str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -224,9 +224,9 @@ def get_benchmark_alg(
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc, inplace=True)
 
-    #if code == "shor":
+    #if encoding == "shor":
     #    return generate_shor(qc)
-    #elif code == "stean":
+    #elif encoding == "stean":
     #    return generate_stean(qc)
 
     return qc
@@ -489,7 +489,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
-    code: str = "",
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -504,7 +504,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
-    code: str = "",
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -519,7 +519,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
-    code: str = "",
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -533,7 +533,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
-    code: str = "",
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -562,7 +562,7 @@ def get_benchmark(
             circuit_size=circuit_size,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
-            code=code,
+            encoding=code,
             **kwargs,
         )
 
