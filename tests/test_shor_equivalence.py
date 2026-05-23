@@ -72,32 +72,53 @@ def verify_gate_equivalence(gate_name: str, num_qubits: int) -> None:
     # Apply decoding so the logical state collapses back to the first physical qubit of each block
     transpiler.decode_qubits()
 
+    transpiled_qc.save_statevector()
+
+    sim = AerSimulator(method="statevector")
+    result_transpiled = sim.run(transpiled_qc).result()
+    assert result_transpiled.success, f"Simulation failed: {result_transpiled.status}"
+    actual_sv = result_transpiled.get_statevector()
 
     # Extract the density matrix of the physical qubits holding the logical state
     # These are the 0-th qubits of each physical data register
-    logical_qubits_physical = [transpiler.physical_data_registers[i][0] for i in range(num_qubits)]
+    logical_qubits_physical = [
+        transpiled_qc.find_bit(transpiler.physical_data_registers[i][0]).index
+        for i in range(num_qubits)
+    ]
 
-    expected_sv_transpiled = Statevector.from_instruction(transpiled_qc)
+    from qiskit.quantum_info import partial_trace
+    all_qubits = list(range(transpiled_qc.num_qubits))
+    trace_qubits = [q for q in all_qubits if q not in logical_qubits_physical]
 
+    actual_rho = partial_trace(actual_sv, trace_qubits)
+
+    from qiskit.quantum_info import DensityMatrix
+    expected_rho_init = DensityMatrix(expected_sv_init)
+
+    try:
+        actual_sv_reduced = actual_rho.to_statevector()
+    except Exception:
+        actual_sv_reduced = None
 
     # Compare the density matrices
-    #fidelity = state_fidelity(expected_rho, actual_rho)
-    
-    # Convert to statevector for visual inspection (since the states are pure)
-    #expected_sv = expected_rho.to_statevector()
-    #actual_sv = actual_rho.to_statevector()
+    fidelity = state_fidelity(expected_sv_init, actual_rho)
 
     # Save the resulting density matrices and state vectors to the text file for visual inspection
     with open(output_dir / f"{gate_name}_transpiled.txt", "a", encoding="utf-8") as f:
-        
-        f.write("\n\n=== LOGICAL EXPECTED STATE VECTOR ===\n")
-        f.write(str(np.round(expected_sv_init, 3)) + "\n")
-        f.write("\n=== ACTUAL TRANSPILED STATE VECTOR (AFTER DECODING) ===\n")
-        f.write(str(np.round(expected_sv_transpiled, 3)) + "\n")
-        
-        #f.write(f"\nSTATE FIDELITY: {fidelity:.6f}\n")
+        f.write("\n\n=== LOGICAL EXPECTED DENSITY MATRIX ===\n")
+        f.write(str(np.round(expected_rho_init.data, 3)) + "\n")
+        f.write("\n=== ACTUAL TRANSPILED DENSITY MATRIX (REDUCED) ===\n")
+        f.write(str(np.round(actual_rho.data, 3)) + "\n")
 
-    #assert fidelity > 0.999, f"Fidelity too low: {fidelity}"
+        if actual_sv_reduced is not None:
+            f.write("\n\n=== LOGICAL EXPECTED STATE VECTOR ===\n")
+            f.write(str(np.round(expected_sv_init.data, 3)) + "\n")
+            f.write("\n=== ACTUAL TRANSPILED STATE VECTOR (REDUCED) ===\n")
+            f.write(str(np.round(actual_sv_reduced.data, 3)) + "\n")
+
+        f.write(f"\nSTATE FIDELITY: {fidelity:.6f}\n")
+
+    assert fidelity > 0.999, f"Fidelity too low: {fidelity}"
 
 
 def test_h_equivalence() -> None:
@@ -120,7 +141,7 @@ def test_s_equivalence() -> None:
     verify_gate_equivalence("s", 1)
 
 
-#@pytest.mark.skip(reason="Slow test, takes ~1-2 mins due to 27 qubit simulation")
+@pytest.mark.skip(reason="Slow test, takes ~1-2 mins due to 27 qubit simulation")
 def test_t_equivalence() -> None:
     """Test equivalence for logical T gate."""
     verify_gate_equivalence("t", 1)
