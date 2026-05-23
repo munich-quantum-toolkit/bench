@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 #import pytest
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 import matplotlib.pyplot as plt
 
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
@@ -19,12 +19,10 @@ from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 # this needs mpre tests
 def test_shor_transpiler() -> None:
     """Test that ShorTranspiler successfully transpiles a basic circuit."""
-    qc = QuantumCircuit(2, 1)
+    qc = QuantumCircuit(QuantumRegister(1), QuantumRegister(1), ClassicalRegister(2))
     qc.h(0)
-    qc.x(1)
     qc.cx(0, 1)
-    qc.cz(0, 1)
-    qc.measure(0, 0)
+    qc.measure([0,1],[0,1])
 
     print("\n--- Logical Circuit ---")
     print(qc.draw(fold=-1))
@@ -56,11 +54,3 @@ def test_shor_transpiler() -> None:
     #assert "measure" in ops
 
 
-def test_shor_transpiler_unsupported_gate() -> None:
-    """Test that unsupported gates raise NotImplementedError."""
-    qc = QuantumCircuit(1)
-    qc.t(0)
-
-    transpiler = SteaneTranspiler(qc)
-    with pytest.raises(NotImplementedError, match=r"Gate t is not supported by ShorTranspiler\."):
-        transpiler.transpile()

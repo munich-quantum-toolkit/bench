@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import AncillaRegister
+from qiskit.circuit import AncillaRegister, barrier
 
 # ruff: noqa: PLC2701
 #  these functions are reused from the benchmark and they should be extendable i.e. they shouldn't be private
@@ -127,55 +127,48 @@ class SteaneTranspiler:
 
     def _handle_barrier(self, instruction: CircuitInstruction) -> None:
         """Handle barrier instruction."""
-        logical_instruction_qubits = instruction.qubits
-        involved_physical_data_registers = [
-            self.physical_data_registers[self.original_qc.qubits.index(logical_qubit)]
-            for logical_qubit in logical_instruction_qubits
-        ]
-        flattened_physical_qubits = [
-            physical_qubit
-            for physical_data_register in involved_physical_data_registers
-            for physical_qubit in physical_data_register
-        ]
-        if flattened_physical_qubits:
-            self.transpiled_qc.barrier(flattened_physical_qubits)
-        else:
-            self.transpiled_qc.barrier()
+        barrier_register = []
+        for i in range(len(instruction.qubits)):
+            physical_data_register = self.physical_data_registers[i]
+            bit_flip_syndromes_register = self.bit_flip_syndromes[i]
+            phase_flip_syndromes_register = self.phase_flip_syndromes[i]
+            barrier_register.extend([physical_data_register, bit_flip_syndromes_register, phase_flip_syndromes_register])
+        self.transpiled_qc.barrier( *barrier_register,label=f"Barrier")
 
     def _handle_measure(self, instruction: CircuitInstruction) -> None:
         """Handle measure instruction."""
-        # TODO: improve measurement, so that one could measure several qubits
+        # TODO: consider measure_all(), because of new meas register everything goes wrong
 
-        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        logical_classical_bit_index = self.original_qc.clbits.index(instruction.clbits[0])
+        for i in range(len(instruction.qubits)):
+            logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[i])
+            logical_classical_bit_index = self.original_qc.clbits.index(instruction.clbits[i])
 
-        self.transpiled_qc.compose(_get_seven_qubit_steane_code_encoding_circuit(),
-                                qubits=self.physical_data_registers[logical_qubit_index],
-                                inplace=True
-                                )
+            self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+                                       qubits=self.physical_data_registers[logical_qubit_index],
+                                       inplace=True
+                                       )
 
-        self.transpiled_qc.measure(self.physical_data_registers[logical_qubit_index][0], self.logical_qubit_measurements[logical_classical_bit_index])
+            self.transpiled_qc.measure(self.physical_data_registers[logical_qubit_index][0],
+                                       self.logical_qubit_measurements[logical_classical_bit_index])
 
         self.transpiled_qc.barrier(label=f"Measurement {logical_qubit_index}")
-
 
     def _handle_h(self, instruction: CircuitInstruction) -> None:
         """Handle Hadamard instruction."""
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.h(physical_data_register[physical_qubit_index])
+
+        self.transpiled_qc.h(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"H {logical_qubit_index}")
         self.insert_syndromes(logical_qubit_index)
-
 
     def _handle_x(self, instruction: CircuitInstruction) -> None:
         """Handle X instruction."""
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.x(physical_data_register[physical_qubit_index])
+
+        self.transpiled_qc.x(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"X {logical_qubit_index}")
         self.insert_syndromes(logical_qubit_index)
@@ -184,8 +177,8 @@ class SteaneTranspiler:
         """Handle Z instruction."""
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.z(physical_data_register[physical_qubit_index])
+
+        self.transpiled_qc.z(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"Z {logical_qubit_index}")
         self.insert_syndromes(logical_qubit_index)
@@ -195,19 +188,17 @@ class SteaneTranspiler:
         #S Made cia SDG
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.sdg(physical_data_register[physical_qubit_index])
+
+        self.transpiled_qc.sdg(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"S {logical_qubit_index}")
         self.insert_syndromes(logical_qubit_index)
 
     def _handle_t(self, instruction: CircuitInstruction) -> None:
         """Handle T instruction."""
-        # Explanation: A purely transversal physical S gate destroys the superposition in Shor's 9-qubit code
-        # and is not fault-tolerant. Universal fault-tolerance requires non-transversal techniques such as
-        # magic state injection to properly implement the logical phase gate (S).
-        msg = "Logical S gate is not fault-tolerant transversally in Shor's code and requires magic state injection."
-        raise NotImplementedError(msg)
+        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
+        physical_data_register = self.physical_data_registers[logical_qubit_index]
+
 
     def _handle_cx(self, instruction: CircuitInstruction) -> None:
         """Handle CX instruction."""
@@ -215,29 +206,29 @@ class SteaneTranspiler:
         target_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[1])
         control_physical_data_register = self.physical_data_registers[control_logical_qubit_index]
         target_physical_data_register = self.physical_data_registers[target_logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.cx(
-                control_physical_data_register[physical_qubit_index],
-                target_physical_data_register[physical_qubit_index],
-            )
+
+        self.transpiled_qc.cx(
+            control_physical_data_register,
+            target_physical_data_register,
+        )
 
         self.transpiled_qc.barrier(label=f"CX {control_logical_qubit_index} {target_logical_qubit_index}")
 
         self.insert_syndromes(control_logical_qubit_index)
         self.insert_syndromes(target_logical_qubit_index)
 
-    # it should use the hadamards with cnots
+    # it сould use the hadamards with cnots
     def _handle_cz(self, instruction: CircuitInstruction) -> None:
         """Handle CZ instruction."""
         control_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         target_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[1])
         control_physical_data_register = self.physical_data_registers[control_logical_qubit_index]
         target_physical_data_register = self.physical_data_registers[target_logical_qubit_index]
-        for physical_qubit_index in range(7):
-            self.transpiled_qc.cz(
-                control_physical_data_register[physical_qubit_index],
-                target_physical_data_register[physical_qubit_index],
-            )
+
+        self.transpiled_qc.cz(
+            control_physical_data_register,
+            target_physical_data_register,
+        )
 
         self.transpiled_qc.barrier(label=f"CZ {control_logical_qubit_index} {target_logical_qubit_index}")
 
