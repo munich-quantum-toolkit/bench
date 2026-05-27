@@ -16,13 +16,11 @@ import matplotlib.pyplot as plt
 
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 
-# this needs mpre tests
-def test_shor_transpiler() -> None:
+def test_steane_transpiler() -> None:
     """Test that ShorTranspiler successfully transpiles a basic circuit."""
-    qc = QuantumCircuit(QuantumRegister(1), QuantumRegister(1), ClassicalRegister(2))
-    qc.h(0)
-    qc.cx(0, 1)
-    qc.measure([0,1],[0,1])
+    qc = QuantumCircuit(QuantumRegister(1), ClassicalRegister(1))
+    qc.t(0)
+    #qc.measure(0,0)
 
     print("\n--- Logical Circuit ---")
     print(qc.draw(fold=-1))

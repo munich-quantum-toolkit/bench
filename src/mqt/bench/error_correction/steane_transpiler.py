@@ -25,15 +25,6 @@ from mqt.bench.benchmarks.seven_qubit_steane_code import (
     _apply_seven_qubit_steane_code_correction
 )
 
-from mqt.bench.benchmarks.shors_nine_qubit_code import (
-    _apply_nine_qubit_shors_code_bit_flip_correction,
-    _apply_nine_qubit_shors_code_phase_flip_correction,
-    _get_three_qubit_bit_flip_encoding_decoding_circuit,
-    _get_three_qubit_bit_flip_syndrome_extraction_circuit,
-    _get_three_qubit_phase_flip_encoding_circuit,
-    _get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit
-)
-
 if TYPE_CHECKING:
     from qiskit.circuit import CircuitInstruction
 
@@ -198,6 +189,45 @@ class SteaneTranspiler:
         """Handle T instruction."""
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
+
+        t_ancilla_register = QuantumRegister(7)
+        t_test_register = ClassicalRegister(1)
+
+        self.transpiled_qc.add_register(t_ancilla_register)
+        self.transpiled_qc.add_register(t_test_register)
+
+        # make ket 0 L
+        self.transpiled_qc.compose(
+            _get_seven_qubit_steane_code_encoding_circuit(),
+            qubits=t_ancilla_register[:],
+            inplace=True,
+        )
+
+        # make ket + L (Applying H L)
+        self.transpiled_qc.h(t_ancilla_register)
+
+        # apply physical t gates
+        self.transpiled_qc.t(t_ancilla_register)
+
+        # logical cnot from data to ancilla
+        self.transpiled_qc.cx(physical_data_register, t_ancilla_register)
+
+        # made logical measurement
+        self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+                                   qubits=t_ancilla_register,
+                                   inplace=True
+                                   )
+        self.transpiled_qc.measure(t_ancilla_register[0],
+                                   t_test_register[0])
+
+        # Think about whther need to add error correction after these logical gates
+
+        # apply if_test
+        with self.transpiled_qc.if_test((t_test_register[0], 1)):
+            self.transpiled_qc.sdg(physical_data_register)
+
+        self.transpiled_qc.barrier(label=f"T {logical_qubit_index}")
+        self.insert_syndromes(logical_qubit_index)
 
 
     def _handle_cx(self, instruction: CircuitInstruction) -> None:
