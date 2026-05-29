@@ -10,6 +10,9 @@ import mqt.bench.benchmark_generation as benchmark_generation
 from qiskit_aer import AerSimulator # update uv requirements?
 import qiskit as qk
 
+from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
+from tests.test_error_correction import insert_error
+
 
 # uv requirements to be added: mqt.qcec, qiskit_aer
 
@@ -91,7 +94,8 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     import mqt.qcec
     from mqt.qcec.pyqcec import EquivalenceCriterion as EC
 
-    verification_results = mqt.qcec.verify(qc1, qc2)
+    verification_results = mqt.qcec.verify(qc1, qc2,
+                                           transform_dynamic_circuit=True)
     accepted_equivalencies = [
         EC.equivalent, 
         EC.equivalent_up_to_global_phase, 
@@ -196,4 +200,37 @@ if __name__ == "__main__":
             #print(qc)
             #print("   _________   ")
 
-    errorcode_testing()
+    #errorcode_testing()
+
+    circuit_size = 3
+    algorithm = 'ghz'
+    code = 'shor'
+    # Initialize circuits
+    logical_circuit = qk.QuantumCircuit(1)
+    logical_circuit.h(0)
+    #logical_circuit = benchmark_generation.get_benchmark(
+    #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
+    #    )
+    error_corrected_circuit = logical_circuit.copy()
+    transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
+    transpiler.transpile()
+    error_corrected_circuit = transpiler.transpiled_qc
+    transpiler.decode_qubits()
+    error_corrected_circuit = transpiler.transpiled_qc
+    error_induced_circuit = error_corrected_circuit.copy()
+    error_induced_circuit = insert_error(error_induced_circuit)
+           
+           
+    print("   __________________________________________________________________________________________   ")
+    print('Logical Circuit:')
+    print(logical_circuit)
+    print("   __________________________________________________________________________________________   ")
+    print('Error corrected Circuit:')
+    print(error_corrected_circuit)
+    print("   __________________________________________________________________________________________   ")
+    print('Error Induced Circuit')
+    print(error_induced_circuit)
+    print("   __________________________________________________________________________________________   ")
+
+    #print(check_equivalence(logical_circuit, error_corrected_circuit))
+    #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
