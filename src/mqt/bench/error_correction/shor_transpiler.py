@@ -114,6 +114,7 @@ class ShorTranspiler:
     
     def decode_qubits(self) -> None:
         """Apply Shor 9-qubit decoding to each logical qubit."""
+        self.transpiled_qc.barrier()
         for logical_qubit in self.logical_qubits:
             self._apply_shor_decoding(self.transpiled_qc, logical_qubit.data)
         self.transpiled_qc.barrier()
