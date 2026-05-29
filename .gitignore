@@ -302,3 +302,6 @@ pyrightconfig.json
 # setuptools_scm
 src/**/_version.py
 .idea/
+
+# Test Output
+tests/circuit_drawings/*
