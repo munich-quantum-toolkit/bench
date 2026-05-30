@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class SteaneTranspiler:
     """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code."""
 
-    def __init__(self, original_circuit: QuantumCircuit) -> None:
+    def __init__(self, original_circuit: QuantumCircuit, add_syndromes = True) -> None:
         """Initialize the transpiler with the original QuantumCircuit."""
         self.original_qc = original_circuit
         self.num_logical_qubits = original_circuit.num_qubits
@@ -42,7 +42,9 @@ class SteaneTranspiler:
         self.bit_flip_syndrome_measurements: list[ClassicalRegister] = []
         self.phase_flip_syndrome_measurements: list[ClassicalRegister] = []
         self.logical_qubit_measurements: list[ClassicalRegister] = []
+        self.add_syndromes = add_syndromes
         self.transpiled_qc = QuantumCircuit()
+
 
     def transpile(self) -> QuantumCircuit:
         """Transpile the original circuit to a fault-tolerant circuit using Steane's code."""
@@ -152,7 +154,8 @@ class SteaneTranspiler:
         self.transpiled_qc.h(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"H {logical_qubit_index}")
-        self.insert_syndromes(logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(logical_qubit_index)
 
     def _handle_x(self, instruction: CircuitInstruction) -> None:
         """Handle X instruction."""
@@ -162,7 +165,8 @@ class SteaneTranspiler:
         self.transpiled_qc.x(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"X {logical_qubit_index}")
-        self.insert_syndromes(logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(logical_qubit_index)
 
     def _handle_z(self, instruction: CircuitInstruction) -> None:
         """Handle Z instruction."""
@@ -172,7 +176,8 @@ class SteaneTranspiler:
         self.transpiled_qc.z(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"Z {logical_qubit_index}")
-        self.insert_syndromes(logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(logical_qubit_index)
 
     def _handle_s(self, instruction: CircuitInstruction) -> None:
         """Handle S instruction."""
@@ -183,7 +188,8 @@ class SteaneTranspiler:
         self.transpiled_qc.sdg(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"S {logical_qubit_index}")
-        self.insert_syndromes(logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(logical_qubit_index)
 
     def _handle_t(self, instruction: CircuitInstruction) -> None:
         """Handle T instruction."""
@@ -227,7 +233,8 @@ class SteaneTranspiler:
             self.transpiled_qc.sdg(physical_data_register)
 
         self.transpiled_qc.barrier(label=f"T {logical_qubit_index}")
-        self.insert_syndromes(logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(logical_qubit_index)
 
 
     def _handle_cx(self, instruction: CircuitInstruction) -> None:
@@ -244,8 +251,9 @@ class SteaneTranspiler:
 
         self.transpiled_qc.barrier(label=f"CX {control_logical_qubit_index} {target_logical_qubit_index}")
 
-        self.insert_syndromes(control_logical_qubit_index)
-        self.insert_syndromes(target_logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(control_logical_qubit_index)
+            self.insert_syndromes(target_logical_qubit_index)
 
     # it сould use the hadamards with cnots
     def _handle_cz(self, instruction: CircuitInstruction) -> None:
@@ -262,8 +270,9 @@ class SteaneTranspiler:
 
         self.transpiled_qc.barrier(label=f"CZ {control_logical_qubit_index} {target_logical_qubit_index}")
 
-        self.insert_syndromes(control_logical_qubit_index)
-        self.insert_syndromes(target_logical_qubit_index)
+        if self.add_syndromes:
+            self.insert_syndromes(control_logical_qubit_index)
+            self.insert_syndromes(target_logical_qubit_index)
 
     # TODO: Review and verify it works
     def insert_syndromes(self, logical_qubit_index: int) -> None:

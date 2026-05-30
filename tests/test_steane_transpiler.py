@@ -18,14 +18,14 @@ from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 
 def test_steane_transpiler() -> None:
     """Test that ShorTranspiler successfully transpiles a basic circuit."""
-    qc = QuantumCircuit(QuantumRegister(1), ClassicalRegister(1))
-    qc.t(0)
+    qc = QuantumCircuit(QuantumRegister(2), ClassicalRegister(1))
+    qc.cx(0,1)
     #qc.measure(0,0)
 
     print("\n--- Logical Circuit ---")
     print(qc.draw(fold=-1))
 
-    transpiler = SteaneTranspiler(qc)
+    transpiler = SteaneTranspiler(qc, False)
     transpiled_qc = transpiler.transpile()
     transpiled_qc.draw("mpl", fold=-1)
     #plt.show()
