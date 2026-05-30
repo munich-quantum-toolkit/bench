@@ -192,11 +192,10 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
 
 def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, int]:
     """
-    Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
-
-    Supports codes 'shor' and 'steane'
+    Takes in a result dict of a decoded physical measurement and returns logical measurements 
+    Requires decode to place the result in the first qubit of each register named 'qx', with x an integer (e.g. 'q2')
     """
-    assert code in ['shor', 'steane'], f'Unsupported error code in condense_counts(): {code}'
+    #assert code in ['shor', 'steane'], f'Unsupported error code in condense_counts(): {code}'
     logical_counts = {}
     for physical_measurement, count in counts.items():
         logical_measurement = parse_qubits(qc, physical_measurement)
@@ -228,14 +227,14 @@ if __name__ == "__main__":
     t_circuit.h(0)
     
     xcx_circuit = QuantumCircuit(2)
-    xcx_circuit.x(0)
+    #xcx_circuit.x(0)
     xcx_circuit.cx(0,1)
 
     h_circuit = QuantumCircuit(1)
     h_circuit.h(0)
-    h_circuit.h(0)
+    #h_circuit.h(0)
 
-    logical_circuit = t_circuit
+    logical_circuit = xcx_circuit
     
     #logical_circuit = benchmark_generation.get_benchmark(
     #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
@@ -269,7 +268,7 @@ if __name__ == "__main__":
     #print(error_induced_circuit)
     #print("   __________________________________________________________________________________________   ")
 
-    #print(check_equivalence(logical_circuit, error_corrected_circuit))
+    print(check_equivalence(logical_circuit, error_corrected_circuit))
     #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
