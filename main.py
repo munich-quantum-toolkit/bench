@@ -231,10 +231,10 @@ if __name__ == "__main__":
     xcx_circuit.cx(0,1)
 
     h_circuit = QuantumCircuit(1)
-    h_circuit.h(0)
+    h_circuit.z(0)
     #h_circuit.h(0)
 
-    logical_circuit = xcx_circuit
+    logical_circuit = h_circuit
     
     #logical_circuit = benchmark_generation.get_benchmark(
     #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
