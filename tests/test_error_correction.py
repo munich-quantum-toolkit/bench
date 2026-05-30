@@ -43,6 +43,8 @@ from qiskit.circuit import CircuitInstruction, Gate
 from qiskit.circuit.library import XGate
 
 
+# for: [steane, shor]
+# for: [x,h,z]
 
 def test_shor_transpiler_structure():
     """
@@ -52,16 +54,14 @@ def test_shor_transpiler_structure():
     qc = QuantumCircuit(2, 1)
     qc.x(0)
     qc.z(1)
-    qc.measure(1, 0)
-
-    print("\n--- Logical Circuit ---")
-    print(qc.draw(fold=-1))
 
     transpiler = ShorTranspiler(qc)
-    transpiled_qc = transpiler.transpile()
+    transpiler.transpile()
+    transpiler.decode_qubits()
+    transpiled_qc = transpiler.transpiled_qc
 
-    print("\n--- Transpiled Circuit ---")
-    print(transpiled_qc)
+
+
 
     # 2 original qubits * 9 data qubits = 18 data qubits
     # 2 original qubits * 8 ancilla qubits = 16 ancilla qubits
@@ -104,6 +104,10 @@ def test_errorcorrection_transpiler_equivalence(code: str, algorithm: str):
     error_induced_circuit = insert_error(error_induced_circuit)
 
     # run each circuit
+    logical_counts, logical_circuit = run_circuit(logical_circuit)
+    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
+    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
+
     # compare results
 
 
@@ -169,7 +173,7 @@ def errorcode_testing(alg: str = 'ghz', code: str = 'shor', qubits: int = 3):
     # TODO: put in error corrected circuit
     #### Example for condensing qubits
     example = {'00000001111111': 3, '10101011111111': 1, '11111111010101': 2, '10101011111110' : 7}
-    print(condense_counts(example,'stean'))
+    #print(condense_counts(example,'stean'))
 
     """
     uncorrected_fidelity = compare_distributions(uncorrected_circuit, error_circuit, code='shor')
@@ -179,9 +183,11 @@ def errorcode_testing(alg: str = 'ghz', code: str = 'shor', qubits: int = 3):
     """
 
 
-def run_circuit(qc: qk.QuantumCircuit, shots: int = 1024):
+def run_circuit(qc: qk.QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
     """
-    Simulates the circuit using AerSimulator
+    Simulates the circuit using AerSimulator.
+
+    Adds measurements to all qubits.
 
     Returns:
         job.result()
@@ -189,6 +195,7 @@ def run_circuit(qc: qk.QuantumCircuit, shots: int = 1024):
         transpiled circuit qc
     """
     simulator = AerSimulator()
+    qc.measure_all()
     transpiled_circuit = qk.transpile(qc, simulator)
     job = simulator.run(transpiled_circuit, shots=shots) 
     
@@ -224,7 +231,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     equivalent = verification_results.equivalence in accepted_equivalencies
     return equivalent
 
-def compare_distributions(base: qk.QuantumCircuit, error: qk.QuantumCircuit, shots:int = 1024, code: str = 'None') -> float:
+def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, shots:int = 1024, code1: str = 'None', code2: str = 'None') -> float:
     """
     Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
     1 = the same, 0 = no overlap
@@ -233,77 +240,53 @@ def compare_distributions(base: qk.QuantumCircuit, error: qk.QuantumCircuit, sho
     """
     from qiskit.quantum_info import hellinger_fidelity
     
-    result1, base = run_circuit(base, shots)
-    result2, error = run_circuit(error, shots)
-    counts1 = result1.get_counts(base)
-    counts2 = result2.get_counts(error)
     # to be removed due to decoding
-    #if code in ['stean', 'shor']:
-    #    counts2 = condense_counts(counts2, code)
+    if code1 in ['stean', 'shor']:
+        counts1 = condense_counts(qc1, counts1, code1)
+    if code2 in ['stean', 'shor']:
+        counts2 = condense_counts(qc2, counts2, code2)
 
     fidelity = hellinger_fidelity(counts1, counts2)
     return fidelity
 
-def parse_qubits(physical_qubits: str, code: str):
+def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
         """ 
         Takes in a measurement in physical qubits and returns the corresponding logical measurement.
         
-        Returns:         
-        Logical Measurement if possible, 'x' otherwise
+        Underlying circuit must use registers named 'qx' (x in int) for each logical qubit, with results in qx[0]
         """
-        
-        from textwrap import wrap
+        # indices
+        import re
+        def is_q_integer(s: str) -> bool:
+            """ checks if s is of form 'qx' where x in int (e.g. 'q1', 'q23') """
+            return bool(re.fullmatch(r'q\d+', s))
 
-        logical_qubits = ''
-        logical_0 = []
-        logical_1 = []
-        length = 0
-        if code == 'stean':
-            length = 7
-            logical_0 = ['0000000', '1010101', '0110011', '1100110', 
-                         '0001111', '1011010', '0111100', '1101001']
-            logical_1 = ['1111111', '0101010', '1001100', '0011001', 
-                         '1110000', '0100101', '1000011', '0010110']
-        elif code == 'shor':
-            length = 9
-            logical_0 = []
-            logical_1 = []
-        else:
-            raise Exception('Wrong error correction code provided to qubit condensing')
-        assert len(physical_qubits)%length == 0, f'Result contains wrong number of physical qubits. \nExpected: Multiple of {length}\nReceived: {len(physical_qubits)}'
+        data_indices = []
+        for register in qc.qregs:
+            if is_q_integer(register.name):
+                data_indices.append(qc.find_bit(register[0]).index)
 
-        qubits = wrap(physical_qubits, length)
-        for qubit in qubits:
-            if qubit in logical_0:
-                logical_qubits += '0'
-            elif qubit in logical_1:
-                logical_qubits += '1'
-            else: 
-                return 'x'
-            
+        # condesning
+        logical_qubits = ""
+        for index in data_indices:
+            logical_qubits += physical_qubits[index]
+
         return logical_qubits
 
-def condense_counts(counts: dict[str, int], code: str) -> dict[str, int]:
+def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> dict[str, int]:
     """
-    Kinda unnecessariy considering decoding...
-
-    Takes in a result dict of physical measurements and returns logical measurements according to code. 
-    Incoherent results will be grouped under 'x'
+    Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
 
     Supports codes 'shor' and 'stean'
-
-    Example: Code 'stean'
-    
-    Input: {'00000001111111': 3, '10101011111111': 1, '11111111010101': 2, '10101011111110' : 7}
-    Output: {'01': 4, '10': 2, 'x': 7}
     """
-    assert code in ['shor', 'stean'], f'Unsupported error code in condense_counts() {code}'
+    assert code in ['shor', 'stean'], f'Unsupported error code in condense_counts(): {code}'
     logical_counts = {}
     for physical_measurement, count in counts.items():
-        logical_measurement = parse_qubits(physical_measurement, code)
+        logical_measurement = parse_qubits(qc, physical_measurement)
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
         
     return logical_counts
+
 
 
 ############################################################################################################################################

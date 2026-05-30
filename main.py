@@ -9,9 +9,13 @@
 import mqt.bench.benchmark_generation as benchmark_generation
 from qiskit_aer import AerSimulator # update uv requirements?
 import qiskit as qk
+from qiskit import QuantumCircuit
+from qiskit.result.result import Result
 
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
 from tests.test_error_correction import insert_error
+from qiskit.circuit import CircuitInstruction, Gate
+from qiskit.circuit.library import XGate, HGate
 
 
 # uv requirements to be added: mqt.qcec, qiskit_aer
@@ -38,16 +42,16 @@ def errorcode_testing(alg: str = 'ghz', code: str = 'shor', qubits: int = 3):
     
     
     ### Simulated probabilistic similarity Base vs. Error-Inserted
-    error_fidelity = compare_distributions(base_circuit, error_circuit)
-    threshold = 0.95 # arbitrary guess
+    #error_fidelity = compare_distributions(base_circuit, error_circuit)
+    #threshold = 0.95 # arbitrary guess
     #assert fidelity > threshold, f'Simulated Hellinger Fidelity between base and error circuit is too low. Measured: {fidelity}, >Expected: {threshold}'
-    print(f'Hellinger Fidelity with error: {error_fidelity}')
+    #print(f'Hellinger Fidelity with error: {error_fidelity}')
 
     ### Simulated probabilistic similarity Uncorrected vs. Error-Inserted
     # TODO: put in error corrected circuit
     #### Example for condensing qubits
-    example = {'00000001111111': 3, '10101011111111': 1, '11111111010101': 2, '10101011111110' : 7}
-    print(condense_counts(example,'stean'))
+    #example = {'00000001111111': 3, '10101011111111': 1, '11111111010101': 2, '10101011111110' : 7}
+    #print(condense_counts(example,'stean'))
 
     """
     uncorrected_fidelity = compare_distributions(uncorrected_circuit, error_circuit, code='shor')
@@ -57,9 +61,11 @@ def errorcode_testing(alg: str = 'ghz', code: str = 'shor', qubits: int = 3):
     """
 
 
-def run_circuit(qc: qk.QuantumCircuit, shots: int = 1024):
+def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[Result, QuantumCircuit]:
     """
-    Simulates the circuit using AerSimulator
+    Simulates the circuit using AerSimulator.
+
+    Adds measurements to all qubits.
 
     Returns:
         job.result()
@@ -67,23 +73,30 @@ def run_circuit(qc: qk.QuantumCircuit, shots: int = 1024):
         transpiled circuit qc
     """
     simulator = AerSimulator()
+    qc.measure_all()
     transpiled_circuit = qk.transpile(qc, simulator)
     job = simulator.run(transpiled_circuit, shots=shots) 
     
     return job.result(), transpiled_circuit
 
-def insert_error_gate(qc: qk.QuantumCircuit) -> qk.QuantumCircuit:
+def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
     """
-    Flips bit 0 at the beginning of the circuit
+    Adds the specified gate at the beginning of the circuit
+    Flips the first qubit right after the first barrier by default
     """
-    from qiskit.circuit import CircuitInstruction
-    from qiskit.circuit.library import XGate
+    assert qc.num_qubits >= gate.num_qubits, f'Quantum Circuit has not enough qubits to accomodate gate {gate.name}'
+    assert index is None or index >= 0, f'Index must be >= 0, Index provided: {index}'
+    
+    # Finds the first barrier
+    if index is None:
+        for i, instruction in enumerate(qc.data):
+            if instruction.operation.name == "barrier":
+                index = i + 1
+                break
 
-    gate = XGate()
-    qubits = [qc.qubits[0]] 
-    insert_index = 0
-
-    qc.data.insert(insert_index, CircuitInstruction(gate, qubits))
+    # Insert the error gate
+    qubits = qc.qubits[:gate.num_qubits]
+    qc.data.insert(index, CircuitInstruction(gate, qubits))
 
     return qc
 
@@ -94,8 +107,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     import mqt.qcec
     from mqt.qcec.pyqcec import EquivalenceCriterion as EC
 
-    verification_results = mqt.qcec.verify(qc1, qc2,
-                                           transform_dynamic_circuit=True)
+    verification_results = mqt.qcec.verify(qc1, qc2)
     accepted_equivalencies = [
         EC.equivalent, 
         EC.equivalent_up_to_global_phase, 
@@ -105,7 +117,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     equivalent = verification_results.equivalence in accepted_equivalencies
     return equivalent
 
-def compare_distributions(base: qk.QuantumCircuit, error: qk.QuantumCircuit, shots:int = 1024, code: str = 'None') -> float:
+def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, code1: str = 'None', code2: str = 'None') -> float:
     """
     Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
     1 = the same, 0 = no overlap
@@ -113,77 +125,57 @@ def compare_distributions(base: qk.QuantumCircuit, error: qk.QuantumCircuit, sho
     If code is set to either 'stean' or 'shor' circuit error's result will be interpreted logically
     """
     from qiskit.quantum_info import hellinger_fidelity
-    
-    result1, base = run_circuit(base, shots)
-    result2, error = run_circuit(error, shots)
-    counts1 = result1.get_counts(base)
-    counts2 = result2.get_counts(error)
     # to be removed due to decoding
-    #if code in ['stean', 'shor']:
-    #    counts2 = condense_counts(counts2, code)
+    if code1 in ['stean', 'shor']:
+        counts1 = condense_counts(qc1, counts1, code1)
+    if code2 in ['stean', 'shor']:
+        counts2 = condense_counts(qc2, counts2, code2)
 
     fidelity = hellinger_fidelity(counts1, counts2)
     return fidelity
 
-def parse_qubits(physical_qubits: str, code: str):
+def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
         """ 
         Takes in a measurement in physical qubits and returns the corresponding logical measurement.
         
-        Returns:         
-        Logical Measurement if possible, 'x' otherwise
+        Underlying circuit must use registers named 'qx' (x in int) for each logical qubit, with results in qx[0]
         """
-        
-        from textwrap import wrap
+        # indices
+        import re
+        def is_q_integer(s: str) -> bool:
+            """ checks if s is of form 'qx' where x in int (e.g. 'q1', 'q23') """
+            return bool(re.fullmatch(r'q\d+', s))
 
-        logical_qubits = ''
-        logical_0 = []
-        logical_1 = []
-        length = 0
-        if code == 'stean':
-            length = 7
-            logical_0 = ['0000000', '1010101', '0110011', '1100110', 
-                         '0001111', '1011010', '0111100', '1101001']
-            logical_1 = ['1111111', '0101010', '1001100', '0011001', 
-                         '1110000', '0100101', '1000011', '0010110']
-        elif code == 'shor':
-            length = 9
-            logical_0 = []
-            logical_1 = []
-        else:
-            raise Exception('Wrong error correction code provided to qubit condensing')
-        assert len(physical_qubits)%length == 0, f'Result contains wrong number of physical qubits. \nExpected: Multiple of {length}\nReceived: {len(physical_qubits)}'
+        data_indices = []
+        for register in qc.qregs:
+            print(register)
+            if is_q_integer(register.name):
+                data_indices.append(qc.find_bit(register[-1]).index) # qiskit is little-endian
 
-        qubits = wrap(physical_qubits, length)
-        for qubit in qubits:
-            if qubit in logical_0:
-                logical_qubits += '0'
-            elif qubit in logical_1:
-                logical_qubits += '1'
-            else: 
-                return 'x'
-            
+        print(data_indices)
+
+        # condesning
+        logical_qubits = ""
+        for index in data_indices:
+            logical_qubits += physical_qubits[index]
+
+        print(logical_qubits)
+
         return logical_qubits
 
-def condense_counts(counts: dict[str, int], code: str) -> dict[str, int]:
+def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> dict[str, int]:
     """
-    Kinda unnecessariy considering decoding...
-
-    Takes in a result dict of physical measurements and returns logical measurements according to code. 
-    Incoherent results will be grouped under 'x'
+    Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
 
     Supports codes 'shor' and 'stean'
-
-    Example: Code 'stean'
-    
-    Input: {'00000001111111': 3, '10101011111111': 1, '11111111010101': 2, '10101011111110' : 7}
-    Output: {'01': 4, '10': 2, 'x': 7}
     """
-    assert code in ['shor', 'stean'], f'Unsupported error code in condense_counts() {code}'
+    assert code in ['shor', 'stean'], f'Unsupported error code in condense_counts(): {code}'
     logical_counts = {}
     for physical_measurement, count in counts.items():
-        logical_measurement = parse_qubits(physical_measurement, code)
+        logical_measurement = parse_qubits(qc, physical_measurement)
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
         
+    print(logical_counts)
     return logical_counts
 
 
@@ -202,35 +194,54 @@ if __name__ == "__main__":
 
     #errorcode_testing()
 
-    circuit_size = 3
+    circuit_size = 1
     algorithm = 'ghz'
     code = 'shor'
     # Initialize circuits
-    logical_circuit = qk.QuantumCircuit(1)
+    logical_circuit = qk.QuantumCircuit(circuit_size)
     logical_circuit.h(0)
+    
     #logical_circuit = benchmark_generation.get_benchmark(
     #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
     #    )
     error_corrected_circuit = logical_circuit.copy()
     transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
     transpiler.transpile()
-    error_corrected_circuit = transpiler.transpiled_qc
     transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
     error_induced_circuit = error_corrected_circuit.copy()
-    error_induced_circuit = insert_error(error_induced_circuit)
+    #error_induced_circuit = insert_error(error_induced_circuit)
+    error_induced_circuit = insert_error(error_induced_circuit,gate=HGate())
+    
+
+
            
            
-    print("   __________________________________________________________________________________________   ")
-    print('Logical Circuit:')
-    print(logical_circuit)
-    print("   __________________________________________________________________________________________   ")
-    print('Error corrected Circuit:')
-    print(error_corrected_circuit)
-    print("   __________________________________________________________________________________________   ")
-    print('Error Induced Circuit')
-    print(error_induced_circuit)
-    print("   __________________________________________________________________________________________   ")
+    #print("   __________________________________________________________________________________________   ")
+    #print('Logical Circuit:')
+    #print(logical_circuit)
+    #print("   __________________________________________________________________________________________   ")
+    #print('Error corrected Circuit:')
+    #print(error_corrected_circuit)
+    #print("   __________________________________________________________________________________________   ")
+    #print('Error Induced Circuit')
+    #print(error_induced_circuit)
+    #print("   __________________________________________________________________________________________   ")
 
     #print(check_equivalence(logical_circuit, error_corrected_circuit))
     #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
+
+    logical_result, logical_circuit = run_circuit(logical_circuit)
+    corrected_result, error_corrected_circuit = run_circuit(error_corrected_circuit)
+    induced_result, error_induced_circuit = run_circuit(error_induced_circuit)
+
+    logical_counts = logical_result.get_counts(logical_circuit)
+    corrected_counts = corrected_result.get_counts(error_corrected_circuit)
+    induced_counts = induced_result.get_counts(error_induced_circuit)
+
+    print(logical_counts)
+    print(corrected_counts)
+    print(induced_counts)
+
+    print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', 'shor'))
+    print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts,'shor', 'shor'))
