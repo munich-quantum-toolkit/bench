@@ -17,7 +17,8 @@ from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 from tests.test_error_correction import insert_error
 from qiskit.circuit import CircuitInstruction, Gate
-from qiskit.circuit.library import XGate, HGate
+from qiskit.circuit.library import XGate, HGate, ZGate
+from qiskit.quantum_info import hellinger_fidelity
 
 
 # uv requirements to be added: mqt.qcec, qiskit_aer
@@ -83,6 +84,9 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
     # Grabbing only the desired outcomes
     pub_result = result[0]
     meas_bit_counts = pub_result.data.meas.get_counts()
+    # outputs reversed bitstrings, we just reverse them right back, 
+    # so their indices align with the qubit indices
+    meas_bit_counts = {k[::-1]: v for k, v in meas_bit_counts.items()}
 
     return meas_bit_counts, qc
 
@@ -120,7 +124,6 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
         EC.equivalent_up_to_global_phase, 
         EC.probably_equivalent
         ]
-    
     equivalent = verification_results.equivalence in accepted_equivalencies
     return equivalent
 
@@ -131,17 +134,21 @@ def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dic
 
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
     """
-    from qiskit.quantum_info import hellinger_fidelity
-    
+        
+    #print(counts1)
     if code1 in ['steane', 'shor']:
-        counts1 = condense_counts(qc1, counts1, code1)
+        counts1 = condense_counts(qc1, counts1)
+    #print(counts1)
+    
+    #print(counts2)
     if code2 in ['steane', 'shor']:
-        counts2 = condense_counts(qc2, counts2, code2)
+        counts2 = condense_counts(qc2, counts2)
+    #print(counts2)
     
     fidelity = hellinger_fidelity(counts1, counts2)
     return fidelity
 
-def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
+def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
         """ 
         Takes in a measurement in physical qubits and returns the corresponding logical measurement.
         
@@ -149,7 +156,6 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
         """
         # remove blanks caused by classical registers
         physical_qubits = physical_qubits.replace(' ', '')
-        #print(physical_qubits)
 
         # indices
         import re
@@ -158,15 +164,10 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
             return bool(re.fullmatch(r'q\d+', s))
         
         data_indices = []
-        if code == 'shor':
-            for register in qc.qregs:
-                if is_q_integer(register.name):
-                    data_indices.append(qc.find_bit(register[-1]).index) # qiskit is little-endian
-        elif code == 'steane':
-            for i in range(len(physical_qubits)):
-                if i % 7 == 0:
-                    data_indices.append(i)
-
+        for register in qc.qregs:
+            if is_q_integer(register.name):
+                data_indices.append(qc.find_bit(register[0]).index) 
+        
         # condensing
         logical_qubits = ""
         for index in data_indices:
@@ -175,21 +176,21 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
         return logical_qubits
 
 
-def get_logical_classical_indices(qc, name):
-    logical_cregs = sorted(
-        [cr for cr in qc.cregs if cr.name.startswith(name)],
-        key=lambda cr: int(cr.name.replace(name, ""))
-    )
+#def get_logical_classical_indices(qc, name):
+#    logical_cregs = sorted(
+#        [cr for cr in qc.cregs if cr.name.startswith(name)],
+#        key=lambda cr: int(cr.name.replace(name, ""))
+#    )
+#
+#    indices = []
+#
+#    for cr in logical_cregs:
+#        # assuming each logical register has size 1
+#        indices.append(qc.find_bit(cr[0]).index)
+#
+#    return indices
 
-    indices = []
-
-    for cr in logical_cregs:
-        # assuming each logical register has size 1
-        indices.append(qc.find_bit(cr[0]).index)
-
-    return indices
-
-def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> dict[str, int]:
+def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, int]:
     """
     Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
 
@@ -198,13 +199,8 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> 
     assert code in ['shor', 'steane'], f'Unsupported error code in condense_counts(): {code}'
     logical_counts = {}
     for physical_measurement, count in counts.items():
-        logical_measurement = parse_qubits(qc, physical_measurement, code)
+        logical_measurement = parse_qubits(qc, physical_measurement)
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
-        
-
-    #indices = get_logical_classical_indices(qc, "logical_meas")
-    #from qiskit.result import marginal_counts
-    #logical_counts = marginal_counts(counts, indices=indices)
 
     return logical_counts
 
@@ -222,42 +218,46 @@ if __name__ == "__main__":
             #print(qc)
             #print("   _________   ")
 
-    #errorcode_testing()
 
-    circuit_size = 2
     algorithm = 'ghz'
     code = 'shor'
     # Initialize circuits
     t_circuit = QuantumCircuit(1)
+    t_circuit.h(0)
     t_circuit.t(0)
+    t_circuit.h(0)
     
     xcx_circuit = QuantumCircuit(2)
     xcx_circuit.x(0)
     xcx_circuit.cx(0,1)
 
-    logical_circuit = xcx_circuit
+    h_circuit = QuantumCircuit(1)
+    h_circuit.h(0)
+    h_circuit.h(0)
+
+    logical_circuit = t_circuit
     
-    logical_circuit = benchmark_generation.get_benchmark(
-            benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
-        )
+    #logical_circuit = benchmark_generation.get_benchmark(
+    #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
+    #    )
     error_corrected_circuit = logical_circuit.copy()
-    code = 'shor'
+    code = 'steane'
     shor_transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=False)
     steane_transpiler = SteaneTranspiler(logical_circuit, add_syndromes=False)
     if code == 'shor':
         transpiler = shor_transpiler
-    transpiler = shor_transpiler
+    else:
+        transpiler = steane_transpiler
     transpiler.transpile()
     transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
 
     error_induced_circuit = error_corrected_circuit.copy()
-    error_induced_circuit = insert_error(error_induced_circuit ,gate=HGate())
-    
+    # this is for inserting phase flip in steane after the first Hadamard
+    #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
+    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
 
 
-           
-           
     #print("   __________________________________________________________________________________________   ")
     #print('Logical Circuit:')
     #print(logical_circuit)
