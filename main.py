@@ -74,11 +74,11 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[Result, QuantumC
         transpiled circuit qc
     """
     simulator = AerSimulator()
-    #qc.measure_all()
-    transpiled_circuit = qk.transpile(qc, simulator)
-    job = simulator.run(transpiled_circuit, shots=shots) 
+    qc.measure_all()
+    #transpiled_circuit = qk.transpile(qc, simulator)
+    job = simulator.run(qc, shots=shots)
     
-    return job.result(), transpiled_circuit
+    return job.result(), qc
 
 def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
     """
@@ -187,6 +187,21 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
 
         return logical_qubits
 
+
+def get_logical_classical_indices(qc, name):
+    logical_cregs = sorted(
+        [cr for cr in qc.cregs if cr.name.startswith(name)],
+        key=lambda cr: int(cr.name.replace(name, ""))
+    )
+
+    indices = []
+
+    for cr in logical_cregs:
+        # assuming each logical register has size 1
+        indices.append(qc.find_bit(cr[0]).index)
+
+    return indices
+
 def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> dict[str, int]:
     """
     Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
@@ -194,12 +209,17 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> 
     Supports codes 'shor' and 'steane'
     """
     assert code in ['shor', 'steane'], f'Unsupported error code in condense_counts(): {code}'
-    logical_counts = {}
-    for physical_measurement, count in counts.items():
-        logical_measurement = parse_qubits(qc, physical_measurement, code)
-        logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
+    #logical_counts = {}
+    #for physical_measurement, count in counts.items():
+    #    logical_measurement = parse_qubits(qc, physical_measurement, code)
+    #    logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
         
     #print(logical_counts)
+
+    indices = get_logical_classical_indices(qc, "logical_meas")
+    from qiskit.result import marginal_counts
+    logical_counts = marginal_counts(counts, indices=indices)
+
     return logical_counts
 
 
@@ -218,13 +238,13 @@ if __name__ == "__main__":
 
     #errorcode_testing()
 
-    circuit_size = 1
+    circuit_size = 2
     algorithm = 'ghz'
     code = 'shor'
     # Initialize circuits
     logical_circuit = QuantumCircuit(circuit_size, circuit_size)
-    logical_circuit.t(0)
-    logical_circuit.measure(0,0)
+    logical_circuit.x(0)
+    #logical_circuit.measure(0,0)
     #logical_circuit.measure([0,1], [0,1])
     
     #logical_circuit = benchmark_generation.get_benchmark(
@@ -235,6 +255,7 @@ if __name__ == "__main__":
     #transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
     transpiler = SteaneTranspiler(logical_circuit, add_syndromes=False)
     transpiler.transpile()
+    transpiler.decode_qubits()
     print(error_corrected_circuit.qregs)
 
     #transpiler.decode_qubits()
@@ -274,4 +295,4 @@ if __name__ == "__main__":
     #print(induced_counts)
 
     print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', 'steane'))
-    print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts,'shor', 'shor'))
+    print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts,'steane', 'steane'))
