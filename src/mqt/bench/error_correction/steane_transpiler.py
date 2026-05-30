@@ -43,6 +43,7 @@ class SteaneTranspiler:
         self.phase_flip_syndrome_measurements: list[ClassicalRegister] = []
         self.logical_qubit_measurements: list[ClassicalRegister] = []
         self.add_syndromes = add_syndromes
+        self.t_gate_count = 0
         self.transpiled_qc = QuantumCircuit()
 
 
@@ -62,7 +63,7 @@ class SteaneTranspiler:
             phase_flip_syndrome_register = AncillaRegister(3, f"ps{logical_qubit_index}")
             bit_flip_measurement_register = ClassicalRegister(3, f"bsm{logical_qubit_index}")
             phase_flip_measurement_register = ClassicalRegister(3, f"psm{logical_qubit_index}")
-            logical_qubit_measurement_register = ClassicalRegister(1, f"m{logical_qubit_index}")
+            logical_qubit_measurement_register = ClassicalRegister(1, f"logical_meas{logical_qubit_index}")
             # t Gate?
 
             self.physical_data_registers.append(physical_data_register)
@@ -95,6 +96,17 @@ class SteaneTranspiler:
                     inplace=True,
             )
         self.transpiled_qc.barrier(label="Encoding")
+
+    def decode_qubits(self) -> None:
+        """Apply Steane 7-qubit decoding to each logical qubit."""
+        self.transpiled_qc.barrier()
+        for logical_qubit_index in range(self.num_logical_qubits):
+            physical_data_register = self.physical_data_registers[logical_qubit_index]
+            self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+                                       qubits=physical_data_register[:],
+                                       inplace=True
+                                       )
+        self.transpiled_qc.barrier()
 
     def replace_gates(self) -> None:
         """Scan original circuit and replace gates with logical equivalents."""
@@ -196,7 +208,8 @@ class SteaneTranspiler:
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
 
-        t_ancilla_register = QuantumRegister(7)
+        t_ancilla_register = QuantumRegister(7, f"t{self.t_gate_count}")
+        self.t_gate_count += 1
         t_test_register = ClassicalRegister(1)
 
         self.transpiled_qc.add_register(t_ancilla_register)

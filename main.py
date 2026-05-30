@@ -174,6 +174,21 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
 
         return logical_qubits
 
+
+def get_logical_classical_indices(qc, name):
+    logical_cregs = sorted(
+        [cr for cr in qc.cregs if cr.name.startswith(name)],
+        key=lambda cr: int(cr.name.replace(name, ""))
+    )
+
+    indices = []
+
+    for cr in logical_cregs:
+        # assuming each logical register has size 1
+        indices.append(qc.find_bit(cr[0]).index)
+
+    return indices
+
 def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> dict[str, int]:
     """
     Takes in a result dict of a decoded physical measurement and returns logical measurements according to code. 
@@ -186,6 +201,11 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> 
         logical_measurement = parse_qubits(qc, physical_measurement, code)
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
         
+
+    #indices = get_logical_classical_indices(qc, "logical_meas")
+    #from qiskit.result import marginal_counts
+    #logical_counts = marginal_counts(counts, indices=indices)
+
     return logical_counts
 
 
@@ -204,7 +224,7 @@ if __name__ == "__main__":
 
     #errorcode_testing()
 
-    circuit_size = 1
+    circuit_size = 2
     algorithm = 'ghz'
     code = 'shor'
     # Initialize circuits
