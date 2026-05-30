@@ -11,6 +11,7 @@ from qiskit_aer import AerSimulator # update uv requirements?
 import qiskit as qk
 from qiskit import QuantumCircuit
 from qiskit.result.result import Result
+from qiskit_aer.primitives import SamplerV2
 
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
@@ -62,23 +63,28 @@ def errorcode_testing(alg: str = 'ghz', code: str = 'shor', qubits: int = 3):
     """
 
 
-def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[Result, QuantumCircuit]:
+def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
     """
     Simulates the circuit using AerSimulator.
 
-    Adds measurements to all qubits.
+    Adds measurements to all qubits, adds new classical registers for each. 
+    Reads out ONLY those measurements and returns their counts
 
     Returns:
-        job.result()
+        counts of all quantum registers
 
-        transpiled circuit qc
+        qc with measure_all()
     """
-    simulator = AerSimulator()
-    #qc.measure_all()
-    transpiled_circuit = qk.transpile(qc, simulator)
-    job = simulator.run(transpiled_circuit, shots=shots) 
-    
-    return job.result(), transpiled_circuit
+    sampler = SamplerV2()
+    qc.measure_all()
+    job = sampler.run([qc], shots=shots) 
+    result = job.result()
+
+    # Grabbing only the desired outcomes
+    pub_result = result[0]
+    meas_bit_counts = pub_result.data.meas.get_counts()
+
+    return meas_bit_counts, qc
 
 def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
     """
@@ -126,20 +132,12 @@ def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dic
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
     """
     from qiskit.quantum_info import hellinger_fidelity
-    # to be removed due to decoding
-
     
-
-    print(counts1)
     if code1 in ['steane', 'shor']:
         counts1 = condense_counts(qc1, counts1, code1)
-    print(counts1)
-    #print(qc2)
-    print(counts2)
     if code2 in ['steane', 'shor']:
         counts2 = condense_counts(qc2, counts2, code2)
-    print(counts2)
-
+    
     fidelity = hellinger_fidelity(counts1, counts2)
     return fidelity
 
@@ -149,41 +147,30 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str, code: str):
         
         Underlying circuit must use registers named 'qx' (x in int) for each logical qubit, with results in qx[0]
         """
-        # indices
-        #import re
-        #def is_q_integer(s: str) -> bool:
-        #    """ checks if s is of form 'qx' where x in int (e.g. 'q1', 'q23') """
-        #    return bool(re.fullmatch(r'q\d+', s))
-        #
-        data_indices = []
-        #for register in qc.qregs:
-        #    #print(register)
-        #    if is_q_integer(register.name):
-        #        data_indices.append(qc.find_bit(register[0]).index) # qiskit is little-endian
-        #
-        
-        #length = 0
-        #if code == 'steane':
-        length = 7
-
-        # remove blanks from classical registers
+        # remove blanks caused by classical registers
         physical_qubits = physical_qubits.replace(' ', '')
-        print(physical_qubits)
+        #print(physical_qubits)
 
-        for i in range(len(physical_qubits)):
-            if i % length == 0:
-                data_indices.append(i)
-        print(data_indices)
-
-
+        # indices
+        import re
+        def is_q_integer(s: str) -> bool:
+            """ checks if s is of form 'qx' where x in int (e.g. 'q1', 'q23') """
+            return bool(re.fullmatch(r'q\d+', s))
         
+        data_indices = []
+        if code == 'shor':
+            for register in qc.qregs:
+                if is_q_integer(register.name):
+                    data_indices.append(qc.find_bit(register[-1]).index) # qiskit is little-endian
+        elif code == 'steane':
+            for i in range(len(physical_qubits)):
+                if i % 7 == 0:
+                    data_indices.append(i)
 
-        # condesning
+        # condensing
         logical_qubits = ""
         for index in data_indices:
             logical_qubits += physical_qubits[index]
-
-        #print(logical_qubits)
 
         return logical_qubits
 
@@ -199,7 +186,6 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int], code: str) -> 
         logical_measurement = parse_qubits(qc, physical_measurement, code)
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
         
-    #print(logical_counts)
     return logical_counts
 
 
@@ -222,26 +208,31 @@ if __name__ == "__main__":
     algorithm = 'ghz'
     code = 'shor'
     # Initialize circuits
-    logical_circuit = QuantumCircuit(circuit_size, circuit_size)
-    logical_circuit.t(0)
-    logical_circuit.measure(0,0)
-    #logical_circuit.measure([0,1], [0,1])
+    t_circuit = QuantumCircuit(1)
+    t_circuit.t(0)
     
-    #logical_circuit = benchmark_generation.get_benchmark(
-    #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
-    #    )
-    error_corrected_circuit = logical_circuit.copy()
-    print(error_corrected_circuit.qregs)
-    #transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
-    transpiler = SteaneTranspiler(logical_circuit, add_syndromes=False)
-    transpiler.transpile()
-    print(error_corrected_circuit.qregs)
+    xcx_circuit = QuantumCircuit(2)
+    xcx_circuit.x(0)
+    xcx_circuit.cx(0,1)
 
-    #transpiler.decode_qubits()
+    logical_circuit = xcx_circuit
+    
+    logical_circuit = benchmark_generation.get_benchmark(
+            benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
+        )
+    error_corrected_circuit = logical_circuit.copy()
+    code = 'shor'
+    shor_transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=False)
+    steane_transpiler = SteaneTranspiler(logical_circuit, add_syndromes=False)
+    if code == 'shor':
+        transpiler = shor_transpiler
+    transpiler = shor_transpiler
+    transpiler.transpile()
+    transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
+
     error_induced_circuit = error_corrected_circuit.copy()
-    #error_induced_circuit = insert_error(error_induced_circuit)
-    error_induced_circuit = insert_error(error_induced_circuit,gate=HGate())
+    error_induced_circuit = insert_error(error_induced_circuit ,gate=HGate())
     
 
 
@@ -261,17 +252,10 @@ if __name__ == "__main__":
     #print(check_equivalence(logical_circuit, error_corrected_circuit))
     #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
 
-    logical_result, logical_circuit = run_circuit(logical_circuit)
-    corrected_result, error_corrected_circuit = run_circuit(error_corrected_circuit)
-    induced_result, error_induced_circuit = run_circuit(error_induced_circuit)
+    logical_counts, logical_circuit = run_circuit(logical_circuit)
+    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
+    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
 
-    logical_counts = logical_result.get_counts(logical_circuit)
-    corrected_counts = corrected_result.get_counts(error_corrected_circuit)
-    induced_counts = induced_result.get_counts(error_induced_circuit)
 
-    #print(logical_counts)
-    #print(corrected_counts)
-    #print(induced_counts)
-
-    print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', 'steane'))
-    print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts,'shor', 'shor'))
+    print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', code))
+    print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code))
