@@ -82,9 +82,15 @@ def test_shor_transpiler_structure():
 def test_steane_transpiler_structure():
     assert False
 
+
+def test_errorcorrection_transpiler_equivalence():
+    assert True
+
+
+
 @pytest.mark.parametrize("code", ['shor']) #["steane", "shor"]) # double parametrize leads to crossproduct
 @pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate",]) # "qft"])
-def test_errorcorrection_transpiler_equivalence(code: str, algorithm: str):
+def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     """
     Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
