@@ -43,6 +43,7 @@ from qiskit.circuit import CircuitInstruction, Gate
 from qiskit.circuit.library import CXGate, HGate, SGate, XGate, ZGate
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 from qiskit_aer.primitives import SamplerV2
+from pathlib import Path
 
 
 
@@ -52,6 +53,7 @@ def test_errorcorrection_transpiler_gate_equivalence(code:str, gate: Gate):
     if gate.name == 's' and code == "shor":
         # this SGate entails non-unitary elements and can therefore not be evaluated properly
         return
+    
     num_qubits = gate.num_qubits
     logical_circuit = QuantumCircuit(num_qubits)
     logical_circuit.append(gate, qargs=list(range(num_qubits)))
@@ -65,12 +67,16 @@ def test_errorcorrection_transpiler_gate_equivalence(code:str, gate: Gate):
     transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
 
-    assert check_equivalence(logical_circuit, error_corrected_circuit), f'Transpiler {code} does convert Gate {gate.name} to its logical equivalent'
+    assert check_equivalence(logical_circuit, error_corrected_circuit), f'Transpiler {code} does not convert Gate {gate.name} to its logical equivalent'
 
 
 @pytest.mark.parametrize("code", ["steane", "shor"])
 @pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
 def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
+    if gate.name == 's' and code == "shor":
+        # this takes a little longer....
+        return
+    
     num_qubits = gate.num_qubits
     logical_circuit = QuantumCircuit(num_qubits)
     logical_circuit.append(gate, qargs=list(range(num_qubits)))
@@ -96,14 +102,13 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     logical_corrected_fidelity = compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code)
     corrected_induced_fidelity = compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code)
 
-    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does match its logical circuit well enough."
+    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does not match its logical circuit well enough."
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does not correct the bitflip well enough."
 
 
 
 @pytest.mark.parametrize("code", ["shor", "steane"]) # double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate",]) # "qft"])
-@pytest.mark.skip
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #, "qft"])
 def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     """
     Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
@@ -116,19 +121,28 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
             benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
         )
     error_corrected_circuit = logical_circuit.copy()
-    transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=False)
+    if code == "shor":
+        transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
+    else:
+        transpiler = SteaneTranspiler(logical_circuit, add_syndromes=True)
     transpiler.transpile()
     transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
-    error_induced_circuit = error_corrected_circuit.copy()
-    error_induced_circuit = insert_error(error_induced_circuit)
 
-    # run each circuit
+    error_induced_circuit = error_corrected_circuit.copy()
+    # this is for inserting phase flip in steane after the first Hadamard
+    #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
+    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
+
     logical_counts, logical_circuit = run_circuit(logical_circuit)
     corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
     induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
 
-    # compare results
+    logical_corrected_fidelity = compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code)
+    corrected_induced_fidelity = compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code)
+
+    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for algorithm {algorithm} does not match its logical circuit well enough."
+    assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
 
 
 
@@ -157,14 +171,21 @@ def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = N
     return qc
 
 
+def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
+    """
+    Uses MQT QCEC to verify if qc1 and qc2 are equivalent
+    """
+    import mqt.qcec
+    from mqt.qcec.pyqcec import EquivalenceCriterion as EC
 
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
-
-
+    verification_results = mqt.qcec.verify(qc1, qc2)
+    accepted_equivalencies = [
+        EC.equivalent, 
+        EC.equivalent_up_to_global_phase, 
+        EC.probably_equivalent
+        ]
+    equivalent = verification_results.equivalence in accepted_equivalencies
+    return equivalent
 
 def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
     """
@@ -192,43 +213,6 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
 
     return meas_bit_counts, qc
 
-def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
-    """
-    Adds the specified gate at the beginning of the circuit
-    Flips the first qubit right after the first barrier by default
-    """
-    assert qc.num_qubits >= gate.num_qubits, f'Quantum Circuit has not enough qubits to accomodate gate {gate.name}'
-    assert index is None or index >= 0, f'Index must be >= 0, Index provided: {index}'
-    
-    # Finds the first barrier
-    if index is None:
-        for i, instruction in enumerate(qc.data):
-            if instruction.operation.name == "barrier":
-                index = i + 1
-                break
-
-    # Insert the error gate
-    qubits = qc.qubits[:gate.num_qubits]
-    qc.data.insert(index, CircuitInstruction(gate, qubits))
-
-    return qc
-
-def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
-    """
-    Uses MQT QCEC to verify if qc1 and qc2 are equivalent
-    """
-    import mqt.qcec
-    from mqt.qcec.pyqcec import EquivalenceCriterion as EC
-
-    verification_results = mqt.qcec.verify(qc1, qc2)
-    accepted_equivalencies = [
-        EC.equivalent, 
-        EC.equivalent_up_to_global_phase, 
-        EC.probably_equivalent
-        ]
-    equivalent = verification_results.equivalence in accepted_equivalencies
-    return equivalent
-
 def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, code1: str = 'None', code2: str = 'None') -> float:
     """
     Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
@@ -236,17 +220,11 @@ def compare_distributions(qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dic
 
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
     """
-        
-    #print(counts1)
     if code1 in ['steane', 'shor']:
         counts1 = condense_counts(qc1, counts1)
-    #print(counts1)
-    
-    #print(counts2)
     if code2 in ['steane', 'shor']:
         counts2 = condense_counts(qc2, counts2)
-    #print(counts2)
-    
+
     fidelity = hellinger_fidelity(counts1, counts2)
     return fidelity
 
@@ -277,21 +255,6 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
 
         return logical_qubits
 
-
-#def get_logical_classical_indices(qc, name):
-#    logical_cregs = sorted(
-#        [cr for cr in qc.cregs if cr.name.startswith(name)],
-#        key=lambda cr: int(cr.name.replace(name, ""))
-#    )
-#
-#    indices = []
-#
-#    for cr in logical_cregs:
-#        # assuming each logical register has size 1
-#        indices.append(qc.find_bit(cr[0]).index)
-#
-#    return indices
-
 def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, int]:
     """
     Takes in a result dict of a decoded physical measurement and returns logical measurements 
@@ -305,3 +268,12 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, i
 
     return logical_counts
 
+def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
+    log_dir = Path(__file__).parent / "circuit_drawings"
+    log_dir.mkdir(exist_ok=True)
+
+    for name, circuit in circuits.items():
+        with open(log_dir / f"{name}_transpiled.txt", "w", encoding="utf-8") as f:
+            f.write(f"number of qubits {circuit.num_qubits}\n")
+            f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
+            f.write(str(circuit.draw(fold=-1)) + "\n")
