@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark.
+- ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#916]) ([**@kpassito**])
 
 ### Fixed
 

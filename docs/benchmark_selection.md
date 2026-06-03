@@ -52,10 +52,3 @@ HTML(html)
 ```
 
 See the [benchmark description](https://www.cda.cit.tum.de/mqtbench/benchmark_description) for further details on the individual benchmarks.
-
-## Dynamic Iterative Phase Estimation
-
-The `iqpe` benchmark implements Iterative Quantum Phase Estimation as a dynamic circuit.
-Unlike the standard QPE benchmarks, it reuses one measurement ancilla and one target eigenstate qubit instead of allocating a full quantum phase register.
-Use `circuit_size=2`; the optional `num_bits` argument controls the number of mid-circuit measurement and classically controlled feedback iterations.
-The benchmark reinitializes the reusable ancilla with measurement-conditioned feedback so it remains compatible with targets that do not expose a native reset operation.
