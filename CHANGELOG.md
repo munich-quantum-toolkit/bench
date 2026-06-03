@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark.
+
 ### Fixed
 
 - 🐛 Make IQM Crystal device connectivity bidirectional ([#914]) ([**@flowerthrower**])

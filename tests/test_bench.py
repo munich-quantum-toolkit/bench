@@ -74,6 +74,7 @@ from mqt.bench.targets.gatesets import (
 SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "shor": 18,
     "hrs_cumulative_multiplier": 5,
+    "iqpe": 2,
     "bmw_quark_copula": 4,
     "cdkm_ripple_carry_adder": 4,
     "draper_qft_adder": 4,
@@ -203,6 +204,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
         ("hhl", 2, None, "Number of qubits must be at least 3 for HHL."),
+        ("iqpe", 3, None, "Number of qubits must be exactly 2 for IQPE."),
         ("qpeexact", 1, None, "Number of qubits must be at least 2 for QPE exact."),
         ("bmw_quark_copula", 3, None, "Number of qubits must be divisible by 2."),
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
@@ -250,6 +252,53 @@ def test_graphstate_seed() -> None:
     qc_no_seed = get_benchmark_alg("graphstate", 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == "graphstate"
+
+
+def test_iqpe_circuit_structure() -> None:
+    """Verify the dynamic IQPE benchmark structure."""
+    qc = create_circuit("iqpe", 2, num_bits=4, phase=0.625)
+
+    assert qc.name == "iqpe"
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 4
+    assert [reg.name for reg in qc.qregs] == ["measurement", "target"]
+    assert [reg.name for reg in qc.cregs] == ["phase"]
+
+    ops = qc.count_ops()
+    assert ops.get("x", 0) == 1
+    assert ops.get("h", 0) == 8
+    assert ops.get("cp", 0) == 4
+    assert ops.get("measure", 0) == 4
+    assert ops.get("reset", 0) == 0
+    assert ops.get("if_else", 0) == 10
+
+
+def test_iqpe_scales_with_num_bits() -> None:
+    """IQPE precision scales via classical bits and dynamic iterations."""
+    three_bits = create_circuit("iqpe", 2, num_bits=3)
+    five_bits = create_circuit("iqpe", 2, num_bits=5)
+
+    assert three_bits.num_qubits == five_bits.num_qubits == 2
+    assert three_bits.num_clbits == 3
+    assert five_bits.num_clbits == 5
+    assert three_bits.count_ops().get("measure", 0) == 3
+    assert five_bits.count_ops().get("measure", 0) == 5
+    assert three_bits.count_ops().get("if_else", 0) == 6
+    assert five_bits.count_ops().get("if_else", 0) == 15
+
+
+@pytest.mark.parametrize(
+    ("num_bits", "phase", "msg"),
+    [
+        (0, 0.625, "num_bits must be at least 1 for IQPE."),
+        (3, -0.1, r"phase must be in the interval \[0, 1\)."),
+        (3, 1.0, r"phase must be in the interval \[0, 1\)."),
+    ],
+)
+def test_iqpe_parameter_validation(num_bits: int, phase: float, msg: str) -> None:
+    """Invalid IQPE parameters are rejected."""
+    with pytest.raises(ValueError, match=msg):
+        create_circuit("iqpe", 2, num_bits=num_bits, phase=phase)
 
 
 # Test the dynamic GHZ circuit
