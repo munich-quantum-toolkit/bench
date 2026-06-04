@@ -35,9 +35,9 @@ except ModuleNotFoundError:
 release = version.split("+")[0]
 
 project = "MQT Bench"
-author = "Chair for Design Automation, TUM & Munich Quantum Software Company"
+author = "Chair for Design Automation, TUM & Munich Quantum Software Company GmbH"
 language = "en"
-project_copyright = "2023 - 2026 Chair for Design Automation, TUM & 2025 - 2026 Munich Quantum Software Company"
+project_copyright = "2023 - 2026 Chair for Design Automation, TUM & 2025 - 2026 Munich Quantum Software Company GmbH"
 # -- General configuration ---------------------------------------------------
 
 master_doc = "index"
