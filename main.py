@@ -234,7 +234,11 @@ if __name__ == "__main__":
     h_circuit.z(0)
     #h_circuit.h(0)
 
-    logical_circuit = h_circuit
+
+    measure_circuit = QuantumCircuit(1,1)
+    measure_circuit.measure(0,0)
+
+    logical_circuit = measure_circuit
     
     #logical_circuit = benchmark_generation.get_benchmark(
     #        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
@@ -257,18 +261,18 @@ if __name__ == "__main__":
     error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
 
 
-    #print("   __________________________________________________________________________________________   ")
-    #print('Logical Circuit:')
-    #print(logical_circuit)
-    #print("   __________________________________________________________________________________________   ")
-    #print('Error corrected Circuit:')
-    #print(error_corrected_circuit)
-    #print("   __________________________________________________________________________________________   ")
-    #print('Error Induced Circuit')
-    #print(error_induced_circuit)
-    #print("   __________________________________________________________________________________________   ")
+    print("   __________________________________________________________________________________________   ")
+    print('Logical Circuit:')
+    print(logical_circuit)
+    print("   __________________________________________________________________________________________   ")
+    print('Error corrected Circuit:')
+    print(error_corrected_circuit)
+    print("   __________________________________________________________________________________________   ")
+    print('Error Induced Circuit')
+    print(error_induced_circuit)
+    print("   __________________________________________________________________________________________   ")
 
-    print(check_equivalence(logical_circuit, error_corrected_circuit))
+    #print(check_equivalence(logical_circuit, error_corrected_circuit))
     #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
