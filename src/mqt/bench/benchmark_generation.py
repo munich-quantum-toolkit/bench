@@ -211,7 +211,7 @@ def get_benchmark_alg(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        code:
+        encoding: Error correction code to be used (currently unused).
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -224,9 +224,9 @@ def get_benchmark_alg(
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc, inplace=True)
 
-    # if encoding == "shor":
+    #if encoding == "shor":
     #    return generate_shor(qc)
-    # elif encoding == "stean":
+    #elif encoding == "stean":
     #    return generate_stean(qc)
 
     return qc
@@ -548,7 +548,7 @@ def get_benchmark(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
-        code: Error correction code to be used (currently unused).
+        encoding: Error correction code to be used (currently unused).
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
