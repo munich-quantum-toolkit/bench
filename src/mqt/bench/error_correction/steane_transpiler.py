@@ -127,7 +127,7 @@ class SteaneTranspiler:
             if gate_name in gate_handlers:
                 gate_handlers[gate_name](instruction)
             else:
-                msg = f"Gate {gate_name} is not supported by ShorTranspiler."
+                msg = f"Gate {gate_name} is not supported by SteaneTranspiler."
                 raise NotImplementedError(msg)
 
     def _handle_barrier(self, instruction: CircuitInstruction) -> None:
@@ -208,7 +208,7 @@ class SteaneTranspiler:
         logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
         physical_data_register = self.physical_data_registers[logical_qubit_index]
 
-        t_ancilla_register = QuantumRegister(7, f"t{self.t_gate_count}")
+        t_ancilla_register = AncillaRegister(7, f"t{self.t_gate_count}")
         self.t_gate_count += 1
         t_test_register = ClassicalRegister(1)
 
@@ -298,6 +298,10 @@ class SteaneTranspiler:
 
         self.transpiled_qc.barrier(label="Syndrom Start")
 
+        # clean ancillas
+        self.transpiled_qc.reset(bit_flip_syndrome_register)
+        self.transpiled_qc.reset(phase_flip_syndrome_register)
+
         # Syndrome extraction
         self.transpiled_qc.compose(
             _get_seven_qubit_steane_code_syndrome_extraction_circuit(),
@@ -318,4 +322,5 @@ class SteaneTranspiler:
             bit_flip_measurement_register,
             phase_flip_measurement_register
         )
+
         self.transpiled_qc.barrier(label="Correction End")

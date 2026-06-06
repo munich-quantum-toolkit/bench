@@ -383,3 +383,6 @@ class ShorTranspiler:
             qubit.phase_flip_syndrome,
             qubit.phase_flip_measure,
         )
+
+        self.transpiled_qc.reset(qubit.bit_flip_syndrome)
+        self.transpiled_qc.reset(qubit.phase_flip_syndrome)
