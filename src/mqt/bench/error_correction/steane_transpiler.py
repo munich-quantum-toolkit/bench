@@ -15,14 +15,11 @@ from typing import TYPE_CHECKING
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import AncillaRegister, barrier
 
-# ruff: noqa: PLC2701
-#  these functions are reused from the benchmark and they should be extendable i.e. they shouldn't be private
-# TODO ask Patrick how to solve this issue, e.g. need to move functionality from benchmarks into dedicated helper class
-from mqt.bench.benchmarks.seven_qubit_steane_code import (
-    _get_seven_qubit_steane_code_encoding_circuit,
-    _get_seven_qubit_steane_code_decoding_circuit,
-    _get_seven_qubit_steane_code_syndrome_extraction_circuit,
-    _apply_seven_qubit_steane_code_correction
+from mqt.bench.components.steane_circuit_components import (
+    get_seven_qubit_steane_code_encoding_circuit,
+    get_seven_qubit_steane_code_decoding_circuit,
+    get_seven_qubit_steane_code_syndrome_extraction_circuit,
+    apply_seven_qubit_steane_code_correction
 )
 
 if TYPE_CHECKING:
@@ -91,7 +88,7 @@ class SteaneTranspiler:
 
             # Phase flip encoding on the first qubit of each block
             self.transpiled_qc.compose(
-                    _get_seven_qubit_steane_code_encoding_circuit(),
+                    get_seven_qubit_steane_code_encoding_circuit(),
                     qubits=physical_data_register[:],
                     inplace=True,
             )
@@ -102,7 +99,7 @@ class SteaneTranspiler:
         self.transpiled_qc.barrier()
         for logical_qubit_index in range(self.num_logical_qubits):
             physical_data_register = self.physical_data_registers[logical_qubit_index]
-            self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+            self.transpiled_qc.compose(get_seven_qubit_steane_code_decoding_circuit(),
                                        qubits=physical_data_register[:],
                                        inplace=True
                                        )
@@ -148,7 +145,7 @@ class SteaneTranspiler:
             logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[i])
             logical_classical_bit_index = self.original_qc.clbits.index(instruction.clbits[i])
 
-            self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+            self.transpiled_qc.compose(get_seven_qubit_steane_code_decoding_circuit(),
                                        qubits=self.physical_data_registers[logical_qubit_index],
                                        inplace=True
                                        )
@@ -217,7 +214,7 @@ class SteaneTranspiler:
 
         # make ket 0 L
         self.transpiled_qc.compose(
-            _get_seven_qubit_steane_code_encoding_circuit(),
+            get_seven_qubit_steane_code_encoding_circuit(),
             qubits=t_ancilla_register[:],
             inplace=True,
         )
@@ -232,7 +229,7 @@ class SteaneTranspiler:
         self.transpiled_qc.cx(physical_data_register, t_ancilla_register)
 
         # made logical measurement
-        self.transpiled_qc.compose(_get_seven_qubit_steane_code_decoding_circuit(),
+        self.transpiled_qc.compose(get_seven_qubit_steane_code_decoding_circuit(),
                                    qubits=t_ancilla_register,
                                    inplace=True
                                    )
@@ -304,7 +301,7 @@ class SteaneTranspiler:
 
         # Syndrome extraction
         self.transpiled_qc.compose(
-            _get_seven_qubit_steane_code_syndrome_extraction_circuit(),
+            get_seven_qubit_steane_code_syndrome_extraction_circuit(),
             qubits=physical_data_register[:] + bit_flip_syndrome_register[:] + phase_flip_syndrome_register[:],
             inplace=True,
 
@@ -314,7 +311,7 @@ class SteaneTranspiler:
 
 
         # Error correction
-        _apply_seven_qubit_steane_code_correction(
+        apply_seven_qubit_steane_code_correction(
             self.transpiled_qc,
             physical_data_register,
             bit_flip_syndrome_register,

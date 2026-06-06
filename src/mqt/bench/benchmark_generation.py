@@ -21,6 +21,8 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 from typing_extensions import assert_never
+from .error_correction.shor_transpiler import ShorTranspiler
+from .error_correction.steane_transpiler import SteaneTranspiler
 
 if sys.version_info >= (3, 11):
     from typing import Unpack
@@ -224,10 +226,14 @@ def get_benchmark_alg(
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc, inplace=True)
 
-    #if encoding == "shor":
-    #    return generate_shor(qc)
-    #elif encoding == "stean":
-    #    return generate_stean(qc)
+    if encoding == "shor":
+        transpiler = ShorTranspiler(qc, add_syndromes=True)
+        transpiler.transpile()
+        return transpiler.transpiled_qc
+    elif encoding == "stean":
+        transpiler = SteaneTranspiler(qc, add_syndromes=True)
+        transpiler.transpile()
+        return transpiler.transpiled_qc
 
     return qc
 
