@@ -195,6 +195,8 @@ class ShorTranspiler:
         Classical post-processing would compute the majority vote across the 3 bit-flip
         blocks and then across the phase-flip blocks to extract the logical value.
         """
+        ## decode
+        self._apply_shor_decoding(self.transpiled_qc, self.logical_qubits[logical_qubit_index].data)
         measurement_register_name = f"meas_{logical_qubit_index}_{logical_classical_bit_index}"
         physical_measurement_register = ClassicalRegister(SHOR_TOTAL_QUBITS, measurement_register_name)
         self.transpiled_qc.add_register(physical_measurement_register)
