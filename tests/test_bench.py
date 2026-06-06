@@ -14,6 +14,7 @@ import builtins
 import datetime
 import functools
 import io
+import math
 import re
 from enum import Enum
 from importlib import metadata
@@ -252,7 +253,55 @@ def test_graphstate_seed() -> None:
     assert qc_no_seed.name == "graphstate"
 
 
-# Test the dynamic GHZ circuit
+# Test the dynamic circuits
+def _conditional_phase_angles(qc: QuantumCircuit) -> list[float]:
+    """Return phase angles applied inside conditional blocks."""
+    angles = []
+    for instruction in qc.data:
+        operation = instruction.operation
+        if isinstance(operation, IfElseOp):
+            angles.extend(
+                float(conditional_instruction.operation.params[0])
+                for conditional_instruction in operation.blocks[0].data
+                if conditional_instruction.operation.name == "p"
+            )
+    return angles
+
+
+def test_dynamic_qft_description() -> None:
+    """Verify that the Dynamic QFT benchmark is registered with its canonical name."""
+    description = get_benchmark_description("dynamic_qft")
+    assert "Dynamic QFT" in description
+    assert "Dynamical" not in description
+
+
+def test_dynamic_qft_circuit_structure() -> None:
+    """Verify the structure of the Dynamic QFT benchmark."""
+    qc = create_circuit("dynamic_qft", 5)
+
+    assert qc.name == "dynamic_qft"
+    assert qc.num_qubits == 5
+    assert len(qc.cregs) == 1
+    assert qc.cregs[0].name == "c"
+    assert qc.cregs[0].size == 5
+
+    ops = qc.count_ops()
+    assert ops.get("h", 0) == 5
+    assert ops.get("measure", 0) == 5
+    assert ops.get("if_else", 0) == 10
+    assert ops.get("cp", 0) == 0
+
+    expected_angles = sorted(round(math.pi / (2**shift), 12) for shift in range(1, 5) for _ in range(5 - shift))
+    actual_angles = sorted(round(angle, 12) for angle in _conditional_phase_angles(qc))
+    assert actual_angles == expected_angles
+
+
+def test_dynamic_qft_rejects_too_many_qubits() -> None:
+    """Verify that Dynamic QFT rejects instances with impractically small phase shifts."""
+    with pytest.raises(ValueError, match="at most 64 qubits"):
+        create_circuit("dynamic_qft", 65)
+
+
 @pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
 def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     """Verify the structure of the dynamic GHZ circuit for various qubit counts."""
