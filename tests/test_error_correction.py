@@ -92,7 +92,7 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     error_induced_circuit = error_corrected_circuit.copy()
     # this is for inserting phase flip in steane after the first Hadamard
     #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
-    error_induced_circuit = insert_error(error_induced_circuit ,gate=gate)
+    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
 
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
@@ -107,8 +107,8 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
 
 
 
-@pytest.mark.parametrize("code", ["steane"]) # "shor",  double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz"]) #, ", "bv", "graphstate"qft"])
+@pytest.mark.parametrize("code", ["shor", "steane"]) # double parametrize leads to crossproduct
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #, "qft"])
 def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     """
     Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
@@ -162,7 +162,11 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     logical_corrected_fidelity = compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code)
     corrected_induced_fidelity = compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code)
 
-    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for algorithm {algorithm} does not match its logical circuit well enough."
+    log_circuits({f'log_{code}_{algorithm}':logical_circuit,
+                  f'corrected_{code}_{algorithm}':error_corrected_circuit,
+                  f'induced_{code}_{algorithm}':error_induced_circuit,})
+
+    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not match its logical circuit well enough."
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
 
 def insert_error_after_barrier(
@@ -227,7 +231,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     equivalent = verification_results.equivalence in accepted_equivalencies
     return equivalent
 
-def run_circuit(qc: QuantumCircuit, shots: int = 10240) -> tuple[dict, QuantumCircuit]:
+def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
     """
     Simulates the circuit using AerSimulator.
 
@@ -317,8 +321,3 @@ def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
             f.write(f"number of qubits {circuit.num_qubits}\n")
             f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
             f.write(str(circuit.draw(fold=-1)) + "\n")
-
-
-
-if __name__ == "__main__":
-    test_errorcorrection_transpiler_correctness("bv", "steane")
