@@ -18,7 +18,7 @@ from qiskit.circuit import AncillaRegister
 
 #ignore the below comment
 #  these functions are reused from the benchmark and they should be extendable i.e. they shouldn't be private
-from mqt.bench.error_correction.shor_circuit_components import (
+from mqt.bench.components.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
     apply_nine_qubit_shors_code_phase_flip_correction,
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,

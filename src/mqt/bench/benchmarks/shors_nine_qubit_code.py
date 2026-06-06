@@ -12,7 +12,7 @@ from __future__ import annotations
 from qiskit import ClassicalRegister
 from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
-from mqt.bench.error_correction.shor_circuit_components import (
+from mqt.bench.component.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
     apply_nine_qubit_shors_code_phase_flip_correction,
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,
