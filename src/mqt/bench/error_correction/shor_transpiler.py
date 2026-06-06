@@ -108,7 +108,7 @@ class ShorTranspiler:
         # Apply encoding for each logical qubit
         for logical_qubit in self.logical_qubits:
             self._apply_shor_encoding(self.transpiled_qc, logical_qubit.data)
-        self.transpiled_qc.barrier()
+        self.transpiled_qc.barrier(label="Encoding")
 
     def decode_qubits(self) -> None:
         """Apply Shor 9-qubit decoding to each logical qubit."""
@@ -337,6 +337,7 @@ class ShorTranspiler:
         if not self.add_syndromes:
             return
 
+
         qubit = self.logical_qubits[logical_qubit_index]
         self.transpiled_qc.barrier()
 
@@ -351,6 +352,7 @@ class ShorTranspiler:
 
     def _extract_bit_flip_syndromes(self, qubit: ShorLogicalQubit) -> None:
         """Extract bit-flip syndromes for the three blocks."""
+        self.transpiled_qc.reset(qubit.bit_flip_syndrome)
         for i in range(SHOR_NUM_BLOCKS):
             self.transpiled_qc.compose(
                 get_three_qubit_bit_flip_syndrome_extraction_circuit(),
@@ -360,6 +362,7 @@ class ShorTranspiler:
 
     def _extract_phase_flip_syndromes(self, qubit: ShorLogicalQubit) -> None:
         """Extract phase-flip syndromes across the blocks."""
+        self.transpiled_qc.reset(qubit.phase_flip_syndrome)
         self.transpiled_qc.compose(
             get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit(),
             qubits=qubit.data[:] + qubit.phase_flip_syndrome[:],
@@ -382,5 +385,5 @@ class ShorTranspiler:
             qubit.phase_flip_measure,
         )
 
-        self.transpiled_qc.reset(qubit.bit_flip_syndrome)
-        self.transpiled_qc.reset(qubit.phase_flip_syndrome)
+
+

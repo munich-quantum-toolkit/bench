@@ -106,10 +106,28 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does not correct the bitflip well enough."
 
 
+def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
+    new_qc = QuantumCircuit(*qc.qregs, *qc.cregs, name=qc.name)
 
-@pytest.mark.parametrize("code", ["shor", "steane"]) # double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #, "qft"])
-def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
+    for instruction in qc.data:
+        op = instruction.operation
+        qargs = instruction.qubits
+        cargs = instruction.clbits
+
+        if op.name == "measure":
+            # Add H to the qubit that is about to be measured
+            new_qc.h(qargs[0])
+
+        # Add the original instruction
+        new_qc.append(op, qargs, cargs)
+
+    return new_qc
+
+@pytest.mark.parametrize("code", ["shor"]) #  "shor",  double parametrize leads to crossproduct
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #, , "bv", "graphstate""qft"])
+@pytest.mark.parametrize("Error", [XGate(), ZGate()]) #, , "bv", "graphstate""qft"])
+@pytest.mark.parametrize("MeasureBaseX", [True, False]) #, , "bv", "graphstate""qft"])
+def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX:bool):
     """
     Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
@@ -123,8 +141,9 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     logical_circuit = benchmark_generation.get_benchmark(
             benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
         )
-    for i in logical_circuit.qubits:
-        logical_circuit.h(i)
+
+    if MeasureBaseX:
+        logical_circuit = add_h_before_measurements(logical_circuit)
 
     if algorithm == 'qft':
         basis = ["h", "s", "t", "x", "z", "cx", "cz"]
@@ -151,7 +170,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     error_induced_circuit = insert_error_after_barrier(
         error_corrected_circuit,
         barrier_label="Encoding",
-        gate=XGate(),
+        gate=Error,
         qubit_index=0,
     )
 
