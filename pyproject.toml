@@ -250,6 +250,7 @@ aer = "aer"
 fom = "fom"
 bench = "bench"
 benchs = "benchs"
+ket = "ket"
 
 
 [tool.repo-review.ignore]
