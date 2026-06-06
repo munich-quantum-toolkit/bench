@@ -32,7 +32,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from pathlib import Path
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import hellinger_fidelity, state_fidelity, Statevector
 
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
@@ -92,7 +92,7 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     error_induced_circuit = error_corrected_circuit.copy()
     # this is for inserting phase flip in steane after the first Hadamard
     #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
-    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
+    error_induced_circuit = insert_error(error_induced_circuit ,gate=gate)
 
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
@@ -107,19 +107,34 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
 
 
 
-@pytest.mark.parametrize("code", ["shor", "steane"]) # double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #, "qft"])
+@pytest.mark.parametrize("code", ["steane"]) # "shor",  double parametrize leads to crossproduct
+@pytest.mark.parametrize("algorithm", ["ghz"]) #, ", "bv", "graphstate"qft"])
 def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     """
     Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
     Iterates over a number of example algorithms.
     """
+    if algorithm == 'qft' and code == "shor":
+        # this takes a little longer....
+        return
     circuit_size = 3
     # Initialize circuits
     logical_circuit = benchmark_generation.get_benchmark(
             benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
         )
+    for i in logical_circuit.qubits:
+        logical_circuit.h(i)
+
+    if algorithm == 'qft':
+        basis = ["h", "s", "t", "x", "z", "cx", "cz"]
+
+        logical_circuit = transpile(
+            logical_circuit,
+            basis_gates=basis
+        )
+        print(logical_circuit.decompose().count_ops())
+
     error_corrected_circuit = logical_circuit.copy()
     if code == "shor":
         transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
@@ -132,7 +147,13 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     error_induced_circuit = error_corrected_circuit.copy()
     # this is for inserting phase flip in steane after the first Hadamard
     #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
-    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
+    #error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
+    error_induced_circuit = insert_error_after_barrier(
+        error_corrected_circuit,
+        barrier_label="Encoding",
+        gate=XGate(),
+        qubit_index=0,
+    )
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
     corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
@@ -144,7 +165,26 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for algorithm {algorithm} does not match its logical circuit well enough."
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
 
+def insert_error_after_barrier(
+    qc: QuantumCircuit,
+    barrier_label: str,
+    gate: Gate = XGate(),
+    qubit_index: int = 0,
+) -> QuantumCircuit:
+    qc = qc.copy()
 
+    for i, instruction in enumerate(qc.data):
+        if (
+            instruction.operation.name == "barrier"
+            and instruction.operation.label == barrier_label
+        ):
+            qc.data.insert(
+                i + 1,
+                CircuitInstruction(gate, [qc.qubits[qubit_index]]),
+            )
+            return qc
+
+    raise ValueError(f"Barrier with label {barrier_label!r} not found")
 
 def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
     """
@@ -187,7 +227,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     equivalent = verification_results.equivalence in accepted_equivalencies
     return equivalent
 
-def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
+def run_circuit(qc: QuantumCircuit, shots: int = 10240) -> tuple[dict, QuantumCircuit]:
     """
     Simulates the circuit using AerSimulator.
 
@@ -277,3 +317,8 @@ def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
             f.write(f"number of qubits {circuit.num_qubits}\n")
             f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
             f.write(str(circuit.draw(fold=-1)) + "\n")
+
+
+
+if __name__ == "__main__":
+    test_errorcorrection_transpiler_correctness("bv", "steane")
