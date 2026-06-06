@@ -40,7 +40,7 @@ import mqt.bench.benchmark_generation as benchmark_generation
 from qiskit_aer import AerSimulator # update uv requirements?
 import qiskit as qk
 from qiskit.circuit import CircuitInstruction, Gate
-from qiskit.circuit.library import CXGate, HGate, SGate, XGate, ZGate
+from qiskit.circuit.library import CXGate, HGate, SGate, XGate, ZGate, CZGate
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 from qiskit_aer.primitives import SamplerV2
 from pathlib import Path
@@ -48,7 +48,7 @@ from pathlib import Path
 
 
 @pytest.mark.parametrize("code", ["steane", "shor"])
-@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
+@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate(),  CXGate(), CZGate()])
 def test_errorcorrection_transpiler_gate_equivalence(code:str, gate: Gate):
     if gate.name == 's' and code == "shor":
         # this SGate entails non-unitary elements and can therefore not be evaluated properly
@@ -71,7 +71,7 @@ def test_errorcorrection_transpiler_gate_equivalence(code:str, gate: Gate):
 
 
 @pytest.mark.parametrize("code", ["steane", "shor"])
-@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
+@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate(), CXGate(), CZGate()])
 def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     if gate.name == 's' and code == "shor":
         # this takes a little longer....
@@ -141,9 +141,15 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     logical_corrected_fidelity = compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code)
     corrected_induced_fidelity = compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code)
 
-    log_circuits({f'log_{code}_{algorithm}':logical_circuit,
-                  f'corrected_{code}_{algorithm}':error_corrected_circuit,
-                  f'induced_{code}_{algorithm}':error_induced_circuit,})
+    #log_circuits({f'log_{code}_{algorithm}':logical_circuit,
+    #              f'corrected_{code}_{algorithm}':error_corrected_circuit,
+    #              f'induced_{code}_{algorithm}':error_induced_circuit,})
+
+    print(corrected_counts)
+    print('condensed:', condense_counts(error_corrected_circuit, corrected_counts))
+    print('Logical', logical_counts)
+
+
 
     assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not match its logical circuit well enough."
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
@@ -281,3 +287,10 @@ def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
             f.write(f"number of qubits {circuit.num_qubits}\n")
             f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
             f.write(str(circuit.draw(fold=-1)) + "\n")
+
+
+        import matplotlib.pyplot as plt
+
+        fig = circuit.draw(output="mpl", fold=-1)
+        fig.savefig(log_dir / f"{name}_transpiled.png", dpi=150, bbox_inches="tight")
+        plt.close(fig)
