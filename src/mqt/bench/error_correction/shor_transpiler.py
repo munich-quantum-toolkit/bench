@@ -18,7 +18,7 @@ from qiskit.circuit import AncillaRegister
 
 #ignore the below comment
 #  these functions are reused from the benchmark and they should be extendable i.e. they shouldn't be private
-from mqt.bench.error_correction.shor_circuit_components import (
+from mqt.bench.components.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
     apply_nine_qubit_shors_code_phase_flip_correction,
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,
@@ -195,6 +195,8 @@ class ShorTranspiler:
         Classical post-processing would compute the majority vote across the 3 bit-flip
         blocks and then across the phase-flip blocks to extract the logical value.
         """
+        ## decode
+        self._apply_shor_decoding(self.transpiled_qc, self.logical_qubits[logical_qubit_index].data)
         measurement_register_name = f"meas_{logical_qubit_index}_{logical_classical_bit_index}"
         physical_measurement_register = ClassicalRegister(SHOR_TOTAL_QUBITS, measurement_register_name)
         self.transpiled_qc.add_register(physical_measurement_register)
