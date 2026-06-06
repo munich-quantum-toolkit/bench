@@ -92,7 +92,7 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate):
     error_induced_circuit = error_corrected_circuit.copy()
     # this is for inserting phase flip in steane after the first Hadamard
     #error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
-    error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
+    error_induced_circuit = insert_error(error_induced_circuit, gate=XGate())
 
 
     logical_counts, logical_circuit = run_circuit(logical_circuit)
@@ -141,7 +141,11 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str):
     logical_corrected_fidelity = compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code)
     corrected_induced_fidelity = compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code)
 
-    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for algorithm {algorithm} does not match its logical circuit well enough."
+    log_circuits({f'log_{code}_{algorithm}':logical_circuit,
+                  f'corrected_{code}_{algorithm}':error_corrected_circuit,
+                  f'induced_{code}_{algorithm}':error_induced_circuit,})
+
+    assert logical_corrected_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not match its logical circuit well enough."
     assert corrected_induced_fidelity >= 0.99, f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
 
 
