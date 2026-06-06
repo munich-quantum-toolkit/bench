@@ -13,7 +13,6 @@ from __future__ import annotations
 import sys
 from enum import Enum, auto
 from typing import TYPE_CHECKING, overload
-
 import numpy as np
 from qiskit import generate_preset_pass_manager
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
@@ -32,9 +31,7 @@ from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
     from qiskit.transpiler import Target
-
     from .configuration_options import ConfigurationOptions
-
 
 class BenchmarkLevel(Enum):
     """Enum representing different levels."""
@@ -200,7 +197,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
-    encoding:str = "",
+    encoding: str = "",  # noqa: ARG001
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -211,7 +208,7 @@ def get_benchmark_alg(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        code:
+        encoding: Error correction code to be used (currently unused).
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -548,7 +545,7 @@ def get_benchmark(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
-        code: Error correction code to be used (currently unused).
+        encoding: Error correction code to be used (currently unused).
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -562,7 +559,7 @@ def get_benchmark(
             circuit_size=circuit_size,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
-            encoding=code,
+            encoding=encoding,
             **kwargs,
         )
 

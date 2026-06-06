@@ -10,10 +10,11 @@
 
 from __future__ import annotations
 
+import numpy as np
+from qiskit import QuantumCircuit, QuantumRegister
 import pytest
-from qiskit import QuantumCircuit
-
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
+
 
 # this needs mpre tests
 def test_shor_transpiler() -> None:
@@ -275,7 +276,6 @@ def test_shor_transpiler_cz_gate() -> None:
 
 def test_shor_transpiler_encode_decode() -> None:
     """Test static encoding and decoding methods directly."""
-    from qiskit import QuantumRegister
     qc = QuantumCircuit()
     reg = QuantumRegister(9, "q")
     qc.add_register(reg)
@@ -291,9 +291,6 @@ def test_shor_transpiler_encode_decode() -> None:
 
 def test_shor_transpiler_prepare_magic() -> None:
     """Test _prepare_magic directly."""
-    from qiskit import QuantumRegister
-    import numpy as np
-
     qc = QuantumCircuit()
     anc = QuantumRegister(9, "anc")
     qc.add_register(anc)

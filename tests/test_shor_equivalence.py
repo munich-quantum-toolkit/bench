@@ -10,11 +10,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
-from pathlib import Path
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import state_fidelity, Statevector
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import DensityMatrix, Statevector, partial_trace, state_fidelity
 from qiskit_aer import AerSimulator
 
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
@@ -49,7 +51,7 @@ def verify_gate_equivalence(gate_name: str, num_qubits: int) -> None:
         raise ValueError(msg)
 
     # Get the expected density matrix
-    qc_logical_sim = qc_logical.copy()
+    qc_logical.copy()
     # expected logical state
     expected_sv_init = Statevector.from_instruction(qc_logical)
 
@@ -65,7 +67,7 @@ def verify_gate_equivalence(gate_name: str, num_qubits: int) -> None:
     # Save to file to ensure it can be viewed regardless of pytest-xdist capturing stdout
     output_dir = Path("tests/circuit_drawings")
     output_dir.mkdir(parents=True, exist_ok=True)
-    with open(output_dir / f"{gate_name}_transpiled.txt", "w", encoding="utf-8") as f:
+    with Path(output_dir / f"{gate_name}_transpiled.txt").open("w", encoding="utf-8") as f:
         f.write(f"number of qubits {num_qubits}\n")
         f.write(f"--- Transpiled Circuit for {gate_name.upper()} ---\n\n")
         f.write(str(drawing) + "\n")
@@ -86,25 +88,23 @@ def verify_gate_equivalence(gate_name: str, num_qubits: int) -> None:
         for i in range(num_qubits)
     ]
 
-    from qiskit.quantum_info import partial_trace
     all_qubits = list(range(transpiled_qc.num_qubits))
     trace_qubits = [q for q in all_qubits if q not in logical_qubits_physical]
 
     actual_rho = partial_trace(actual_sv, trace_qubits)
 
-    from qiskit.quantum_info import DensityMatrix
     expected_rho_init = DensityMatrix(expected_sv_init)
 
     try:
         actual_sv_reduced = actual_rho.to_statevector()
-    except Exception:
+    except QiskitError:
         actual_sv_reduced = None
 
     # Compare the density matrices
     fidelity = state_fidelity(expected_sv_init, actual_rho)
 
     # Save the resulting density matrices and state vectors to the text file for visual inspection
-    with open(output_dir / f"{gate_name}_transpiled.txt", "a", encoding="utf-8") as f:
+    with Path(output_dir / f"{gate_name}_transpiled.txt").open("a", encoding="utf-8") as f:
         f.write("\n\n=== LOGICAL EXPECTED DENSITY MATRIX ===\n")
         f.write(str(np.round(expected_rho_init.data, 3)) + "\n")
         f.write("\n=== ACTUAL TRANSPILED DENSITY MATRIX (REDUCED) ===\n")
