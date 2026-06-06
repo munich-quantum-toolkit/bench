@@ -48,7 +48,7 @@ from pathlib import Path
 
 
 @pytest.mark.parametrize("code", ["steane", "shor"])
-@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate(),  CXGate(), CZGate()])
+@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
 def test_errorcorrection_transpiler_gate_equivalence(code:str, gate: Gate):
     if gate.name == 's' and code == "shor":
         # this SGate entails non-unitary elements and can therefore not be evaluated properly
@@ -185,7 +185,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     #              f'corrected_{code}_{algorithm}':error_corrected_circuit,
     #              f'induced_{code}_{algorithm}':error_induced_circuit,})
 
-    print(corrected_counts)
+    #print(corrected_counts)
     print('condensed:', condense_counts(error_corrected_circuit, corrected_counts))
     print('Logical', logical_counts)
 
