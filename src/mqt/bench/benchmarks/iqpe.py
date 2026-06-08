@@ -17,20 +17,27 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-@register_benchmark("iqpe", description="Iterative Quantum Phase Estimation (IQPE)")
+@register_benchmark(
+    "iqpe",
+    description="Iterative Quantum Phase Estimation (IQPE), trading QPE circuit width for dynamic circuit depth",
+)
 def create_circuit(num_qubits: int, num_bits: int = 3, phase: float = 0.625) -> QuantumCircuit:
-    """Returns a dynamic circuit implementing Iterative Quantum Phase Estimation.
+    """Return a two-qubit dynamic circuit implementing Iterative Quantum Phase Estimation.
+
+    IQPE reuses one measurement qubit instead of QPE's phase register. Increasing
+    ``num_bits`` improves the estimation accuracy by adding dynamic iterations,
+    trading circuit width for circuit depth.
 
     Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        num_bits: Number of measured phase bits.
+        num_qubits: Number of qubits of the returned quantum circuit. Must be exactly 2.
+        num_bits: Number of measured phase bits and dynamic iterations.
         phase: Target phase as a fraction of one full turn. Must be in ``[0, 1)``.
 
     Returns:
         QuantumCircuit: The constructed IQPE circuit.
     """
-    if num_qubits < 2:
-        msg = "Number of qubits must be at least 2 for IQPE."
+    if num_qubits != 2:
+        msg = "Number of qubits must be exactly 2 for IQPE."
         raise ValueError(msg)
     if num_bits < 1:
         msg = "num_bits must be at least 1 for IQPE."
@@ -40,20 +47,15 @@ def create_circuit(num_qubits: int, num_bits: int = 3, phase: float = 0.625) -> 
         raise ValueError(msg)
 
     measurement = QuantumRegister(1, "measurement")
-    target = QuantumRegister(num_qubits - 1, "target")
+    target = QuantumRegister(1, "target")
     phase_bits = ClassicalRegister(num_bits, "phase")
     qc = QuantumCircuit(measurement, target, phase_bits, name="iqpe")
 
-    phase_per_target = phase / len(target)
-    for target_qubit in target:
-        qc.x(target_qubit)
+    qc.x(target[0])
 
     for bit in reversed(range(num_bits)):
         qc.h(measurement[0])
-
-        # Split the phase over the target register so |1...1> has the requested eigenphase.
-        for target_qubit in target:
-            qc.cp(2 * math.pi * phase_per_target * (2**bit), measurement[0], target_qubit)
+        qc.cp(2 * math.pi * phase * (2**bit), measurement[0], target[0])
 
         for correction_bit in range(bit + 1, num_bits):
             with qc.if_test((phase_bits[correction_bit], 1)):
