@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from pytest_console_scripts import ScriptRunner
 from qiskit.qasm3 import dumps
 
 from mqt.bench.benchmark_generation import BenchmarkLevel, get_benchmark
