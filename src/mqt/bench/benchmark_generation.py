@@ -31,8 +31,6 @@ from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
-    from qiskit.transpiler import Target
-
     from .configuration_options import ConfigurationOptions
 
 
