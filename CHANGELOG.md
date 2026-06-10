@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- ✨ Add Dynamic QFT benchmark ([#918]) ([**@gshaowei6**])
+
 ### Fixed
 
 - 🐛 Make IQM Crystal device connectivity bidirectional ([#914]) ([**@flowerthrower**])
@@ -126,6 +130,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#918]: https://github.com/munich-quantum-toolkit/bench/pull/918
 [#914]: https://github.com/munich-quantum-toolkit/bench/pull/914
 [#895]: https://github.com/munich-quantum-toolkit/bench/pull/895
 [#865]: https://github.com/munich-quantum-toolkit/bench/pull/865
@@ -171,6 +176,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- Contributor -->
 
 [**@burgholzer**]: https://github.com/burgholzer
+[**@gshaowei6**]: https://github.com/gshaowei6
 [**@ystade**]: https://github.com/ystade
 [**@simon1hofmann**]: https://github.com/simon1hofmann
 [**@nquetschlich**]: https://github.com/nquetschlich
