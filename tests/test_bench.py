@@ -290,16 +290,24 @@ def test_dynamic_qft_circuit_structure() -> None:
     assert ops.get("measure", 0) == 5
     assert ops.get("if_else", 0) == 10
     assert ops.get("cp", 0) == 0
+    assert [
+        (qc.find_bit(instruction.qubits[0]).index, qc.find_bit(instruction.clbits[0]).index)
+        for instruction in qc.data
+        if instruction.operation.name == "measure"
+    ] == [(qubit, 4 - qubit) for qubit in range(5)]
 
     expected_angles = sorted(round(math.pi / (2**shift), 12) for shift in range(1, 5) for _ in range(5 - shift))
     actual_angles = sorted(round(angle, 12) for angle in _conditional_phase_angles(qc))
     assert actual_angles == expected_angles
 
 
-def test_dynamic_qft_rejects_too_many_qubits() -> None:
-    """Verify that Dynamic QFT rejects instances with impractically small phase shifts."""
-    with pytest.raises(ValueError, match="at most 64 qubits"):
-        create_circuit("dynamic_qft", 65)
+def test_dynamic_qft_supports_large_instances() -> None:
+    """Verify that Dynamic QFT supports arbitrary benchmark sizes like the regular QFT."""
+    qc = create_circuit("dynamic_qft", 65)
+
+    assert qc.num_qubits == 65
+    assert qc.cregs[0].size == 65
+    assert qc.count_ops().get("measure", 0) == 65
 
 
 @pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])

@@ -16,8 +16,6 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 
 from ._registry import register_benchmark
 
-_MAX_NUM_QUBITS = 64
-
 
 @register_benchmark("dynamic_qft", description="Dynamic QFT")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
@@ -31,28 +29,22 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     triangular phase-angle structure as the standard QFT.
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit. Must be at most 64.
+        num_qubits: number of qubits of the returned quantum circuit.
 
     Returns:
         QuantumCircuit: a quantum circuit implementing the Dynamic QFT.
-
-    Raises:
-        ValueError: if more than 64 qubits are requested.
     """
-    if num_qubits > _MAX_NUM_QUBITS:
-        msg = "Dynamic QFT supports at most 64 qubits."
-        raise ValueError(msg)
-
     q = QuantumRegister(num_qubits, "q")
     c = ClassicalRegister(num_qubits, "c")
     qc = QuantumCircuit(q, c, name="dynamic_qft")
 
     for measured_qubit in range(num_qubits):
+        measured_bit = num_qubits - measured_qubit - 1
         qc.h(q[measured_qubit])
-        qc.measure(q[measured_qubit], c[measured_qubit])
+        qc.measure(q[measured_qubit], c[measured_bit])
 
         for offset in range(1, num_qubits - measured_qubit):
-            with qc.if_test((c[measured_qubit], 1)):
+            with qc.if_test((c[measured_bit], 1)):
                 qc.p(math.pi / (2**offset), q[measured_qubit + offset])
 
     return qc

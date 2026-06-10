@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Add Dynamic QFT benchmark ([#918]) ([**@gshaowei6**])
+- ✨ Add Dynamic QFT benchmark ([#918]) ([**@gshaowei6**])
 
 ### Fixed
 
