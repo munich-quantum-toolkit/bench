@@ -238,6 +238,19 @@ def test_bv() -> None:
         create_circuit("bv", 3, hidden_string="wrong")
 
 
+def test_iqpe() -> None:
+    """Test the creation of the IQPE benchmark."""
+    qc = create_circuit("iqpe", 4, exact=True)
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 3
+    assert "iqpe" in qc.name
+
+    qc = create_circuit("iqpe", 4, exact=False)
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 3
+    assert "iqpe" in qc.name
+
+
 def test_dj_constant_oracle() -> None:
     """Test the creation of the DJ benchmark constant oracle."""
     qc = create_circuit("dj", 5, False)
