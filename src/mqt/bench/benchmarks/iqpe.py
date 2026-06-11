@@ -20,12 +20,16 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("iqpe", description="Iterative Quantum Phase Estimation (IQPE)")
-def create_circuit(num_qubits: int, exact: bool = True) -> QuantumCircuit:
+def create_circuit(
+    num_qubits: int, exact: bool = True, rotation_threshold: float = 1e-15, seed: int = 10
+) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
         exact: Whether to use the exact version of the algorithm.
+        rotation_threshold: Threshold for adding rotation gates in the feedback step. Rotation gates with smaller angles will be omitted to reduce circuit complexity.
+        seed: Seed for the random number generator.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
@@ -41,8 +45,8 @@ def create_circuit(num_qubits: int, exact: bool = True) -> QuantumCircuit:
     qc = QuantumCircuit(ancilla, psi, c, name="iqpe")
 
     # get random n-bit string as target phase
-    random.seed(10)
     theta = 0
+    random.seed(seed)
     if exact:
         while theta == 0:
             theta = random.getrandbits(num_iterations)
@@ -67,7 +71,7 @@ def create_circuit(num_qubits: int, exact: bool = True) -> QuantumCircuit:
         for meas_idx in range(i, num_iterations):  # bits already measured this run
             with qc.if_test((c[meas_idx], 1)):
                 rotation_angle = -2 * np.pi / (1 << (meas_idx - (i - 1) + 1))
-                if abs(rotation_angle) > 1e-10:  # avoid adding negligible gates
+                if abs(rotation_angle) > rotation_threshold:  # avoid adding negligible gates
                     qc.rz(rotation_angle, ancilla[0])
 
         qc.h(ancilla[0])

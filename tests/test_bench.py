@@ -240,12 +240,12 @@ def test_bv() -> None:
 
 def test_iqpe() -> None:
     """Test the creation of the IQPE benchmark."""
-    qc = create_circuit("iqpe", 4, exact=True)
+    qc = create_circuit("iqpe", 4, exact=True, rotation_threshold=1e-10, seed=42)
     assert qc.num_qubits == 2
     assert qc.num_clbits == 3
     assert "iqpe" in qc.name
 
-    qc = create_circuit("iqpe", 4, exact=False)
+    qc = create_circuit("iqpe", 4, exact=False, rotation_threshold=1e-10, seed=42)
     assert qc.num_qubits == 2
     assert qc.num_clbits == 3
     assert "iqpe" in qc.name
