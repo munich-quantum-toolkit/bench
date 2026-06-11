@@ -56,7 +56,6 @@ def create_circuit(num_qubits: int, exact: bool = True) -> QuantumCircuit:
     qc.x(psi)  # prepare |1> state
 
     for i in range(num_iterations, 0, -1):  # start from n
-        qc.reset(ancilla[0])  # reset ancilla qubit
         qc.h(ancilla[0])  # put ancilla in superposition
 
         frac = (lam * (1 << (i - 1))) % 1  # exact Fraction in [0, 1)
@@ -73,5 +72,7 @@ def create_circuit(num_qubits: int, exact: bool = True) -> QuantumCircuit:
 
         qc.h(ancilla[0])
         qc.measure(ancilla[0], c[i - 1])
+        with qc.if_test((c[i - 1], 1)):
+            qc.x(ancilla[0])  # reset ancilla for next iteration
 
     return qc
