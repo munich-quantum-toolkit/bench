@@ -167,7 +167,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     else:
         transpiler = SteaneTranspiler(logical_circuit, add_syndromes=True)
     transpiler.transpile()
-    transpiler.decode_qubits()
+    #transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
 
     error_induced_circuit = error_corrected_circuit.copy()
@@ -206,6 +206,60 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     assert corrected_induced_fidelity >= 0.99, (
         f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
     )
+
+@pytest.mark.parametrize("logical_qubits", range(3,10)) # multiple parametrize lead to crossproducts
+@pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate"])  #,"qft"])
+@pytest.mark.parametrize("code", ["shor", "steane"])  
+def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int):
+    qc = benchmark_generation.get_benchmark(
+                    benchmark=alg, 
+                    level=benchmark_generation.BenchmarkLevel.ALG, 
+                    circuit_size=logical_qubits, 
+                    encoding=code)
+    test_id = f'{logical_qubits} qubit {alg} on {code}'
+
+    if code == "steane":
+        # Each logical qubit is split in 7 physical qubits
+        expected_qubits = 7 * logical_qubits
+        assert qc.num_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {qc.num_clbits} for {test_id}"
+        # TODO: figure out register sizes and add them here as well
+
+    elif code == "shor":
+        # Each logical qubit is split in 9 physical qubits 
+        # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
+        # => 1 logical qubit = 17 physical qubits
+        expected_qubits = 17 * logical_qubits
+        assert qc.num_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {qc.num_clbits} for {test_id}"
+        # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
+        # Additionally, 1 clbit is required for measurement => 8+1 = 9
+        expected_clbits = 9 * logical_qubits
+        assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits} for {test_id}"
+
+        # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
+        qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
+        expected_qreg_sizes = sorted([9] * logical_qubits + [6] * logical_qubits + [2] * logical_qubits)
+        assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
+
+        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1n (measurement)
+        creg_sizes = sorted(creg.size for creg in qc.cregs)
+        expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * logical_qubits)
+        assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
+
+
+    expected_gate_counts = None
+
+    import json
+    json_location = Path(__file__).parent / "gate_counts.json"
+    with open(f'{json_location}', 'r') as json_data:
+        expected_gate_counts = json.load(json_data)
+        json_data.close()
+
+    assert expected_gate_counts is not None, f"Failure reading respective gate counts for {test_id}"
+    expected_gate_counts = expected_gate_counts[code][alg][f'{logical_qubits}']
+    
+    # Counts the occurrence of every gate in the created circuit
+    created_gate_counts = qc.count_ops()
+    assert expected_gate_counts == created_gate_counts, f"Created circuit does not contain the expected gates for {test_id}"
 
 
 def insert_error_after_barrier(
@@ -344,17 +398,19 @@ def condense_counts(qc: qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, 
 
 
 def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    
     log_dir = Path(__file__).parent / "circuit_drawings"
     log_dir.mkdir(exist_ok=True)
 
     for name, circuit in circuits.items():
-        with Path(log_dir / f"{name}_transpiled.txt").open("w", encoding="utf-8") as f:
+        name = log_dir / f"{name}_transpiled"
+        with Path(f"{name}.txt").open("w", encoding="utf-8") as f:
             f.write(f"number of qubits {circuit.num_qubits}\n")
             f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
             f.write(str(circuit.draw(fold=-1)) + "\n")
 
-        import matplotlib.pyplot as plt
-
         fig = circuit.draw(output="mpl", fold=-1)
-        fig.savefig(log_dir / f"{name}_transpiled.png", dpi=150, bbox_inches="tight")
+        fig.savefig(f"{name}.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
