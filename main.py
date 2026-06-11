@@ -261,6 +261,14 @@ if __name__ == "__main__":
     error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
 
 
+    #print(check_equivalence(logical_circuit, error_corrected_circuit))
+    #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
+
+    logical_counts, logical_circuit = run_circuit(logical_circuit)
+    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
+    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
+
+
     print("   __________________________________________________________________________________________   ")
     print('Logical Circuit:')
     print(logical_circuit)
@@ -272,12 +280,6 @@ if __name__ == "__main__":
     print(error_induced_circuit)
     print("   __________________________________________________________________________________________   ")
 
-    #print(check_equivalence(logical_circuit, error_corrected_circuit))
-    #print(check_equivalence(error_corrected_circuit, error_induced_circuit))
-
-    logical_counts, logical_circuit = run_circuit(logical_circuit)
-    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
-    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
 
 
     print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', code))
