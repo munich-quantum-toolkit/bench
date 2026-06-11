@@ -127,7 +127,7 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
     return new_qc
 
 
-@pytest.mark.parametrize("code", ["shor"])  #  "shor",  double parametrize leads to crossproduct
+@pytest.mark.parametrize("code", ["shor", "steane"])  #  "shor",  double parametrize leads to crossproduct
 @pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])  # , , "bv", "graphstate""qft"])
 @pytest.mark.parametrize("Error", [XGate(), ZGate()])  # , , "bv", "graphstate""qft"])
 @pytest.mark.parametrize("MeasureBaseX", [True, False])  # , , "bv", "graphstate""qft"])
