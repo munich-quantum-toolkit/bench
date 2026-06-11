@@ -1,0 +1,340 @@
+{
+    "shor": {
+        "ghz": {
+            "3": {
+                "cx": 186,
+                "measure": 67,
+                "if_else": 60,
+                "h": 47,
+                "reset": 40,
+                "barrier": 27,
+                "swap": 3
+            },
+            "4": {
+                "cx": 259,
+                "measure": 92,
+                "if_else": 84,
+                "h": 61,
+                "reset": 56,
+                "barrier": 37,
+                "swap": 3
+            },
+            "5": {
+                "cx": 332,
+                "measure": 117,
+                "if_else": 108,
+                "h": 75,
+                "reset": 72,
+                "barrier": 47,
+                "swap": 3
+            },
+            "6": {
+                "cx": 405,
+                "measure": 142,
+                "if_else": 132,
+                "h": 89,
+                "reset": 88,
+                "barrier": 57,
+                "swap": 3
+            },
+            "7": {
+                "cx": 478,
+                "measure": 167,
+                "if_else": 156,
+                "reset": 104,
+                "h": 103,
+                "barrier": 67,
+                "swap": 3
+            },
+            "8": {
+                "cx": 551,
+                "measure": 192,
+                "if_else": 180,
+                "reset": 120,
+                "h": 117,
+                "barrier": 77,
+                "swap": 3
+            },
+            "9": {
+                "cx": 624,
+                "measure": 217,
+                "if_else": 204,
+                "reset": 136,
+                "h": 131,
+                "barrier": 87,
+                "swap": 3
+            }
+        },
+        "bv": {
+            "3": {
+                "cx": 265,
+                "if_else": 108,
+                "h": 105,
+                "measure": 90,
+                "reset": 72,
+                "barrier": 48,
+                "swap": 18,
+                "z": 3
+            },
+            "4": {
+                "cx": 329,
+                "h": 137,
+                "if_else": 132,
+                "measure": 115,
+                "reset": 88,
+                "barrier": 58,
+                "swap": 24,
+                "z": 3
+            },
+            "5": {
+                "cx": 498,
+                "if_else": 204,
+                "h": 203,
+                "measure": 172,
+                "reset": 136,
+                "barrier": 90,
+                "swap": 36,
+                "z": 3
+            },
+            "6": {
+                "cx": 562,
+                "h": 235,
+                "if_else": 228,
+                "measure": 197,
+                "reset": 152,
+                "barrier": 100,
+                "swap": 42,
+                "z": 3
+            },
+            "7": {
+                "cx": 731,
+                "h": 301,
+                "if_else": 300,
+                "measure": 254,
+                "reset": 200,
+                "barrier": 132,
+                "swap": 54,
+                "z": 3
+            },
+            "8": {
+                "cx": 795,
+                "h": 333,
+                "if_else": 324,
+                "measure": 279,
+                "reset": 216,
+                "barrier": 142,
+                "swap": 60,
+                "z": 3
+            },
+            "9": {
+                "cx": 964,
+                "h": 399,
+                "if_else": 396,
+                "measure": 336,
+                "reset": 264,
+                "barrier": 174,
+                "swap": 72,
+                "z": 3
+            }
+        },
+        "graphstate": {
+            "3": {
+                "cx": 435,
+                "if_else": 180,
+                "h": 159,
+                "measure": 147,
+                "reset": 120,
+                "barrier": 83,
+                "swap": 27
+            },
+            "4": {
+                "cx": 580,
+                "if_else": 240,
+                "h": 212,
+                "measure": 196,
+                "reset": 160,
+                "barrier": 110,
+                "swap": 36
+            },
+            "5": {
+                "cx": 725,
+                "if_else": 300,
+                "h": 265,
+                "measure": 245,
+                "reset": 200,
+                "barrier": 137,
+                "swap": 45
+            },
+            "6": {
+                "cx": 870,
+                "if_else": 360,
+                "h": 318,
+                "measure": 294,
+                "reset": 240,
+                "barrier": 164,
+                "swap": 54
+            },
+            "7": {
+                "cx": 1015,
+                "if_else": 420,
+                "h": 371,
+                "measure": 343,
+                "reset": 280,
+                "barrier": 191,
+                "swap": 63
+            },
+            "8": {
+                "cx": 1160,
+                "if_else": 480,
+                "h": 424,
+                "measure": 392,
+                "reset": 320,
+                "barrier": 218,
+                "swap": 72
+            },
+            "9": {
+                "cx": 1305,
+                "if_else": 540,
+                "h": 477,
+                "measure": 441,
+                "reset": 360,
+                "barrier": 245,
+                "swap": 81
+            }
+        }
+    },
+    "steane": {
+        "ghz": {
+            "3": {
+                "measure": 3,
+                "cx": 2,
+                "h": 1,
+                "barrier": 1
+            },
+            "4": {
+                "measure": 4,
+                "cx": 3,
+                "h": 1,
+                "barrier": 1
+            },
+            "5": {
+                "measure": 5,
+                "cx": 4,
+                "h": 1,
+                "barrier": 1
+            },
+            "6": {
+                "measure": 6,
+                "cx": 5,
+                "h": 1,
+                "barrier": 1
+            },
+            "7": {
+                "measure": 7,
+                "cx": 6,
+                "h": 1,
+                "barrier": 1
+            },
+            "8": {
+                "measure": 8,
+                "cx": 7,
+                "h": 1,
+                "barrier": 1
+            },
+            "9": {
+                "measure": 9,
+                "cx": 8,
+                "h": 1,
+                "barrier": 1
+            }
+        },
+        "bv": {
+            "3": {
+                "h": 4,
+                "measure": 2,
+                "x": 1,
+                "cz": 1
+            },
+            "4": {
+                "h": 6,
+                "measure": 3,
+                "x": 1,
+                "cz": 1
+            },
+            "5": {
+                "h": 8,
+                "measure": 4,
+                "cz": 2,
+                "x": 1
+            },
+            "6": {
+                "h": 10,
+                "measure": 5,
+                "cz": 2,
+                "x": 1
+            },
+            "7": {
+                "h": 12,
+                "measure": 6,
+                "cz": 3,
+                "x": 1
+            },
+            "8": {
+                "h": 14,
+                "measure": 7,
+                "cz": 3,
+                "x": 1
+            },
+            "9": {
+                "h": 16,
+                "measure": 8,
+                "cz": 4,
+                "x": 1
+            }
+        },
+        "graphstate": {
+            "3": {
+                "h": 3,
+                "cz": 3,
+                "measure": 3,
+                "barrier": 1
+            },
+            "4": {
+                "h": 4,
+                "cz": 4,
+                "measure": 4,
+                "barrier": 1
+            },
+            "5": {
+                "h": 5,
+                "cz": 5,
+                "measure": 5,
+                "barrier": 1
+            },
+            "6": {
+                "h": 6,
+                "cz": 6,
+                "measure": 6,
+                "barrier": 1
+            },
+            "7": {
+                "h": 7,
+                "cz": 7,
+                "measure": 7,
+                "barrier": 1
+            },
+            "8": {
+                "h": 8,
+                "cz": 8,
+                "measure": 8,
+                "barrier": 1
+            },
+            "9": {
+                "h": 9,
+                "cz": 9,
+                "measure": 9,
+                "barrier": 1
+            }
+        }
+    }
+}

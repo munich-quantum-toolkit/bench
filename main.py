@@ -204,8 +204,7 @@ def condense_counts(qc:qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, i
     return logical_counts
 
 
-
-if __name__ == "__main__":
+def old_main():
     for alg in ["ghz", "bv", "graphstate"]:  # add QFT
         for code in ["shor", "stean"]:
             # for qubits in range(3, 5):
@@ -284,3 +283,40 @@ if __name__ == "__main__":
 
     print(compare_distributions(logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, 'none', code))
     print(compare_distributions(error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code))
+
+
+def create_gate_counts():
+    """
+    Use this to create the counts for each code, algorithm and arbitray qubit numbers
+    """
+    import json
+    from pathlib import Path
+    gates = {}
+    algs = {}
+    qs = {}
+    for code in ["shor", "steane"]:
+        algs = {}
+        for alg in ["ghz", "bv", "graphstate"]:#, "qft"]: # Bonus for "qft" (Part 3)
+            qs = {}
+            for qubits in range(3, 10):
+                qc = benchmark_generation.get_benchmark(
+                    benchmark=alg, 
+                    level=benchmark_generation.BenchmarkLevel.ALG, 
+                    circuit_size=qubits, 
+                    encoding=code)
+                qs[qubits] = qc.count_ops()
+            algs[alg] = qs
+        gates[code] = algs
+
+    log_dir = Path(__file__).parent / "tests"
+    log_dir.mkdir(exist_ok=True)
+
+    filename = log_dir / f"gate_counts.json"
+    with open(filename, "w") as f:
+        json.dump(gates, f, indent=4)    
+
+
+if __name__ == "__main__":
+    #old_main()
+
+    create_gate_counts()
