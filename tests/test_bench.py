@@ -365,8 +365,6 @@ def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
     assert if_else_count == expected_if_else
 
 
-
-
 @pytest.mark.parametrize("num_qubits", [13, 26, 39, 52])
 def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
     """Test that Steane 7-qubit code circuits have the expected structure.
