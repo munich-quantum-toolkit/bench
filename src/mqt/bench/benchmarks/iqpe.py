@@ -80,6 +80,7 @@ def create_circuit(
 
         qc.h(ancilla[0])
         qc.measure(ancilla[0], c[i - 1])
-        qc.reset(ancilla[0])
+        with qc.if_test((c[i - 1], 1)):
+            qc.x(ancilla[0])  # reset ancilla for next iteration
 
     return qc
