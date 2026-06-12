@@ -25,9 +25,14 @@ def create_circuit(
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
 
+    In contrast to the regular QPE algorithm, the @p num_qubits argument does not influence the final number of qubits of the circuit.
+    The circuit will always use exactly two qubits, but `num_qubits-1` iterations of the phase estimation loop.
+    This way, transforming the IQPE benchmark circuit to a straight-line circuit (by replacing reset operations with new qubits and applying the deferred measurement principle) results in the equivalent QPE benchmark circuit configured with the same value for `num_qubits`.
+    The name `num_qubits` is kept for consistency with the other benchmark generation functions.
+
     Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        exact: Whether to use the exact version of the algorithm.
+        num_qubits: Controls the precision of the phase estimation algorithm. Must be at least 2.
+        exact: Whether to use a target phase that is exactly representable with the chosen precision.
         rotation_threshold: Threshold for adding rotation gates in the feedback step. Rotation gates with smaller angles will be omitted to reduce circuit complexity.
         seed: Seed for the random number generator.
 
@@ -64,8 +69,6 @@ def create_circuit(
 
         frac = (lam * (1 << (i - 1))) % 1  # exact Fraction in [0, 1)
         angle = 2 * np.pi * frac  # in [0, 2*pi)
-        if angle > np.pi:
-            angle -= 2 * np.pi  # shift into (-pi, pi]
         qc.cp(angle, psi, ancilla[0])
 
         for meas_idx in range(i, num_iterations):  # bits already measured this run
@@ -77,7 +80,6 @@ def create_circuit(
 
         qc.h(ancilla[0])
         qc.measure(ancilla[0], c[i - 1])
-        with qc.if_test((c[i - 1], 1)):
-            qc.x(ancilla[0])  # reset ancilla for next iteration
+        qc.reset(ancilla[0])
 
     return qc
