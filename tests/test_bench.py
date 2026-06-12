@@ -210,6 +210,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
         ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
+        ("dynamic_qft", 0, None, "The number of qubits must be at least 1."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -345,6 +346,27 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     )
 
 
+@pytest.mark.parametrize("num_qubits", [1, 2, 4, 8])
+def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
+    """Verify that the dynamic QFT allocates parallel registers and the exact triangular scaling of IfElseOps."""
+    qc = create_circuit("dynamic_qft", num_qubits)
+
+    # Assert clean 1-to-1 parallel quantum-to-classical mapping allocations
+    assert qc.num_qubits == num_qubits
+    assert qc.num_clbits == num_qubits
+    assert len(qc.qregs) == 1
+    assert qc.qregs[0].size == num_qubits
+    assert len(qc.cregs) == 1
+    assert qc.cregs[0].size == num_qubits
+
+    # Assert total conditional look-aheads match the sequence formula: n * (n - 1) // 2
+    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
+    expected_if_else = (num_qubits * (num_qubits - 1)) // 2
+    assert if_else_count == expected_if_else
+
+
+
+
 @pytest.mark.parametrize("num_qubits", [13, 26, 39, 52])
 def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
     """Test that Steane 7-qubit code circuits have the expected structure.
@@ -409,7 +431,7 @@ def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
             get_target_for_gateset("ionq_forte", num_qubits=5),
             0,
         ),
-        ("qft", BenchmarkLevel.NATIVEGATES, 3, get_target_for_gateset("rigetti", 5), 2),
+        ("dynamic_qft", BenchmarkLevel.NATIVEGATES, 3, get_target_for_gateset("rigetti", 5), 2),
         # Mapped level tests
         (
             "ghz",
