@@ -230,7 +230,7 @@ def get_benchmark_alg(
         transpiler = ShorTranspiler(qc, add_syndromes=True)
         transpiler.transpile()
         return transpiler.transpiled_qc
-    elif encoding == "stean":
+    elif encoding == "steane":
         transpiler = SteaneTranspiler(qc, add_syndromes=True)
         transpiler.transpile()
         return transpiler.transpiled_qc

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister, barrier
 
 from mqt.bench.components.steane_circuit_components import (
@@ -42,6 +42,17 @@ class SteaneTranspiler:
         self.add_syndromes = add_syndromes
         self.t_gate_count = 0
         self.transpiled_qc = QuantumCircuit()
+        self.gate_handlers = {
+            "barrier": self._handle_barrier,
+            "measure": self._handle_measure,
+            "h": self._handle_h,
+            "x": self._handle_x,
+            "z": self._handle_z,
+            "s": self._handle_s,
+            "cx": self._handle_cx,
+            "cz": self._handle_cz,
+            "t": self._handle_t
+        }
 
 
     def transpile(self) -> QuantumCircuit:
@@ -61,7 +72,6 @@ class SteaneTranspiler:
             bit_flip_measurement_register = ClassicalRegister(3, f"bsm{logical_qubit_index}")
             phase_flip_measurement_register = ClassicalRegister(3, f"psm{logical_qubit_index}")
             logical_qubit_measurement_register = ClassicalRegister(1, f"logical_meas{logical_qubit_index}")
-            # t Gate?
 
             self.physical_data_registers.append(physical_data_register)
             self.bit_flip_syndromes.append(bit_flip_syndrome_register)
@@ -107,22 +117,42 @@ class SteaneTranspiler:
 
     def replace_gates(self) -> None:
         """Scan original circuit and replace gates with logical equivalents."""
-        gate_handlers = {
-            "barrier": self._handle_barrier,
-            "measure": self._handle_measure,
-            "h": self._handle_h,
-            "x": self._handle_x,
-            "z": self._handle_z,
-            "s": self._handle_s,
-            "cx": self._handle_cx,
-            "cz": self._handle_cz,
-            "t": self._handle_t
-        }
+
+        # Firstly, exapand high level gates, such as QFTGate()
+        normalized = QuantumCircuit(*self.original_qc.qregs, *self.original_qc.cregs)
+        for instruction in self.original_qc.data:
+            gate_name = instruction.operation.name
+
+            if gate_name == "qft":
+                tmp = QuantumCircuit(len(instruction.qubits))
+                tmp.append(instruction.operation, range(len(instruction.qubits)))
+
+                tmp = transpile(
+                    tmp,
+                    basis_gates=["h", "x", "z", "s", "t", "cx", "cz"],
+                    optimization_level=3,
+                    approximation_degree=0.95,
+                )
+
+                normalized.compose(
+                    tmp,
+                    qubits=list(instruction.qubits),
+                    inplace=True,
+                )
+
+            else:
+                normalized.append(
+                    instruction.operation,
+                    instruction.qubits,
+                    instruction.clbits,
+                )
+
+        self.original_qc = normalized
 
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
-            if gate_name in gate_handlers:
-                gate_handlers[gate_name](instruction)
+            if gate_name in self.gate_handlers:
+                self.gate_handlers[gate_name](instruction)
             else:
                 msg = f"Gate {gate_name} is not supported by SteaneTranspiler."
                 raise NotImplementedError(msg)
