@@ -63,14 +63,15 @@ def create_circuit(
         qc.h(ancilla[0])  # put ancilla in superposition
 
         frac = (lam * (1 << (i - 1))) % 1  # exact Fraction in [0, 1)
-        angle = 2 * np.pi * float(frac)  # in [0, 2*pi)
+        angle = 2 * np.pi * frac  # in [0, 2*pi)
         if angle > np.pi:
             angle -= 2 * np.pi  # shift into (-pi, pi]
         qc.cp(angle, psi, ancilla[0])
 
         for meas_idx in range(i, num_iterations):  # bits already measured this run
             with qc.if_test((c[meas_idx], 1)):
-                rotation_angle = -2 * np.pi / (1 << (meas_idx - (i - 1) + 1))
+                exponent = meas_idx - (i - 1) + 1
+                rotation_angle = -2 * np.pi * Fraction(1, 1 << exponent)
                 if abs(rotation_angle) > rotation_threshold:  # avoid adding negligible gates
                     qc.rz(rotation_angle, ancilla[0])
 
