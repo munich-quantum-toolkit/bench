@@ -193,9 +193,6 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code
     )
 
-    # log_circuits({f'log_{code}_{algorithm}':logical_circuit,
-    #              f'corrected_{code}_{algorithm}':error_corrected_circuit,
-    #              f'induced_{code}_{algorithm}':error_induced_circuit,})
 
     # print(corrected_counts)
     print("condensed:", condense_counts(error_corrected_circuit, corrected_counts))
@@ -209,7 +206,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     )
 
 @pytest.mark.parametrize("logical_qubits", range(3,10)) # multiple parametrize lead to crossproducts
-@pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate"])  #,"qft"])
+@pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate", "qft"])
 @pytest.mark.parametrize("code", ["shor", "steane"])  
 def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int):
     test_id = f'{logical_qubits} qubit {alg} on {code}'
@@ -265,19 +262,21 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
         expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
 
-    expected_qubits = qubit_code_factor * log_qc.num_qubits
-    found_qubits = qc.num_qubits
-    assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
-        
-    expected_clbits = classical_code_factor * log_qc.num_qubits + log_qc.num_clbits
-    found_clbits = qc.num_clbits
-    assert found_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {found_clbits} for {test_id}"
+    if alg != 'qft':
+        # QFT creates qubits scaling with the number of t-gates -> non-trivial scaling not covered by these simple tests
+        expected_qubits = qubit_code_factor * log_qc.num_qubits
+        found_qubits = qc.num_qubits
+        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
+            
+        expected_clbits = classical_code_factor * log_qc.num_qubits + log_qc.num_clbits
+        found_clbits = qc.num_clbits
+        assert found_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {found_clbits} for {test_id}"
 
-    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
-    assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
+        qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
+        assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
 
-    creg_sizes = sorted(creg.size for creg in qc.cregs)
-    assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
+        creg_sizes = sorted(creg.size for creg in qc.cregs)
+        assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
 
 
     expected_gate_counts = None

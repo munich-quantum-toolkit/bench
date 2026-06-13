@@ -201,6 +201,85 @@
                 "barrier": 245,
                 "swap": 81
             }
+        },
+        "qft": {
+            "3": {
+                "cx": 788,
+                "if_else": 260,
+                "h": 185,
+                "measure": 179,
+                "reset": 168,
+                "barrier": 107,
+                "swap": 9,
+                "p": 8,
+                "x": 6
+            },
+            "4": {
+                "cx": 1162,
+                "if_else": 384,
+                "h": 268,
+                "measure": 264,
+                "reset": 248,
+                "barrier": 157,
+                "swap": 12,
+                "p": 12,
+                "x": 9
+            },
+            "5": {
+                "cx": 1536,
+                "if_else": 508,
+                "h": 351,
+                "measure": 349,
+                "reset": 328,
+                "barrier": 207,
+                "p": 16,
+                "swap": 15,
+                "x": 12
+            },
+            "6": {
+                "cx": 1910,
+                "if_else": 632,
+                "h": 434,
+                "measure": 434,
+                "reset": 408,
+                "barrier": 257,
+                "p": 20,
+                "swap": 18,
+                "x": 15
+            },
+            "7": {
+                "cx": 2284,
+                "if_else": 756,
+                "measure": 519,
+                "h": 517,
+                "reset": 488,
+                "barrier": 307,
+                "p": 24,
+                "swap": 21,
+                "x": 18
+            },
+            "8": {
+                "cx": 2658,
+                "if_else": 880,
+                "measure": 604,
+                "h": 600,
+                "reset": 568,
+                "barrier": 357,
+                "p": 28,
+                "swap": 24,
+                "x": 21
+            },
+            "9": {
+                "cx": 3032,
+                "if_else": 1004,
+                "measure": 689,
+                "h": 683,
+                "reset": 648,
+                "barrier": 407,
+                "p": 32,
+                "swap": 27,
+                "x": 24
+            }
         }
     },
     "steane": {
