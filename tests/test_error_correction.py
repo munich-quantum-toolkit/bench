@@ -34,6 +34,13 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize("code", ["steane", "shor"])
 @pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
 def test_errorcorrection_transpiler_gate_equivalence(code: str, gate: Gate) -> None:
+    """Verify that the error-correction transpiler preserves gate semantics.
+
+    For each supported single-qubit gate, builds a minimal logical circuit
+    containing only that gate, transpiles it with syndrome extraction disabled,
+    decodes the physical qubits back to logical qubits, and then checks via
+    MQT QCEC that the resulting circuit is unitarily equivalent to the original.
+    """
     if gate.name == "s" and code == "shor":
         # this SGate includes non-unitary elements and can therefore not be evaluated properly
         return
@@ -59,6 +66,16 @@ def test_errorcorrection_transpiler_gate_equivalence(code: str, gate: Gate) -> N
 @pytest.mark.parametrize("code", ["steane", "shor"])
 @pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate(), CXGate(), CZGate()])
 def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate) -> None:
+    """Verify that the transpiler actually corrects an introduced bit-flip error.
+
+    Builds a minimal single-gate logical circuit, transpiles it with full syndrome
+    extraction enabled, and then creates a copy in which a bit-flip (X gate) is
+    injected after the first barrier. Both the clean and the error-induced circuits
+    are simulated, and the test asserts that:
+
+    1. The error-corrected circuit matches the logical circuit.
+    2. The error-induced circuit still matches the clean corrected circuit.
+    """
     if gate.name == "s" and code == "shor":
         # this takes a little longer....
         return
@@ -100,6 +117,20 @@ def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate) -> N
 
 
 def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
+    """Return a copy of *qc* with an H gate inserted before every measurement.
+
+    This switches each qubit from the Z basis to the X basis immediately prior
+    to measurement, which is useful for testing circuits whose final state lies
+    along the X axis of the Bloch sphere (e.g. circuits ending in a superposition).
+
+    Args:
+        qc: The source circuit; it is not modified in place.
+
+    Returns:
+        A new :class:`~qiskit.QuantumCircuit` with the same registers and
+        instructions as *qc*, but with an H gate prepended to every measure
+        operation.
+    """
     new_qc = QuantumCircuit(*qc.qregs, *qc.cregs, name=qc.name)
 
     for instruction in qc.data:
@@ -186,6 +217,24 @@ def test_errorcorrection_transpiler_correctness(
 @pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate", "qft"])
 @pytest.mark.parametrize("code", ["shor", "steane"])
 def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int) -> None:
+    """Verify the physical circuit structure produced by the error-correction encoder.
+
+    Checks that the encoded circuit has the correct number of physical qubits,
+    classical bits, and register sizes for the given code and algorithm, and that
+    the exact gate counts match the reference values stored in ``gate_counts.json``.
+
+    The expected qubit and classical-bit counts are code-dependent:
+
+    * **Steane code**: 13 physical qubits per logical qubit (7 data + 3 bit-flip
+      ancilla + 3 phase-flip ancilla) and 6 classical bits per logical qubit (3
+      bit-flip syndrome + 3 phase-flip syndrome), plus one bit per original clbit.
+    * **Shor code**: 17 physical qubits per logical qubit (9 data + 6 Z-stabiliser
+      ancilla + 2 X-stabiliser ancilla) and 8 classical bits per logical qubit (6
+      bit-flip syndrome + 2 phase-flip syndrome), plus one bit per original clbit.
+
+    QFT circuits are excluded from the qubit-count checks because their ancilla
+    qubit count scales with the number of T gates rather than the logical qubit count.
+    """
     test_id = f"{logical_qubits} qubit {alg} on {code}"
 
     qc = benchmark_generation.get_benchmark(
@@ -272,6 +321,28 @@ def insert_error_after_barrier(
     gate: Gate | None = None,
     qubit_index: int = 0,
 ) -> QuantumCircuit:
+    """Insert a fault gate immediately after the first barrier with a given label.
+
+    Scans *qc* for a barrier whose ``.label`` attribute matches *barrier_label*
+    and inserts *gate* on the qubit at *qubit_index* directly after it.  This
+    allows tests to inject a well-placed error (e.g. right after the encoding
+    barrier) without disturbing the rest of the circuit structure.
+
+    Args:
+        qc: The circuit to inject the error into.  A shallow copy is made so
+            the original is not modified.
+        barrier_label: The label of the barrier after which the gate is inserted.
+        gate: The fault gate to inject.  Defaults to :class:`~qiskit.circuit.library.XGate`
+            (a bit flip) if ``None``.
+        qubit_index: Index into ``qc.qubits`` of the qubit to apply the gate to.
+            Defaults to ``0``.
+
+    Returns:
+        A copy of *qc* with the error gate inserted.
+
+    Raises:
+        ValueError: If no barrier with *barrier_label* is found in the circuit.
+    """
     gate = XGate() if gate is None else gate
 
     qc = qc.copy()
@@ -289,9 +360,24 @@ def insert_error_after_barrier(
 
 
 def insert_error(qc: QuantumCircuit, gate: Gate | None = None, index: int | None = None) -> QuantumCircuit:
-    """Adds the specified gate at the beginning of the circuit.
+    """Insert a fault gate right after the first barrier in *qc*.
 
-    Flips the first qubit right after the first barrier by default.
+    Locates the first :class:`~qiskit.circuit.Barrier` instruction and inserts
+    *gate* immediately after it on the first ``gate.num_qubits`` qubits.  An
+    explicit *index* can be provided to override the barrier-search behaviour.
+
+    Args:
+        qc: The circuit to inject the error into (modified in place).
+        gate: The fault gate to inject.  Defaults to
+            :class:`~qiskit.circuit.library.XGate` (a bit flip) if ``None``.
+        index: Instruction index at which to insert the gate.  If ``None``
+            (default), the position right after the first barrier is used.
+
+    Returns:
+        *qc* with the error gate inserted.
+
+    Raises:
+        ValueError: If *index* is ``None`` and no barrier is found in the circuit.
     """
     gate = XGate() if gate is None else gate
     assert qc.num_qubits >= gate.num_qubits, f"Quantum Circuit has not enough qubits to accommodate gate {gate.name}"
@@ -327,14 +413,20 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
 
 
 def measure_all_named(qc: QuantumCircuit, name: str = "measurement") -> QuantumCircuit:
-    """Adds a classical register named 'measurement' to the circuit with one bit per qubit, then maps each qubit i to classical bit i of that register.
+    """Add a named classical register to *qc* and measure every qubit into it.
+
+    Creates a :class:`~qiskit.circuit.ClassicalRegister` of width
+    ``qc.num_qubits``, appends it to *qc*, and maps qubit *i* to bit *i* of that
+    register.  This is a convenience wrapper used by :func:`run_circuit` to attach
+    measurements before simulation while keeping the register name predictable for
+    later result extraction.
 
     Args:
-        qc: The QuantumCircuit to add measurements to (modified in place).
-        name: The name of the ClassicalRegister the measurement will be performed into
+        qc: The circuit to add measurements to (modified in place).
+        name: Name of the new classical register.  Defaults to ``"measurement"``.
 
     Returns:
-        The same QuantumCircuit with the register and measurements added.
+        The same *qc* instance with the register and measurements appended.
     """
     cr = ClassicalRegister(qc.num_qubits, name=name)
     qc.add_register(cr)
