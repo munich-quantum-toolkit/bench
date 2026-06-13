@@ -1,5 +1,208 @@
 {
-    "shor": {},
+    "shor": {
+        "ghz": {
+            "3": {
+                "cx": 186,
+                "if_else": 60,
+                "h": 47,
+                "measure": 43,
+                "reset": 40,
+                "barrier": 27,
+                "swap": 3
+            },
+            "4": {
+                "cx": 259,
+                "if_else": 84,
+                "h": 61,
+                "measure": 60,
+                "reset": 56,
+                "barrier": 37,
+                "swap": 3
+            },
+            "5": {
+                "cx": 332,
+                "if_else": 108,
+                "measure": 77,
+                "h": 75,
+                "reset": 72,
+                "barrier": 47,
+                "swap": 3
+            },
+            "6": {
+                "cx": 405,
+                "if_else": 132,
+                "measure": 94,
+                "h": 89,
+                "reset": 88,
+                "barrier": 57,
+                "swap": 3
+            },
+            "7": {
+                "cx": 478,
+                "if_else": 156,
+                "measure": 111,
+                "reset": 104,
+                "h": 103,
+                "barrier": 67,
+                "swap": 3
+            },
+            "8": {
+                "cx": 551,
+                "if_else": 180,
+                "measure": 128,
+                "reset": 120,
+                "h": 117,
+                "barrier": 77,
+                "swap": 3
+            },
+            "9": {
+                "cx": 624,
+                "if_else": 204,
+                "measure": 145,
+                "reset": 136,
+                "h": 131,
+                "barrier": 87,
+                "swap": 3
+            }
+        },
+        "bv": {
+            "3": {
+                "cx": 265,
+                "if_else": 108,
+                "h": 105,
+                "measure": 74,
+                "reset": 72,
+                "barrier": 48,
+                "swap": 18,
+                "z": 3
+            },
+            "4": {
+                "cx": 329,
+                "h": 137,
+                "if_else": 132,
+                "measure": 91,
+                "reset": 88,
+                "barrier": 58,
+                "swap": 24,
+                "z": 3
+            },
+            "5": {
+                "cx": 498,
+                "if_else": 204,
+                "h": 203,
+                "measure": 140,
+                "reset": 136,
+                "barrier": 90,
+                "swap": 36,
+                "z": 3
+            },
+            "6": {
+                "cx": 562,
+                "h": 235,
+                "if_else": 228,
+                "measure": 157,
+                "reset": 152,
+                "barrier": 100,
+                "swap": 42,
+                "z": 3
+            },
+            "7": {
+                "cx": 731,
+                "h": 301,
+                "if_else": 300,
+                "measure": 206,
+                "reset": 200,
+                "barrier": 132,
+                "swap": 54,
+                "z": 3
+            },
+            "8": {
+                "cx": 795,
+                "h": 333,
+                "if_else": 324,
+                "measure": 223,
+                "reset": 216,
+                "barrier": 142,
+                "swap": 60,
+                "z": 3
+            },
+            "9": {
+                "cx": 964,
+                "h": 399,
+                "if_else": 396,
+                "measure": 272,
+                "reset": 264,
+                "barrier": 174,
+                "swap": 72,
+                "z": 3
+            }
+        },
+        "graphstate": {
+            "3": {
+                "cx": 435,
+                "if_else": 180,
+                "h": 159,
+                "measure": 123,
+                "reset": 120,
+                "barrier": 83,
+                "swap": 27
+            },
+            "4": {
+                "cx": 580,
+                "if_else": 240,
+                "h": 212,
+                "measure": 164,
+                "reset": 160,
+                "barrier": 110,
+                "swap": 36
+            },
+            "5": {
+                "cx": 725,
+                "if_else": 300,
+                "h": 265,
+                "measure": 205,
+                "reset": 200,
+                "barrier": 137,
+                "swap": 45
+            },
+            "6": {
+                "cx": 870,
+                "if_else": 360,
+                "h": 318,
+                "measure": 246,
+                "reset": 240,
+                "barrier": 164,
+                "swap": 54
+            },
+            "7": {
+                "cx": 1015,
+                "if_else": 420,
+                "h": 371,
+                "measure": 287,
+                "reset": 280,
+                "barrier": 191,
+                "swap": 63
+            },
+            "8": {
+                "cx": 1160,
+                "if_else": 480,
+                "h": 424,
+                "measure": 328,
+                "reset": 320,
+                "barrier": 218,
+                "swap": 72
+            },
+            "9": {
+                "cx": 1305,
+                "if_else": 540,
+                "h": 477,
+                "measure": 369,
+                "reset": 360,
+                "barrier": 245,
+                "swap": 81
+            }
+        }
+    },
     "steane": {
         "ghz": {
             "3": {

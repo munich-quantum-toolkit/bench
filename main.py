@@ -297,6 +297,8 @@ def create_gate_counts():
     for code in ["shor", "steane"]:
         algs = {}
         for alg in ["ghz", "bv", "graphstate", "qft"]: # Bonus for "qft" (Part 3)
+            if code == 'shor' and alg == 'qft':
+                continue
             qs = {}
             for qubits in range(3, 10):
                 qc = benchmark_generation.get_benchmark(

@@ -142,7 +142,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     circuit_size = 3
     # Initialize circuits
     logical_circuit = benchmark_generation.get_benchmark(
-        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=code
+        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=""
     )
 
     if MeasureBaseX:
@@ -160,6 +160,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         if inst.operation.name != "measure":
             stripped_logical_circuit.append(inst.operation, inst.qubits, inst.clbits)
     logical_circuit = stripped_logical_circuit
+    print(logical_circuit)
 
     error_corrected_circuit = logical_circuit.copy()
     if code == "shor":
