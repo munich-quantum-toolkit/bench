@@ -158,7 +158,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
     for inst in logical_circuit.data:
         if inst.operation.name != "measure":
-            stripped_logical_circuit.append(inst.operation, inst.qubits, [])
+            stripped_logical_circuit.append(inst.operation, inst.qubits, inst.clbits)
     logical_circuit = stripped_logical_circuit
 
     error_corrected_circuit = logical_circuit.copy()
