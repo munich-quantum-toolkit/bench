@@ -38,7 +38,7 @@ class SteaneTranspiler:
         self.phase_flip_syndromes: list[AncillaRegister] = []
         self.bit_flip_syndrome_measurements: list[ClassicalRegister] = []
         self.phase_flip_syndrome_measurements: list[ClassicalRegister] = []
-        self.logical_qubit_measurements: list[ClassicalRegister] = []
+        #self.logical_qubit_measurements: list[ClassicalRegister] = []
         self.add_syndromes = add_syndromes
         self.t_gate_count = 0
         self.transpiled_qc = QuantumCircuit()
@@ -71,14 +71,14 @@ class SteaneTranspiler:
             phase_flip_syndrome_register = AncillaRegister(3, f"ps{logical_qubit_index}")
             bit_flip_measurement_register = ClassicalRegister(3, f"bsm{logical_qubit_index}")
             phase_flip_measurement_register = ClassicalRegister(3, f"psm{logical_qubit_index}")
-            logical_qubit_measurement_register = ClassicalRegister(1, f"logical_meas{logical_qubit_index}")
+            #logical_qubit_measurement_register = ClassicalRegister(1, f"logical_meas{logical_qubit_index}")
 
             self.physical_data_registers.append(physical_data_register)
             self.bit_flip_syndromes.append(bit_flip_syndrome_register)
             self.phase_flip_syndromes.append(phase_flip_syndrome_register)
             self.bit_flip_syndrome_measurements.append(bit_flip_measurement_register)
             self.phase_flip_syndrome_measurements.append(phase_flip_measurement_register)
-            self.logical_qubit_measurements.append(logical_qubit_measurement_register)
+            #self.logical_qubit_measurements.append(logical_qubit_measurement_register)
 
             all_registers.extend([
                 physical_data_register,
@@ -86,7 +86,7 @@ class SteaneTranspiler:
                 phase_flip_syndrome_register,
                 bit_flip_measurement_register,
                 phase_flip_measurement_register,
-                logical_qubit_measurement_register
+                #logical_qubit_measurement_register
             ])
 
         self.transpiled_qc = QuantumCircuit(*all_registers)
@@ -171,19 +171,26 @@ class SteaneTranspiler:
         """Handle measure instruction."""
         # TODO: consider measure_all(), because of new meas register everything goes wrong
 
-        for i in range(len(instruction.qubits)):
-            logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[i])
-            logical_classical_bit_index = self.original_qc.clbits.index(instruction.clbits[i])
+        for q, c in zip(instruction.qubits, instruction.clbits):
+            logical_qubit_index = self.original_qc.qubits.index(q)
+            logical_classical_bit_index = self.original_qc.clbits.index(c)
 
             self.transpiled_qc.compose(get_seven_qubit_steane_code_decoding_circuit(),
                                        qubits=self.physical_data_registers[logical_qubit_index],
                                        inplace=True
                                        )
 
-            self.transpiled_qc.measure(self.physical_data_registers[logical_qubit_index][0],
-                                       self.logical_qubit_measurements[logical_classical_bit_index])
+            measurement_register_name = f"meas_{logical_qubit_index}_{logical_classical_bit_index}"
+            physical_measurement_register = ClassicalRegister(1, measurement_register_name)
+            self.transpiled_qc.add_register(physical_measurement_register)
 
-        self.transpiled_qc.barrier(label=f"Measurement {logical_qubit_index}")
+            physical_data_register = self.physical_data_registers[logical_qubit_index][0]
+            self.transpiled_qc.measure(physical_data_register, physical_measurement_register)
+
+            #self.transpiled_qc.measure(self.physical_data_registers[logical_qubit_index][0],
+            #                           self.logical_qubit_measurements[logical_classical_bit_index])
+
+            self.transpiled_qc.barrier(label=f"Measurement {logical_qubit_index}")
 
     def _handle_h(self, instruction: CircuitInstruction) -> None:
         """Handle Hadamard instruction."""
