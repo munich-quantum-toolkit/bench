@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister
 
 #ignore the below comment
@@ -152,6 +152,37 @@ class ShorTranspiler:
 
     def replace_gates(self) -> None:
         """Scan original circuit and replace gates with logical equivalents."""
+        # Firstly, expand high level gates, such as QFTGate()
+        normalized = QuantumCircuit(*self.original_qc.qregs, *self.original_qc.cregs)
+        for instruction in self.original_qc.data:
+            gate_name = instruction.operation.name
+
+            if gate_name == "qft":
+                tmp = QuantumCircuit(len(instruction.qubits))
+                tmp.append(instruction.operation, range(len(instruction.qubits)))
+
+                tmp = transpile(
+                    tmp,
+                    basis_gates=["h", "x", "z", "s", "t", "cx", "cz"],
+                    optimization_level=3,
+                    approximation_degree=0.95,
+                )
+
+                normalized.compose(
+                    tmp,
+                    qubits=list(instruction.qubits),
+                    inplace=True,
+                )
+
+            else:
+                normalized.append(
+                    instruction.operation,
+                    instruction.qubits,
+                    instruction.clbits,
+                )
+
+        self.original_qc = normalized
+
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             handler_name = f"_logical_{gate_name}"
