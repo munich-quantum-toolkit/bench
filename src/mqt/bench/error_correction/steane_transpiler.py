@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class SteaneTranspiler:
     """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code."""
 
-    def __init__(self, original_circuit: QuantumCircuit, add_syndromes=True) -> None:
+    def __init__(self, original_circuit: QuantumCircuit, add_syndromes: bool = True) -> None:
         """Initialize the transpiler with the original QuantumCircuit."""
         self.original_qc = original_circuit
         self.num_logical_qubits = original_circuit.num_qubits
@@ -301,7 +301,7 @@ class SteaneTranspiler:
             self.insert_syndromes(control_logical_qubit_index)
             self.insert_syndromes(target_logical_qubit_index)
 
-    # it сould use the hadamards with cnots
+    # it could use the hadamards with cnots
     def _handle_cz(self, instruction: CircuitInstruction) -> None:
         """Handle CZ instruction."""
         control_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])

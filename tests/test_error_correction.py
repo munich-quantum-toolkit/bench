@@ -8,10 +8,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from re import fullmatch
 from typing import TYPE_CHECKING
 
+import mqt.qcec
 import pytest
+from mqt.qcec.pyqcec import EquivalenceCriterion
 from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction, ClassicalRegister
 from qiskit.circuit.library import CXGate, CZGate, HGate, SGate, XGate, ZGate
@@ -115,24 +119,25 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
 
 @pytest.mark.parametrize("code", ["shor", "steane"])
 @pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])  # "qft" is unfeasible
-@pytest.mark.parametrize("Error", [XGate(), ZGate()])
-@pytest.mark.parametrize("MeasureBaseX", [True, False])
-@pytest.mark.parametrize("CIRCUIT_SIZE", [3])  # range(3, 11))
+@pytest.mark.parametrize("error", [XGate(), ZGate()])
+@pytest.mark.parametrize("measure_base_x", [True, False])
+@pytest.mark.parametrize("circuit_size", [3])  # range(3, 11))
 def test_errorcorrection_transpiler_correctness(
-    code: str, algorithm: str, Error, MeasureBaseX: bool, CIRCUIT_SIZE: int
+    code: str, algorithm: str, error: Gate, measure_base_x: bool, circuit_size: int
 ) -> None:
-    """Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
+    """Ensures the transpiler creates error-corrected circuits which produce the same result as the original logical circuit.
+
     Afterwards an error is introduced and the test checks, whether it is corrected.
     Iterates over a number of example algorithms.
     """
-    test_id = f"{CIRCUIT_SIZE} qubit {algorithm} on {code} with ZBasis {MeasureBaseX} and error {Error.name}"
+    test_id = f"{circuit_size} qubit {algorithm} on {code} with ZBasis {measure_base_x} and error {error.name}"
 
     # Initialize circuits
     logical_circuit = benchmark_generation.get_benchmark(
-        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=CIRCUIT_SIZE, encoding=""
+        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=""
     )
 
-    if MeasureBaseX:
+    if measure_base_x:
         logical_circuit = add_h_before_measurements(logical_circuit)
 
     # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
@@ -154,7 +159,7 @@ def test_errorcorrection_transpiler_correctness(
     error_induced_circuit = insert_error_after_barrier(
         error_corrected_circuit,
         barrier_label="Encoding",
-        gate=Error,
+        gate=error,
         qubit_index=0,
     )
 
@@ -246,8 +251,6 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
 
     expected_gate_counts = None
 
-    import json
-
     json_location = Path(__file__).parent / "gate_counts.json"
     with Path(f"{json_location}").open("r", encoding="utf-8") as json_data:
         expected_gate_counts = json.load(json_data)
@@ -266,9 +269,11 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
 def insert_error_after_barrier(
     qc: QuantumCircuit,
     barrier_label: str,
-    gate: Gate = XGate(),
+    gate: Gate | None = None,
     qubit_index: int = 0,
 ) -> QuantumCircuit:
+    gate = XGate() if gate is None else gate
+
     qc = qc.copy()
 
     for i, instruction in enumerate(qc.data):
@@ -283,10 +288,12 @@ def insert_error_after_barrier(
     raise ValueError(msg)
 
 
-def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
-    """Adds the specified gate at the beginning of the circuit
+def insert_error(qc: QuantumCircuit, gate: Gate | None = None, index: int | None = None) -> QuantumCircuit:
+    """Adds the specified gate at the beginning of the circuit.
+
     Flips the first qubit right after the first barrier by default.
     """
+    gate = XGate() if gate is None else gate
     assert qc.num_qubits >= gate.num_qubits, f"Quantum Circuit has not enough qubits to accommodate gate {gate.name}"
     assert index is None or index >= 0, f"Index must be >= 0, Index provided: {index}"
 
@@ -303,27 +310,28 @@ def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = N
         qc.data.insert(index, CircuitInstruction(gate, qubits))
     else:
         msg = "Please provide either an index or a circuit with a barrier to insert an error into"
-        raise Exception(msg)
+        raise ValueError(msg)
 
     return qc
 
 
 def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     """Uses MQT QCEC to verify if qc1 and qc2 are equivalent."""
-    import mqt.qcec
-    from mqt.qcec.pyqcec import EquivalenceCriterion as EC
-
     verification_results = mqt.qcec.verify(qc1, qc2, check_partial_equivalence=True)
-    accepted_equivalencies = [EC.equivalent, EC.equivalent_up_to_global_phase, EC.probably_equivalent]
+    accepted_equivalencies = [
+        EquivalenceCriterion.equivalent,
+        EquivalenceCriterion.equivalent_up_to_global_phase,
+        EquivalenceCriterion.probably_equivalent,
+    ]
     return verification_results.equivalence in accepted_equivalencies
 
 
 def measure_all_named(qc: QuantumCircuit, name: str = "measurement") -> QuantumCircuit:
-    """Adds a classical register named 'measurement' to the circuit with one bit
-    per qubit, then maps each qubit i to classical bit i of that register.
+    """Adds a classical register named 'measurement' to the circuit with one bit per qubit, then maps each qubit i to classical bit i of that register.
 
     Args:
         qc: The QuantumCircuit to add measurements to (modified in place).
+        name: The name of the ClassicalRegister the measurement will be performed into
 
     Returns:
         The same QuantumCircuit with the register and measurements added.
@@ -352,7 +360,7 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
 
     # Grabbing only the desired outcomes
     pub_result = result[0]
-    meas_bit_counts = pub_result.data.measurements.get_counts()
+    meas_bit_counts = pub_result.data.measurements.get_counts()  # ty: ignore[unresolved-attribute]
 
     # outputs reversed bitstrings, we just reverse them right back,
     # so their indices align with the qubit indices
@@ -364,9 +372,9 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
 def compare_distributions(
     qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, code1: str = "None", code2: str = "None"
 ) -> float:
-    """Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
-    1 = the same, 0 = no overlap.
+    """Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions.
 
+    Hellinger Fidelity: 1 = the same, 0 = no overlap.
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
     """
     if code1 in ["steane", "shor"]:
@@ -377,7 +385,7 @@ def compare_distributions(
     return hellinger_fidelity(counts1, counts2)
 
 
-def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
+def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str) -> str:
     """Takes in a measurement in physical qubits and returns the corresponding logical measurement.
 
     Underlying circuit must use registers named 'qx' (x in int) for each logical qubit, with results in qx[0]
@@ -386,11 +394,9 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
     physical_qubits = physical_qubits.replace(" ", "")
 
     # indices
-    import re
-
     def is_q_integer(s: str) -> bool:
         """Checks if s is of form 'qx' where x in int (e.g. 'q1', 'q23')."""
-        return bool(re.fullmatch(r"q\d+", s))
+        return bool(fullmatch(r"q\d+", s))
 
     data_indices = [qc.find_bit(register[0]).index for register in qc.qregs if is_q_integer(register.name)]
 
@@ -403,7 +409,8 @@ def parse_qubits(qc: qk.QuantumCircuit, physical_qubits: str):
 
 
 def condense_counts(qc: qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, int]:
-    """Takes in a result dict of a decoded physical measurement and returns logical measurements
+    """Takes in a result dict of a decoded physical measurement and returns logical measurements.
+
     Requires decode to place the result in the first qubit of each register named 'qx', with x an integer (e.g. 'q2').
     """
     logical_counts = {}
