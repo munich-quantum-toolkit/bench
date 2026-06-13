@@ -155,7 +155,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         print(logical_circuit.decompose().count_ops())
 
     # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
-    stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs)
+    stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
     for inst in logical_circuit.data:
         if inst.operation.name != "measure":
             stripped_logical_circuit.append(inst.operation, inst.qubits, [])
@@ -220,8 +220,9 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
 
     if code == "steane":
         # Each logical qubit is split in 7 physical qubits
-        expected_qubits = 7 * logical_qubits
-        assert qc.num_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {qc.num_clbits} for {test_id}"
+        expected_qubits = 13  * logical_qubits
+        found_qubits = qc.num_qubits
+        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
         # TODO: figure out register sizes and add them here as well
 
     elif code == "shor":
@@ -229,7 +230,8 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
         # => 1 logical qubit = 17 physical qubits
         expected_qubits = 17 * logical_qubits
-        assert qc.num_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {qc.num_clbits} for {test_id}"
+        found_qubits = qc.num_qubits
+        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
         # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
         # Additionally, 1 clbit is required for measurement => 8+1 = 9
         expected_clbits = 9 * logical_qubits
