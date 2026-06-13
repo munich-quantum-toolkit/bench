@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate()])
 def test_errorcorrection_transpiler_gate_equivalence(code: str, gate: Gate) -> None:
     if gate.name == "s" and code == "shor":
-        # this SGate entails non-unitary elements and can therefore not be evaluated properly
+        # this SGate includes non-unitary elements and can therefore not be evaluated properly
         return
 
     num_qubits = gate.num_qubits
@@ -128,18 +128,22 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
 
 
 @pytest.mark.parametrize("code", ["shor", "steane"])  #  "shor",  double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])  # , , "bv", "graphstate""qft"])
-@pytest.mark.parametrize("Error", [XGate(), ZGate()])  # , , "bv", "graphstate""qft"])
-@pytest.mark.parametrize("MeasureBaseX", [True, False])  # , , "bv", "graphstate""qft"])
-def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX: bool) -> None:
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])
+@pytest.mark.parametrize("Error", [XGate(), ZGate()])
+@pytest.mark.parametrize("MeasureBaseX", [True, False])
+@pytest.mark.parametrize("qubits", range(3,5))
+def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX: bool, qubits: int) -> None:
     """Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
     Iterates over a number of example algorithms.
     """
+    test_id = f'{qubits} qubit {algorithm} on {code} with ZBasis {MeasureBaseX} and error {Error.name}'
+
     if algorithm == "qft" and code == "shor":
         # this takes a little longer....
         return
-    circuit_size = 3
+    
+    circuit_size = qubits
     # Initialize circuits
     logical_circuit = benchmark_generation.get_benchmark(
         benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=""
@@ -167,13 +171,10 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     else:
         transpiler = SteaneTranspiler(logical_circuit, add_syndromes=True)
     transpiler.transpile()
-    #transpiler.decode_qubits()
+    transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
 
     error_induced_circuit = error_corrected_circuit.copy()
-    # this is for inserting phase flip in steane after the first Hadamard
-    # error_induced_circuit = insert_error(error_induced_circuit ,gate=ZGate(), index=16)
-    # error_induced_circuit = insert_error(error_induced_circuit ,gate=XGate())
     error_induced_circuit = insert_error_after_barrier(
         error_corrected_circuit,
         barrier_label="Encoding",
@@ -185,10 +186,6 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
     induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
 
-#    log_circuits({f'logical_{code}_{algorithm}_{Error.name}_{MeasureBaseX}': logical_circuit, 
-#                  f'corrected_{code}_{algorithm}_{Error.name}_{MeasureBaseX}':error_corrected_circuit, 
-#                  f'induced_{code}_{algorithm}_{Error.name}_{MeasureBaseX}': error_induced_circuit})
-
     logical_corrected_fidelity = compare_distributions(
         logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code
     )
@@ -196,19 +193,14 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code
     )
 
-
-    # print(corrected_counts)
-    print("condensed:", condense_counts(error_corrected_circuit, corrected_counts))
-    print("Logical", logical_counts)
-
     assert logical_corrected_fidelity >= 0.99, (
-        f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not match its logical circuit well enough."
+        f"Error corrected circuit created does not match its logical circuit well enough for {test_id}"
     )
     assert corrected_induced_fidelity >= 0.99, (
-        f"Error corrected circuit created by {code} transpiler for Algorithm {algorithm} does not correct the bitflip well enough."
+        f"Error induced circuit created does not match correct the error well enough for {test_id}"
     )
 
-@pytest.mark.parametrize("logical_qubits", range(3,10)) # multiple parametrize lead to crossproducts
+@pytest.mark.parametrize("logical_qubits", range(3, 10)) # multiple parametrize lead to crossproducts
 @pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate", "qft"])
 @pytest.mark.parametrize("code", ["shor", "steane"])  
 def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int):
@@ -225,13 +217,6 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
                     circuit_size=logical_qubits, 
                     encoding='')
 
-
-    # what do we want:
-    # expected qubits
-    # expected classical bits
-    # qregisters (733) steane, (962) shor
-    # cregisters (133) steane, (162) shor
-
     qubit_code_factor = -1
     classical_code_factor = -1
 
@@ -245,11 +230,10 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
 
         classical_code_factor = 6
 
-        # TODO: figure out register sizes and add them here as well
-        # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
+#        # Check quantum register sizes: 7n (data) + 3n (bit-flip syndrome) + 3n (phase-flip syndrome)
         expected_qreg_sizes = sorted([7] * logical_qubits + [3] * logical_qubits + [3] * logical_qubits)
 
-        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
+        # Check classical register sizes: 3n (bit-flip) + 3n (phase-flip) + 1 for each original clbit
         expected_creg_sizes = sorted([3] * logical_qubits + [3] * logical_qubits + [1] * log_qc.num_clbits)
     elif code == "shor":
         # Each logical qubit is split in 9 physical qubits 
@@ -265,8 +249,9 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
         expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
 
+    # QFT creates qubits scaling with the number of t-gates -> non-trivial scaling not covered by these simple tests
     if alg != 'qft':
-        # QFT creates qubits scaling with the number of t-gates -> non-trivial scaling not covered by these simple tests
+
         expected_qubits = qubit_code_factor * log_qc.num_qubits
         found_qubits = qc.num_qubits
         assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
@@ -319,7 +304,8 @@ def insert_error_after_barrier(
 
 
 def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
-    """Adds the specified gate at the beginning of the circuit
+    """
+    Adds the specified gate at the beginning of the circuit
     Flips the first qubit right after the first barrier by default.
     """
     assert qc.num_qubits >= gate.num_qubits, f"Quantum Circuit has not enough qubits to accommodate gate {gate.name}"
@@ -351,6 +337,7 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     verification_results = mqt.qcec.verify(qc1, qc2)
     accepted_equivalencies = [EC.equivalent, EC.equivalent_up_to_global_phase, EC.probably_equivalent]
     return verification_results.equivalence in accepted_equivalencies
+
 def measure_all_named(qc: QuantumCircuit, name: str = 'measurement') -> QuantumCircuit:
     """
     Adds a classical register named 'measurement' to the circuit with one bit
@@ -398,7 +385,8 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
 def compare_distributions(
     qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, code1: str = "None", code2: str = "None"
 ) -> float:
-    """Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
+    """
+    Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
     1 = the same, 0 = no overlap.
 
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
@@ -440,7 +428,6 @@ def condense_counts(qc: qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, 
     """Takes in a result dict of a decoded physical measurement and returns logical measurements
     Requires decode to place the result in the first qubit of each register named 'qx', with x an integer (e.g. 'q2').
     """
-    # assert code in ['shor', 'steane'], f'Unsupported error code in condense_counts(): {code}'
     logical_counts = {}
     for physical_measurement, count in counts.items():
         logical_measurement = parse_qubits(qc, physical_measurement)
