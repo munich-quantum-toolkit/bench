@@ -145,13 +145,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
 
     if MeasureBaseX:
         logical_circuit = add_h_before_measurements(logical_circuit)
-
-    if algorithm == "qft":
-        basis = ["h", "s", "t", "x", "z", "cx", "cz"]
-
-        logical_circuit = transpile(logical_circuit, basis_gates=basis)
-        print(logical_circuit.decompose().count_ops())
-
+        
     # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
     stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
     for inst in logical_circuit.data:
