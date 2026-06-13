@@ -212,41 +212,72 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
 @pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate"])  #,"qft"])
 @pytest.mark.parametrize("code", ["shor", "steane"])  
 def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int):
+    test_id = f'{logical_qubits} qubit {alg} on {code}'
+
     qc = benchmark_generation.get_benchmark(
                     benchmark=alg, 
                     level=benchmark_generation.BenchmarkLevel.ALG, 
                     circuit_size=logical_qubits, 
                     encoding=code)
-    test_id = f'{logical_qubits} qubit {alg} on {code}'
+    log_qc = benchmark_generation.get_benchmark(
+                    benchmark=alg, 
+                    level=benchmark_generation.BenchmarkLevel.ALG, 
+                    circuit_size=logical_qubits, 
+                    encoding='')
+
+
+    # what do we want:
+    # expected qubits
+    # expected classical bits
+    # qregisters (733) steane, (962) shor
+    # cregisters (133) steane, (162) shor
+
+    qubit_code_factor = -1
+    classical_code_factor = -1
+
+    expected_qreg_sizes = []
+    expected_creg_sizes = []
 
     if code == "steane":
         # Each logical qubit is split in 7 physical qubits
-        expected_qubits = 13  * logical_qubits
-        found_qubits = qc.num_qubits
-        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
-        # TODO: figure out register sizes and add them here as well
+        # Additionally, 6 ancillary registers are added
+        qubit_code_factor = 13
 
+        classical_code_factor = 6
+
+        # TODO: figure out register sizes and add them here as well
+        # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
+        expected_qreg_sizes = sorted([7] * logical_qubits + [3] * logical_qubits + [3] * logical_qubits)
+
+        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
+        expected_creg_sizes = sorted([3] * logical_qubits + [3] * logical_qubits + [1] * log_qc.num_clbits)
     elif code == "shor":
         # Each logical qubit is split in 9 physical qubits 
         # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
         # => 1 logical qubit = 17 physical qubits
-        expected_qubits = 17 * logical_qubits
-        found_qubits = qc.num_qubits
-        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
+        qubit_code_factor = 17
         # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
-        # Additionally, 1 clbit is required for measurement => 8+1 = 9
-        expected_clbits = 9 * logical_qubits
-        assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits} for {test_id}"
-
+        classical_code_factor = 8
+        
         # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
-        qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
         expected_qreg_sizes = sorted([9] * logical_qubits + [6] * logical_qubits + [2] * logical_qubits)
-        assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
 
-        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1n (measurement)
-        creg_sizes = sorted(creg.size for creg in qc.cregs)
-        expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * logical_qubits)
-        assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
+        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
+        expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
+
+    expected_qubits = qubit_code_factor * log_qc.num_qubits
+    found_qubits = qc.num_qubits
+    assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
+        
+    expected_clbits = classical_code_factor * log_qc.num_qubits + log_qc.num_clbits
+    found_clbits = qc.num_clbits
+    assert found_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {found_clbits} for {test_id}"
+
+    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
+    assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
+
+    creg_sizes = sorted(creg.size for creg in qc.cregs)
+    assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
 
 
     expected_gate_counts = None
