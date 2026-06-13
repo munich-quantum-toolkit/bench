@@ -84,6 +84,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "vbe_ripple_carry_adder": 4,
     "shors_nine_qubit_code": 17,
     "seven_qubit_steane_code": 13,
+    "iqpe": 2,
 }
 
 
@@ -204,6 +205,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
         ("hhl", 2, None, "Number of qubits must be at least 3 for HHL."),
         ("qpeexact", 1, None, "Number of qubits must be at least 2 for QPE exact."),
+        ("iqpe", 1, None, "Number of qubits must be at least 2 for IQPE."),
         ("bmw_quark_copula", 3, None, "Number of qubits must be divisible by 2."),
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
@@ -234,6 +236,19 @@ def test_bv() -> None:
 
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
+
+
+def test_iqpe() -> None:
+    """Test the creation of the IQPE benchmark."""
+    qc = create_circuit("iqpe", 4, exact=True, rotation_threshold=1e-10, seed=42)
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 3
+    assert "iqpe" in qc.name
+
+    qc = create_circuit("iqpe", 4, exact=False, rotation_threshold=1e-10, seed=42)
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 3
+    assert "iqpe" in qc.name
 
 
 def test_dj_constant_oracle() -> None:
