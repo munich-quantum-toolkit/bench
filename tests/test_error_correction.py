@@ -127,37 +127,26 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
     return new_qc
 
 
-@pytest.mark.parametrize("code", ["shor", "steane"])  #  "shor",  double parametrize leads to crossproduct
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])
+@pytest.mark.parametrize("code", ["shor", "steane"])
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #"qft" is unfeasible
 @pytest.mark.parametrize("Error", [XGate(), ZGate()])
 @pytest.mark.parametrize("MeasureBaseX", [True, False])
-@pytest.mark.parametrize("qubits", range(3,5))
-def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX: bool, qubits: int) -> None:
+@pytest.mark.parametrize("CIRCUIT_SIZE", range(3,11))
+def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX: bool, CIRCUIT_SIZE:int) -> None:
     """Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
     Iterates over a number of example algorithms.
     """
-    test_id = f'{qubits} qubit {algorithm} on {code} with ZBasis {MeasureBaseX} and error {Error.name}'
+    test_id = f'{CIRCUIT_SIZE} qubit {algorithm} on {code} with ZBasis {MeasureBaseX} and error {Error.name}'
 
-    if algorithm == "qft" and code == "shor":
-        # this takes a little longer....
-        return
-    
-    circuit_size = qubits
     # Initialize circuits
     logical_circuit = benchmark_generation.get_benchmark(
-        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=""
+        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=CIRCUIT_SIZE, encoding=""
     )
 
     if MeasureBaseX:
         logical_circuit = add_h_before_measurements(logical_circuit)
-
-    if algorithm == "qft":
-        basis = ["h", "s", "t", "x", "z", "cx", "cz"]
-
-        logical_circuit = transpile(logical_circuit, basis_gates=basis)
-        print(logical_circuit.decompose().count_ops())
-
+        
     # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
     stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
     for inst in logical_circuit.data:
@@ -165,12 +154,12 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
             stripped_logical_circuit.append(inst.operation, inst.qubits, inst.clbits)
     logical_circuit = stripped_logical_circuit
 
-    error_corrected_circuit = logical_circuit.copy()
     if code == "shor":
-        transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
+        transpiler = ShorTranspiler(logical_circuit.copy(), add_syndromes=True)
     else:
-        transpiler = SteaneTranspiler(logical_circuit, add_syndromes=True)
+        transpiler = SteaneTranspiler(logical_circuit.copy(), add_syndromes=True)
     transpiler.transpile()
+    transpiler.decode_qubits()
     transpiler.decode_qubits()
     error_corrected_circuit = transpiler.transpiled_qc
 
