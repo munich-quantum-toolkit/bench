@@ -6,6 +6,8 @@
 #
 # Licensed under the MIT License
 
+"""Tests for the error-correction transpilers (Steane and Shor codes)."""
+
 from __future__ import annotations
 
 import json
