@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import CircuitInstruction
+from qiskit.circuit import CircuitInstruction, ClassicalRegister
 from qiskit.circuit.library import CXGate, CZGate, HGate, SGate, XGate, ZGate
 from qiskit.quantum_info import hellinger_fidelity
 from qiskit_aer.primitives import SamplerV2
@@ -160,7 +160,6 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         if inst.operation.name != "measure":
             stripped_logical_circuit.append(inst.operation, inst.qubits, inst.clbits)
     logical_circuit = stripped_logical_circuit
-    print(logical_circuit)
 
     error_corrected_circuit = logical_circuit.copy()
     if code == "shor":
@@ -185,6 +184,10 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
     logical_counts, logical_circuit = run_circuit(logical_circuit)
     corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
     induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
+
+#    log_circuits({f'logical_{code}_{algorithm}_{Error.name}_{MeasureBaseX}': logical_circuit, 
+#                  f'corrected_{code}_{algorithm}_{Error.name}_{MeasureBaseX}':error_corrected_circuit, 
+#                  f'induced_{code}_{algorithm}_{Error.name}_{MeasureBaseX}': error_induced_circuit})
 
     logical_corrected_fidelity = compare_distributions(
         logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code
@@ -348,6 +351,21 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     verification_results = mqt.qcec.verify(qc1, qc2)
     accepted_equivalencies = [EC.equivalent, EC.equivalent_up_to_global_phase, EC.probably_equivalent]
     return verification_results.equivalence in accepted_equivalencies
+def measure_all_named(qc: QuantumCircuit, name: str = 'measurement') -> QuantumCircuit:
+    """
+    Adds a classical register named 'measurement' to the circuit with one bit
+    per qubit, then maps each qubit i to classical bit i of that register.
+
+    Args:
+        qc: The QuantumCircuit to add measurements to (modified in place).
+
+    Returns:
+        The same QuantumCircuit with the register and measurements added.
+    """
+    cr = ClassicalRegister(qc.num_qubits, name=name)
+    qc.add_register(cr)
+    qc.measure(range(qc.num_qubits), cr)
+    return qc
 
 
 def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCircuit]:
@@ -362,13 +380,14 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
         qc with measure_all()
     """
     sampler = SamplerV2()
-    qc.measure_all()
+    qc = measure_all_named(qc, 'measurements')
     job = sampler.run([qc], shots=shots)
     result = job.result()
 
     # Grabbing only the desired outcomes
     pub_result = result[0]
-    meas_bit_counts = pub_result.data.meas.get_counts()
+    meas_bit_counts = pub_result.data.measurements.get_counts()
+
     # outputs reversed bitstrings, we just reverse them right back,
     # so their indices align with the qubit indices
     meas_bit_counts = {k[::-1]: v for k, v in meas_bit_counts.items()}
@@ -441,9 +460,9 @@ def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
         name = log_dir / f"{name}_transpiled"
         with Path(f"{name}.txt").open("w", encoding="utf-8") as f:
             f.write(f"number of qubits {circuit.num_qubits}\n")
-            f.write(f"--- Transpiled Circuit for {name.upper()} ---\n\n")
+            f.write(f"--- Transpiled Circuit for {name._str.upper()} ---\n\n")
             f.write(str(circuit.draw(fold=-1)) + "\n")
 
-        fig = circuit.draw(output="mpl", fold=-1)
-        fig.savefig(f"{name}.png", dpi=150, bbox_inches="tight")
-        plt.close(fig)
+        #fig = circuit.draw(output="mpl", fold=-1)
+        #fig.savefig(f"{name}.png", dpi=150, bbox_inches="tight")
+        #plt.close(fig)
