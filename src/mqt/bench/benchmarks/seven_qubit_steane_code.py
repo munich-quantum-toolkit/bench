@@ -13,14 +13,14 @@ from __future__ import annotations
 from qiskit import ClassicalRegister
 from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
-from ._registry import register_benchmark
-
 from mqt.bench.components.steane_circuit_components import (
-    get_seven_qubit_steane_code_encoding_circuit,
+    apply_seven_qubit_steane_code_correction,
     get_seven_qubit_steane_code_decoding_circuit,
+    get_seven_qubit_steane_code_encoding_circuit,
     get_seven_qubit_steane_code_syndrome_extraction_circuit,
-    apply_seven_qubit_steane_code_correction
 )
+
+from ._registry import register_benchmark
 
 
 def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:

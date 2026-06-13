@@ -11,12 +11,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister
 
-#ignore the below comment
+# ignore the below comment
 #  these functions are reused from the benchmark and they should be extendable i.e. they shouldn't be private
 from mqt.bench.components.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
@@ -27,8 +28,8 @@ from mqt.bench.components.shor_circuit_components import (
     get_three_qubit_phase_flip_encoding_circuit,
 )
 
-
-from collections.abc import Callable
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # Constants for the Shor 9-qubit code structure
 SHOR_TOTAL_QUBITS = 9
@@ -40,6 +41,7 @@ SHOR_PHASE_FLIP_TARGETS = [0, 3, 6]
 @dataclass
 class ShorLogicalQubit:
     """Encapsulates the physical registers representing a single Shor logical qubit."""
+
     data: QuantumRegister
     bit_flip_syndrome: AncillaRegister | None = None
     phase_flip_syndrome: AncillaRegister | None = None
@@ -94,7 +96,7 @@ class ShorTranspiler:
                     bit_flip_syndrome=AncillaRegister(6, f"bs{i}"),
                     phase_flip_syndrome=AncillaRegister(2, f"ps{i}"),
                     bit_flip_measure=ClassicalRegister(6, f"bsm{i}"),
-                    phase_flip_measure=ClassicalRegister(2, f"psm{i}")
+                    phase_flip_measure=ClassicalRegister(2, f"psm{i}"),
                 )
             else:
                 logical_qubit = ShorLogicalQubit(data=data_reg)
@@ -206,10 +208,7 @@ class ShorTranspiler:
 
     def _logical_barrier(self, logical_qubit_indices: list[int]) -> None:
         """Apply logical barrier across the specified physical qubits."""
-        involved_physical_data_registers = [
-            self.logical_qubits[idx].data
-            for idx in logical_qubit_indices
-        ]
+        involved_physical_data_registers = [self.logical_qubits[idx].data for idx in logical_qubit_indices]
         flattened_physical_qubits = [
             physical_qubit
             for physical_data_register in involved_physical_data_registers
@@ -274,7 +273,14 @@ class ShorTranspiler:
             self.transpiled_qc.x(q)
         self.insert_syndromes(logical_qubit_index)
 
-    def _apply_teleportation_gadget(self, logical_qubit_index: int, phase: float, ancilla_name: str, measure_name: str, correction_callback: Callable) -> None:
+    def _apply_teleportation_gadget(
+        self,
+        logical_qubit_index: int,
+        phase: float,
+        ancilla_name: str,
+        measure_name: str,
+        correction_callback: Callable,
+    ) -> None:
         """Apply a magic state gate teleportation gadget (used for non-transversal S and T gates)."""
         ancilla_register = QuantumRegister(SHOR_TOTAL_QUBITS, ancilla_name)
         creg = ClassicalRegister(1, measure_name)
@@ -287,7 +293,7 @@ class ShorTranspiler:
         self._prepare_magic(self.transpiled_qc, ancilla_register, phase)
 
         # Transversal logical CNOT
-        self._apply_logical_cx(physical_data_register,ancilla_register)
+        self._apply_logical_cx(physical_data_register, ancilla_register)
 
         # Decode and measure ancilla in logical Z basis
         self._apply_shor_decoding(self.transpiled_qc, ancilla_register)
@@ -302,6 +308,7 @@ class ShorTranspiler:
     def _logical_s(self, logical_qubit_index: int) -> None:
         """Apply logical S via |Y>-state teleportation. Correction: logical Z."""
         self.s_gate_count += 1
+
         def z_correction() -> None:
             self._logical_z(logical_qubit_index)
 
@@ -310,7 +317,7 @@ class ShorTranspiler:
             phase=np.pi / 2,
             ancilla_name=f"ms{self.s_gate_count - 1}",
             measure_name=f"tmeas{self.s_gate_count - 1}",
-            correction_callback=z_correction
+            correction_callback=z_correction,
         )
 
     def _logical_t(self, logical_qubit_index: int) -> None:
@@ -325,7 +332,7 @@ class ShorTranspiler:
             phase=np.pi / 4,
             ancilla_name=f"anc_t_{self.t_gate_count}",
             measure_name=f"creg_t_{self.t_gate_count}",
-            correction_callback=s_correction
+            correction_callback=s_correction,
         )
 
     @staticmethod
@@ -338,10 +345,7 @@ class ShorTranspiler:
     def _apply_logical_cx(self, control_register: QuantumRegister, target_register: QuantumRegister) -> None:
         """Apply transversal logical CX between two physical registers."""
         for physical_qubit_index in range(SHOR_TOTAL_QUBITS):
-            self.transpiled_qc.cx(
-                target_register[physical_qubit_index],
-                control_register[physical_qubit_index]
-            )
+            self.transpiled_qc.cx(target_register[physical_qubit_index], control_register[physical_qubit_index])
 
     def _logical_cx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
         """Apply transversal logical CX.
@@ -361,7 +365,7 @@ class ShorTranspiler:
         """Apply logical CZ (implemented as H-CX-H)."""
         self._logical_h(target_logical_qubit_index)
         self.transpiled_qc.barrier()
-        self._logical_cx(control_logical_qubit_index,target_logical_qubit_index)
+        self._logical_cx(control_logical_qubit_index, target_logical_qubit_index)
         self.transpiled_qc.barrier()
         self._logical_h(target_logical_qubit_index)
 
@@ -369,7 +373,6 @@ class ShorTranspiler:
         """Automate the insertion of bit-flip and phase-flip error correction cycles."""
         if not self.add_syndromes:
             return
-
 
         qubit = self.logical_qubits[logical_qubit_index]
         self.transpiled_qc.barrier()
@@ -389,7 +392,8 @@ class ShorTranspiler:
         for i in range(SHOR_NUM_BLOCKS):
             self.transpiled_qc.compose(
                 get_three_qubit_bit_flip_syndrome_extraction_circuit(),
-                qubits=qubit.data[i * SHOR_BLOCK_SIZE : (i + 1) * SHOR_BLOCK_SIZE] + qubit.bit_flip_syndrome[i * 2 : (i + 1) * 2],
+                qubits=qubit.data[i * SHOR_BLOCK_SIZE : (i + 1) * SHOR_BLOCK_SIZE]
+                + qubit.bit_flip_syndrome[i * 2 : (i + 1) * 2],
                 inplace=True,
             )
 
@@ -417,6 +421,3 @@ class ShorTranspiler:
             qubit.phase_flip_syndrome,
             qubit.phase_flip_measure,
         )
-
-
-

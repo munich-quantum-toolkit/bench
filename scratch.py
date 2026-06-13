@@ -1,7 +1,14 @@
-import qiskit
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
 from qiskit.quantum_info import partial_trace
+from qiskit_aer import AerSimulator
 
 qc = QuantumCircuit(2, 1)
 qc.h(0)

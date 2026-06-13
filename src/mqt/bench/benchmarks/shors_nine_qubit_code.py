@@ -9,6 +9,7 @@
 """Shor's 9 Qubit Code benchmark definition."""
 
 from __future__ import annotations
+
 from qiskit import ClassicalRegister
 from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
@@ -18,11 +19,12 @@ from mqt.bench.component.shor_circuit_components import (
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,
     get_three_qubit_bit_flip_encoding_decoding_circuit,
     get_three_qubit_bit_flip_syndrome_extraction_circuit,
-    get_three_qubit_phase_flip_encoding_circuit,
     get_three_qubit_phase_flip_decoding_circuit,
+    get_three_qubit_phase_flip_encoding_circuit,
 )
 
 from ._registry import register_benchmark
+
 
 def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
     """Create a complete Shor code circuit for one logical qubit.
@@ -86,9 +88,7 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
     )
     qc.barrier()
     # == Error correction ==
-    apply_nine_qubit_shors_code_bit_flip_correction(
-        qc, logical_qubit, bit_flip_syndrome, bit_flip_syndrome_measurement
-    )
+    apply_nine_qubit_shors_code_bit_flip_correction(qc, logical_qubit, bit_flip_syndrome, bit_flip_syndrome_measurement)
     qc.barrier()
     apply_nine_qubit_shors_code_phase_flip_correction(
         qc, logical_qubit, phase_flip_syndrome, phase_flip_syndrome_measurement
@@ -106,6 +106,7 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
     # == Measurement ==
     qc.measure(logical_qubit[0], logical_qubit_measurement)
     return qc
+
 
 @register_benchmark("shors_nine_qubit_code", description="Shor's 9 Qubit Code")
 def create_circuit(num_qubits: int) -> QuantumCircuit:

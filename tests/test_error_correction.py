@@ -19,14 +19,13 @@
 
 # Have the ability to save the created circuits (utility function)
 ## save to file vs print vs logging?
-
 from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction, ClassicalRegister
 from qiskit.circuit.library import CXGate, CZGate, HGate, SGate, XGate, ZGate
 from qiskit.quantum_info import hellinger_fidelity
@@ -128,11 +127,13 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
 
 
 @pytest.mark.parametrize("code", ["shor", "steane"])
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"]) #"qft" is unfeasible
+@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])  # "qft" is unfeasible
 @pytest.mark.parametrize("Error", [XGate(), ZGate()])
 @pytest.mark.parametrize("MeasureBaseX", [True, False])
-@pytest.mark.parametrize("CIRCUIT_SIZE", [3])#range(3, 11))
-def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error, MeasureBaseX: bool, CIRCUIT_SIZE:int) -> None:
+@pytest.mark.parametrize("CIRCUIT_SIZE", [3])  # range(3, 11))
+def test_errorcorrection_transpiler_correctness(
+    code: str, algorithm: str, Error, MeasureBaseX: bool, CIRCUIT_SIZE: int
+) -> None:
     """Ensures the transpiler creates error-corrected circuits which produce the same result as the orinigal logical circuit.
     Afterwards an error is introduced and the test checks, whether it is corrected.
     Iterates over a number of example algorithms.
@@ -146,7 +147,7 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
 
     if MeasureBaseX:
         logical_circuit = add_h_before_measurements(logical_circuit)
-        
+
     # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
     stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
     for inst in logical_circuit.data:
@@ -188,22 +189,19 @@ def test_errorcorrection_transpiler_correctness(code: str, algorithm: str, Error
         f"Error induced circuit created does not match correct the error well enough for {test_id}"
     )
 
-@pytest.mark.parametrize("logical_qubits", range(3, 10)) # multiple parametrize lead to crossproducts
+
+@pytest.mark.parametrize("logical_qubits", range(3, 10))  # multiple parametrize lead to crossproducts
 @pytest.mark.parametrize("alg", ["ghz", "bv", "graphstate", "qft"])
-@pytest.mark.parametrize("code", ["shor", "steane"])  
-def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int):
-    test_id = f'{logical_qubits} qubit {alg} on {code}'
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits: int) -> None:
+    test_id = f"{logical_qubits} qubit {alg} on {code}"
 
     qc = benchmark_generation.get_benchmark(
-                    benchmark=alg, 
-                    level=benchmark_generation.BenchmarkLevel.ALG, 
-                    circuit_size=logical_qubits, 
-                    encoding=code)
+        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=code
+    )
     log_qc = benchmark_generation.get_benchmark(
-                    benchmark=alg, 
-                    level=benchmark_generation.BenchmarkLevel.ALG, 
-                    circuit_size=logical_qubits, 
-                    encoding='')
+        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
+    )
 
     qubit_code_factor = -1
     classical_code_factor = -1
@@ -224,13 +222,13 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         # Check classical register sizes: 3n (bit-flip) + 3n (phase-flip) + 1 for each original clbit
         expected_creg_sizes = sorted([3] * logical_qubits + [3] * logical_qubits + [1] * log_qc.num_clbits)
     elif code == "shor":
-        # Each logical qubit is split in 9 physical qubits 
+        # Each logical qubit is split in 9 physical qubits
         # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
         # => 1 logical qubit = 17 physical qubits
         qubit_code_factor = 17
         # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
         classical_code_factor = 8
-        
+
         # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
         expected_qreg_sizes = sorted([9] * logical_qubits + [6] * logical_qubits + [2] * logical_qubits)
 
@@ -238,7 +236,7 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
 
     # QFT creates qubits scaling with the number of t-gates -> non-trivial scaling not covered by these simple tests
-    if alg != 'qft':
+    if alg != "qft":
         expected_qubits = qubit_code_factor * log_qc.num_qubits
         found_qubits = qc.num_qubits
         assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
@@ -277,6 +275,7 @@ def test_error_correction_circuit_structure(code: str, alg: str, logical_qubits:
         f"Created circuit does not contain the expected gates for {test_id}"
     )
 
+
 def insert_error_after_barrier(
     qc: QuantumCircuit,
     barrier_label: str,
@@ -298,8 +297,7 @@ def insert_error_after_barrier(
 
 
 def insert_error(qc: QuantumCircuit, gate: Gate = XGate(), index: int | None = None) -> QuantumCircuit:
-    """
-    Adds the specified gate at the beginning of the circuit
+    """Adds the specified gate at the beginning of the circuit
     Flips the first qubit right after the first barrier by default.
     """
     assert qc.num_qubits >= gate.num_qubits, f"Quantum Circuit has not enough qubits to accommodate gate {gate.name}"
@@ -332,9 +330,9 @@ def check_equivalence(qc1: qk.QuantumCircuit, qc2: qk.QuantumCircuit) -> bool:
     accepted_equivalencies = [EC.equivalent, EC.equivalent_up_to_global_phase, EC.probably_equivalent]
     return verification_results.equivalence in accepted_equivalencies
 
-def measure_all_named(qc: QuantumCircuit, name: str = 'measurement') -> QuantumCircuit:
-    """
-    Adds a classical register named 'measurement' to the circuit with one bit
+
+def measure_all_named(qc: QuantumCircuit, name: str = "measurement") -> QuantumCircuit:
+    """Adds a classical register named 'measurement' to the circuit with one bit
     per qubit, then maps each qubit i to classical bit i of that register.
 
     Args:
@@ -361,7 +359,7 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
         qc with measure_all()
     """
     sampler = SamplerV2()
-    qc = measure_all_named(qc, 'measurements')
+    qc = measure_all_named(qc, "measurements")
     job = sampler.run([qc], shots=shots)
     result = job.result()
 
@@ -379,8 +377,7 @@ def run_circuit(qc: QuantumCircuit, shots: int = 1024) -> tuple[dict, QuantumCir
 def compare_distributions(
     qc1: QuantumCircuit, qc2: QuantumCircuit, counts1: dict, counts2: dict, code1: str = "None", code2: str = "None"
 ) -> float:
-    """
-    Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
+    """Simulates 2 circuits and computes the Hellinger Fidelity between their count distributions
     1 = the same, 0 = no overlap.
 
     If code is set to either 'steane' or 'shor' circuit error's result will be interpreted logically
@@ -428,22 +425,3 @@ def condense_counts(qc: qk.QuantumCircuit, counts: dict[str, int]) -> dict[str, 
         logical_counts[logical_measurement] = logical_counts.get(logical_measurement, 0) + count
 
     return logical_counts
-
-
-def log_circuits(circuits: dict[str, QuantumCircuit]) -> None:
-    from pathlib import Path
-    import matplotlib.pyplot as plt
-    
-    log_dir = Path(__file__).parent / "circuit_drawings"
-    log_dir.mkdir(exist_ok=True)
-
-    for name, circuit in circuits.items():
-        name = log_dir / f"{name}_transpiled"
-        with Path(f"{name}.txt").open("w", encoding="utf-8") as f:
-            f.write(f"number of qubits {circuit.num_qubits}\n")
-            f.write(f"--- Transpiled Circuit for {name._str.upper()} ---\n\n")
-            f.write(str(circuit.draw(fold=-1)) + "\n")
-
-        #fig = circuit.draw(output="mpl", fold=-1)
-        #fig.savefig(f"{name}.png", dpi=150, bbox_inches="tight")
-        #plt.close(fig)

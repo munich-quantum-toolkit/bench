@@ -1,561 +1,561 @@
 {
-    "shor": {
-        "ghz": {
-            "3": {
-                "cx": 186,
-                "if_else": 60,
-                "h": 47,
-                "measure": 43,
-                "reset": 40,
-                "barrier": 27,
-                "swap": 3
-            },
-            "4": {
-                "cx": 259,
-                "if_else": 84,
-                "h": 61,
-                "measure": 60,
-                "reset": 56,
-                "barrier": 37,
-                "swap": 3
-            },
-            "5": {
-                "cx": 332,
-                "if_else": 108,
-                "measure": 77,
-                "h": 75,
-                "reset": 72,
-                "barrier": 47,
-                "swap": 3
-            },
-            "6": {
-                "cx": 405,
-                "if_else": 132,
-                "measure": 94,
-                "h": 89,
-                "reset": 88,
-                "barrier": 57,
-                "swap": 3
-            },
-            "7": {
-                "cx": 478,
-                "if_else": 156,
-                "measure": 111,
-                "reset": 104,
-                "h": 103,
-                "barrier": 67,
-                "swap": 3
-            },
-            "8": {
-                "cx": 551,
-                "if_else": 180,
-                "measure": 128,
-                "reset": 120,
-                "h": 117,
-                "barrier": 77,
-                "swap": 3
-            },
-            "9": {
-                "cx": 624,
-                "if_else": 204,
-                "measure": 145,
-                "reset": 136,
-                "h": 131,
-                "barrier": 87,
-                "swap": 3
-            }
-        },
-        "bv": {
-            "3": {
-                "cx": 265,
-                "if_else": 108,
-                "h": 105,
-                "measure": 74,
-                "reset": 72,
-                "barrier": 48,
-                "swap": 18,
-                "z": 3
-            },
-            "4": {
-                "cx": 329,
-                "h": 137,
-                "if_else": 132,
-                "measure": 91,
-                "reset": 88,
-                "barrier": 58,
-                "swap": 24,
-                "z": 3
-            },
-            "5": {
-                "cx": 498,
-                "if_else": 204,
-                "h": 203,
-                "measure": 140,
-                "reset": 136,
-                "barrier": 90,
-                "swap": 36,
-                "z": 3
-            },
-            "6": {
-                "cx": 562,
-                "h": 235,
-                "if_else": 228,
-                "measure": 157,
-                "reset": 152,
-                "barrier": 100,
-                "swap": 42,
-                "z": 3
-            },
-            "7": {
-                "cx": 731,
-                "h": 301,
-                "if_else": 300,
-                "measure": 206,
-                "reset": 200,
-                "barrier": 132,
-                "swap": 54,
-                "z": 3
-            },
-            "8": {
-                "cx": 795,
-                "h": 333,
-                "if_else": 324,
-                "measure": 223,
-                "reset": 216,
-                "barrier": 142,
-                "swap": 60,
-                "z": 3
-            },
-            "9": {
-                "cx": 964,
-                "h": 399,
-                "if_else": 396,
-                "measure": 272,
-                "reset": 264,
-                "barrier": 174,
-                "swap": 72,
-                "z": 3
-            }
-        },
-        "graphstate": {
-            "3": {
-                "cx": 435,
-                "if_else": 180,
-                "h": 159,
-                "measure": 123,
-                "reset": 120,
-                "barrier": 83,
-                "swap": 27
-            },
-            "4": {
-                "cx": 580,
-                "if_else": 240,
-                "h": 212,
-                "measure": 164,
-                "reset": 160,
-                "barrier": 110,
-                "swap": 36
-            },
-            "5": {
-                "cx": 725,
-                "if_else": 300,
-                "h": 265,
-                "measure": 205,
-                "reset": 200,
-                "barrier": 137,
-                "swap": 45
-            },
-            "6": {
-                "cx": 870,
-                "if_else": 360,
-                "h": 318,
-                "measure": 246,
-                "reset": 240,
-                "barrier": 164,
-                "swap": 54
-            },
-            "7": {
-                "cx": 1015,
-                "if_else": 420,
-                "h": 371,
-                "measure": 287,
-                "reset": 280,
-                "barrier": 191,
-                "swap": 63
-            },
-            "8": {
-                "cx": 1160,
-                "if_else": 480,
-                "h": 424,
-                "measure": 328,
-                "reset": 320,
-                "barrier": 218,
-                "swap": 72
-            },
-            "9": {
-                "cx": 1305,
-                "if_else": 540,
-                "h": 477,
-                "measure": 369,
-                "reset": 360,
-                "barrier": 245,
-                "swap": 81
-            }
-        },
-        "qft": {
-            "3": {
-                "cx": 788,
-                "if_else": 260,
-                "h": 185,
-                "measure": 179,
-                "reset": 168,
-                "barrier": 107,
-                "swap": 9,
-                "p": 8,
-                "x": 6
-            },
-            "4": {
-                "cx": 1162,
-                "if_else": 384,
-                "h": 268,
-                "measure": 264,
-                "reset": 248,
-                "barrier": 157,
-                "swap": 12,
-                "p": 12,
-                "x": 9
-            },
-            "5": {
-                "cx": 1536,
-                "if_else": 508,
-                "h": 351,
-                "measure": 349,
-                "reset": 328,
-                "barrier": 207,
-                "p": 16,
-                "swap": 15,
-                "x": 12
-            },
-            "6": {
-                "cx": 1910,
-                "if_else": 632,
-                "h": 434,
-                "measure": 434,
-                "reset": 408,
-                "barrier": 257,
-                "p": 20,
-                "swap": 18,
-                "x": 15
-            },
-            "7": {
-                "cx": 2284,
-                "if_else": 756,
-                "measure": 519,
-                "h": 517,
-                "reset": 488,
-                "barrier": 307,
-                "p": 24,
-                "swap": 21,
-                "x": 18
-            },
-            "8": {
-                "cx": 2658,
-                "if_else": 880,
-                "measure": 604,
-                "h": 600,
-                "reset": 568,
-                "barrier": 357,
-                "p": 28,
-                "swap": 24,
-                "x": 21
-            },
-            "9": {
-                "cx": 3032,
-                "if_else": 1004,
-                "measure": 689,
-                "h": 683,
-                "reset": 648,
-                "barrier": 407,
-                "p": 32,
-                "swap": 27,
-                "x": 24
-            }
-        }
+  "shor": {
+    "ghz": {
+      "3": {
+        "cx": 186,
+        "if_else": 60,
+        "h": 47,
+        "measure": 43,
+        "reset": 40,
+        "barrier": 27,
+        "swap": 3
+      },
+      "4": {
+        "cx": 259,
+        "if_else": 84,
+        "h": 61,
+        "measure": 60,
+        "reset": 56,
+        "barrier": 37,
+        "swap": 3
+      },
+      "5": {
+        "cx": 332,
+        "if_else": 108,
+        "measure": 77,
+        "h": 75,
+        "reset": 72,
+        "barrier": 47,
+        "swap": 3
+      },
+      "6": {
+        "cx": 405,
+        "if_else": 132,
+        "measure": 94,
+        "h": 89,
+        "reset": 88,
+        "barrier": 57,
+        "swap": 3
+      },
+      "7": {
+        "cx": 478,
+        "if_else": 156,
+        "measure": 111,
+        "reset": 104,
+        "h": 103,
+        "barrier": 67,
+        "swap": 3
+      },
+      "8": {
+        "cx": 551,
+        "if_else": 180,
+        "measure": 128,
+        "reset": 120,
+        "h": 117,
+        "barrier": 77,
+        "swap": 3
+      },
+      "9": {
+        "cx": 624,
+        "if_else": 204,
+        "measure": 145,
+        "reset": 136,
+        "h": 131,
+        "barrier": 87,
+        "swap": 3
+      }
     },
-    "steane": {
-        "ghz": {
-            "3": {
-                "cx": 200,
-                "if_else": 70,
-                "h": 55,
-                "measure": 33,
-                "reset": 30,
-                "barrier": 23
-            },
-            "4": {
-                "cx": 277,
-                "if_else": 98,
-                "h": 73,
-                "measure": 46,
-                "reset": 42,
-                "barrier": 31
-            },
-            "5": {
-                "cx": 354,
-                "if_else": 126,
-                "h": 91,
-                "measure": 59,
-                "reset": 54,
-                "barrier": 39
-            },
-            "6": {
-                "cx": 431,
-                "if_else": 154,
-                "h": 109,
-                "measure": 72,
-                "reset": 66,
-                "barrier": 47
-            },
-            "7": {
-                "cx": 508,
-                "if_else": 182,
-                "h": 127,
-                "measure": 85,
-                "reset": 78,
-                "barrier": 55
-            },
-            "8": {
-                "cx": 585,
-                "if_else": 210,
-                "h": 145,
-                "measure": 98,
-                "reset": 90,
-                "barrier": 63
-            },
-            "9": {
-                "cx": 662,
-                "if_else": 238,
-                "h": 163,
-                "measure": 111,
-                "reset": 102,
-                "barrier": 71
-            }
-        },
-        "bv": {
-            "3": {
-                "cx": 223,
-                "if_else": 98,
-                "h": 85,
-                "measure": 44,
-                "reset": 42,
-                "barrier": 30,
-                "x": 7,
-                "cz": 7
-            },
-            "4": {
-                "cx": 293,
-                "if_else": 126,
-                "h": 117,
-                "measure": 57,
-                "reset": 54,
-                "barrier": 39,
-                "x": 7,
-                "cz": 7
-            },
-            "5": {
-                "cx": 411,
-                "if_else": 182,
-                "h": 161,
-                "measure": 82,
-                "reset": 78,
-                "barrier": 55,
-                "cz": 14,
-                "x": 7
-            },
-            "6": {
-                "cx": 481,
-                "if_else": 210,
-                "h": 193,
-                "measure": 95,
-                "reset": 90,
-                "barrier": 64,
-                "cz": 14,
-                "x": 7
-            },
-            "7": {
-                "cx": 599,
-                "if_else": 266,
-                "h": 237,
-                "measure": 120,
-                "reset": 114,
-                "barrier": 80,
-                "cz": 21,
-                "x": 7
-            },
-            "8": {
-                "cx": 669,
-                "if_else": 294,
-                "h": 269,
-                "measure": 133,
-                "reset": 126,
-                "barrier": 89,
-                "cz": 21,
-                "x": 7
-            },
-            "9": {
-                "cx": 787,
-                "if_else": 350,
-                "h": 313,
-                "measure": 158,
-                "reset": 150,
-                "barrier": 105,
-                "cz": 28,
-                "x": 7
-            }
-        },
-        "graphstate": {
-            "3": {
-                "cx": 282,
-                "if_else": 126,
-                "h": 93,
-                "measure": 57,
-                "reset": 54,
-                "barrier": 38,
-                "cz": 21
-            },
-            "4": {
-                "cx": 376,
-                "if_else": 168,
-                "h": 124,
-                "measure": 76,
-                "reset": 72,
-                "barrier": 50,
-                "cz": 28
-            },
-            "5": {
-                "cx": 470,
-                "if_else": 210,
-                "h": 155,
-                "measure": 95,
-                "reset": 90,
-                "barrier": 62,
-                "cz": 35
-            },
-            "6": {
-                "cx": 564,
-                "if_else": 252,
-                "h": 186,
-                "measure": 114,
-                "reset": 108,
-                "barrier": 74,
-                "cz": 42
-            },
-            "7": {
-                "cx": 658,
-                "if_else": 294,
-                "h": 217,
-                "measure": 133,
-                "reset": 126,
-                "barrier": 86,
-                "cz": 49
-            },
-            "8": {
-                "cx": 752,
-                "if_else": 336,
-                "h": 248,
-                "measure": 152,
-                "reset": 144,
-                "barrier": 98,
-                "cz": 56
-            },
-            "9": {
-                "cx": 846,
-                "if_else": 378,
-                "h": 279,
-                "measure": 171,
-                "reset": 162,
-                "barrier": 110,
-                "cz": 63
-            }
-        },
-        "qft": {
-            "3": {
-                "cx": 772,
-                "if_else": 300,
-                "h": 243,
-                "measure": 135,
-                "reset": 126,
-                "barrier": 85,
-                "t": 42,
-                "sdg": 14,
-                "z": 14
-            },
-            "4": {
-                "cx": 1135,
-                "if_else": 443,
-                "h": 355,
-                "measure": 199,
-                "reset": 186,
-                "barrier": 124,
-                "t": 63,
-                "sdg": 21,
-                "z": 21
-            },
-            "5": {
-                "cx": 1498,
-                "if_else": 586,
-                "h": 467,
-                "measure": 263,
-                "reset": 246,
-                "barrier": 163,
-                "t": 84,
-                "sdg": 28,
-                "z": 28
-            },
-            "6": {
-                "cx": 1861,
-                "if_else": 729,
-                "h": 579,
-                "measure": 327,
-                "reset": 306,
-                "barrier": 202,
-                "t": 105,
-                "sdg": 35,
-                "z": 35
-            },
-            "7": {
-                "cx": 2224,
-                "if_else": 872,
-                "h": 691,
-                "measure": 391,
-                "reset": 366,
-                "barrier": 241,
-                "t": 126,
-                "sdg": 42,
-                "z": 42
-            },
-            "8": {
-                "cx": 2587,
-                "if_else": 1015,
-                "h": 803,
-                "measure": 455,
-                "reset": 426,
-                "barrier": 280,
-                "t": 147,
-                "sdg": 49,
-                "z": 49
-            },
-            "9": {
-                "cx": 2950,
-                "if_else": 1158,
-                "h": 915,
-                "measure": 519,
-                "reset": 486,
-                "barrier": 319,
-                "t": 168,
-                "sdg": 56,
-                "z": 56
-            }
-        }
+    "bv": {
+      "3": {
+        "cx": 265,
+        "if_else": 108,
+        "h": 105,
+        "measure": 74,
+        "reset": 72,
+        "barrier": 48,
+        "swap": 18,
+        "z": 3
+      },
+      "4": {
+        "cx": 329,
+        "h": 137,
+        "if_else": 132,
+        "measure": 91,
+        "reset": 88,
+        "barrier": 58,
+        "swap": 24,
+        "z": 3
+      },
+      "5": {
+        "cx": 498,
+        "if_else": 204,
+        "h": 203,
+        "measure": 140,
+        "reset": 136,
+        "barrier": 90,
+        "swap": 36,
+        "z": 3
+      },
+      "6": {
+        "cx": 562,
+        "h": 235,
+        "if_else": 228,
+        "measure": 157,
+        "reset": 152,
+        "barrier": 100,
+        "swap": 42,
+        "z": 3
+      },
+      "7": {
+        "cx": 731,
+        "h": 301,
+        "if_else": 300,
+        "measure": 206,
+        "reset": 200,
+        "barrier": 132,
+        "swap": 54,
+        "z": 3
+      },
+      "8": {
+        "cx": 795,
+        "h": 333,
+        "if_else": 324,
+        "measure": 223,
+        "reset": 216,
+        "barrier": 142,
+        "swap": 60,
+        "z": 3
+      },
+      "9": {
+        "cx": 964,
+        "h": 399,
+        "if_else": 396,
+        "measure": 272,
+        "reset": 264,
+        "barrier": 174,
+        "swap": 72,
+        "z": 3
+      }
+    },
+    "graphstate": {
+      "3": {
+        "cx": 435,
+        "if_else": 180,
+        "h": 159,
+        "measure": 123,
+        "reset": 120,
+        "barrier": 83,
+        "swap": 27
+      },
+      "4": {
+        "cx": 580,
+        "if_else": 240,
+        "h": 212,
+        "measure": 164,
+        "reset": 160,
+        "barrier": 110,
+        "swap": 36
+      },
+      "5": {
+        "cx": 725,
+        "if_else": 300,
+        "h": 265,
+        "measure": 205,
+        "reset": 200,
+        "barrier": 137,
+        "swap": 45
+      },
+      "6": {
+        "cx": 870,
+        "if_else": 360,
+        "h": 318,
+        "measure": 246,
+        "reset": 240,
+        "barrier": 164,
+        "swap": 54
+      },
+      "7": {
+        "cx": 1015,
+        "if_else": 420,
+        "h": 371,
+        "measure": 287,
+        "reset": 280,
+        "barrier": 191,
+        "swap": 63
+      },
+      "8": {
+        "cx": 1160,
+        "if_else": 480,
+        "h": 424,
+        "measure": 328,
+        "reset": 320,
+        "barrier": 218,
+        "swap": 72
+      },
+      "9": {
+        "cx": 1305,
+        "if_else": 540,
+        "h": 477,
+        "measure": 369,
+        "reset": 360,
+        "barrier": 245,
+        "swap": 81
+      }
+    },
+    "qft": {
+      "3": {
+        "cx": 788,
+        "if_else": 260,
+        "h": 185,
+        "measure": 179,
+        "reset": 168,
+        "barrier": 107,
+        "swap": 9,
+        "p": 8,
+        "x": 6
+      },
+      "4": {
+        "cx": 1162,
+        "if_else": 384,
+        "h": 268,
+        "measure": 264,
+        "reset": 248,
+        "barrier": 157,
+        "swap": 12,
+        "p": 12,
+        "x": 9
+      },
+      "5": {
+        "cx": 1536,
+        "if_else": 508,
+        "h": 351,
+        "measure": 349,
+        "reset": 328,
+        "barrier": 207,
+        "p": 16,
+        "swap": 15,
+        "x": 12
+      },
+      "6": {
+        "cx": 1910,
+        "if_else": 632,
+        "h": 434,
+        "measure": 434,
+        "reset": 408,
+        "barrier": 257,
+        "p": 20,
+        "swap": 18,
+        "x": 15
+      },
+      "7": {
+        "cx": 2284,
+        "if_else": 756,
+        "measure": 519,
+        "h": 517,
+        "reset": 488,
+        "barrier": 307,
+        "p": 24,
+        "swap": 21,
+        "x": 18
+      },
+      "8": {
+        "cx": 2658,
+        "if_else": 880,
+        "measure": 604,
+        "h": 600,
+        "reset": 568,
+        "barrier": 357,
+        "p": 28,
+        "swap": 24,
+        "x": 21
+      },
+      "9": {
+        "cx": 3032,
+        "if_else": 1004,
+        "measure": 689,
+        "h": 683,
+        "reset": 648,
+        "barrier": 407,
+        "p": 32,
+        "swap": 27,
+        "x": 24
+      }
     }
+  },
+  "steane": {
+    "ghz": {
+      "3": {
+        "cx": 200,
+        "if_else": 70,
+        "h": 55,
+        "measure": 33,
+        "reset": 30,
+        "barrier": 23
+      },
+      "4": {
+        "cx": 277,
+        "if_else": 98,
+        "h": 73,
+        "measure": 46,
+        "reset": 42,
+        "barrier": 31
+      },
+      "5": {
+        "cx": 354,
+        "if_else": 126,
+        "h": 91,
+        "measure": 59,
+        "reset": 54,
+        "barrier": 39
+      },
+      "6": {
+        "cx": 431,
+        "if_else": 154,
+        "h": 109,
+        "measure": 72,
+        "reset": 66,
+        "barrier": 47
+      },
+      "7": {
+        "cx": 508,
+        "if_else": 182,
+        "h": 127,
+        "measure": 85,
+        "reset": 78,
+        "barrier": 55
+      },
+      "8": {
+        "cx": 585,
+        "if_else": 210,
+        "h": 145,
+        "measure": 98,
+        "reset": 90,
+        "barrier": 63
+      },
+      "9": {
+        "cx": 662,
+        "if_else": 238,
+        "h": 163,
+        "measure": 111,
+        "reset": 102,
+        "barrier": 71
+      }
+    },
+    "bv": {
+      "3": {
+        "cx": 223,
+        "if_else": 98,
+        "h": 85,
+        "measure": 44,
+        "reset": 42,
+        "barrier": 30,
+        "x": 7,
+        "cz": 7
+      },
+      "4": {
+        "cx": 293,
+        "if_else": 126,
+        "h": 117,
+        "measure": 57,
+        "reset": 54,
+        "barrier": 39,
+        "x": 7,
+        "cz": 7
+      },
+      "5": {
+        "cx": 411,
+        "if_else": 182,
+        "h": 161,
+        "measure": 82,
+        "reset": 78,
+        "barrier": 55,
+        "cz": 14,
+        "x": 7
+      },
+      "6": {
+        "cx": 481,
+        "if_else": 210,
+        "h": 193,
+        "measure": 95,
+        "reset": 90,
+        "barrier": 64,
+        "cz": 14,
+        "x": 7
+      },
+      "7": {
+        "cx": 599,
+        "if_else": 266,
+        "h": 237,
+        "measure": 120,
+        "reset": 114,
+        "barrier": 80,
+        "cz": 21,
+        "x": 7
+      },
+      "8": {
+        "cx": 669,
+        "if_else": 294,
+        "h": 269,
+        "measure": 133,
+        "reset": 126,
+        "barrier": 89,
+        "cz": 21,
+        "x": 7
+      },
+      "9": {
+        "cx": 787,
+        "if_else": 350,
+        "h": 313,
+        "measure": 158,
+        "reset": 150,
+        "barrier": 105,
+        "cz": 28,
+        "x": 7
+      }
+    },
+    "graphstate": {
+      "3": {
+        "cx": 282,
+        "if_else": 126,
+        "h": 93,
+        "measure": 57,
+        "reset": 54,
+        "barrier": 38,
+        "cz": 21
+      },
+      "4": {
+        "cx": 376,
+        "if_else": 168,
+        "h": 124,
+        "measure": 76,
+        "reset": 72,
+        "barrier": 50,
+        "cz": 28
+      },
+      "5": {
+        "cx": 470,
+        "if_else": 210,
+        "h": 155,
+        "measure": 95,
+        "reset": 90,
+        "barrier": 62,
+        "cz": 35
+      },
+      "6": {
+        "cx": 564,
+        "if_else": 252,
+        "h": 186,
+        "measure": 114,
+        "reset": 108,
+        "barrier": 74,
+        "cz": 42
+      },
+      "7": {
+        "cx": 658,
+        "if_else": 294,
+        "h": 217,
+        "measure": 133,
+        "reset": 126,
+        "barrier": 86,
+        "cz": 49
+      },
+      "8": {
+        "cx": 752,
+        "if_else": 336,
+        "h": 248,
+        "measure": 152,
+        "reset": 144,
+        "barrier": 98,
+        "cz": 56
+      },
+      "9": {
+        "cx": 846,
+        "if_else": 378,
+        "h": 279,
+        "measure": 171,
+        "reset": 162,
+        "barrier": 110,
+        "cz": 63
+      }
+    },
+    "qft": {
+      "3": {
+        "cx": 772,
+        "if_else": 300,
+        "h": 243,
+        "measure": 135,
+        "reset": 126,
+        "barrier": 85,
+        "t": 42,
+        "sdg": 14,
+        "z": 14
+      },
+      "4": {
+        "cx": 1135,
+        "if_else": 443,
+        "h": 355,
+        "measure": 199,
+        "reset": 186,
+        "barrier": 124,
+        "t": 63,
+        "sdg": 21,
+        "z": 21
+      },
+      "5": {
+        "cx": 1498,
+        "if_else": 586,
+        "h": 467,
+        "measure": 263,
+        "reset": 246,
+        "barrier": 163,
+        "t": 84,
+        "sdg": 28,
+        "z": 28
+      },
+      "6": {
+        "cx": 1861,
+        "if_else": 729,
+        "h": 579,
+        "measure": 327,
+        "reset": 306,
+        "barrier": 202,
+        "t": 105,
+        "sdg": 35,
+        "z": 35
+      },
+      "7": {
+        "cx": 2224,
+        "if_else": 872,
+        "h": 691,
+        "measure": 391,
+        "reset": 366,
+        "barrier": 241,
+        "t": 126,
+        "sdg": 42,
+        "z": 42
+      },
+      "8": {
+        "cx": 2587,
+        "if_else": 1015,
+        "h": 803,
+        "measure": 455,
+        "reset": 426,
+        "barrier": 280,
+        "t": 147,
+        "sdg": 49,
+        "z": 49
+      },
+      "9": {
+        "cx": 2950,
+        "if_else": 1158,
+        "h": 915,
+        "measure": 519,
+        "reset": 486,
+        "barrier": 319,
+        "t": 168,
+        "sdg": 56,
+        "z": 56
+      }
+    }
+  }
 }

@@ -10,9 +10,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister, ClassicalRegister
-    
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
+
+if TYPE_CHECKING:
+    from qiskit.circuit import ClassicalRegister
+
+
 def get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
     """Create 3-qubit phase-flip decoding circuit.
 
@@ -29,6 +34,7 @@ def get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
     out.cx(0, 2)
     return out
 
+
 def get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
     """Create 3-qubit bit-flip encoding/decoding circuit.
 
@@ -41,6 +47,7 @@ def get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
     out.cx(0, 1)
     out.cx(0, 2)
     return out
+
 
 def get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
     """Create 3-qubit phase-flip encoding circuit.
@@ -58,6 +65,7 @@ def get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
     out.h(2)
     return out
 
+
 def get_three_qubit_bit_flip_syndrome_extraction_circuit() -> QuantumCircuit:
     """Create circuit to extract bit-flip syndrome from a 3-qubit block.
 
@@ -73,6 +81,7 @@ def get_three_qubit_bit_flip_syndrome_extraction_circuit() -> QuantumCircuit:
     out.cx(2, 3)
     out.cx(2, 4)
     return out
+
 
 def get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> QuantumCircuit:
     """Create circuit to extract phase-flip syndrome across the three 3-qubit blocks.
@@ -106,6 +115,7 @@ def get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit() -> Quantu
     out.h(phase_flip_syndrome[0])
     out.h(phase_flip_syndrome[1])
     return out
+
 
 def apply_nine_qubit_shors_code_bit_flip_correction(
     qc: QuantumCircuit,
@@ -165,4 +175,3 @@ def apply_nine_qubit_shors_code_phase_flip_correction(
         qc.z(logical_qubit[3])
     with qc.if_test((phase_flip_syndrome_measurement, 0b11)):
         qc.z(logical_qubit[6])
-        

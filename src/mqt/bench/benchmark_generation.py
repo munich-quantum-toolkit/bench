@@ -21,6 +21,7 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 from typing_extensions import assert_never
+
 from .error_correction.shor_transpiler import ShorTranspiler
 from .error_correction.steane_transpiler import SteaneTranspiler
 
@@ -230,7 +231,7 @@ def get_benchmark_alg(
         transpiler = ShorTranspiler(qc, add_syndromes=True)
         transpiler.transpile()
         return transpiler.transpiled_qc
-    elif encoding == "steane":
+    if encoding == "steane":
         transpiler = SteaneTranspiler(qc, add_syndromes=True)
         transpiler.transpile()
         return transpiler.transpiled_qc

@@ -10,8 +10,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
+
+if TYPE_CHECKING:
+    from qiskit.circuit import ClassicalRegister
+
 
 def get_seven_qubit_steane_code_encoding_circuit() -> QuantumCircuit:
     """Create the 7-qubit Steane code encoding circuit.
