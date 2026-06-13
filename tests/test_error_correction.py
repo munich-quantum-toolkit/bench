@@ -6,19 +6,6 @@
 #
 # Licensed under the MIT License
 
-# TODO:
-# uv requirements to be added: mqt.qcec, qiskit_aer
-
-
-# What do we want to test:
-# 1 function for each, split steane and shor for hardcoded sanity, combine for equvalencies
-# transpilers work as intended (simply sanity checks) ✅
-# transpilers produce correct logical circuits (equivalency & simulation)
-# produce circuits lead to correct results (equivalency (possible?) & simulations)
-# works for all 4 given algorithms (maybe incorporate into correctness and error correction)
-
-# Have the ability to save the created circuits (utility function)
-## save to file vs print vs logging?
 from __future__ import annotations
 
 from pathlib import Path
