@@ -16,6 +16,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 from ._registry import register_benchmark
 
+
 @register_benchmark("dynamic_qft", description="Dynamic QFT")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Return a circuit implementing the Dynamic QFT."""
