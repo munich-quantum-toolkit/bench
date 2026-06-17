@@ -267,6 +267,81 @@ def test_graphstate_seed() -> None:
     assert qc_no_seed.name == "graphstate"
 
 
+# Test the dynamic circuits
+def test_dynamic_qft_circuit_structure() -> None:
+    """Verify the structure of the Dynamic QFT benchmark."""
+    num_qubits = 5
+    qc = create_circuit("dynamic_qft", num_qubits)
+
+    assert qc.name == "dynamic_qft"
+    assert qc.num_qubits == num_qubits
+    assert qc.num_clbits == num_qubits
+    assert len(qc.qregs) == 1
+    assert qc.qregs[0].name == "q"
+    assert qc.qregs[0].size == num_qubits
+    assert len(qc.cregs) == 1
+    assert qc.cregs[0].name == "c"
+    assert qc.cregs[0].size == num_qubits
+
+    ops = qc.count_ops()
+    assert ops.get("h", 0) == num_qubits
+    assert ops.get("measure", 0) == num_qubits
+    assert ops.get("if_else", 0) == num_qubits * (num_qubits - 1) // 2
+    assert ops.get("cp", 0) == 0
+
+    measurements = [
+        (qc.find_bit(instruction.qubits[0]).index, qc.find_bit(instruction.clbits[0]).index)
+        for instruction in qc.data
+        if instruction.operation.name == "measure"
+    ]
+    assert measurements == [(qubit, num_qubits - qubit - 1) for qubit in reversed(range(num_qubits))]
+
+
+@pytest.mark.parametrize("num_qubits", [1, 3, 4])
+def test_dynamic_qft_matches_qft_operation_order(num_qubits: int) -> None:
+    """Verify that Dynamic QFT mirrors QFT phase and Hadamard ordering."""
+    qft = create_circuit("qft", num_qubits).decompose()
+    dynamic_qft = create_circuit("dynamic_qft", num_qubits)
+
+    qft_ops = [
+        (
+            instruction.operation.name,
+            tuple(qft.find_bit(qubit).index for qubit in instruction.qubits),
+            tuple(round(float(parameter), 12) for parameter in instruction.operation.params),
+        )
+        for instruction in qft.data
+        if instruction.operation.name in {"cp", "h"}
+    ]
+
+    dynamic_ops = []
+    for instruction in dynamic_qft.data:
+        operation = instruction.operation
+        if isinstance(operation, IfElseOp):
+            condition_bit = dynamic_qft.find_bit(instruction.clbits[0]).index
+            conditional_instruction = operation.blocks[0].data[0]
+            dynamic_ops.append((
+                "cp",
+                (
+                    num_qubits - condition_bit - 1,
+                    dynamic_qft.find_bit(conditional_instruction.qubits[0]).index,
+                ),
+                (round(float(conditional_instruction.operation.params[0]), 12),),
+            ))
+        elif operation.name == "h":
+            dynamic_ops.append(("h", (dynamic_qft.find_bit(instruction.qubits[0]).index,), ()))
+
+    assert dynamic_ops == qft_ops
+
+
+def test_dynamic_qft_supports_large_instances() -> None:
+    """Verify that Dynamic QFT supports arbitrary benchmark sizes like the regular QFT."""
+    qc = create_circuit("dynamic_qft", 65)
+
+    assert qc.num_qubits == 65
+    assert qc.num_clbits == 65
+    assert qc.count_ops().get("measure", 0) == 65
+
+
 # Test the dynamic GHZ circuit
 @pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
 def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
