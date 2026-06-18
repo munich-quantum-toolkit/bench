@@ -299,5 +299,9 @@ pyrightconfig.json
 # VS Code
 .vscode/
 
+# Claude
+CLAUDE.md
+.claude/
+
 # setuptools_scm
 src/**/_version.py

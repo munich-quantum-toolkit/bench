@@ -38,6 +38,7 @@ project = "MQT Bench"
 author = "Chair for Design Automation, TUM & Munich Quantum Software Company GmbH"
 language = "en"
 project_copyright = "2023 - 2026 Chair for Design Automation, TUM & 2025 - 2026 Munich Quantum Software Company GmbH"
+
 # -- General configuration ---------------------------------------------------
 
 master_doc = "index"
@@ -45,16 +46,16 @@ master_doc = "index"
 templates_path = ["_templates"]
 
 extensions = [
-    "myst_nb",
     "autoapi.extension",
+    "myst_nb",
+    "sphinx_copybutton",
+    "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
-    "sphinx_copybutton",
-    "sphinx_design",
-    "sphinxext.opengraph",
     "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
+    "sphinxext.opengraph",
 ]
 
 pygments_style = "colorful"
@@ -141,6 +142,7 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
 # -- Options for HTML output -------------------------------------------------
+
 html_theme = "furo"
 html_static_path = ["_static"]
 html_css_files = [
