@@ -350,10 +350,10 @@ def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
 def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
     """Test that the dynamic QFT allocates registers and compiles."""
     qc = create_circuit("dynamic_qft", num_qubits)
-    
+
     assert qc.num_qubits == num_qubits
     assert qc.name == "dynamic_qft"
-    
+
     # Verify both a quantum and classical register exist with matching sizes
     assert len(qc.qregs) == 1
     assert len(qc.cregs) == 1
