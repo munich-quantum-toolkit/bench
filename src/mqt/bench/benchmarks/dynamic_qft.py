@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 from qiskit import ClassicalRegister
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import PhaseGate
 
 from ._registry import register_benchmark
 
@@ -36,6 +37,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         # Apply feed-forward phase corrections to all remaining qubits
         for j in range(i + 1, num_qubits):
             angle = np.pi / (2 ** (j - i))
-            qc.p(angle, q[j]).c_if(c[i], 1)
+            p_gate = PhaseGate(angle).c_if(c[i], 1)
+            qc.append(p_gate, [q[j]])
 
     return qc
