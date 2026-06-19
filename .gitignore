@@ -314,7 +314,5 @@ editor.swp
 editor~
 ehthumbs.db
 
-
-
 # setuptools_scm
 src/**/_version.py
