@@ -684,13 +684,6 @@ def test_generate_filename(
     assert filename == expected
 
 
-@pytest.fixture(autouse=True)
-def temp_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Ensure all files go into a temporary directory."""
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
-
-
 def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the generation of a minimal header."""
     monkeypatch.setattr(metadata, "version", lambda _: "9.9.9")
