@@ -30,9 +30,11 @@ from ._registry import (
     benchmark_names,
     get_benchmark_by_name,
     get_reference_factory_by_name,
-    has_reference as _registry_has_reference,
     register_benchmark,
     register_reference,
+)
+from ._registry import (
+    has_reference as _registry_has_reference,
 )
 
 if TYPE_CHECKING:

@@ -10,6 +10,7 @@ Maria is contributing to munich-quantum-toolkit/bench issue #924, which adds exp
 **Why:** Without knowing how the circuit generator constructs the oracle (e.g., Grover), users have no ground-truth to test against.
 
 **What was built:**
+
 - `_reference.py` — type hierarchy: `SparseReference`, `UniformReference`, `SimulateReference`, `NoneReference`, `ObjectiveSpec`, `MetricApplicability`, `ReferenceSpec` with `to_dict()` for JSON serialisation
 - `_registry.py` — parallel reference registry with `register_reference` decorator and `get_reference_factory_by_name`
 - `__init__.py` — public `get_reference_spec(name, size, **kwargs)` and lazy-load-aware `has_reference(name)`
@@ -17,6 +18,7 @@ Maria is contributing to munich-quantum-toolkit/bench issue #924, which adds exp
 - `tests/test_reference.py` — 52 tests covering all kinds, JSON round-trip, and metric fields
 
 **Architecture decisions:**
+
 - `create_reference` mirrors `create_circuit` in each benchmark file, registered via `@register_reference`
 - Spec is always poly-size: sparse table, uniform predicate, or "simulate"
 - `bit_order: "qiskit-little-endian"` — only Qiskit is used in this repo (no tket/cirq)
@@ -25,6 +27,7 @@ Maria is contributing to munich-quantum-toolkit/bench issue #924, which adds exp
 - Qiskit string convention: reversed hidden_string for BV, reversed b_str for DJ
 
 **What's left for maintainers:**
+
 - Add `create_reference` to the remaining ~25 benchmarks (QAOA, VQE, QFT, adders, AE, etc.)
 - QAOA/VQE probably get `NoneReference` (outputs depend on optimised angles)
 - Arithmetic circuits could get `SparseReference` if the maintainers know the inputs

@@ -1,3 +1,11 @@
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 """Reference specification types for noise-free benchmark outputs.
 
 Each benchmark can optionally expose a ``create_reference`` function (registered
@@ -140,7 +148,7 @@ class ReferenceSpec:
         Indices (in circuit qubit order) of the qubits that contribute to the
         classical output string.  Ancilla omitted.
     bit_order:
-        ``"qiskit-little-endian"`` 
+        ``"qiskit-little-endian"``
     reference:
         Compact description of the ideal probability distribution.
     objective:
