@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit
 
-from ._registry import register_benchmark
+from ._reference import MetricApplicability, ObjectiveSpec, ReferenceSpec, SparseReference
+from ._registry import register_benchmark, register_reference
 
 
 @register_benchmark("bv", description="Bernstein-Vazirani")
@@ -82,3 +83,46 @@ def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | 
     circuit.name = "bv"
 
     return circuit
+
+
+@register_reference("bv")
+def create_reference(num_qubits: int, dynamic: bool = False, hidden_string: str | None = None) -> ReferenceSpec:
+    """Reference spec for the Bernstein-Vazirani circuit.
+
+    BV is deterministic: measuring the circuit always recovers the hidden
+    bitstring with probability 1.
+
+    The hidden string is ``num_qubits - 1`` bits long (qubit 0 is the flag
+    ancilla).  The default hidden string alternates 0 and 1 starting from
+    qubit 1, matching the ``create_circuit`` default.
+
+    Qiskit bit-string convention: classical bit *i* is the rightmost
+    character offset by *i*, so the measured string is the hidden string
+    written in *reverse* (``hidden_string[::-1]``).
+
+    Arguments:
+        num_qubits: total qubits including the flag (same as :func:`create_circuit`).
+        dynamic: not used for the reference; kept for API symmetry.
+        hidden_string: the secret bitstring of length ``num_qubits - 1``.
+    """
+    if hidden_string is None:
+        hidden_string = "".join([str(i % 2) for i in range(num_qubits - 1)])
+
+    # Qiskit big-endian
+    # string is hidden_string written right-to-left.
+    qiskit_string = hidden_string[::-1]
+
+    return ReferenceSpec(
+        circuit="bv",
+        n_qubits=num_qubits,
+        measured_qubits=list(range(1, num_qubits)),
+        bit_order="qiskit-little-endian",
+        reference=SparseReference(entries={qiskit_string: 1.0}),
+        objective=ObjectiveSpec(type="hidden_string", value=hidden_string),
+        metrics={
+            "hellinger_fidelity": MetricApplicability(applicable=True, ideal=1.0),
+            "tvd": MetricApplicability(applicable=True, ideal=0.0),
+            "success_probability": MetricApplicability(applicable=True, ideal=1.0),
+            "linear_xeb": MetricApplicability(applicable=False),
+        },
+    )

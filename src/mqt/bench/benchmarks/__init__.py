@@ -15,12 +15,24 @@ import importlib.resources as ir
 from functools import cache
 from typing import TYPE_CHECKING, Any
 
+from ._reference import (
+    MetricApplicability,
+    NoneReference,
+    ObjectiveSpec,
+    ReferenceSpec,
+    SimulateReference,
+    SparseReference,
+    UniformReference,
+)
 from ._registry import (
     benchmark_catalog,
     benchmark_description,
     benchmark_names,
     get_benchmark_by_name,
+    get_reference_factory_by_name,
+    has_reference as _registry_has_reference,
     register_benchmark,
+    register_reference,
 )
 
 if TYPE_CHECKING:
@@ -38,11 +50,21 @@ _DISCOVERED_BENCHMARKS: set[str] = {
 _IMPORTED_BENCHMARKS: set[str] = set()
 
 __all__ = [
+    "MetricApplicability",
+    "NoneReference",
+    "ObjectiveSpec",
+    "ReferenceSpec",
+    "SimulateReference",
+    "SparseReference",
+    "UniformReference",
     "create_circuit",
     "get_available_benchmark_names",
     "get_benchmark_catalog",
     "get_benchmark_description",
+    "get_reference_spec",
+    "has_reference",
     "register_benchmark",
+    "register_reference",
 ]
 
 
@@ -78,6 +100,22 @@ def get_available_benchmark_names() -> list[str]:
     return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names())).copy()
 
 
+def has_reference(benchmark_name: str) -> bool:
+    """Return ``True`` if a reference spec is available for *benchmark_name*.
+
+    Triggers lazy import of the benchmark module so that the reference registry
+    is populated before the check.
+
+    Args:
+        benchmark_name: The benchmark to query.
+    """
+    try:
+        _ensure_loaded(benchmark_name)
+    except ValueError:
+        return False
+    return _registry_has_reference(benchmark_name)
+
+
 @cache
 def get_benchmark_description(benchmark_name: str) -> str:
     """Return the benchmark description given a benchmark name."""
@@ -97,6 +135,49 @@ def _get_factory(benchmark_name: str) -> Callable[..., QuantumCircuit]:
     """Internal factory that can be cached."""
     _ensure_loaded(benchmark_name)
     return get_benchmark_by_name(benchmark_name)
+
+
+@cache
+def _get_reference_factory(benchmark_name: str) -> Callable[..., ReferenceSpec] | None:
+    """Internal reference factory cache."""
+    _ensure_loaded(benchmark_name)
+    return get_reference_factory_by_name(benchmark_name)
+
+
+# ruff: noqa: ANN401
+def get_reference_spec(benchmark_name: str, circuit_size: int, /, *args: Any, **kwargs: Any) -> ReferenceSpec:
+    """Return the reference specification for a benchmark instance.
+
+    The spec describes the ideal, noise-free output distribution in a compact
+    form that stays poly-size even for exponentially large circuits.  Call
+    :meth:`ReferenceSpec.to_dict` on the result to get a JSON-serialisable dict.
+
+    Args:
+        benchmark_name: The name of the benchmark (must match the registry key).
+        circuit_size: The number of qubits — same value you would pass to
+            :func:`create_circuit`.
+        *args: Forwarded to the benchmark's ``create_reference`` function.
+        **kwargs: Forwarded to the benchmark's ``create_reference`` function.
+
+    Returns:
+        ReferenceSpec describing the noise-free output.
+
+    Raises:
+        ValueError: If the benchmark name is unknown or has no reference registered.
+    """
+    if circuit_size <= 0:
+        msg = "`circuit_size` must be a positive integer."
+        raise ValueError(msg)
+
+    factory = _get_reference_factory(benchmark_name)
+    if factory is None:
+        msg = (
+            f"No reference spec registered for '{benchmark_name}'. "
+            "Either the benchmark does not yet have a create_reference function, "
+            "or the relevant module has not been imported."
+        )
+        raise ValueError(msg)
+    return factory(circuit_size, *args, **kwargs)
 
 
 # ruff: noqa: ANN401

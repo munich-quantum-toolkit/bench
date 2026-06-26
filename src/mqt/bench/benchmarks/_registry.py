@@ -1,11 +1,3 @@
-# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
-# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
-# All rights reserved.
-#
-# SPDX-License-Identifier: MIT
-#
-# Licensed under the MIT License
-
 """Benchmark registry."""
 
 from __future__ import annotations
@@ -16,10 +8,13 @@ from typing import TYPE_CHECKING
 
 from qiskit.circuit import QuantumCircuit
 
+from ._reference import ReferenceSpec
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
 _BenchmarkFactory = Callable[..., QuantumCircuit]
+_ReferenceFactory = Callable[..., ReferenceSpec]
 
 
 @dataclass(frozen=True)
@@ -31,6 +26,7 @@ class BenchmarkInfo:
 
 
 _REGISTRY: dict[str, BenchmarkInfo] = {}
+_REFERENCE_REGISTRY: dict[str, _ReferenceFactory] = {}
 
 
 def register_benchmark(benchmark_name: str, description: str = "") -> Callable[[_BenchmarkFactory], _BenchmarkFactory]:
@@ -92,3 +88,38 @@ def benchmark_names() -> list[str]:
 def benchmark_catalog() -> Mapping[str, str]:
     """Mapping *name → description* to feed into a CLI help table, GUI, etc."""
     return {name: info.description for name, info in _REGISTRY.items()}
+
+
+def register_reference(benchmark_name: str) -> Callable[[_ReferenceFactory], _ReferenceFactory]:
+    """Decorator to register a reference-spec factory for *benchmark_name*.
+
+    The decorated function must accept the same positional/keyword arguments as
+    the corresponding ``create_circuit`` factory and return a
+    :class:`~._reference.ReferenceSpec`.
+
+    Arguments:
+        benchmark_name: registry key of the benchmark to attach the spec to.
+
+    Returns:
+        The original function.
+    """
+
+    def _decorator(func: _ReferenceFactory) -> _ReferenceFactory:
+        _REFERENCE_REGISTRY[benchmark_name] = func
+        return func
+
+    return _decorator
+
+
+def get_reference_factory_by_name(benchmark_name: str) -> _ReferenceFactory | None:
+    """Return the ``create_reference`` function for *benchmark_name*, or ``None``.
+
+    Arguments:
+        benchmark_name: identifier used during registration.
+    """
+    return _REFERENCE_REGISTRY.get(benchmark_name)
+
+
+def has_reference(benchmark_name: str) -> bool:
+    """Return ``True`` if a reference spec is registered for *benchmark_name*."""
+    return benchmark_name in _REFERENCE_REGISTRY

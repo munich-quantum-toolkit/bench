@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING
 
 from qiskit.circuit.random import random_circuit
 
-from ._registry import register_benchmark
+from ._reference import ReferenceSpec, SimulateReference
+from ._registry import register_benchmark, register_reference
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
@@ -34,3 +35,23 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     qc.measure_all()
     qc.name = "randomcircuit"
     return qc
+
+
+@register_reference("randomcircuit")
+def create_reference(num_qubits: int) -> ReferenceSpec:
+    """Reference spec for the random circuit benchmark.
+
+    Random circuits have no compact closed-form output distribution.
+    The reference kind is ``"simulate"``, indicating that the ideal
+    distribution must be obtained by classical statevector simulation.
+
+    Arguments:
+        num_qubits: number of qubits (same as passed to :func:`create_circuit`).
+    """
+    return ReferenceSpec(
+        circuit="randomcircuit",
+        n_qubits=num_qubits,
+        measured_qubits=list(range(num_qubits)),
+        bit_order="qiskit-little-endian",
+        reference=SimulateReference(max_qubits=30),
+    )
