@@ -43,7 +43,7 @@ def create_reference(num_qubits: int) -> ReferenceSpec:
     Arguments:
         num_qubits: number of qubits (same as passed to :func:`create_circuit`).
     """
-    entries = {"0" * num_qubits: 0.5, "1" * num_qubits: 0.5}
+    entries: dict[str, float] = {"0" * num_qubits: 0.5, "1" * num_qubits: 0.5}
     return ReferenceSpec(
         circuit="ghz",
         n_qubits=num_qubits,

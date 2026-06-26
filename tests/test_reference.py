@@ -55,6 +55,11 @@ def test_has_reference_unknown() -> None:
     assert not has_reference("vqe_su2")
 
 
+def test_has_reference_nonexistent_benchmark() -> None:
+    """has_reference returns False (not raises) for a name that is not a benchmark at all."""
+    assert not has_reference("not_a_real_benchmark_name")
+
+
 def test_get_reference_spec_raises_for_no_reference() -> None:
     """get_reference_spec raises ValueError for benchmarks without a spec."""
     with pytest.raises(ValueError, match="No reference spec registered"):
@@ -157,7 +162,8 @@ def test_bv_reference_default_hidden_string(n: int) -> None:
     assert spec.objective.type == "hidden_string"
     assert spec.objective.value == expected_hidden
     # Qiskit string is reversed hidden string
-    (qiskit_string,) = spec.reference.entries.keys()  # type: ignore[misc]
+    assert isinstance(spec.reference, SparseReference)
+    (qiskit_string,) = spec.reference.entries.keys()
     assert qiskit_string == expected_hidden[::-1]
 
 
@@ -166,7 +172,8 @@ def test_bv_reference_custom_hidden_string() -> None:
     spec = get_reference_spec("bv", 4, hidden_string="110")
     assert spec.objective is not None
     assert spec.objective.value == "110"
-    (qiskit_string,) = spec.reference.entries.keys()  # type: ignore[misc]
+    assert isinstance(spec.reference, SparseReference)
+    (qiskit_string,) = spec.reference.entries.keys()
     assert qiskit_string == "011"  # reversed
 
 
@@ -236,7 +243,8 @@ def test_grover_marked_state_is_all_ones(n: int) -> None:
     """Grover oracle marks the all-ones state on the search register."""
     spec = get_reference_spec("grover", n)
     n_search = n - 1
-    (marked,) = spec.reference.entries.keys()  # type: ignore[misc]
+    assert isinstance(spec.reference, SparseReference)
+    (marked,) = spec.reference.entries.keys()
     assert marked == "1" * n_search
     assert spec.objective is not None
     assert spec.objective.type == "marked_states"
@@ -247,6 +255,7 @@ def test_grover_marked_state_is_all_ones(n: int) -> None:
 def test_grover_success_probability_in_range(n: int) -> None:
     """Success probability must be in (0, 1]."""
     spec = get_reference_spec("grover", n)
+    assert isinstance(spec.reference, SparseReference)
     (p,) = spec.reference.entries.values()
     assert 0.0 < p <= 1.0
 
@@ -292,7 +301,8 @@ def test_qpeexact_reference_bitstring_matches_seed(n: int) -> None:
     expected_string = format(theta, f"0{n_est}b")
 
     spec = get_reference_spec("qpeexact", n)
-    (measured,) = spec.reference.entries.keys()  # type: ignore[misc]
+    assert isinstance(spec.reference, SparseReference)
+    (measured,) = spec.reference.entries.keys()
     assert measured == expected_string
 
     assert spec.objective is not None
