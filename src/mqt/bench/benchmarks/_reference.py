@@ -104,10 +104,10 @@ class ObjectiveSpec:
 
     Examples of ``type`` values and their ``value`` payloads:
 
-    * ``"marked_states"``   – list of target bitstrings (Grover)
-    * ``"hidden_string"``   – the secret bitstring (BV)
-    * ``"balanced_or_constant"`` – ``"balanced"`` or ``"constant"`` (DJ)
-    * ``"phase"``           – estimated phase as a float (QPE)
+    * ``"marked_states"``   - list of target bitstrings (Grover)
+    * ``"hidden_string"``   - the secret bitstring (BV)
+    * ``"balanced_or_constant"`` - ``"balanced"`` or ``"constant"`` (DJ)
+    * ``"phase"``           - estimated phase as a float (QPE)
     """
 
     type: str

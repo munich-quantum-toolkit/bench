@@ -86,7 +86,7 @@ def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | 
 
 
 @register_reference("bv")
-def create_reference(num_qubits: int, dynamic: bool = False, hidden_string: str | None = None) -> ReferenceSpec:
+def create_reference(num_qubits: int, _dynamic: bool = False, hidden_string: str | None = None) -> ReferenceSpec:
     """Reference spec for the Bernstein-Vazirani circuit.
 
     BV is deterministic: measuring the circuit always recovers the hidden
@@ -102,7 +102,7 @@ def create_reference(num_qubits: int, dynamic: bool = False, hidden_string: str 
 
     Arguments:
         num_qubits: total qubits including the flag (same as :func:`create_circuit`).
-        dynamic: not used for the reference; kept for API symmetry.
+        _dynamic: not used for the reference; kept for API symmetry.
         hidden_string: the secret bitstring of length ``num_qubits - 1``.
     """
     if hidden_string is None:

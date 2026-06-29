@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import math
 import random
 from fractions import Fraction
 
@@ -33,7 +34,7 @@ from mqt.bench.benchmarks import (
 
 
 def _prob_sum(spec: ReferenceSpec) -> float:
-    """Sum of probabilities in a SparseReference (must equal 1 for normalised)."""
+    """Return the sum of probabilities stored in a SparseReference."""
     assert isinstance(spec.reference, SparseReference)
     return sum(spec.reference.entries.values())
 
@@ -50,7 +51,7 @@ def test_has_reference_known() -> None:
 
 
 def test_has_reference_unknown() -> None:
-    """has_reference returns False for benchmarks without a create_reference."""
+    """has_reference returns False for benchmarks that exist but lack a create_reference."""
     assert not has_reference("qaoa")
     assert not has_reference("vqe_su2")
 
@@ -77,7 +78,6 @@ def test_reference_spec_to_dict_is_json_serialisable() -> None:
     for name, size in [("ghz", 4), ("wstate", 3), ("bv", 5), ("dj", 4), ("randomcircuit", 5)]:
         spec = get_reference_spec(name, size)
         d = spec.to_dict()
-        # Must not raise
         serialised = json.dumps(d)
         recovered = json.loads(serialised)
         assert recovered["circuit"] == name
@@ -91,6 +91,7 @@ def test_reference_spec_to_dict_is_json_serialisable() -> None:
 
 @pytest.mark.parametrize("n", [2, 3, 5, 8])
 def test_ghz_reference_structure(n: int) -> None:
+    """GHZ reference is a sparse 50/50 distribution over all-zeros and all-ones."""
     spec = get_reference_spec("ghz", n)
     assert spec.circuit == "ghz"
     assert spec.n_qubits == n
@@ -104,7 +105,7 @@ def test_ghz_reference_structure(n: int) -> None:
 
 
 def test_ghz_reference_no_objective() -> None:
-    """GHZ has no semantic 'answer' — objective should be None."""
+    """GHZ has no semantic answer — objective should be None."""
     spec = get_reference_spec("ghz", 3)
     assert spec.objective is None
 
@@ -116,6 +117,7 @@ def test_ghz_reference_no_objective() -> None:
 
 @pytest.mark.parametrize("n", [2, 3, 5, 8])
 def test_wstate_reference_structure(n: int) -> None:
+    """W-state reference is a uniform distribution over weight-1 bitstrings."""
     spec = get_reference_spec("wstate", n)
     assert spec.circuit == "wstate"
     assert spec.n_qubits == n
@@ -124,8 +126,9 @@ def test_wstate_reference_structure(n: int) -> None:
     assert spec.reference.size == n
 
 
-def test_wstate_reference_probability(n: int = 5) -> None:
+def test_wstate_reference_probability() -> None:
     """P(x) = 1/n for any weight-1 bitstring."""
+    n = 5
     spec = get_reference_spec("wstate", n)
     assert isinstance(spec.reference, UniformReference)
     p = 1.0 / spec.reference.size
@@ -133,9 +136,12 @@ def test_wstate_reference_probability(n: int = 5) -> None:
 
 
 def test_wstate_reference_success_metric() -> None:
+    """W-state success_probability metric should have ideal value 1."""
     spec = get_reference_spec("wstate", 4)
     assert "success_probability" in spec.metrics
-    assert spec.metrics["success_probability"].ideal == 1.0
+    ideal = spec.metrics["success_probability"].ideal
+    assert ideal is not None
+    assert math.isclose(ideal, 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +151,7 @@ def test_wstate_reference_success_metric() -> None:
 
 @pytest.mark.parametrize("n", [3, 5, 7])
 def test_bv_reference_structure(n: int) -> None:
+    """BV reference is a single-entry sparse distribution with probability 1."""
     spec = get_reference_spec("bv", n)
     assert spec.circuit == "bv"
     assert spec.n_qubits == n
@@ -155,26 +162,25 @@ def test_bv_reference_structure(n: int) -> None:
 
 @pytest.mark.parametrize("n", [3, 5, 7])
 def test_bv_reference_default_hidden_string(n: int) -> None:
-    """Default hidden string is alternating 0/1 of length n-1."""
+    """Default hidden string is alternating 0/1 of length n-1; Qiskit string is its reverse."""
     expected_hidden = "".join(str(i % 2) for i in range(n - 1))
     spec = get_reference_spec("bv", n)
     assert spec.objective is not None
     assert spec.objective.type == "hidden_string"
     assert spec.objective.value == expected_hidden
-    # Qiskit string is reversed hidden string
     assert isinstance(spec.reference, SparseReference)
     (qiskit_string,) = spec.reference.entries.keys()
     assert qiskit_string == expected_hidden[::-1]
 
 
 def test_bv_reference_custom_hidden_string() -> None:
-    """Custom hidden strings are handled correctly."""
+    """Custom hidden strings are handled correctly; Qiskit string is reversed."""
     spec = get_reference_spec("bv", 4, hidden_string="110")
     assert spec.objective is not None
     assert spec.objective.value == "110"
     assert isinstance(spec.reference, SparseReference)
     (qiskit_string,) = spec.reference.entries.keys()
-    assert qiskit_string == "011"  # reversed
+    assert qiskit_string == "011"
 
 
 # ---------------------------------------------------------------------------
@@ -192,12 +198,11 @@ def test_dj_balanced_reference() -> None:
     assert len(spec.reference.entries) == 1
     assert abs(_prob_sum(spec) - 1.0) < 1e-12
 
-    # Reproduce b_str with the same RNG to cross-check
     rng = np.random.default_rng(10)
     b_str = "".join(str(int(rng.integers(0, 2))) for _ in range(n_input))
     expected_qiskit = b_str[::-1]
 
-    (measured,) = spec.reference.entries.keys()  # type: ignore[misc]
+    (measured,) = spec.reference.entries.keys()
     assert measured == expected_qiskit, f"Expected '{expected_qiskit}', got '{measured}'"
 
     assert spec.objective is not None
@@ -211,14 +216,14 @@ def test_dj_constant_reference() -> None:
 
     spec = get_reference_spec("dj", n_total, balanced=False)
     assert isinstance(spec.reference, SparseReference)
-    (measured,) = spec.reference.entries.keys()  # type: ignore[misc]
+    (measured,) = spec.reference.entries.keys()
     assert measured == "0" * n_input
     assert spec.objective is not None
     assert spec.objective.value == "constant"
 
 
 def test_dj_balanced_measured_qubits_exclude_ancilla() -> None:
-    """The flag ancilla (qubit index n-1 in the full circuit) is not in measured_qubits."""
+    """The flag ancilla is not included in measured_qubits."""
     n_total = 5
     spec = get_reference_spec("dj", n_total, balanced=True)
     assert spec.measured_qubits == list(range(n_total - 1))
@@ -231,6 +236,7 @@ def test_dj_balanced_measured_qubits_exclude_ancilla() -> None:
 
 @pytest.mark.parametrize("n", [3, 5, 7])
 def test_grover_reference_structure(n: int) -> None:
+    """Grover reference is a single-entry sparse distribution for the marked state."""
     spec = get_reference_spec("grover", n)
     assert spec.circuit == "grover"
     assert spec.n_qubits == n
@@ -253,7 +259,7 @@ def test_grover_marked_state_is_all_ones(n: int) -> None:
 
 @pytest.mark.parametrize("n", [3, 5, 7])
 def test_grover_success_probability_in_range(n: int) -> None:
-    """Success probability must be in (0, 1]."""
+    """Grover success probability must be in (0, 1]."""
     spec = get_reference_spec("grover", n)
     assert isinstance(spec.reference, SparseReference)
     (p,) = spec.reference.entries.values()
@@ -262,7 +268,7 @@ def test_grover_success_probability_in_range(n: int) -> None:
 
 @pytest.mark.parametrize("n", [3, 5, 7])
 def test_grover_measured_qubits_exclude_flag(n: int) -> None:
-    """Only the search-register qubits (0..n_search-1) are listed."""
+    """Only the search-register qubits (0..n_search-1) are listed in measured_qubits."""
     spec = get_reference_spec("grover", n)
     assert spec.measured_qubits == list(range(n - 1))
 
@@ -274,6 +280,7 @@ def test_grover_measured_qubits_exclude_flag(n: int) -> None:
 
 @pytest.mark.parametrize("n", [2, 3, 5])
 def test_qpeexact_reference_structure(n: int) -> None:
+    """QPE-exact reference is a single-entry sparse distribution with probability 1."""
     spec = get_reference_spec("qpeexact", n)
     assert spec.circuit == "qpeexact"
     assert spec.n_qubits == n
@@ -285,8 +292,8 @@ def test_qpeexact_reference_structure(n: int) -> None:
 
 @pytest.mark.parametrize("n", [2, 3, 5])
 def test_qpeexact_reference_bitstring_matches_seed(n: int) -> None:
-    """The output bitstring must match the theta derived from random.seed(10)."""
-    n_est = n - 1  # estimation qubits
+    """The output bitstring must match theta derived from random.seed(10)."""
+    n_est = n - 1
 
     random.seed(10)
     theta = 0
@@ -311,6 +318,7 @@ def test_qpeexact_reference_bitstring_matches_seed(n: int) -> None:
 
 
 def test_qpeexact_reference_raises_for_one_qubit() -> None:
+    """QPE-exact requires at least 2 qubits; fewer should raise."""
     with pytest.raises(ValueError, match="at least 2"):
         get_reference_spec("qpeexact", 1)
 
@@ -322,6 +330,7 @@ def test_qpeexact_reference_raises_for_one_qubit() -> None:
 
 @pytest.mark.parametrize("n", [3, 5])
 def test_randomcircuit_reference_kind(n: int) -> None:
+    """Random circuit reference has kind=simulate and no objective."""
     spec = get_reference_spec("randomcircuit", n)
     assert spec.circuit == "randomcircuit"
     assert isinstance(spec.reference, SimulateReference)
@@ -335,6 +344,7 @@ def test_randomcircuit_reference_kind(n: int) -> None:
 
 
 def test_to_dict_sparse() -> None:
+    """SparseReference serialises with kind=sparse and an entries dict."""
     spec = get_reference_spec("ghz", 2)
     d = spec.to_dict()
     assert d["reference"]["kind"] == "sparse"
@@ -343,6 +353,7 @@ def test_to_dict_sparse() -> None:
 
 
 def test_to_dict_uniform() -> None:
+    """UniformReference serialises with kind=uniform and a size field."""
     spec = get_reference_spec("wstate", 3)
     d = spec.to_dict()
     assert d["reference"]["kind"] == "uniform"
@@ -350,13 +361,14 @@ def test_to_dict_uniform() -> None:
 
 
 def test_to_dict_simulate() -> None:
+    """SimulateReference serialises with kind=simulate."""
     spec = get_reference_spec("randomcircuit", 4)
     d = spec.to_dict()
     assert d["reference"]["kind"] == "simulate"
 
 
 def test_to_dict_none_reference() -> None:
-    """NoneReference serialises correctly."""
+    """NoneReference serialises correctly with and without a reason string."""
     ref = NoneReference(reason="no compact form")
     assert ref.to_dict() == {"kind": "none", "reason": "no compact form"}
 
@@ -370,4 +382,4 @@ def test_to_dict_metrics_present() -> None:
     d = spec.to_dict()
     assert "metrics" in d
     assert d["metrics"]["success_probability"]["applicable"] is True
-    assert d["metrics"]["success_probability"]["ideal"] == 1.0
+    assert math.isclose(d["metrics"]["success_probability"]["ideal"], 1.0)
