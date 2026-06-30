@@ -308,6 +308,66 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     assert ops.get("if_else", 0) == expected_if_test
 
 
+@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
+def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
+    """Verify the structure of the dynamic QFT circuit for various qubit counts by comparing to regular QFT."""
+    qc = create_circuit("dynamic_qft", num_qubits)
+    qft = create_circuit("qft", num_qubits).decompose()
+
+    # Check quantum and classical registers
+    assert [(qreg.name, qreg.size) for qreg in qc.qregs] == [(qreg.name, qreg.size) for qreg in qft.qregs]
+    assert [(creg.name, creg.size) for creg in qc.cregs] == [(creg.name, creg.size) for creg in qft.cregs]
+
+    # Track output bit order after QFT swaps
+    wire_sources = list(range(num_qubits))
+    for instruction in qft.data:
+        if instruction.operation.name == "swap":
+            left, right = (qft.find_bit(qubit).index for qubit in instruction.qubits)
+            wire_sources[left], wire_sources[right] = wire_sources[right], wire_sources[left]
+
+    output_bit_by_source = {}
+    for instruction in qft.data:
+        if instruction.operation.name == "measure":
+            wire = qft.find_bit(instruction.qubits[0]).index
+            output_bit_by_source[wire_sources[wire]] = qft.find_bit(instruction.clbits[0]).index
+
+    ops: OrderedDict[str, int] = qc.count_ops()
+
+    assert ops.get("measure", 0) == num_qubits
+
+    # Check measurement order
+    assert [
+        (qc.find_bit(instruction.qubits[0]).index, qc.find_bit(instruction.clbits[0]).index)
+        for instruction in qc.data
+        if instruction.operation.name == "measure"
+    ] == list(output_bit_by_source.items())
+
+    # Check conditional phase gates
+    expected_phases = [
+        (
+            output_bit_by_source[qft.find_bit(instruction.qubits[0]).index],
+            qft.find_bit(instruction.qubits[1]).index,
+            instruction.operation.params[0],
+        )
+        for instruction in qft.data
+        if instruction.operation.name == "cp"
+    ]
+    actual_phases = []
+    for instruction in qc.data:
+        if not isinstance(instruction.operation, IfElseOp):
+            continue
+        assert len(instruction.operation.blocks[0].data) == 1
+        conditional_instruction = instruction.operation.blocks[0].data[0]
+        assert conditional_instruction.operation.name == "p"
+        actual_phases.append((
+            qc.find_bit(instruction.clbits[0]).index,
+            qc.find_bit(instruction.qubits[0]).index,
+            conditional_instruction.operation.params[0],
+        ))
+
+    assert actual_phases == expected_phases
+
+
 @pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
 def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     """Test that Shor's 9-qubit code circuits have the expected structure.
