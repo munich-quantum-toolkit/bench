@@ -20,7 +20,7 @@ from ._registry import register_benchmark
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Dynamic Quantum Fourier Transform algorithm.
 
-    More details on the “Semiclassical Fourier Transform for Quantum Computation” can be seen in https://arxiv.org/abs/quant-ph/9511007
+    More details on the “Semiclassical Fourier Transform for Quantum Computation” can be found in https://arxiv.org/abs/quant-ph/9511007
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
