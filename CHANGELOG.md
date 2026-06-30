@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- ✨ Add Dynamic Quantum Fourier Transform benchmark ([#XXX]) ([**@flowerthrower**])
+- ✨ Add Dynamic Quantum Fourier Transform benchmark ([#946]) ([**@flowerthrower**])
 - ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925]) ([**@johanneswittmann9**])
 
 ### Fixed
