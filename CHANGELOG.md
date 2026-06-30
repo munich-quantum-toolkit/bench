@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- ✨ Add Dynamic Quantum Fourier Transform benchmark ([#XXX]) ([**@flowerthrower**])
 - ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925]) ([**@johanneswittmann9**])
 
 ### Fixed
@@ -138,6 +139,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#814]: https://github.com/munich-quantum-toolkit/bench/pull/814
 [#805]: https://github.com/munich-quantum-toolkit/bench/pull/805
 [#803]: https://github.com/munich-quantum-toolkit/bench/pull/803
+[#798]: https://github.com/munich-quantum-toolkit/bench/pull/798
 [#794]: https://github.com/munich-quantum-toolkit/bench/pull/794
 [#731]: https://github.com/munich-quantum-toolkit/bench/pull/731
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
