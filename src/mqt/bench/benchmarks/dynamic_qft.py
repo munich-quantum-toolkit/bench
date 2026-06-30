@@ -29,17 +29,18 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         QuantumCircuit: a quantum circuit implementing the Dynamic Quantum Fourier Transform algorithm
     """
     q = QuantumRegister(num_qubits, "q")
-    c = ClassicalRegister(num_qubits, "c")
-    qc = QuantumCircuit(q, c, name="dynamic_qft")
+    meas = ClassicalRegister(num_qubits, "meas")
+    qc = QuantumCircuit(q, meas, name="dynamic_qft")
 
     # Mirror index order of regular "qft" benchmark
     for qubit in reversed(range(num_qubits)):
+        for source in reversed(range(qubit + 1, num_qubits)):
+            source_bit = num_qubits - source - 1
+            with qc.if_test((meas[source_bit], 1)):
+                qc.p(np.pi * (2.0 ** (qubit - source)), q[qubit])
+
         bit = num_qubits - qubit - 1
         qc.h(q[qubit])
-        qc.measure(q[qubit], c[bit])
-
-        for target in reversed(range(qubit)):
-            with qc.if_test((c[bit], 1)):
-                qc.p(np.pi * (2.0 ** (target - qubit)), q[target])
+        qc.measure(q[qubit], meas[bit])
 
     return qc
