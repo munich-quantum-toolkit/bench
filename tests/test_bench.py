@@ -308,6 +308,33 @@ def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
     assert ops.get("if_else", 0) == expected_if_test
 
 
+@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
+def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
+    """Verify the structure of the dynamic QFT circuit for various qubit counts."""
+    qc = create_circuit("dynamic_qft", num_qubits)
+
+    # Check quantum and classical registers
+    assert [(qreg.name, qreg.size) for qreg in qc.qregs] == [("q", num_qubits)]
+    assert [(creg.name, creg.size) for creg in qc.cregs] == [("meas", num_qubits)]
+
+    ops: OrderedDict[str, int] = qc.count_ops()
+
+    # Check gate counts
+    expected_phase_gates = num_qubits * (num_qubits - 1) // 2
+    assert ops.get("h", 0) == num_qubits
+    assert ops.get("measure", 0) == num_qubits
+    assert ops.get("if_else", 0) == expected_phase_gates
+    assert (
+        sum(
+            inst.operation.name == "p"
+            for instruction in qc.data
+            if isinstance(instruction.operation, IfElseOp)
+            for inst in instruction.operation.blocks[0].data
+        )
+        == expected_phase_gates
+    )
+
+
 @pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
 def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
     """Test that Shor's 9-qubit code circuits have the expected structure.
