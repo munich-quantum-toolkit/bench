@@ -178,36 +178,14 @@ class ShorTranspiler:
         ``approximation_degree=0.95``. This means QFT instructions are encoded
         as approximate circuits rather than exact QFT implementations.
         """
-        # Firstly, expand high level gates, such as QFTGate()
-        normalized = QuantumCircuit(*self.original_qc.qregs, *self.original_qc.cregs)
-        for instruction in self.original_qc.data:
-            gate_name = instruction.operation.name
-
-            if gate_name == "qft":
-                tmp = QuantumCircuit(len(instruction.qubits))
-                tmp.append(instruction.operation, range(len(instruction.qubits)))
-
-                tmp = transpile(
-                    tmp,
-                    basis_gates=["h", "x", "z", "s", "t", "cx", "cz"],
-                    optimization_level=3,
-                    approximation_degree=0.95,
-                )
-
-                normalized.compose(
-                    tmp,
-                    qubits=list(instruction.qubits),
-                    inplace=True,
-                )
-
-            else:
-                normalized.append(
-                    instruction.operation,
-                    instruction.qubits,
-                    instruction.clbits,
-                )
-
-        self.original_qc = normalized
+        # Circuit-wide transpile to the supported basis gates
+        self.original_qc = transpile(
+            self.original_qc,
+            basis_gates=["h", "x", "z", "s", "t", "cx", "cz"],
+            optimization_level=3,
+            approximation_degree=0.95,
+            seed_transpiler=10,
+        )
 
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name

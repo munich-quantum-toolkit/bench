@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925]) ([**@johanneswittmann9**])
 
+### Changed
+
+- ⚡ Improve `ShorTranspiler` to transpile input circuits to the target basis using a circuit-wide compilation pass instead of individual manual gate decomposition.
+
 ### Fixed
 
 - 🐛 Make IQM Crystal device connectivity bidirectional ([#914]) ([**@flowerthrower**])
