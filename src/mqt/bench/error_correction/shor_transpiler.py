@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit import AncillaRegister
+from qiskit.circuit import AncillaRegister, Instruction
 
 # these functions are reused from the benchmark and they should be extendable therefore they were moved into a dedicated block
 from mqt.bench.components.shor_circuit_components import (
@@ -178,36 +178,14 @@ class ShorTranspiler:
         ``approximation_degree=0.95``. This means QFT instructions are encoded
         as approximate circuits rather than exact QFT implementations.
         """
-        # Firstly, expand high level gates, such as QFTGate()
-        normalized = QuantumCircuit(*self.original_qc.qregs, *self.original_qc.cregs)
-        for instruction in self.original_qc.data:
-            gate_name = instruction.operation.name
-
-            if gate_name == "qft":
-                tmp = QuantumCircuit(len(instruction.qubits))
-                tmp.append(instruction.operation, range(len(instruction.qubits)))
-
-                tmp = transpile(
-                    tmp,
-                    basis_gates=["h", "x", "z", "s", "t", "cx", "cz"],
-                    optimization_level=3,
-                    approximation_degree=0.95,
-                )
-
-                normalized.compose(
-                    tmp,
-                    qubits=list(instruction.qubits),
-                    inplace=True,
-                )
-
-            else:
-                normalized.append(
-                    instruction.operation,
-                    instruction.qubits,
-                    instruction.clbits,
-                )
-
-        self.original_qc = normalized
+        # Circuit-wide transpile to the supported basis gates
+        self.original_qc = transpile(
+            self.original_qc,
+            basis_gates=["h", "x", "z", "s", "t", "tdg", "cx", "cz"],
+            optimization_level=3,
+            approximation_degree=0.95,
+            seed_transpiler=10,
+        )
 
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
@@ -345,19 +323,28 @@ class ShorTranspiler:
         )
 
     def _logical_t(self, logical_qubit_index: int) -> None:
-        """Apply logical T via |A>-state teleportation. Correction: logical S."""
+        """Apply logical T via magic state injection."""
         self.t_gate_count += 1
-
-        def s_correction() -> None:
-            self._logical_s(logical_qubit_index)
-
-        self._apply_teleportation_gadget(
-            logical_qubit_index=logical_qubit_index,
-            phase=np.pi / 4,
-            ancilla_name=f"anc_t_{self.t_gate_count}",
-            measure_name=f"creg_t_{self.t_gate_count}",
-            correction_callback=s_correction,
+        t_magic_inst = Instruction(
+            name="shor_logical_t_magic_state_injection",
+            num_qubits=9,
+            num_clbits=0,
+            params=[],
         )
+        self.transpiled_qc.append(t_magic_inst, self.logical_qubits[logical_qubit_index].data)
+        self.insert_syndromes(logical_qubit_index)
+
+    def _logical_tdg(self, logical_qubit_index: int) -> None:
+        """Apply logical T-dagger via magic state injection."""
+        self.t_gate_count += 1
+        tdg_magic_inst = Instruction(
+            name="shor_logical_t_magic_state_injection_dg",
+            num_qubits=9,
+            num_clbits=0,
+            params=[],
+        )
+        self.transpiled_qc.append(tdg_magic_inst, self.logical_qubits[logical_qubit_index].data)
+        self.insert_syndromes(logical_qubit_index)
 
     @staticmethod
     def _prepare_magic(qc: QuantumCircuit, physical_ancilla_register: QuantumRegister, phase: float) -> None:

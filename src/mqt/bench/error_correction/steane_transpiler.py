@@ -312,7 +312,6 @@ class SteaneTranspiler:
             self.insert_syndromes(control_logical_qubit_index)
             self.insert_syndromes(target_logical_qubit_index)
 
-    # it could use the hadamards with cnots
     def _handle_cz(self, instruction: CircuitInstruction) -> None:
         """Handle CZ instruction."""
         control_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
