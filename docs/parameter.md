@@ -24,10 +24,12 @@ from mqt.bench.benchmarks import get_available_benchmark_names
 print(get_available_benchmark_names())
 ```
 
-- `level`: BenchmarkLevel.ALG, BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED
+- `level`: BenchmarkLevel.ALG, BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES,
+  BenchmarkLevel.MAPPED
 - `circuit_size`: Define the number of qubits in the circuit.
-- `target`: Target, which can also be instantiated based on gatesets using `get_target_for_gateset(gateset_name)` or based on a device using `get_device(device_name)`.
-  Possible values for `gateset_name`:
+- `target`: Target, which can also be instantiated based on gatesets using
+  `get_target_for_gateset(gateset_name)` or based on a device using
+  `get_device(device_name)`. Possible values for `gateset_name`:
 
 ```{code-cell} ipython3
 :tags: [hide-input]
@@ -50,8 +52,10 @@ print(get_available_device_names())
 (required for "mapped" level)
 
 - `opt_level`: Optimization level for `"qiskit"` (`0`-`3`).
-- `random_parameters`: Assign random parameters to the circuit's parameters if they exist.
-- `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of the benchmark.
+- `random_parameters`: Assign random parameters to the circuit's parameters if
+  they exist.
+- `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
+  the benchmark.
 
 ## Native Gate-Set Support
 
@@ -77,4 +81,6 @@ for num, device_name in enumerate(get_available_device_names()):
     print(f"{num+1}: {device_name} with {get_device(device_name).num_qubits} qubits")
 ```
 
-Examples how to use the {func}`~.mqt.bench.get_benchmark` method for all four abstraction levels can be found on the {doc}`Quickstart jupyter notebook <quickstart>`.
+Examples how to use the {func}`~.mqt.bench.get_benchmark` method for all four
+abstraction levels can be found on the
+{doc}`Quickstart jupyter notebook <quickstart>`.

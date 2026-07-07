@@ -62,7 +62,11 @@ qc_mapped_level.draw(output="mpl")
 
 ## Mirror Circuits
 
-Mirror circuits replicate a given benchmark circuit and its mirror image (inverse) concatenated together. This is useful for performance benchmarking because the ideal final state is known (all qubits should return to their initial state), making deviations easy to detect. Here, we mirror the circuit obtained in the {ref}`mapped-level` section.
+Mirror circuits replicate a given benchmark circuit and its mirror image
+(inverse) concatenated together. This is useful for performance benchmarking
+because the ideal final state is known (all qubits should return to their
+initial state), making deviations easy to detect. Here, we mirror the circuit
+obtained in the {ref}`mapped-level` section.
 
 ```{code-cell} ipython3
 qc_mirrored = get_benchmark(
@@ -78,7 +82,9 @@ qc_mirrored.draw(output="mpl")
 
 ## Self-defined Circuits
 
-Sometimes you want to derive benchmark circuits from an original circuit that you created yourself. You can create a `qiskit.QuantumCircuit`, pass it directly to `get_benchmark`, and let MQT Bech compile it for your chosen target backend.
+Sometimes you want to derive benchmark circuits from an original circuit that
+you created yourself. You can create a `qiskit.QuantumCircuit`, pass it directly
+to `get_benchmark`, and let MQT Bech compile it for your chosen target backend.
 
 ```{code-cell} ipython3
 from qiskit import QuantumCircuit
@@ -93,7 +99,9 @@ qc_circuit.draw(output="mpl")
 
 ## Self-defined Targets
 
-You can also provide a target manually. Here we build a 5‑qubit `GenericBackendV2` with a custom basis and attach a short description before feeding it into `get_benchmark`.
+You can also provide a target manually. Here we build a 5‑qubit
+`GenericBackendV2` with a custom basis and attach a short description before
+feeding it into `get_benchmark`.
 
 ```{code-cell} ipython3
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -115,7 +123,9 @@ qc_target.draw(output="mpl")
 
 ## Random and Symbolic Parameters
 
-Variational benchmarks such as QAOA require sets of real parameters. MQT Bench can either choose random numeric values for you (default) or leave the parameters symbolic so that you can optimize them later.
+Variational benchmarks such as QAOA require sets of real parameters. MQT Bench
+can either choose random numeric values for you (default) or leave the
+parameters symbolic so that you can optimize them later.
 
 ### Random Parameters (Default)
 
@@ -128,7 +138,8 @@ qc_random.draw(output="mpl")
 
 ### Symbolic Parameters
 
-Set `random_parameters=False` to keep the parameters symbolic instead of sampling them.
+Set `random_parameters=False` to keep the parameters symbolic instead of
+sampling them.
 
 ```{code-cell} ipython3
 qc_symbolic = get_benchmark(benchmark="qaoa", level=BenchmarkLevel.ALG, circuit_size=2, random_parameters=False)
@@ -137,7 +148,8 @@ qc_symbolic.draw(output="mpl")
 
 ## Output Formats
 
-The `save_circuit` function lets you export circuits in several industry‑standard formats so that they can be run or analyzed by other tools.
+The `save_circuit` function lets you export circuits in several
+industry‑standard formats so that they can be run or analyzed by other tools.
 
 ### OpenQASM2
 
