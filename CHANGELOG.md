@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- 🐛 Seed `GenericBackendV2` used by `get_target_for_gateset` to ensure reproducibility ([#952]) ([**@denialhaag**])
 - 🐛 Make IQM Crystal device connectivity bidirectional ([#914]) ([**@flowerthrower**])
 
 ## [2.2.2] - 2026-04-20
@@ -131,6 +132,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#952]: https://github.com/munich-quantum-toolkit/bench/pull/952
 [#946]: https://github.com/munich-quantum-toolkit/bench/pull/946
 [#925]: https://github.com/munich-quantum-toolkit/bench/pull/925
 [#914]: https://github.com/munich-quantum-toolkit/bench/pull/914
