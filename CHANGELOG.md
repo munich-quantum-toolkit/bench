@@ -4,20 +4,27 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on a mixture of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Common Changelog](https://common-changelog.org).
-This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), with the exception that minor releases may include breaking changes.
+The format is based on a mixture of
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
+[Common Changelog](https://common-changelog.org). This project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html), with the exception
+that minor releases may include breaking changes.
 
 ## [Unreleased]
 
 ### Added
 
-- ✨ Add Dynamic Quantum Fourier Transform benchmark ([#946]) ([**@flowerthrower**])
-- ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925]) ([**@johanneswittmann9**])
+- ✨ Add Dynamic Quantum Fourier Transform benchmark ([#946])
+  ([**@flowerthrower**])
+- ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925])
+  ([**@johanneswittmann9**])
 
 ### Fixed
 
-- 🐛 Seed `GenericBackendV2` used by `get_target_for_gateset` to ensure reproducibility ([#952]) ([**@denialhaag**])
-- 🐛 Make IQM Crystal device connectivity bidirectional ([#914]) ([**@flowerthrower**])
+- 🐛 Seed `GenericBackendV2` used by `get_target_for_gateset` to ensure
+  reproducibility ([#952]) ([**@denialhaag**])
+- 🐛 Make IQM Crystal device connectivity bidirectional ([#914])
+  ([**@flowerthrower**])
 
 ## [2.2.2] - 2026-04-20
 
@@ -27,7 +34,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.2.1] - 2026-03-23
 
-Rerelease of 2.2.0: no code changes. The CD pipeline failed for v2.2.0 and release artifacts are immutable, so this patch version republishes the same release contents.
+Rerelease of 2.2.0: no code changes. The CD pipeline failed for v2.2.0 and
+release artifacts are immutable, so this patch version republishes the same
+release contents.
 
 ## [2.2.0] - 2026-03-23
 
@@ -35,19 +44,22 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#220)._
 
 ### Added
 
-- ✨ Add support for compiling `if_test` for all gatesets and devices ([#805]) ([**@adnathanail**])
+- ✨ Add support for compiling `if_test` for all gatesets and devices ([#805])
+  ([**@adnathanail**])
 - ✨ Add benchmark for dynamical GHZ state generation ([#816]) ([**@TomasVF**])
 - ✨ Add Shor's 9 Qubit Code benchmark ([#803]) ([**@adnathanail**])
 - ✨ Add 7 Qubit Steane Code benchmark ([#814]) ([**@adnathanail**])
 
 ### Changed
 
-- 🏷️ Replace `mypy` with `ty` for static type checking ([#794]) ([**@burgholzer**])
+- 🏷️ Replace `mypy` with `ty` for static type checking ([#794])
+  ([**@burgholzer**])
 - ⬆️ Increase minimum Qiskit version to 2.0.0 ([#803]) ([**@adnathanail**])
 
 ### Fixed
 
-- 🐛 Fixed `num_state_qubits` calculation in `multiplier` and `vbe_ripple_carry_adder` circuits ([#865]) ([**@simon1hofmann**])
+- 🐛 Fixed `num_state_qubits` calculation in `multiplier` and
+  `vbe_ripple_carry_adder` circuits ([#865]) ([**@simon1hofmann**])
 
 ## [2.1.0] - 2025-10-18
 
@@ -63,7 +75,8 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
 
 ### Fixed
 
-- 🐛 Fix layout preservation and ensure native gate compliance for mirror circuit generation ([#709]) ([**@soroushfathi**], [**@burgholzer**])
+- 🐛 Fix layout preservation and ensure native gate compliance for mirror
+  circuit generation ([#709]) ([**@soroushfathi**], [**@burgholzer**])
 
 ### Removed
 
@@ -73,8 +86,10 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#210)._
 
 ### Changed
 
-- 🎨 Rename CLI from `mqt.bench.cli` to `mqt-bench` ([#625]) ([**@burgholzer**], [**@nquetschlich**])
-- 📝 Rewrite the usage documentation to include the CLI ([#625]) ([**@burgholzer**], [**@nquetschlich**])
+- 🎨 Rename CLI from `mqt.bench.cli` to `mqt-bench` ([#625]) ([**@burgholzer**],
+  [**@nquetschlich**])
+- 📝 Rewrite the usage documentation to include the CLI ([#625])
+  ([**@burgholzer**], [**@nquetschlich**])
 
 ## [2.0.0] - 2025-06-24
 
@@ -82,38 +97,57 @@ _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#200)._
 
 ### Added
 
-- ✨ Add mirror circuit option for all benchmarks ([#577], [#603]) ([**@CreativeBinBag**], [**@burgholzer**], [**@nquetschlich**])
-- ✨ Add arithmetic benchmarks ([#586]) ([**@simon1hofmann**], [**@burgholzer**])
-- ✨ Add registry for benchmarks, devices, and native gatesets ([#585], [#572]) ([**@simon1hofmann**], [**@burgholzer**])
-- ✨ Add symbolic parameters for variational benchmarks ([#581]) ([**@nquetschlich**], [**@burgholzer**])
-- ✨ Add distinct `get_benchmark` function per level ([#571]) ([**@simon1hofmann**], [**@burgholzer**])
+- ✨ Add mirror circuit option for all benchmarks ([#577], [#603])
+  ([**@CreativeBinBag**], [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add arithmetic benchmarks ([#586]) ([**@simon1hofmann**],
+  [**@burgholzer**])
+- ✨ Add registry for benchmarks, devices, and native gatesets ([#585], [#572])
+  ([**@simon1hofmann**], [**@burgholzer**])
+- ✨ Add symbolic parameters for variational benchmarks ([#581])
+  ([**@nquetschlich**], [**@burgholzer**])
+- ✨ Add distinct `get_benchmark` function per level ([#571])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add HHL algorithm ([#582]) ([**@nquetschlich**], [**@burgholzer**])
-- ✨ Add support for compiling to the Clifford+T gateset ([#555]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add support for compiling to the Clifford+T gateset ([#555])
+  ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
 - ✨ Add two benchmarks from BMW's QUARK framework ([#541]) ([**@fkiwit**])
-- ✨ Add support for exporting to OpenQASM 3 ([#518]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
-- ✨ Add support for exporting to Qiskit's QPY ([#518]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
-- ✨ Add Bernstein-Vazirani algorithm ([#505]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add support for exporting to OpenQASM 3 ([#518]) ([**@simon1hofmann**],
+  [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add support for exporting to Qiskit's QPY ([#518]) ([**@simon1hofmann**],
+  [**@burgholzer**], [**@nquetschlich**])
+- ✨ Add Bernstein-Vazirani algorithm ([#505]) ([**@simon1hofmann**],
+  [**@burgholzer**], [**@nquetschlich**])
 
 ### Changed
 
-- ✨ Call `transpile` for optimization at the target-independent level ([#580]) ([**@simon1hofmann**], [**@burgholzer**])
-- 🎨 Adjust supported IonQ Devices and update all Calibration Data ([#570]) ([**@nquetschlich**], [**@burgholzer**])
-- 🎨 Correct the Rigetti gateset to only support RX gate with specific and not arbitrary angles and updated the calibration data ([#570]) ([**@nquetschlich**], [**@burgholzer**])
-- ✨ Switch device and gateset representation to Qiskit's Target ([#560]) ([**@burgholzer**], [**@nquetschlich**])
+- ✨ Call `transpile` for optimization at the target-independent level ([#580])
+  ([**@simon1hofmann**], [**@burgholzer**])
+- 🎨 Adjust supported IonQ Devices and update all Calibration Data ([#570])
+  ([**@nquetschlich**], [**@burgholzer**])
+- 🎨 Correct the Rigetti gateset to only support RX gate with specific and not
+  arbitrary angles and updated the calibration data ([#570])
+  ([**@nquetschlich**], [**@burgholzer**])
+- ✨ Switch device and gateset representation to Qiskit's Target ([#560])
+  ([**@burgholzer**], [**@nquetschlich**])
 - 📝 Update and modernize project documentation ([#566]) ([**@simon1hofmann**])
 - 📝 Add CHANGELOG and UPGRADING info ([#567]) ([**@simon1hofmann**])
-- 🎨 Shorten and improve the generation logic of the Shor benchmark ([#548]) ([**@simon1hofmann**])
+- 🎨 Shorten and improve the generation logic of the Shor benchmark ([#548])
+  ([**@simon1hofmann**])
 - 🚚 Rebrand and move to MQT GitHub organization ([#544]) ([**@simon1hofmann**])
 - ✨ Re-add Python 3.9 support ([#531]) ([**@simon1hofmann**])
-- 🎨 Rename random circuit and VQE ansatz circuit benchmarks ([#508]) ([**@simon1hofmann**], [**@nquetschlich**])
-- 🎨 Re-implement amplitude estimation without Qiskit Application modules ([#506]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
+- 🎨 Rename random circuit and VQE ansatz circuit benchmarks ([#508])
+  ([**@simon1hofmann**], [**@nquetschlich**])
+- 🎨 Re-implement amplitude estimation without Qiskit Application modules
+  ([#506]) ([**@simon1hofmann**], [**@burgholzer**], [**@nquetschlich**])
 
 ### Removed
 
 - 🔥 Remove Generation Logic for Webpage ([#538]) ([**@nquetschlich**])
 - 🔥 Remove TKET-related functionality ([#519], [#510]) ([**@simon1hofmann**])
-- 🔥 Remove Qiskit Application-based benchmarks ([#507]) ([**@simon1hofmann**], [**@nquetschlich**])
-- 🔥 Remove `benchviewer` and `evaluation` modules ([#504]) ([**@burgholzer**], [**@nquetschlich**])
+- 🔥 Remove Qiskit Application-based benchmarks ([#507]) ([**@simon1hofmann**],
+  [**@nquetschlich**])
+- 🔥 Remove `benchviewer` and `evaluation` modules ([#504]) ([**@burgholzer**],
+  [**@nquetschlich**])
 
 ## [1.1.9] - 2024-12-01
 
@@ -147,7 +181,6 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#709]: https://github.com/munich-quantum-toolkit/bench/pull/709
 [#705]: https://github.com/munich-quantum-toolkit/bench/pull/705
 [#671]: https://github.com/munich-quantum-toolkit/bench/pull/671
-[#666]: https://github.com/munich-quantum-toolkit/bench/pull/666
 [#625]: https://github.com/munich-quantum-toolkit/bench/pull/625
 [#603]: https://github.com/munich-quantum-toolkit/bench/pull/603
 [#586]: https://github.com/munich-quantum-toolkit/bench/pull/586

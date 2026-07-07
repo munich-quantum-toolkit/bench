@@ -13,7 +13,8 @@ mystnb:
 
 # Supported Benchmark Algorithms
 
-The current release includes the following benchmark algorithms, with each abbreviated `benchmark_name` mapped to its full description in the table below:
+The current release includes the following benchmark algorithms, with each
+abbreviated `benchmark_name` mapped to its full description in the table below:
 
 ```{code-cell} ipython3
 :tags: [hide-input]
@@ -51,4 +52,6 @@ html = (
 HTML(html)
 ```
 
-See the [benchmark description](https://www.cda.cit.tum.de/mqtbench/benchmark_description) for further details on the individual benchmarks.
+See the
+[benchmark description](https://www.cda.cit.tum.de/mqtbench/benchmark_description)
+for further details on the individual benchmarks.
