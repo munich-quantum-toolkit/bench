@@ -452,7 +452,6 @@ Afterward, navigate to the
 GitHub, edit the release draft if necessary, and publish the release.
 
 <!--- Links --->
-
 [nox]: https://nox.thea.codes/en/stable/
 [prek]: https://prek.j178.dev
 [ruff]: https://docs.astral.sh/ruff/
