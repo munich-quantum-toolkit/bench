@@ -127,14 +127,6 @@ class ShorTranspiler:
         # Apply encoding for each logical qubit
         for logical_qubit in self.logical_qubits:
             self._apply_shor_encoding(self.transpiled_qc, logical_qubit.data)
-        self.transpiled_qc.barrier(label="Encoding")
-
-    def decode_qubits(self) -> None:
-        """Apply Shor 9-qubit decoding to each logical qubit."""
-        self.transpiled_qc.barrier()
-        for logical_qubit in self.logical_qubits:
-            self._apply_shor_decoding(self.transpiled_qc, logical_qubit.data)
-        self.transpiled_qc.barrier()
 
     @staticmethod
     def _apply_shor_encoding(qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
@@ -186,7 +178,6 @@ class ShorTranspiler:
             approximation_degree=0.95,
             seed_transpiler=10,
         )
-
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             handler_name = f"_logical_{gate_name}"
@@ -379,9 +370,7 @@ class ShorTranspiler:
     def _logical_cz(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
         """Apply logical CZ (implemented as H-CX-H)."""
         self._logical_h(target_logical_qubit_index)
-        self.transpiled_qc.barrier()
         self._logical_cx(control_logical_qubit_index, target_logical_qubit_index)
-        self.transpiled_qc.barrier()
         self._logical_h(target_logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
@@ -390,16 +379,12 @@ class ShorTranspiler:
             return
 
         qubit = self.logical_qubits[logical_qubit_index]
-        self.transpiled_qc.barrier()
 
         self._extract_bit_flip_syndromes(qubit)
-        self.transpiled_qc.barrier()
 
         self._extract_phase_flip_syndromes(qubit)
-        self.transpiled_qc.barrier()
 
         self._apply_error_corrections(qubit)
-        self.transpiled_qc.barrier()
 
     def _extract_bit_flip_syndromes(self, qubit: ShorLogicalQubit) -> None:
         """Extract bit-flip syndromes for the three blocks."""
@@ -437,7 +422,7 @@ class ShorTranspiler:
             qubit.bit_flip_syndrome,
             qubit.bit_flip_measure,
         )
-        self.transpiled_qc.barrier()
+
         apply_nine_qubit_shors_code_phase_flip_correction(
             self.transpiled_qc,
             qubit.data,
