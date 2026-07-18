@@ -500,6 +500,7 @@ def test_error_correction_transpiler_circuit_structure(
     elif code == "steane":
         transpiler = SteaneTranspiler(qc, add_syndromes=True)
     qc = transpiler.transpile()  # pyright: ignore[reportPossiblyUnboundVariable]
+    qc = transpiler.transpiled_qc  # pyright: ignore[reportPossiblyUnboundVariable]
 
     qubit_code_factor = -1
     classical_code_factor = -1
