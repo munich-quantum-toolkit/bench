@@ -10,10 +10,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import ClassVar
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit import AncillaRegister
+from qiskit.circuit import AncillaRegister, CircuitInstruction, Gate
+from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    HGate,
+    IGate,
+    SdgGate,
+    SGate,
+    XGate,
+    YGate,
+    ZGate,
+)
 
 from mqt.bench.components.steane_circuit_components import (
     apply_seven_qubit_steane_code_correction,
@@ -22,36 +33,21 @@ from mqt.bench.components.steane_circuit_components import (
     get_seven_qubit_steane_code_syndrome_extraction_circuit,
 )
 
-if TYPE_CHECKING:
-    from qiskit.circuit import CircuitInstruction
-
-from qiskit.circuit.library import (
-    XGate,
-    YGate,
-    ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    IGate,
-)
 
 class SteaneTranspiler:
     """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code."""
-    TRANSVERSAL_PHYSICAL_GATES = {
+
+    TRANSVERSAL_PHYSICAL_GATES: ClassVar[dict[str, Gate]] = {
         "id": IGate(),
         "x": XGate(),
         "y": YGate(),
         "z": ZGate(),
         "h": HGate(),
-
         # Our Steane convention:
         # logical S   = physical Sdg on every qubit
         # logical Sdg = physical S on every qubit
         "s": SdgGate(),
         "sdg": SGate(),
-
         "cx": CXGate(),
         "cz": CZGate(),
     }
@@ -82,10 +78,9 @@ class SteaneTranspiler:
             "cz": self._handle_transversal,
             "cy": self._handle_cy,
             "swap": self._handle_swap,
-            "dcx":self._handle_dcx,
-            "t":self._handle_t,
-            "tdg":self._handle_tdg,
-
+            "dcx": self._handle_dcx,
+            "t": self._handle_t,
+            "tdg": self._handle_tdg,
         }
 
     def transpile(self) -> QuantumCircuit:
@@ -99,6 +94,32 @@ class SteaneTranspiler:
         Returns:
              The transpiled fault-tolerant circuit.
         """
+        # Firstly, expand high level gates, such as QFTGate()
+        self.original_qc = transpile(
+            self.original_qc,
+            basis_gates=[
+                "id",
+                "x",
+                "y",
+                "z",
+                "h",
+                "s",
+                "sdg",
+                "cx",
+                "sx",
+                "sxdg",
+                "cy",
+                "cz",
+                "swap",
+                "dcx",
+                "t",
+                "tdg",
+            ],
+            optimization_level=3,
+            approximation_degree=0.95,
+            seed_transpiler=10,
+        )
+
         self.encode_qubits()
         self.replace_gates()
         return self.transpiled_qc
@@ -151,16 +172,6 @@ class SteaneTranspiler:
         ``approximation_degree=0.95``. This means QFT instructions are encoded
         as approximate circuits rather than exact QFT implementations.
         """
-        # Firstly, expand high level gates, such as QFTGate()
-
-        self.original_qc = transpile(
-            self.original_qc,
-            basis_gates=["id", "x", "y", "z", "h", "s", "sdg", "cx", "sx", "sxdg", "cy", "cz", "swap", "dcx", "t", "tdg"],
-            optimization_level=3,
-            approximation_degree=0.95,
-            seed_transpiler=10,
-        )
-
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             if gate_name in self.gate_handlers:
@@ -210,26 +221,16 @@ class SteaneTranspiler:
         try:
             physical_operation = self.TRANSVERSAL_PHYSICAL_GATES[operation_name]
         except KeyError as error:
-            raise ValueError(
-                f"Gate '{operation_name}' is not configured as transversal."
-            ) from error
+            msg = f"Gate '{operation_name}' is not configured as transversal."
+            raise ValueError(msg) from error
 
-        logical_qubit_indices = [
-            self.original_qc.qubits.index(qubit)
-            for qubit in instruction.qubits
-        ]
+        logical_qubit_indices = [self.original_qc.qubits.index(qubit) for qubit in instruction.qubits]
 
-        physical_data_registers = [
-            self.physical_data_registers[index]
-            for index in logical_qubit_indices
-        ]
+        physical_data_registers = [self.physical_data_registers[index] for index in logical_qubit_indices]
 
         block_size = len(physical_data_registers[0])
         for physical_qubit_index in range(block_size):
-            physical_qubits = [
-                register[physical_qubit_index]
-                for register in physical_data_registers
-            ]
+            physical_qubits = [register[physical_qubit_index] for register in physical_data_registers]
 
             self.transpiled_qc.append(
                 physical_operation,
@@ -240,8 +241,8 @@ class SteaneTranspiler:
             for logical_qubit_index in dict.fromkeys(logical_qubit_indices):
                 self.insert_syndromes(logical_qubit_index)
 
-    def _handle_cy(self, instruction: CircuitInstruction):
-        """Implement CY gate via S and Sdg on target and CX inbetween """
+    def _handle_cy(self, instruction: CircuitInstruction) -> None:
+        """Implement CY gate via S and Sdg on target and CX inbetween."""
         self._handle_transversal(
             CircuitInstruction(
                 operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["s"],
@@ -258,8 +259,8 @@ class SteaneTranspiler:
             )
         )
 
-    def _handle_swap(self, instruction: CircuitInstruction):
-        """Implement Swap via 3 CX """
+    def _handle_swap(self, instruction: CircuitInstruction) -> None:
+        """Implement Swap via 3 CX."""
         self._handle_transversal(
             CircuitInstruction(
                 operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
@@ -282,8 +283,8 @@ class SteaneTranspiler:
             )
         )
 
-    def _handle_dcx(self, instruction: CircuitInstruction):
-        """Implement CY gate via S and Sdg on target and CX inbetween """
+    def _handle_dcx(self, instruction: CircuitInstruction) -> None:
+        """Implement CY gate via S and Sdg on target and CX inbetween."""
         self._handle_transversal(
             CircuitInstruction(
                 operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
