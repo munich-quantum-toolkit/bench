@@ -205,6 +205,7 @@ def test_error_correction_circuit_structure(logical_qubits: int, code: str, alg:
 
 
 def test_all_gates_transpile_steane() -> None:
+    """Simple test to check that the circuit transpiles."""
     qc = QuantumCircuit(2)
     qc.id(0)
     qc.x(0)
@@ -233,6 +234,7 @@ def test_all_gates_transpile_steane() -> None:
 
 
 def test_all_gates_transpile_shor() -> None:
+    """Simple test to check that the circuit transpiles."""
     qc = QuantumCircuit(2)
     qc.id(0)
     qc.x(0)
