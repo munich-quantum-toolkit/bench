@@ -204,57 +204,16 @@ def test_error_correction_circuit_structure(logical_qubits: int, code: str, alg:
     # assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
-def test_all_gates_transpile_steane() -> None:
+@pytest.mark.parametrize("code", ["steane", "shor"])
+@pytest.mark.parametrize("alg", ["bv", "ghz", "graphstate", "qft"])
+@pytest.mark.parametrize("log_qubits", range(3, 10))
+def test_all_gates_transpile(code: str, alg: str, log_qubits: int) -> None:
     """Simple test to check that the circuit transpiles."""
-    qc = QuantumCircuit(2)
-    qc.id(0)
-    qc.x(0)
-    qc.y(0)
-    qc.z(0)
-    qc.h(0)
-    qc.s(0)
-    qc.sdg(0)
-    qc.cx(0, 1)
-    qc.sx(0)
-    qc.sxdg(0)
-    qc.cy(0, 1)
-    qc.cz(0, 1)
-    qc.swap(0, 1)
-    qc.dcx(0, 1)
-    qc.t(0)
-    qc.tdg(0)
+    qc = benchmark_generation.get_benchmark(
+        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=log_qubits, encoding=code
+    )
 
-    transpiler = SteaneTranspiler(original_circuit=qc, add_syndromes=True)
-    new_qc = transpiler.transpile()
-    new_ops = new_qc.count_ops()
-
-    assert len(new_ops) >= 1
-    for op in new_ops:
-        assert op != "t, tdg", f"found untouched {op} gate"
-
-
-def test_all_gates_transpile_shor() -> None:
-    """Simple test to check that the circuit transpiles."""
-    qc = QuantumCircuit(2)
-    qc.id(0)
-    qc.x(0)
-    qc.y(0)
-    qc.z(0)
-    qc.h(0)
-    qc.s(0)
-    qc.sdg(0)
-    qc.cx(0, 1)
-    qc.sx(0)
-    qc.sxdg(0)
-    qc.cy(0, 1)
-    qc.cz(0, 1)
-    qc.swap(0, 1)
-    qc.dcx(0, 1)
-    qc.t(0)
-    qc.tdg(0)
-
-    transpiler = SteaneTranspiler(original_circuit=qc, add_syndromes=True)
-    new_qc = transpiler.transpile()
+    new_qc = qc
     new_ops = new_qc.count_ops()
 
     assert len(new_ops) >= 1
