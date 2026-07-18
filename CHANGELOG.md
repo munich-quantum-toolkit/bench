@@ -16,7 +16,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- ⚡ Improve `ShorTranspiler` to transpile input circuits to the target basis using a circuit-wide compilation pass instead of individual manual gate decomposition, representing logical T and T-dagger gates via opaque magic state injection gadgets.
+- ⚡ Improve `ShorTranspiler` to transpile input circuits to the target basis
+  using a circuit-wide compilation pass instead of individual manual gate
+  decomposition, representing logical T and T-dagger gates via opaque magic
+  state injection gadgets.
 
 ### Fixed
 
