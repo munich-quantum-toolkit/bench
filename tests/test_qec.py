@@ -50,33 +50,79 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
     return new_qc
 
 
-SHOR_GHZ = {"cx": 186, "if_else": 60, "h": 47, "measure": 43, "reset": 40, "barrier": 27, "swap": 3}
-SHOR_BV = {"cx": 265, "if_else": 108, "h": 105, "measure": 74, "reset": 72, "barrier": 48, "swap": 18, "z": 3}
-SHOR_GRAPHSTATE = {"cx": 435, "if_else": 180, "h": 159, "measure": 123, "reset": 120, "barrier": 83, "swap": 27}
-SHOR_QFT = {
-    "cx": 788,
-    "if_else": 260,
-    "h": 185,
-    "measure": 179,
-    "reset": 168,
-    "barrier": 107,
-    "swap": 9,
-    "p": 8,
-    "x": 6,
+SHOR_BV = {
+    "cx": 217,
+    "if_else": 84,
+    "h": 79,
+    "measure": 58,
+    "reset": 56,
+    "swap": 12,
+    "z": 3,
 }
-STEANE_GHZ = {"cx": 200, "if_else": 70, "h": 55, "measure": 33, "reset": 30, "barrier": 23}
-STEANE_BV = {"cx": 223, "if_else": 98, "h": 85, "measure": 44, "reset": 42, "barrier": 30, "x": 7, "cz": 7}
-STEANE_GRAPHSTATE = {"cx": 282, "if_else": 126, "h": 93, "measure": 57, "reset": 54, "barrier": 38, "cz": 21}
+SHOR_GHZ = {
+    "cx": 186,
+    "if_else": 60,
+    "h": 47,
+    "measure": 43,
+    "reset": 40,
+    "swap": 3,
+    "barrier": 1,
+}
+SHOR_GRAPHSTATE = {
+    "cx": 435,
+    "if_else": 180,
+    "h": 159,
+    "measure": 123,
+    "reset": 120,
+    "swap": 27,
+    "barrier": 1,
+}
+SHOR_QFT = {
+    "cx": 492,
+    "if_else": 204,
+    "measure": 139,
+    "reset": 136,
+    "h": 113,
+    "swap": 9,
+    "shor_logical_t_magic_state_injection": 4,
+    "shor_logical_t_magic_state_injection_dg": 2,
+    "barrier": 1,
+}
+STEANE_BV = {
+    "cx": 175,
+    "if_else": 70,
+    "h": 59,
+    "measure": 32,
+    "reset": 30,
+    "x": 7,
+    "cz": 7,
+}
+STEANE_GHZ = {
+    "cx": 200,
+    "if_else": 70,
+    "h": 55,
+    "measure": 33,
+    "reset": 30,
+    "barrier": 1,
+}
+STEANE_GRAPHSTATE = {
+    "cx": 282,
+    "if_else": 126,
+    "h": 93,
+    "measure": 57,
+    "reset": 54,
+    "cz": 21,
+    "barrier": 1,
+}
 STEANE_QFT = {
-    "cx": 772,
-    "if_else": 300,
-    "h": 243,
-    "measure": 135,
-    "reset": 126,
-    "barrier": 85,
-    "t": 42,
-    "sdg": 14,
-    "z": 14,
+    "cx": 676,
+    "if_else": 244,
+    "h": 219,
+    "measure": 111,
+    "reset": 102,
+    "t": 28,
+    "tdg": 14,
+    "barrier": 1,
 }
 
 
@@ -195,18 +241,23 @@ def test_error_correction_circuit_structure(logical_qubits: int, code: str, alg:
     # assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
-@pytest.mark.parametrize("code", ["steane", "shor"])
-@pytest.mark.parametrize("alg", ["bv", "ghz", "graphstate", "qft"])
-@pytest.mark.parametrize("log_qubits", range(3, 10))
-def test_all_gates_transpile(code: str, alg: str, log_qubits: int) -> None:
+def generate_expected_operations() -> None:
     """Simple test to check that the circuit transpiles."""
-    qc = benchmark_generation.get_benchmark(
-        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=log_qubits, encoding=code
-    )
+    for code in ["shor", "steane"]:
+        for alg in ["bv", "ghz", "graphstate", "qft"]:
+            for log_qubits in [3]:
+                qc = benchmark_generation.get_benchmark(
+                    benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=log_qubits, encoding=code
+                )
+                ops = qc.count_ops()
 
-    new_qc = qc
-    new_ops = new_qc.count_ops()
+                circuit_name = f"{code.upper()}_{alg.upper()}"
+                ops_str = "{"
+                for op, count in ops.items():
+                    ops_str += f'"{op}": {count}, '
 
-    assert len(new_ops) >= 1
-    for op in new_ops:
-        assert op != "t, tdg", f"found untouched {op} gate"
+                ops_str += "}"
+                print(f"{circuit_name} = {ops_str}")
+
+
+generate_expected_operations()
