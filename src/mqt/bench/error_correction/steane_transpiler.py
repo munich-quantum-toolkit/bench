@@ -25,9 +25,36 @@ from mqt.bench.components.steane_circuit_components import (
 if TYPE_CHECKING:
     from qiskit.circuit import CircuitInstruction
 
+from qiskit.circuit.library import (
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    CXGate,
+    CZGate,
+    IGate,
+)
 
 class SteaneTranspiler:
     """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code."""
+    TRANSVERSAL_PHYSICAL_GATES = {
+        "id": IGate(),
+        "x": XGate(),
+        "y": YGate(),
+        "z": ZGate(),
+        "h": HGate(),
+
+        # Our Steane convention:
+        # logical S   = physical Sdg on every qubit
+        # logical Sdg = physical S on every qubit
+        "s": SdgGate(),
+        "sdg": SGate(),
+
+        "cx": CXGate(),
+        "cz": CZGate(),
+    }
 
     def __init__(self, original_circuit: QuantumCircuit, *, add_syndromes: bool = True) -> None:
         """Initialize the transpiler with the original QuantumCircuit."""
@@ -44,13 +71,21 @@ class SteaneTranspiler:
         self.gate_handlers = {
             "barrier": self._handle_barrier,
             "measure": self._handle_measure,
-            "h": self._handle_h,
-            "x": self._handle_x,
-            "z": self._handle_z,
-            "s": self._handle_s,
-            "cx": self._handle_cx,
-            "cz": self._handle_cz,
-            "t": self._handle_t,
+            "id": self._handle_transversal,
+            "x": self._handle_transversal,
+            "y": self._handle_transversal,
+            "z": self._handle_transversal,
+            "h": self._handle_transversal,
+            "s": self._handle_transversal,
+            "sdg": self._handle_transversal,
+            "cx": self._handle_transversal,
+            "cz": self._handle_transversal,
+            "cy": self._handle_cy,
+            "swap": self._handle_swap,
+            "dcx":self._handle_dcx,
+            "t":self._handle_t,
+            "tdg":self._handle_tdg,
+
         }
 
     def transpile(self) -> QuantumCircuit:
@@ -112,7 +147,7 @@ class SteaneTranspiler:
 
         High-level gates are normalized before logical encoding. In particular,
         ``QFTGate`` instructions are transpiled to the supported
-        ``["h", "x", "z", "s", "t", "cx", "cz"]`` basis with
+        ``["id", "x", "y", "z", "h", "s", "sdg", "cx", "sx", "sxdg", "cy", "cz", "swap", "dcx", "t", "tdg"]`` basis with
         ``approximation_degree=0.95``. This means QFT instructions are encoded
         as approximate circuits rather than exact QFT implementations.
         """
@@ -120,7 +155,7 @@ class SteaneTranspiler:
 
         self.original_qc = transpile(
             self.original_qc,
-            basis_gates=["h", "x", "z", "s", "t", "tdg", "cx", "cz"],
+            basis_gates=["id", "x", "y", "z", "h", "s", "sdg", "cx", "sx", "sxdg", "cy", "cz", "swap", "dcx", "t", "tdg"],
             optimization_level=3,
             approximation_degree=0.95,
             seed_transpiler=10,
@@ -168,46 +203,101 @@ class SteaneTranspiler:
             physical_data_register = self.physical_data_registers[logical_qubit_index][0]
             self.transpiled_qc.measure(physical_data_register, physical_measurement_register)
 
-    def _handle_h(self, instruction: CircuitInstruction) -> None:
-        """Handle Hadamard instruction."""
-        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        physical_data_register = self.physical_data_registers[logical_qubit_index]
+    def _handle_transversal(self, instruction: CircuitInstruction) -> None:
+        """Apply a logical gate transversally to its physical Steane blocks."""
+        operation_name = instruction.operation.name
 
-        self.transpiled_qc.h(physical_data_register)
+        try:
+            physical_operation = self.TRANSVERSAL_PHYSICAL_GATES[operation_name]
+        except KeyError as error:
+            raise ValueError(
+                f"Gate '{operation_name}' is not configured as transversal."
+            ) from error
 
-        if self.add_syndromes:
-            self.insert_syndromes(logical_qubit_index)
+        logical_qubit_indices = [
+            self.original_qc.qubits.index(qubit)
+            for qubit in instruction.qubits
+        ]
 
-    def _handle_x(self, instruction: CircuitInstruction) -> None:
-        """Handle X instruction."""
-        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        physical_data_register = self.physical_data_registers[logical_qubit_index]
+        physical_data_registers = [
+            self.physical_data_registers[index]
+            for index in logical_qubit_indices
+        ]
 
-        self.transpiled_qc.x(physical_data_register)
+        block_size = len(physical_data_registers[0])
+        for physical_qubit_index in range(block_size):
+            physical_qubits = [
+                register[physical_qubit_index]
+                for register in physical_data_registers
+            ]
 
-        if self.add_syndromes:
-            self.insert_syndromes(logical_qubit_index)
-
-    def _handle_z(self, instruction: CircuitInstruction) -> None:
-        """Handle Z instruction."""
-        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        physical_data_register = self.physical_data_registers[logical_qubit_index]
-
-        self.transpiled_qc.z(physical_data_register)
-
-        if self.add_syndromes:
-            self.insert_syndromes(logical_qubit_index)
-
-    def _handle_s(self, instruction: CircuitInstruction) -> None:
-        """Handle S instruction."""
-        # S Made via SDG
-        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        physical_data_register = self.physical_data_registers[logical_qubit_index]
-
-        self.transpiled_qc.sdg(physical_data_register)
+            self.transpiled_qc.append(
+                physical_operation,
+                physical_qubits,
+            )
 
         if self.add_syndromes:
-            self.insert_syndromes(logical_qubit_index)
+            for logical_qubit_index in dict.fromkeys(logical_qubit_indices):
+                self.insert_syndromes(logical_qubit_index)
+
+    def _handle_cy(self, instruction: CircuitInstruction):
+        """Implement CY gate via S and Sdg on target and CX inbetween """
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["s"],
+                qubits=instruction.qubits[1],
+                clbits=(),
+            )
+        )
+        self._handle_transversal(instruction)
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["sdg"],
+                qubits=instruction.qubits[1],
+                clbits=(),
+            )
+        )
+
+    def _handle_swap(self, instruction: CircuitInstruction):
+        """Implement Swap via 3 CX """
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
+                qubits=instruction.qubits[:-1],
+                clbits=(),
+            )
+        )
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
+                qubits=instruction.qubits,
+                clbits=(),
+            )
+        )
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
+                qubits=instruction.qubits[:-1],
+                clbits=(),
+            )
+        )
+
+    def _handle_dcx(self, instruction: CircuitInstruction):
+        """Implement CY gate via S and Sdg on target and CX inbetween """
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
+                qubits=instruction.qubits,
+                clbits=(),
+            )
+        )
+        self._handle_transversal(
+            CircuitInstruction(
+                operation=SteaneTranspiler.TRANSVERSAL_PHYSICAL_GATES["cx"],
+                qubits=instruction.qubits[:-1],
+                clbits=(),
+            )
+        )
 
     def _handle_t(self, instruction: CircuitInstruction) -> None:
         """Handle T instruction."""
@@ -250,37 +340,46 @@ class SteaneTranspiler:
         if self.add_syndromes:
             self.insert_syndromes(logical_qubit_index)
 
-    def _handle_cx(self, instruction: CircuitInstruction) -> None:
-        """Handle CX instruction."""
-        control_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        target_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[1])
-        control_physical_data_register = self.physical_data_registers[control_logical_qubit_index]
-        target_physical_data_register = self.physical_data_registers[target_logical_qubit_index]
+    def _handle_tdg(self, instruction: CircuitInstruction) -> None:
+        """Handle Tdg instruction."""
+        logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
+        physical_data_register = self.physical_data_registers[logical_qubit_index]
 
-        self.transpiled_qc.cx(
-            control_physical_data_register,
-            target_physical_data_register,
+        t_ancilla_register = AncillaRegister(7, f"tdg{self.t_gate_count}")
+        self.t_gate_count += 1
+        t_test_register = ClassicalRegister(1)
+
+        self.transpiled_qc.add_register(t_ancilla_register)
+        self.transpiled_qc.add_register(t_test_register)
+
+        # make ket 0 L
+        self.transpiled_qc.compose(
+            get_seven_qubit_steane_code_encoding_circuit(),
+            qubits=t_ancilla_register[:],
+            inplace=True,
         )
 
-        if self.add_syndromes:
-            self.insert_syndromes(control_logical_qubit_index)
-            self.insert_syndromes(target_logical_qubit_index)
+        # make ket + L (Applying H L)
+        self.transpiled_qc.h(t_ancilla_register)
 
-    def _handle_cz(self, instruction: CircuitInstruction) -> None:
-        """Handle CZ instruction."""
-        control_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[0])
-        target_logical_qubit_index = self.original_qc.qubits.index(instruction.qubits[1])
-        control_physical_data_register = self.physical_data_registers[control_logical_qubit_index]
-        target_physical_data_register = self.physical_data_registers[target_logical_qubit_index]
+        # apply physical tdg gates
+        self.transpiled_qc.tdg(t_ancilla_register)
 
-        self.transpiled_qc.cz(
-            control_physical_data_register,
-            target_physical_data_register,
+        # logical cnot from data to ancilla
+        self.transpiled_qc.cx(physical_data_register, t_ancilla_register)
+
+        # made logical measurement
+        self.transpiled_qc.compose(
+            get_seven_qubit_steane_code_decoding_circuit(), qubits=t_ancilla_register, inplace=True
         )
+        self.transpiled_qc.measure(t_ancilla_register[0], t_test_register[0])
+
+        # apply if_test
+        with self.transpiled_qc.if_test((t_test_register[0], 1)):
+            self.transpiled_qc.s(physical_data_register)
 
         if self.add_syndromes:
-            self.insert_syndromes(control_logical_qubit_index)
-            self.insert_syndromes(target_logical_qubit_index)
+            self.insert_syndromes(logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
         """Automate the insertion of the measurement and correction cycles."""
