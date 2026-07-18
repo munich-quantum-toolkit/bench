@@ -400,7 +400,28 @@ class ShorTranspiler:
         self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
-        """Automate the insertion of bit-flip and phase-flip error correction cycles."""
+        """Automate the insertion of bit-flip and phase-flip error correction cycles.
+
+        Performs three stages of error correction on the Shor block
+        belonging to ``logical_qubit_index``:
+
+        1. **Bit-flip syndrome extraction**: Each of the three 3-qubit blocks is checked independently.
+        Per block, two ancillas record the stabilizer parities (Z_i Z_j checks),
+        localizing an X error to one of the block's three qubits.
+        2. **Phase-flip syndrome extraction**: The parities between the three blocks
+        (X-type stabilizers spanning six qubits each) are extracted,
+        localizing a single Z error to one of the three blocks.
+        3. **Correction**: The ancillas are measured into the corresponding classical syndrome registers,
+        and X and Z corrections are applied to the identified data qubit.
+
+        Ancilla registers are reset to |0> at the start of each cycle.
+
+        This method is called automatically after every logical gate if the
+        transpiler was constructed with ``add_syndromes=True``.
+
+        Args:
+            logical_qubit_index: Index of the logical qubit whose data block should undergo the correction cycle.
+        """
         if not self.add_syndromes:
             return
 

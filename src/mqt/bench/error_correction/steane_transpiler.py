@@ -383,7 +383,23 @@ class SteaneTranspiler:
             self.insert_syndromes(logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
-        """Automate the insertion of the measurement and correction cycles."""
+        """Automate the insertion of bit-flip and phase-flip error correction cycles.
+
+        Performs three stages of error correction on the Steane block
+        belonging to ``logical_qubit_index``:
+
+        1. **Ancilla preparation**: The syndrome ancilla registers are reset to |0>.
+        2. **Syndrome extraction**: The bit-flip ancillas measure the Z-type stabilizers
+        and the phase-flip ancillas measure the X-type stabilizers, mapping each error onto a 3-bit syndrome.
+        3. **Correction**: The ancillas are measured into the corresponding classical syndrome registers,
+        and X and Z corrections are applied to the identified data qubit.
+
+        This method is called automatically after every logical gate if the
+        transpiler was constructed with ``add_syndromes=True``.
+
+        Args:
+            logical_qubit_index: Index of the logical qubit whose data block should undergo the correction cycle.
+        """
         physical_data_register = self.physical_data_registers[logical_qubit_index]
         bit_flip_syndrome_register = self.bit_flip_syndromes[logical_qubit_index]
         phase_flip_syndrome_register = self.phase_flip_syndromes[logical_qubit_index]
