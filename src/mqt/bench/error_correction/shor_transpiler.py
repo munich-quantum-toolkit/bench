@@ -97,7 +97,7 @@ class ShorTranspiler:
         """
         self.original_qc = transpile(
             self.original_qc,
-            basis_gates=["id", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"],
+            basis_gates=["id", "h", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"],
             optimization_level=3,
             approximation_degree=0.95,
             seed_transpiler=10,
@@ -236,6 +236,22 @@ class ShorTranspiler:
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         for q in physical_data_register:
             self.transpiled_qc.id(q)
+        self.insert_syndromes(logical_qubit_index)
+
+    def _logical_h(self, logical_qubit_index: int) -> None:
+        """Apply logical Hadamard.
+
+        The Hadamard gate is not completely transversal for Shor's code. It requires
+        applying physical H gates followed by SWAPs that transpose the 9-qubit blocks.
+        """
+        physical_data_register = self.logical_qubits[logical_qubit_index].data
+        for physical_qubit_index in range(SHOR_TOTAL_QUBITS):
+            self.transpiled_qc.h(physical_data_register[physical_qubit_index])
+        # The Hadamard gate is not completely transversal for Shor's code.
+        # It needs to be followed by a swap that transposes the 9 qubits.
+        self.transpiled_qc.swap(physical_data_register[1], physical_data_register[3])
+        self.transpiled_qc.swap(physical_data_register[2], physical_data_register[6])
+        self.transpiled_qc.swap(physical_data_register[5], physical_data_register[7])
         self.insert_syndromes(logical_qubit_index)
 
     def _logical_x(self, logical_qubit_index: int) -> None:
