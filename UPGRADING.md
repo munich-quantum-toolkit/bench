@@ -1,6 +1,8 @@
 # Upgrade Guide
 
-This document describes breaking changes and how to upgrade. For a complete list of changes including minor and patch releases, please refer to the [changelog](CHANGELOG.md).
+This document describes breaking changes and how to upgrade. For a complete list
+of changes including minor and patch releases, please refer to the
+[changelog](CHANGELOG.md).
 
 ## [Unreleased]
 
@@ -8,59 +10,84 @@ This document describes breaking changes and how to upgrade. For a complete list
 
 ### Dynamic benchmarks and device support for control flow
 
-**Summary:** This release grows the catalog of **dynamic** quantum circuits (mid-circuit measurement and classical branching). New benchmarks include **`ghz_dynamic`** (constant-depth GHZ via intermediate measurements and `if_test`), **`shors_nine_qubit_code`**, and **`seven_qubit_steane_code`** (syndrome extraction and conditional recovery using control flow).
+**Summary:** This release grows the catalog of **dynamic** quantum circuits
+(mid-circuit measurement and classical branching). New benchmarks include
+**`ghz_dynamic`** (constant-depth GHZ via intermediate measurements and
+`if_test`), **`shors_nine_qubit_code`**, and **`seven_qubit_steane_code`**
+(syndrome extraction and conditional recovery using control flow).
 
-**Compilation:** Dynamic circuits that use Qiskit control flow (`if_test`, `IfElseOp`) can be compiled to **every** bundled native gateset and **every** bundled device target.
+**Compilation:** Dynamic circuits that use Qiskit control flow (`if_test`,
+`IfElseOp`) can be compiled to **every** bundled native gateset and **every**
+bundled device target.
 
-**Device models:** All bundled **device** `Target` definitions now declare the **`if_else`** (IfElse) instruction, so the transpiler can treat dynamic circuits as mappable to those backends. (IBM-style targets enable this through Qiskit’s control-flow support on the target; other backends add `IfElseOp` explicitly.)
+**Device models:** All bundled **device** `Target` definitions now declare the
+**`if_else`** (IfElse) instruction, so the transpiler can treat dynamic circuits
+as mappable to those backends. (IBM-style targets enable this through Qiskit’s
+control-flow support on the target; other backends add `IfElseOp` explicitly.)
 
 ### Minimum Qiskit version
 
-This release requires **Qiskit 2.0.0 or later**. After upgrading MQT Bench or pulling an updated `uv.lock`, run **`uv sync`** so your environment matches the lockfile.
+This release requires **Qiskit 2.0.0 or later**. After upgrading MQT Bench or
+pulling an updated `uv.lock`, run **`uv sync`** so your environment matches the
+lockfile.
 
-If you already depend on MQT Bench and **only need to refresh Qiskit** (for example your lockfile still pins Qiskit 1.x), upgrade it in one step:
+If you already depend on MQT Bench and **only need to refresh Qiskit** (for
+example your lockfile still pins Qiskit 1.x), upgrade it in one step:
 
 ```bash
 uv sync --upgrade-package qiskit
 ```
 
-That updates the lockfile and installs the new resolution. If you only want to install what is already locked, use **`uv sync`** without `--upgrade-package`.
+That updates the lockfile and installs the new resolution. If you only want to
+install what is already locked, use **`uv sync`** without `--upgrade-package`.
 
 ### `multiplier` and `vbe_ripple_carry_adder` circuit sizes
 
-Bug fixes changed how `num_state_qubits` is derived from the requested `num_qubits` / `circuit_size` for the respective benchmarks. As a result, **generated circuits can have a different width than in 2.1.0** for the same arguments.
+Bug fixes changed how `num_state_qubits` is derived from the requested
+`num_qubits` / `circuit_size` for the respective benchmarks. As a result,
+**generated circuits can have a different width than in 2.1.0** for the same
+arguments.
 
 ## [2.1.0]
 
 ### End of support for Python 3.9
 
-Starting with this release, MQT Bench no longer supports Python 3.9.
-This is in line with the scheduled end of life of the version.
-As a result, MQT Bench is no longer tested under Python 3.9 and requires Python 3.10 or later.
+Starting with this release, MQT Bench no longer supports Python 3.9. This is in
+line with the scheduled end of life of the version. As a result, MQT Bench is no
+longer tested under Python 3.9 and requires Python 3.10 or later.
 
 ## [2.0.1]
 
-This release renames the CLI from `mqt.bench.cli` to `mqt-bench`. While we keep the old CLI for compatibility, we recommend using the new name for future development.
-The documentation on how to use the CLI has been rewritten to reflect this change.
+This release renames the CLI from `mqt.bench.cli` to `mqt-bench`. While we keep
+the old CLI for compatibility, we recommend using the new name for future
+development. The documentation on how to use the CLI has been rewritten to
+reflect this change.
 
 ## [2.0.0]
 
-This major release introduces several breaking changes and a redesigned API. While the codebase remains familiar, several design decisions were made to improve modularity, extensibility, and alignment with upstream standards.
-The following sections describe the most important changes and how to adapt your code accordingly.
-We intend to provide a more comprehensive migration guide for future releases.
+This major release introduces several breaking changes and a redesigned API.
+While the codebase remains familiar, several design decisions were made to
+improve modularity, extensibility, and alignment with upstream standards. The
+following sections describe the most important changes and how to adapt your
+code accordingly. We intend to provide a more comprehensive migration guide for
+future releases.
 
 ### Migration to Qiskit's `Target` Class
 
 **Old:** MQT Bench-specific `Device` and `Gateset` classes.
 
-**New:** Qiskit's [`Target`](https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.Target) class.
+**New:** Qiskit's
+[`Target`](https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.Target)
+class.
 
-So far, we used our own Device and Gateset classes to represent devices and native gatesets.
-In this release, we have switched to using Qiskit's `Target` class as the intermediate representation for both devices and native gatesets.
-This change allows us a more consistent and standardized way to represent quantum devices and their capabilities, modularity, and extensibility.
+So far, we used our own Device and Gateset classes to represent devices and
+native gatesets. In this release, we have switched to using Qiskit's `Target`
+class as the intermediate representation for both devices and native gatesets.
+This change allows us a more consistent and standardized way to represent
+quantum devices and their capabilities, modularity, and extensibility.
 
-Most previously used devices and gatesets are still available, but they are now provided as `Target` objects.
-You can retrieve the available names using:
+Most previously used devices and gatesets are still available, but they are now
+provided as `Target` objects. You can retrieve the available names using:
 
 ```python
 from mqt.bench.targets import get_available_gateset_names, get_available_device_names
@@ -78,13 +105,17 @@ gateset = get_target_for_gateset("ibm_falcon", num_qubits=5)
 device = get_device("ibm_falcon_27")
 ```
 
-This change allows you to use any device or gateset that is compatible with Qiskit's `Target` class, providing greater flexibility and compatibility with other Qiskit components.
+This change allows you to use any device or gateset that is compatible with
+Qiskit's `Target` class, providing greater flexibility and compatibility with
+other Qiskit components.
 
 ## Changes to the `get_benchmark` function
 
-The `get_benchmark` function has been redesigned to provide a more modular and extensible way to retrieve benchmarks.
-As a consequence, the function signature has changed.
-Please see the [API documentation](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html) for the updated function signature and the examples provided below.
+The `get_benchmark` function has been redesigned to provide a more modular and
+extensible way to retrieve benchmarks. As a consequence, the function signature
+has changed. Please see the
+[API documentation](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html)
+for the updated function signature and the examples provided below.
 
 ```python
 from mqt.bench import get_benchmark, BenchmarkLevel
@@ -108,10 +139,12 @@ benchmark_device_level = get_benchmark(
 )
 ```
 
-As shown above, the `level` parameter is now an enum `BenchmarkLevel` instead of a string or integer.
+As shown above, the `level` parameter is now an enum `BenchmarkLevel` instead of
+a string or integer.
 
-Additionally, distinct functions are provided for each benchmark level to make the usage of MQT Bench easier and more intuitive.
-These functions are also internally used when calling the `get_benchmark` function.
+Additionally, distinct functions are provided for each benchmark level to make
+the usage of MQT Bench easier and more intuitive. These functions are also
+internally used when calling the `get_benchmark` function.
 
 ```python
 from mqt.bench import (
@@ -137,19 +170,23 @@ benchmark_device = get_benchmark_mapped(
 
 ## Removed TKET as a Compiler
 
-With this release, we have removed TKET as a compiler.
-This allows us to focus on Qiskit's native compilation capabilities and simplifies the codebase.
+With this release, we have removed TKET as a compiler. This allows us to focus
+on Qiskit's native compilation capabilities and simplifies the codebase.
 
 ## Removed the local MQT Bench server deployment
 
-The local MQT Bench server interface has been removed due to low usage and to reduce maintenance overhead.
-This feature was rarely used and added complexity to the codebase.
+The local MQT Bench server interface has been removed due to low usage and to
+reduce maintenance overhead. This feature was rarely used and added complexity
+to the codebase.
 
 ### General
 
-MQT Bench has moved to the [munich-quantum-toolkit](https://github.com/munich-quantum-toolkit) GitHub organization under https://github.com/munich-quantum-toolkit/bench.
-While most links should be automatically redirected, please update any links in your code to point to the new location.
-All links in the documentation have been updated accordingly.
+MQT Bench has moved to the
+[munich-quantum-toolkit](https://github.com/munich-quantum-toolkit) GitHub
+organization under <https://github.com/munich-quantum-toolkit/bench>. While most
+links should be automatically redirected, please update any links in your code
+to point to the new location. All links in the documentation have been updated
+accordingly.
 
 <!-- Version links -->
 

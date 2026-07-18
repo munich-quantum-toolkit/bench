@@ -4,8 +4,8 @@
 # Installation
 
 MQT Bench is a Python package available on
-[PyPI](https://pypi.org/project/mqt.bench/). It can be installed on all
-major operating systems with all
+[PyPI](https://pypi.org/project/mqt.bench/). It can be installed on all major
+operating systems with all
 [officially supported Python versions](https://devguide.python.org/versions/).
 
 :::::{tip}
@@ -76,8 +76,8 @@ This prints the installed package version.
 
 ## Integrating MQT Bench into Your Project
 
-To use the MQT Bench Python package in your project, add it as a dependency
-in your {code}`pyproject.toml` or {code}`setup.py`. This ensures the package is
+To use the MQT Bench Python package in your project, add it as a dependency in
+your {code}`pyproject.toml` or {code}`setup.py`. This ensures the package is
 installed when your project is installed.
 
 ::::{tab-set}
@@ -259,7 +259,6 @@ guidelines and workflows, see {doc}`contributing`.
    ```
 
 <!-- Links -->
-
 [nox]: https://nox.thea.codes/en/stable/
 [prek]: https://prek.j178.dev
 [uv]: https://docs.astral.sh/uv/

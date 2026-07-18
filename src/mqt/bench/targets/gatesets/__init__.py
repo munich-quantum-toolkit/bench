@@ -128,7 +128,7 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
             standard_gates.append(gate)
         else:
             other_gates.append(gate)
-    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates, control_flow=True)
+    backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates, control_flow=True, seed=10)
     target = backend.target
     target.description = gateset_name
 
