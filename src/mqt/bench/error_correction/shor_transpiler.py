@@ -96,6 +96,14 @@ class ShorTranspiler:
         Returns:
              The transpiled fault-tolerant circuit.
         """
+        self.original_qc = transpile(
+            self.original_qc,
+            basis_gates=["id", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"],
+            optimization_level=3,
+            approximation_degree=0.95,
+            seed_transpiler=10,
+        )
+
         self.encode_qubits()
         self.replace_gates()
         return self.transpiled_qc
@@ -171,13 +179,6 @@ class ShorTranspiler:
         as approximate circuits rather than exact QFT implementations.
         """
         # Circuit-wide transpile to the supported basis gates
-        self.original_qc = transpile(
-            self.original_qc,
-            basis_gates=["h", "x", "z", "s", "t", "tdg", "cx", "cz"],
-            optimization_level=3,
-            approximation_degree=0.95,
-            seed_transpiler=10,
-        )
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             handler_name = f"_logical_{gate_name}"
@@ -194,7 +195,7 @@ class ShorTranspiler:
                 handler(logical_qubit_indices)
             elif gate_name == "measure":
                 handler(logical_qubit_indices[0], logical_clbit_indices[0])
-            elif gate_name in ["cx", "cz"]:
+            elif gate_name in ["cx", "cz", "swap", "dcx"]:
                 handler(logical_qubit_indices[0], logical_qubit_indices[1])
             else:
                 handler(logical_qubit_indices[0])
@@ -243,6 +244,17 @@ class ShorTranspiler:
         self.transpiled_qc.swap(physical_data_register[5], physical_data_register[7])
         self.insert_syndromes(logical_qubit_index)
 
+    def _logical_id(self, logical_qubit_index: int) -> None:
+        """Apply Transversal logical Id.
+
+        In Shor's code, a logical Id acts like a global physical No-Op across all data
+        qubits.
+        """
+        physical_data_register = self.logical_qubits[logical_qubit_index].data
+        for q in physical_data_register:
+            self.transpiled_qc.id(q)
+        self.insert_syndromes(logical_qubit_index)
+
     def _logical_x(self, logical_qubit_index: int) -> None:
         """Apply Transversal logical X.
 
@@ -251,6 +263,21 @@ class ShorTranspiler:
         applying one Z per block (Z_0 Z_3 Z_6) transversally achieves logical X.
         """
         physical_data_register = self.logical_qubits[logical_qubit_index].data
+        for q in (physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS):
+            self.transpiled_qc.z(q)
+        self.insert_syndromes(logical_qubit_index)
+
+    def _logical_y(self, logical_qubit_index: int) -> None:
+        """Apply transversal logical Y.
+
+        Since Y = iXZ (up to global phase), logical Y is realized by applying the
+        physical operations for logical Z and logical X. Logical Z acts as X on the
+        three qubits of the first block (X_0 X_1 X_2), and logical X acts as Z on the
+        first qubit of each block (Z_0 Z_3 Z_6). The global phase i is unobservable.
+        """
+        physical_data_register = self.logical_qubits[logical_qubit_index].data
+        for q in (physical_data_register[0], physical_data_register[1], physical_data_register[2]):
+            self.transpiled_qc.x(q)
         for q in (physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS):
             self.transpiled_qc.z(q)
         self.insert_syndromes(logical_qubit_index)
@@ -366,6 +393,27 @@ class ShorTranspiler:
 
         self.insert_syndromes(control_logical_qubit_index)
         self.insert_syndromes(target_logical_qubit_index)
+
+    def _logical_dcx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
+        """Apply logical DCX (double-CNOT), implemented as two logical CX gates.
+
+        DCX(a, b) applies CX(a, b) followed by CX(b, a). Matching Qiskit's DCXGate
+        convention, the first qubit is the control of the first CX and the target of
+        the second. Each logical CX is transversal, so the composed DCX is transversal.
+        """
+        self._logical_cx(control_logical_qubit_index, target_logical_qubit_index)
+        self._logical_cx(target_logical_qubit_index, control_logical_qubit_index)
+
+    def _logical_swap(self, first_logical_qubit_index: int, second_logical_qubit_index: int) -> None:
+        """Apply logical SWAP (implemented as three alternating logical CX gates).
+
+        SWAP(a, b) = CX(a, b) . CX(b, a) . CX(a, b). Each logical CX is transversal,
+        so the composed SWAP is transversal as well. The individual _logical_cx calls
+        already insert their own syndrome extraction cycles.
+        """
+        self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
+        self._logical_cx(second_logical_qubit_index, first_logical_qubit_index)
+        self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
 
     def _logical_cz(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
         """Apply logical CZ (implemented as H-CX-H)."""
