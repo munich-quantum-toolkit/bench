@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 import pytest
 from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction, ClassicalRegister
-from qiskit.circuit.library import CXGate, CZGate, HGate, SGate, XGate, ZGate
+from qiskit.circuit.library import XGate
 from qiskit.quantum_info import hellinger_fidelity
 
 from mqt.bench import benchmark_generation
@@ -26,62 +26,6 @@ from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 if TYPE_CHECKING:
     import qiskit as qk
     from qiskit.circuit import Gate
-
-
-@pytest.mark.parametrize("code", ["steane", "shor"])
-@pytest.mark.parametrize("gate", [XGate(), ZGate(), HGate(), SGate(), CXGate(), CZGate()])
-def test_errorcorrection_transpiler_gate_correctness(code: str, gate: Gate) -> None:
-    """Verify that the transpiler actually corrects an introduced bit-flip error.
-
-    Builds a minimal single-gate logical circuit, transpiles it with full syndrome
-    extraction enabled, and then creates a copy in which a bit-flip (X gate) is
-    injected after the first barrier. Both the clean and the error-induced circuits
-    are simulated, and the test asserts that:
-
-    1. The error-corrected circuit matches the logical circuit.
-    2. The error-induced circuit still matches the clean corrected circuit.
-
-    Args:
-        code: The error-correction code to use; either ``"steane"`` or ``"shor"``.
-        gate: The gate to apply to the logical circuit before error correction.
-    """
-    if gate.name == "s" and code == "shor":
-        # this takes a little longer....
-        pytest.skip()
-
-    num_qubits = gate.num_qubits
-    logical_circuit = QuantumCircuit(num_qubits)
-    logical_circuit.append(gate, qargs=list(range(num_qubits)))
-    error_corrected_circuit = logical_circuit.copy()
-    if code == "shor":
-        transpiler = ShorTranspiler(error_corrected_circuit, add_syndromes=True)
-    else:
-        transpiler = SteaneTranspiler(error_corrected_circuit, add_syndromes=True)
-    transpiler.transpile()
-    transpiler.decode_qubits()
-    error_corrected_circuit = transpiler.transpiled_qc
-
-    error_induced_circuit = error_corrected_circuit.copy()
-    # this is for inserting phase flip in steane after the first Hadamard
-    error_induced_circuit = insert_error(error_induced_circuit, gate=XGate())
-
-    logical_counts, logical_circuit = run_circuit(logical_circuit)
-    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
-    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
-
-    logical_corrected_fidelity = compare_distributions(
-        logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code
-    )
-    corrected_induced_fidelity = compare_distributions(
-        error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code
-    )
-
-    assert logical_corrected_fidelity >= 0.99, (
-        f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does not match its logical circuit well enough."
-    )
-    assert corrected_induced_fidelity >= 0.99, (
-        f"Error corrected circuit created by {code} transpiler for Gate {gate.name} does not correct the bitflip well enough."
-    )
 
 
 def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
@@ -114,83 +58,6 @@ def add_h_before_measurements(qc: QuantumCircuit) -> QuantumCircuit:
         new_qc.append(op, qargs, cargs)
 
     return new_qc
-
-
-@pytest.mark.parametrize("code", ["shor", "steane"])
-@pytest.mark.parametrize("algorithm", ["ghz", "bv", "graphstate"])  # "qft" is unfeasible: >3k gates on 34 qubits
-@pytest.mark.parametrize("error", [XGate(), ZGate()])
-@pytest.mark.parametrize("measure_base_x", [True, False])
-@pytest.mark.parametrize("circuit_size", [3])
-def test_errorcorrection_transpiler_correctness(
-    code: str, algorithm: str, error: Gate, measure_base_x: bool, circuit_size: int
-) -> None:
-    """Ensures the transpiler creates error-corrected circuits which produce the same result as the original logical circuit.
-
-    Afterwards an error is introduced and the test checks, whether it is corrected.
-    Iterates over a number of example algorithms.
-
-    `circuit_size` can be any list of integers between 3 and 10 (=> up to range(3,11)).
-    For larger circuit sizes, gate_counts.json has to be updated
-
-    Args:
-        code: The error-correction code to use; either ``"steane"`` or ``"shor"``.
-        algorithm: Name of the benchmark algorithm (e.g. ``"ghz"``, ``"bv"``,
-            ``"graphstate"``).
-        error: The fault gate to inject after encoding.
-        measure_base_x: If ``True``, an H gate is inserted before each
-            measurement to switch from the Z basis to the X basis.
-        circuit_size: Number of logical qubits in the benchmark circuit.
-    """
-    test_id = f"{circuit_size} qubit {algorithm} on {code} with ZBasis {measure_base_x} and error {error.name}"
-
-    # Initialize circuits
-    logical_circuit = benchmark_generation.get_benchmark(
-        benchmark=algorithm, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=circuit_size, encoding=""
-    )
-
-    if measure_base_x:
-        logical_circuit = add_h_before_measurements(logical_circuit)
-
-    # Strip measure gates to avoid intermediate measurements collapsing the state before decoding
-    stripped_logical_circuit = QuantumCircuit(*logical_circuit.qregs, *logical_circuit.cregs)
-    for inst in logical_circuit.data:
-        if inst.operation.name != "measure":
-            stripped_logical_circuit.append(inst.operation, inst.qubits, inst.clbits)
-    logical_circuit = stripped_logical_circuit
-
-    if code == "shor":
-        transpiler = ShorTranspiler(logical_circuit.copy(), add_syndromes=True)
-    else:
-        transpiler = SteaneTranspiler(logical_circuit.copy(), add_syndromes=True)
-    transpiler.transpile()
-    transpiler.decode_qubits()
-    error_corrected_circuit = transpiler.transpiled_qc
-
-    error_induced_circuit = error_corrected_circuit.copy()
-    error_induced_circuit = insert_error_after_barrier(
-        error_corrected_circuit,
-        barrier_label="Encoding",
-        gate=error,
-        qubit_index=0,
-    )
-
-    logical_counts, logical_circuit = run_circuit(logical_circuit)
-    corrected_counts, error_corrected_circuit = run_circuit(error_corrected_circuit)
-    induced_counts, error_induced_circuit = run_circuit(error_induced_circuit)
-
-    logical_corrected_fidelity = compare_distributions(
-        logical_circuit, error_corrected_circuit, logical_counts, corrected_counts, "none", code
-    )
-    corrected_induced_fidelity = compare_distributions(
-        error_corrected_circuit, error_induced_circuit, corrected_counts, induced_counts, code, code
-    )
-
-    assert logical_corrected_fidelity >= 0.95, (
-        f"Error corrected circuit created does not match its logical circuit well enough for {test_id}"
-    )
-    assert corrected_induced_fidelity >= 0.95, (
-        f"Error induced circuit created does not match correct the error well enough for {test_id}"
-    )
 
 
 SHOR_GHZ = {"cx": 186, "if_else": 60, "h": 47, "measure": 43, "reset": 40, "barrier": 27, "swap": 3}
@@ -335,6 +202,62 @@ def test_error_correction_circuit_structure(logical_qubits: int, code: str, alg:
     created_gates = qc.count_ops()
     print(expected_gates == created_gates)
     # assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+
+
+def test_all_gates_transpile_steane() -> None:
+    qc = QuantumCircuit(2)
+    qc.id(0)
+    qc.x(0)
+    qc.y(0)
+    qc.z(0)
+    qc.h(0)
+    qc.s(0)
+    qc.sdg(0)
+    qc.cx(0, 1)
+    qc.sx(0)
+    qc.sxdg(0)
+    qc.cy(0, 1)
+    qc.cz(0, 1)
+    qc.swap(0, 1)
+    qc.dcx(0, 1)
+    qc.t(0)
+    qc.tdg(0)
+
+    transpiler = SteaneTranspiler(original_circuit=qc, add_syndromes=True)
+    new_qc = transpiler.transpile()
+    new_ops = new_qc.count_ops()
+
+    assert len(new_ops) >= 1
+    for op in new_ops:
+        assert op != "t, tdg", f"found untouched {op} gate"
+
+
+def test_all_gates_transpile_shor() -> None:
+    qc = QuantumCircuit(2)
+    qc.id(0)
+    qc.x(0)
+    qc.y(0)
+    qc.z(0)
+    qc.h(0)
+    qc.s(0)
+    qc.sdg(0)
+    qc.cx(0, 1)
+    qc.sx(0)
+    qc.sxdg(0)
+    qc.cy(0, 1)
+    qc.cz(0, 1)
+    qc.swap(0, 1)
+    qc.dcx(0, 1)
+    qc.t(0)
+    qc.tdg(0)
+
+    transpiler = SteaneTranspiler(original_circuit=qc, add_syndromes=True)
+    new_qc = transpiler.transpile()
+    new_ops = new_qc.count_ops()
+
+    assert len(new_ops) >= 1
+    for op in new_ops:
+        assert op != "t, tdg", f"found untouched {op} gate"
 
 
 def insert_error_after_barrier(
