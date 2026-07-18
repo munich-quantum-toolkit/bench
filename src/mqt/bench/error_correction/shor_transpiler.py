@@ -13,7 +13,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister, Instruction
 
@@ -228,22 +227,6 @@ class ShorTranspiler:
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         self.transpiled_qc.measure(physical_data_register[0], physical_measurement_register[0])
 
-    def _logical_h(self, logical_qubit_index: int) -> None:
-        """Apply logical Hadamard.
-
-        The Hadamard gate is not completely transversal for Shor's code. It requires
-        applying physical H gates followed by SWAPs that transpose the 9-qubit blocks.
-        """
-        physical_data_register = self.logical_qubits[logical_qubit_index].data
-        for physical_qubit_index in range(SHOR_TOTAL_QUBITS):
-            self.transpiled_qc.h(physical_data_register[physical_qubit_index])
-        # The Hadamard gate is not completely transversal for Shor's code.
-        # It needs to be followed by a swap that transposes the 9 qubits.
-        self.transpiled_qc.swap(physical_data_register[1], physical_data_register[3])
-        self.transpiled_qc.swap(physical_data_register[2], physical_data_register[6])
-        self.transpiled_qc.swap(physical_data_register[5], physical_data_register[7])
-        self.insert_syndromes(logical_qubit_index)
-
     def _logical_id(self, logical_qubit_index: int) -> None:
         """Apply Transversal logical Id.
 
@@ -325,21 +308,6 @@ class ShorTranspiler:
 
         self.insert_syndromes(logical_qubit_index)
 
-    def _logical_s(self, logical_qubit_index: int) -> None:
-        """Apply logical S via |Y>-state teleportation. Correction: logical Z."""
-        self.s_gate_count += 1
-
-        def z_correction() -> None:
-            self._logical_z(logical_qubit_index)
-
-        self._apply_teleportation_gadget(
-            logical_qubit_index=logical_qubit_index,
-            phase=np.pi / 2,
-            ancilla_name=f"ms{self.s_gate_count - 1}",
-            measure_name=f"tmeas{self.s_gate_count - 1}",
-            correction_callback=z_correction,
-        )
-
     def _logical_t(self, logical_qubit_index: int) -> None:
         """Apply logical T via magic state injection."""
         self.t_gate_count += 1
@@ -414,12 +382,6 @@ class ShorTranspiler:
         self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
         self._logical_cx(second_logical_qubit_index, first_logical_qubit_index)
         self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
-
-    def _logical_cz(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
-        """Apply logical CZ (implemented as H-CX-H)."""
-        self._logical_h(target_logical_qubit_index)
-        self._logical_cx(control_logical_qubit_index, target_logical_qubit_index)
-        self._logical_h(target_logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
         """Automate the insertion of bit-flip and phase-flip error correction cycles."""
