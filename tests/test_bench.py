@@ -252,6 +252,7 @@ def test_iqpe() -> None:
     assert qc.num_clbits == 3
     assert "iqpe" in qc.name
 
+
 def test_teleportation() -> None:
     """Test the creation of the teleportation benchmark."""
     qc = create_circuit("teleportation", 3)
