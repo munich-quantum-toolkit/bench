@@ -45,7 +45,7 @@ def _teleport_single_block(index: int, state_preparation: QuantumCircuit | None 
     qc.measure(q[0], c[0])
     qc.measure(q[1], c[1])
 
-    # Classically-controlled corrections on Bob (q[2])
+    # Classically-controlled corrections on (q[2])
     with qc.if_test((c[1], 1)):
         qc.x(q[2])
     with qc.if_test((c[0], 1)):
