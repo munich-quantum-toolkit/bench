@@ -99,7 +99,7 @@ def _get_factory(benchmark_name: str) -> Callable[..., QuantumCircuit]:
     return get_benchmark_by_name(benchmark_name)
 
 
-# ruff: noqa: ANN401
+# ruff:file-ignore[any-type]
 def create_circuit(benchmark_name: str, circuit_size: int, /, *args: Any, **kwargs: Any) -> QuantumCircuit:
     """Creates and returns a quantum circuit based on the specified benchmark name and additional arguments.
 
