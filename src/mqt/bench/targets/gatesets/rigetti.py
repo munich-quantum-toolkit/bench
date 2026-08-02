@@ -33,7 +33,9 @@ class RXPIGate(Gate):
     r"""Single-qubit RX(π) gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
              ┌─────┐
         q_0: ┤ RX(π)├
              └─────┘
@@ -65,7 +67,9 @@ class RXPI2Gate(Gate):
     r"""Single-qubit RX(π/2) gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
              ┌──────────┐
         q_0: ┤ RX(π/2)  ├
              └──────────┘
@@ -97,7 +101,9 @@ class RXPI2DgGate(Gate):
     r"""Single-qubit RX(-π/2) gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
              ┌────────────┐
         q_0: ┤ RX(-π/2)   ├
              └────────────┘

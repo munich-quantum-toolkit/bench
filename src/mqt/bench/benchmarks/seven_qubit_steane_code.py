@@ -199,7 +199,7 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
 
 @register_benchmark("seven_qubit_steane_code", description="7 Qubit Steane Code")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the 7 Qubit Steane Code.
+    r"""Returns a quantum circuit implementing the 7 Qubit Steane Code.
 
     The Steane code is a quantum error-correcting code that encodes 1 logical qubit
     into 7 physical qubits. It is a CSS (Calderbank-Shor-Steane) code based on the
@@ -207,10 +207,11 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     Encoding:
         The logical states are encoded as superpositions of 8 codewords:
-        - |0_L> = (|0000000> + |1010101> + |0110011> + |1100110>
-                 + |0001111> + |1011010> + |0111100> + |1101001>) / sqrt(8)
-        - |1_L> = (|1111111> + |0101010> + |1001100> + |0011001>
-                 + |1110000> + |0100101> + |1000011> + |0010110>) / sqrt(8)
+
+        - \|0_L> = (\|0000000> + \|1010101> + \|0110011> + \|1100110>
+          + \|0001111> + \|1011010> + \|0111100> + \|1101001>) / sqrt(8)
+        - \|1_L> = (\|1111111> + \|0101010> + \|1001100> + \|0011001>
+          + \|1110000> + \|0100101> + \|1000011> + \|0010110>) / sqrt(8)
 
     Syndrome Extraction:
         - Bit-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
