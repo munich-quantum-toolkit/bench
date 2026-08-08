@@ -10,13 +10,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit import AncillaRegister, Instruction
+from qiskit.circuit.library import IGate
 
-# these functions are reused from the benchmark and they should be extendable therefore they were moved into a dedicated block
 from mqt.bench.components.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
     apply_nine_qubit_shors_code_phase_flip_correction,
@@ -26,117 +23,36 @@ from mqt.bench.components.shor_circuit_components import (
     get_three_qubit_phase_flip_encoding_circuit,
 )
 
+from .ec_transpiler import ECTranspiler, LogicalQubit
+
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from qiskit import QuantumCircuit, QuantumRegister
 
 # Constants for the Shor 9-qubit code structure
-SHOR_TOTAL_QUBITS = 9
 SHOR_BLOCK_SIZE = 3
 SHOR_NUM_BLOCKS = 3
 SHOR_PHASE_FLIP_TARGETS = [0, 3, 6]
 
 
-@dataclass
-class ShorLogicalQubit:
-    """Encapsulates the physical registers representing a single Shor logical qubit."""
+class ShorTranspiler(ECTranspiler):
+    """A high-level transpiler that encodes a QuantumCircuit using Shor's 9-qubit error correction code.
 
-    data: QuantumRegister
-    bit_flip_syndrome: AncillaRegister | None = None
-    phase_flip_syndrome: AncillaRegister | None = None
-    bit_flip_measure: ClassicalRegister | None = None
-    phase_flip_measure: ClassicalRegister | None = None
+    Only gates whose logical realization is not a plain transversal application of a single
+    physical gate need a dedicated handler here (``id`` is the only gate transversal in the
+    strict sense used by :class:`ECTranspiler`). Every other unhandled gate in
+    :attr:`TARGET_GATE_SET` -- notably ``t``, ``tdg``, and ``h`` (whose textbook realization via
+    physical Hadamards and block-transposing SWAPs is not fault-tolerant for the plain 9-qubit
+    Shor code) -- is automatically realized as an opaque, ideal logical gadget.
+    """
 
-    def get_all_registers(self) -> list:
-        """Return all active registers for this logical qubit."""
-        regs = [self.data]
-        if self.bit_flip_syndrome:
-            regs.extend(
-                reg
-                for reg in [
-                    self.bit_flip_syndrome,
-                    self.phase_flip_syndrome,
-                    self.bit_flip_measure,
-                    self.phase_flip_measure,
-                ]
-                if reg is not None
-            )
-        return regs
+    CODE_NAME = "shor"
+    BLOCK_SIZE = SHOR_BLOCK_SIZE * SHOR_NUM_BLOCKS
+    BIT_FLIP_SYNDROME_SIZE = 6
+    PHASE_FLIP_SYNDROME_SIZE = 2
+    TARGET_GATE_SET: ClassVar[list[str]] = ["id", "h", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"]
+    TRANSVERSAL_GATES: ClassVar = {"id": IGate()}
 
-
-class ShorTranspiler:
-    """A high-level transpiler that encodes a QuantumCircuit using Shor's 9-qubit error correction code."""
-
-    def __init__(self, original_circuit: QuantumCircuit, *, add_syndromes: bool = True) -> None:
-        """Initialize the transpiler with the original QuantumCircuit.
-
-        Args:
-            original_circuit: Original circuit to transpile using Shor's code.
-            add_syndromes: Whether to insert syndrome extraction and correction cycles.
-        """
-        self.original_qc = original_circuit
-        self.num_logical_qubits = original_circuit.num_qubits
-        self.add_syndromes = add_syndromes
-        self.logical_qubits: list[ShorLogicalQubit] = []
-        self.s_gate_count = 0
-        self.t_gate_count = 0
-        self.transpiled_qc = QuantumCircuit()
-
-        # We need this for backwards compatibility with the testing suite
-        self.physical_data_registers: list[QuantumRegister] = []
-
-    def transpile(self) -> QuantumCircuit:
-        """Transpile the original circuit to a fault-tolerant circuit using Shor's code.
-
-        High-level Qiskit instructions such as ``QFTGate`` are first decomposed
-        into the supported basis gates. For QFT, this decomposition currently
-        uses ``approximation_degree=0.95``, so encoded QFT circuits are
-        approximate rather than exact.
-
-        Returns:
-             The transpiled fault-tolerant circuit.
-        """
-        self.original_qc = transpile(
-            self.original_qc,
-            basis_gates=["id", "h", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"],
-            optimization_level=3,
-            approximation_degree=0.95,
-            seed_transpiler=10,
-        )
-
-        self.encode_qubits()
-        self.replace_gates()
-        return self.transpiled_qc
-
-    def encode_qubits(self) -> None:
-        """Replace each logical qubit with a 9-qubit physical register and apply Shor encoding."""
-        all_registers = []
-        for i in range(self.num_logical_qubits):
-            data_reg = QuantumRegister(SHOR_TOTAL_QUBITS, f"q{i}")
-            self.physical_data_registers.append(data_reg)
-
-            if self.add_syndromes:
-                logical_qubit = ShorLogicalQubit(
-                    data=data_reg,
-                    bit_flip_syndrome=AncillaRegister(6, f"bs{i}"),
-                    phase_flip_syndrome=AncillaRegister(2, f"ps{i}"),
-                    bit_flip_measure=ClassicalRegister(6, f"bsm{i}"),
-                    phase_flip_measure=ClassicalRegister(2, f"psm{i}"),
-                )
-            else:
-                logical_qubit = ShorLogicalQubit(data=data_reg)
-
-            self.logical_qubits.append(logical_qubit)
-            all_registers.extend(logical_qubit.get_all_registers())
-
-        self.transpiled_qc = QuantumCircuit(*all_registers)
-        self.transpiled_qc.name = f"{self.original_qc.name}_shor_encoded"
-
-        # Apply encoding for each logical qubit
-        for logical_qubit in self.logical_qubits:
-            self._apply_shor_encoding(self.transpiled_qc, logical_qubit.data)
-
-    @staticmethod
-    def _apply_shor_encoding(qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
+    def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit encoding to a physical data register."""
         # Phase flip encoding on the first qubit of each block
         qc.compose(
@@ -153,8 +69,7 @@ class ShorTranspiler:
                 inplace=True,
             )
 
-    @staticmethod
-    def _apply_shor_decoding(qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
+    def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit decoding to a physical data register."""
         for i in range(SHOR_NUM_BLOCKS):
             qc.compose(
@@ -167,92 +82,6 @@ class ShorTranspiler:
             qubits=[physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS],
             inplace=True,
         )
-
-    def replace_gates(self) -> None:
-        """Scan the original circuit and replace gates with logical equivalents.
-
-        High-level gates are normalized before logical encoding. In particular,
-        ``QFTGate`` instructions are transpiled to the supported
-        ``["h", "x", "z", "s", "t", "cx", "cz"]`` basis with
-        ``approximation_degree=0.95``. This means QFT instructions are encoded
-        as approximate circuits rather than exact QFT implementations.
-        """
-        # Circuit-wide transpile to the supported basis gates
-        for instruction in self.original_qc.data:
-            gate_name = instruction.operation.name
-            handler_name = f"_logical_{gate_name}"
-
-            if not hasattr(self, handler_name):
-                msg = f"Gate {gate_name} is not supported by ShorTranspiler."
-                raise NotImplementedError(msg)
-
-            handler = getattr(self, handler_name)
-            logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
-            logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
-
-            if gate_name == "barrier":
-                handler(logical_qubit_indices)
-            elif gate_name == "measure":
-                handler(logical_qubit_indices[0], logical_clbit_indices[0])
-            elif gate_name in ["cx", "cz", "swap", "dcx"]:
-                handler(logical_qubit_indices[0], logical_qubit_indices[1])
-            else:
-                handler(logical_qubit_indices[0])
-
-    def _logical_barrier(self, logical_qubit_indices: list[int]) -> None:
-        """Apply logical barrier across the specified physical qubits."""
-        involved_physical_data_registers = [self.logical_qubits[idx].data for idx in logical_qubit_indices]
-        flattened_physical_qubits = [
-            physical_qubit
-            for physical_data_register in involved_physical_data_registers
-            for physical_qubit in physical_data_register
-        ]
-        if flattened_physical_qubits:
-            self.transpiled_qc.barrier(flattened_physical_qubits)
-        else:
-            self.transpiled_qc.barrier()
-
-    def _logical_measure(self, logical_qubit_index: int, logical_classical_bit_index: int) -> None:
-        """Apply logical measurement mapping to 9 physical measurements.
-
-        Classical post-processing would compute the majority vote across the 3 bit-flip
-        blocks and then across the phase-flip blocks to extract the logical value.
-        """
-        ## decode
-        self._apply_shor_decoding(self.transpiled_qc, self.logical_qubits[logical_qubit_index].data)
-        measurement_register_name = f"meas_{logical_qubit_index}_{logical_classical_bit_index}"
-        physical_measurement_register = ClassicalRegister(1, measurement_register_name)
-        self.transpiled_qc.add_register(physical_measurement_register)
-
-        physical_data_register = self.logical_qubits[logical_qubit_index].data
-        self.transpiled_qc.measure(physical_data_register[0], physical_measurement_register[0])
-
-    def _logical_id(self, logical_qubit_index: int) -> None:
-        """Apply Transversal logical Id.
-
-        In Shor's code, a logical Id acts like a global physical No-Op across all data
-        qubits.
-        """
-        physical_data_register = self.logical_qubits[logical_qubit_index].data
-        for q in physical_data_register:
-            self.transpiled_qc.id(q)
-        self.insert_syndromes(logical_qubit_index)
-
-    def _logical_h(self, logical_qubit_index: int) -> None:
-        """Apply logical Hadamard.
-
-        The Hadamard gate is not completely transversal for Shor's code. It requires
-        applying physical H gates followed by SWAPs that transpose the 9-qubit blocks.
-        """
-        physical_data_register = self.logical_qubits[logical_qubit_index].data
-        for physical_qubit_index in range(SHOR_TOTAL_QUBITS):
-            self.transpiled_qc.h(physical_data_register[physical_qubit_index])
-        # The Hadamard gate is not completely transversal for Shor's code.
-        # It needs to be followed by a swap that transposes the 9 qubits.
-        self.transpiled_qc.swap(physical_data_register[1], physical_data_register[3])
-        self.transpiled_qc.swap(physical_data_register[2], physical_data_register[6])
-        self.transpiled_qc.swap(physical_data_register[5], physical_data_register[7])
-        self.insert_syndromes(logical_qubit_index)
 
     def _logical_x(self, logical_qubit_index: int) -> None:
         """Apply Transversal logical X.
@@ -292,78 +121,6 @@ class ShorTranspiler:
             self.transpiled_qc.x(q)
         self.insert_syndromes(logical_qubit_index)
 
-    def _apply_teleportation_gadget(
-        self,
-        logical_qubit_index: int,
-        phase: float,
-        ancilla_name: str,
-        measure_name: str,
-        correction_callback: Callable,
-    ) -> None:
-        """Apply a magic state gate teleportation gadget (used for non-transversal S and T gates)."""
-        ancilla_register = QuantumRegister(SHOR_TOTAL_QUBITS, ancilla_name)
-        creg = ClassicalRegister(1, measure_name)
-        self.transpiled_qc.add_register(ancilla_register)
-        self.transpiled_qc.add_register(creg)
-
-        physical_data_register = self.logical_qubits[logical_qubit_index].data
-
-        # Prepare magic state: H -> P(phase) -> Encode
-        self._prepare_magic(self.transpiled_qc, ancilla_register, phase)
-
-        # Transversal logical CNOT
-        self._apply_logical_cx(physical_data_register, ancilla_register)
-
-        # Decode and measure ancilla in logical Z basis
-        self._apply_shor_decoding(self.transpiled_qc, ancilla_register)
-        self.transpiled_qc.measure(ancilla_register[0], creg[0])
-
-        # Apply conditional correction based on the measurement outcome
-        with self.transpiled_qc.if_test((creg[0], 1)):
-            correction_callback()
-
-        self.insert_syndromes(logical_qubit_index)
-
-    def _logical_t(self, logical_qubit_index: int) -> None:
-        """Apply logical T via magic state injection."""
-        self.t_gate_count += 1
-        t_magic_inst = Instruction(
-            name="shor_logical_t_magic_state_injection",
-            num_qubits=9,
-            num_clbits=0,
-            params=[],
-        )
-        self.transpiled_qc.append(t_magic_inst, self.logical_qubits[logical_qubit_index].data)
-        self.insert_syndromes(logical_qubit_index)
-
-    def _logical_tdg(self, logical_qubit_index: int) -> None:
-        """Apply logical T-dagger via magic state injection."""
-        self.t_gate_count += 1
-        tdg_magic_inst = Instruction(
-            name="shor_logical_t_magic_state_injection_dg",
-            num_qubits=9,
-            num_clbits=0,
-            params=[],
-        )
-        self.transpiled_qc.append(tdg_magic_inst, self.logical_qubits[logical_qubit_index].data)
-        self.insert_syndromes(logical_qubit_index)
-
-    @staticmethod
-    def _prepare_magic(qc: QuantumCircuit, physical_ancilla_register: QuantumRegister, phase: float) -> None:
-        """Encode a magic state (|0> + e^{i*phase}|1>)/sqrt2 into a physical register."""
-        qc.h(physical_ancilla_register[0])
-        qc.p(phase, physical_ancilla_register[0])
-        ShorTranspiler._apply_shor_encoding(qc, physical_ancilla_register)
-
-    def _apply_logical_cx(self, logical_control: QuantumRegister, logical_target: QuantumRegister) -> None:
-        """Apply transversal logical CX between two physical registers.
-
-        Note: Due to Shor code structure, physical CX control/target are inverted.
-        """
-        for physical_qubit_index in range(SHOR_TOTAL_QUBITS):
-            # Physical control/target are swapped relative to logical
-            self.transpiled_qc.cx(logical_target[physical_qubit_index], logical_control[physical_qubit_index])
-
     def _logical_cx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
         """Apply transversal logical CX.
 
@@ -373,7 +130,11 @@ class ShorTranspiler:
         """
         control_physical_data_register = self.logical_qubits[control_logical_qubit_index].data
         target_physical_data_register = self.logical_qubits[target_logical_qubit_index].data
-        self._apply_logical_cx(control_physical_data_register, target_physical_data_register)
+        for physical_qubit_index in range(self.BLOCK_SIZE):
+            # Physical control/target are swapped relative to logical
+            control_qubit = control_physical_data_register[physical_qubit_index]
+            target_qubit = target_physical_data_register[physical_qubit_index]
+            self.transpiled_qc.cx(target_qubit, control_qubit)
 
         self.insert_syndromes(control_logical_qubit_index)
         self.insert_syndromes(target_logical_qubit_index)
@@ -399,11 +160,10 @@ class ShorTranspiler:
         self._logical_cx(second_logical_qubit_index, first_logical_qubit_index)
         self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
 
-    def insert_syndromes(self, logical_qubit_index: int) -> None:
-        """Automate the insertion of bit-flip and phase-flip error correction cycles.
+    def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:
+        """Run the Shor code's bit-flip and phase-flip syndrome extraction and correction cycle.
 
-        Performs three stages of error correction on the Shor block
-        belonging to ``logical_qubit_index``:
+        Performs three stages of error correction on the Shor block belonging to ``qubit``:
 
         1. **Bit-flip syndrome extraction**: Each of the three 3-qubit blocks is checked independently.
         Per block, two ancillas record the stabilizer parities (Z_i Z_j checks),
@@ -415,25 +175,12 @@ class ShorTranspiler:
         and X and Z corrections are applied to the identified data qubit.
 
         Ancilla registers are reset to |0> at the start of each cycle.
-
-        This method is called automatically after every logical gate if the
-        transpiler was constructed with ``add_syndromes=True``.
-
-        Args:
-            logical_qubit_index: Index of the logical qubit whose data block should undergo the correction cycle.
         """
-        if not self.add_syndromes:
-            return
-
-        qubit = self.logical_qubits[logical_qubit_index]
-
         self._extract_bit_flip_syndromes(qubit)
-
         self._extract_phase_flip_syndromes(qubit)
-
         self._apply_error_corrections(qubit)
 
-    def _extract_bit_flip_syndromes(self, qubit: ShorLogicalQubit) -> None:
+    def _extract_bit_flip_syndromes(self, qubit: LogicalQubit) -> None:
         """Extract bit-flip syndromes for the three blocks."""
         if qubit.bit_flip_syndrome is None:
             msg = "Bit-flip syndrome register is missing or not initialized."
@@ -448,10 +195,10 @@ class ShorTranspiler:
                 inplace=True,
             )
 
-    def _extract_phase_flip_syndromes(self, qubit: ShorLogicalQubit) -> None:
+    def _extract_phase_flip_syndromes(self, qubit: LogicalQubit) -> None:
         """Extract phase-flip syndromes across the blocks."""
         if qubit.phase_flip_syndrome is None:
-            msg = "Bit-flip syndrome register is missing or not initialized."
+            msg = "Phase-flip syndrome register is missing or not initialized."
             raise ValueError(msg)
 
         self.transpiled_qc.reset(qubit.phase_flip_syndrome)
@@ -461,7 +208,7 @@ class ShorTranspiler:
             inplace=True,
         )
 
-    def _apply_error_corrections(self, qubit: ShorLogicalQubit) -> None:
+    def _apply_error_corrections(self, qubit: LogicalQubit) -> None:
         """Apply bit-flip and phase-flip error corrections based on syndromes."""
         apply_nine_qubit_shors_code_bit_flip_correction(
             self.transpiled_qc,
