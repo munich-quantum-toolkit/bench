@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 nox.needs_version = ">=2026.08.10"
 nox.options.default_venv_backend = "uv"
-nox.options.parallel = 5
+nox.options.parallel = "auto"
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
