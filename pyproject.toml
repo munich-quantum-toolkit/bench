@@ -78,7 +78,7 @@ docs = [
 ]
 dev = [
     {include-group = "test"},
-    "nox>=2025.11.12",
+    "nox>=2026.08.10",
     "prek>=0.2.27",
 ]
 
