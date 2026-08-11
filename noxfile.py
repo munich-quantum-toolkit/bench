@@ -33,7 +33,8 @@ nox.options.parallel = 5
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
 
-PYTHON_ALL_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+PYPROJECT = nox.project.load_toml("pyproject.toml")
+PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
 
 
 def _get_session_env(session: nox.Session) -> dict[str, str]:
@@ -50,7 +51,7 @@ def lint(session: nox.Session) -> None:
     session.run("prek", "run", "--all-files", *session.posargs, external=True)
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
     session.run(
@@ -96,7 +97,7 @@ def _run_tests_without_lockfile(
     )
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, venv_backend="uv", default=True, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv", default=True, allow_parallel=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
     _run_tests_without_lockfile(
@@ -107,7 +108,7 @@ def minimums(session: nox.Session) -> None:
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 
 
-@nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv")
 def qiskit(session: nox.Session) -> None:
     """Tests against the latest version of Qiskit."""
     _run_tests_without_lockfile(
