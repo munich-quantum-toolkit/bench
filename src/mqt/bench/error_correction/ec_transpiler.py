@@ -156,13 +156,14 @@ class ECTranspiler(ABC):
         for logical_qubit in self.logical_qubits:
             self._apply_encoding(self.transpiled_qc, logical_qubit.data)
 
-    def replace_gates(self) -> None:
+    def replace_gates(self, qc: QuantumCircuit | None = None) -> None:
         """Scan the original circuit and dispatch each instruction to its logical equivalent.
 
         For every instruction, the original circuit's qubits/clbits are resolved to logical
         indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
         """
-        for instruction in self.original_qc.data:
+        qc = self.original_qc if qc is None else qc
+        for instruction in qc.data:
             gate_name = instruction.operation.name
             logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
             logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
@@ -171,6 +172,13 @@ class ECTranspiler(ABC):
             if decoded_qubits:
                 msg = f"Instruction {gate_name} accesses qubits {decoded_qubits} after decoding"
                 raise RuntimeError(msg)
+
+            if instruction.is_control_flow():
+                msg = f"Error-correction transpilation currently does not support control-flow operations such as {gate_name}."
+                raise ValueError(msg)
+            if getattr(instruction.operation, "condition", None) is not None:
+                msg = f"Error-correction transpilation currently does not support gate internal conditions as in {gate_name}."
+                raise ValueError(msg)
 
             self._apply_gate(gate_name, logical_qubit_indices, logical_clbit_indices)
 
