@@ -39,7 +39,7 @@ class LogicalQubit:
     def get_all_registers(self) -> list[QuantumRegister | ClassicalRegister]:
         """Return all active registers for this logical qubit."""
         regs: list[QuantumRegister | ClassicalRegister] = [self.data]
-        if self.bit_flip_syndrome:
+        if self.bit_flip_syndrome is not None:
             regs.extend(
                 reg
                 for reg in [
@@ -77,6 +77,13 @@ class ECTranspiler(ABC):
     #: logical operator only acts on a subset of physical qubits) should instead be implemented as
     #: a dedicated ``_logical_<gate_name>`` method on the subclass.
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {}
+    #: Gates that are realized as a fixed sequence of other, already-specified gates. Each
+    #: entry maps a gate name to a list of ``(sub_gate_name, qubit_map, clbit_map)`` steps, where
+    #: ``qubit_map``/``clbit_map`` are indices into the *derived* gate's own qubit/clbit list.
+    #: A derived gate may reference other handlers, transversal gates, or derived gates,
+    #: but must not reference itself (directly or through other derived gates).
+    #: E.g. ``{"swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])]}``.
+    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {}
 
     def __init__(self, original_circuit: QuantumCircuit, *, add_syndromes: bool = True) -> None:
         """Initialize the transpiler with the original QuantumCircuit.
@@ -89,6 +96,7 @@ class ECTranspiler(ABC):
         self.num_logical_qubits = original_circuit.num_qubits
         self.add_syndromes = add_syndromes
         self.logical_qubits: list[LogicalQubit] = []
+        # TODO: is it weird, that we're only doing this for t-gates? potentially reconfigure to more adaptive data structure
         self.t_gate_count = 0
         self.transpiled_qc = QuantumCircuit()
 
@@ -145,38 +153,51 @@ class ECTranspiler(ABC):
             self._apply_encoding(self.transpiled_qc, logical_qubit.data)
 
     def replace_gates(self) -> None:
-        """Scan the original circuit and replace gates with logical equivalents.
+        """Scan the original circuit and dispatch each instruction to its logical equivalent.
 
-        Dispatch order per instruction:
-
-        1. ``barrier``/``measure`` are always handled generically.
-        2. A dedicated ``_logical_<gate_name>`` method on the subclass, if present, is used. This
-           covers gates whose physical realization is not a plain transversal application of a
-           single gate (e.g. a code-specific CX, or a gate composed from other logical gates).
-        3. Otherwise, if the gate is listed in :attr:`TRANSVERSAL_GATES`, it is applied
-           transversally.
-        4. Otherwise, the gate is realized as an opaque, ideal logical gadget (see
-           :meth:`_handle_unregistered_gate`).
+        For every instruction, the original circuit's qubits/clbits are resolved to logical
+        indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
         """
+        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
+        # (i.e. right here)
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
             logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
 
-            if gate_name == "barrier":
-                self._handle_barrier(logical_qubit_indices)
-                continue
-            if gate_name == "measure":
-                self._handle_measure(logical_qubit_indices[0], logical_clbit_indices[0])
-                continue
+            self._apply_gate(gate_name, logical_qubit_indices, logical_clbit_indices)
 
-            handler_name = f"_logical_{gate_name}"
-            if hasattr(self, handler_name):
-                getattr(self, handler_name)(*logical_qubit_indices)
-            elif gate_name in self.TRANSVERSAL_GATES:
-                self._apply_transversal_gate(self.TRANSVERSAL_GATES[gate_name], logical_qubit_indices)
-            else:
-                self._handle_unregistered_gate(gate_name, logical_qubit_indices)
+    def _apply_gate(self, gate_name: str, logical_qubit_indices: list, logical_clbit_indices: list) -> None:
+        """Apply a single named gate to the given logical qubit/classical-bit indices.
+
+        Dispatch order:
+        1. ``barrier``/``measure`` are always handled generically.
+        2. A dedicated ``_logical_<gate_name>`` method on the subclass, if present, is used. This
+           covers gates whose physical realization is not a plain transversal application of a
+           single gate (e.g. a code-specific CX).
+        3. Otherwise, if the gate is listed in :attr:`TRANSVERSAL_GATES`, it is applied
+           transversally (see :meth:`_apply_transversal_gate`).
+        4. Otherwise, if the gate is listed in :attr:`DERIVED_GATES`, it is expanded into its
+           declared sequence of sub-gates (see :meth:`_apply_derived_gate`).
+        5. Otherwise, the gate is realized as an opaque, ideal logical gadget (see
+           :meth:`_handle_unregistered_gate`).
+        """
+        if gate_name == "barrier":
+            self._handle_barrier(logical_qubit_indices)
+            return
+        if gate_name == "measure":
+            self._handle_measure(logical_qubit_indices[0], logical_clbit_indices[0])
+            return
+
+        handler_name = f"_logical_{gate_name}"
+        if hasattr(self, handler_name):
+            getattr(self, handler_name)(*logical_qubit_indices)
+        elif gate_name in self.TRANSVERSAL_GATES:
+            self._apply_transversal_gate(self.TRANSVERSAL_GATES[gate_name], logical_qubit_indices)
+        elif gate_name in self.DERIVED_GATES:
+            self._apply_derived_gate(gate_name, logical_qubit_indices, [])
+        else:
+            self._handle_unregistered_gate(gate_name, logical_qubit_indices)
 
     def _handle_barrier(self, logical_qubit_indices: list[int]) -> None:
         """Apply a logical barrier across the specified physical qubits."""
@@ -216,6 +237,28 @@ class ECTranspiler(ABC):
 
         for logical_qubit_index in dict.fromkeys(logical_qubit_indices):
             self.insert_syndromes(logical_qubit_index)
+
+    def _apply_derived_gate(
+        self, gate_name: str, logical_qubit_indices: list[int], logical_clbit_indices: list[int]
+    ) -> None:
+        """Apply a gate declared in :attr:`DERIVED_GATES` as a sequence of other gates.
+
+        Each declared step is a ``(sub_gate_name, qubit_map, clbit_map)`` tuple, where
+        ``qubit_map``/``clbit_map`` index into ``logical_qubit_indices``/``logical_clbit_indices``
+        (the qubits/clbits the *derived* gate was itself invoked on) to build the logical indices
+        for that step. Each step applies its gate through :meth:`_apply_gate`, so a sub-gate may
+        itself be transversal, another derived gate, or have a dedicated ``_logical_<name>`` handler.
+
+        Note: this does not guard against a gate (directly or transitively) deriving from itself.
+        """
+        if self.DERIVED_GATES[gate_name] is not None:
+            for gate, qubit_map, clbit_map in self.DERIVED_GATES[gate_name]:
+                mapped_qubit_indices = [logical_qubit_indices[i] for i in qubit_map]
+                mapped_clbit_indices = [logical_clbit_indices[i] for i in clbit_map]
+                self._apply_gate(gate, mapped_qubit_indices, mapped_clbit_indices)
+        else:
+            msg = f"No derivation specified for derived gate {self.DERIVED_GATES[gate_name]}."
+            raise ValueError(msg)
 
     def _handle_unregistered_gate(self, gate_name: str, logical_qubit_indices: list[int]) -> None:
         """Realize a gate with no dedicated handler as an opaque, ideal logical gadget.
