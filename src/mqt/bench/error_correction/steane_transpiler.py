@@ -82,7 +82,7 @@ class SteaneTranspiler(ECTranspiler):
     }
     DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {
         "swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])],
-        "cy": [("s", [1], []), ("cx", [0, 1], []), ("sdg", [1], [])],
+        "cy": [("sdg", [1], []), ("cx", [0, 1], []), ("s", [1], [])],
         "dcx": [("cx", [0, 1], []), ("cx", [1, 0], [])],
     }
 
