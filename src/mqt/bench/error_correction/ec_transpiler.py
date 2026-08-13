@@ -96,8 +96,6 @@ class ECTranspiler(ABC):
         self.num_logical_qubits = original_circuit.num_qubits
         self.add_syndromes = add_syndromes
         self.logical_qubits: list[LogicalQubit] = []
-        # TODO: is it weird, that we're only doing this for t-gates? potentially reconfigure to more adaptive data structure
-        self.t_gate_count = 0
         self.transpiled_qc = QuantumCircuit()
 
         # We need this for backwards compatibility with the testing suite
@@ -286,9 +284,6 @@ class ECTranspiler(ABC):
         the involved logical qubits' data registers, named
         ``f"{CODE_NAME}_logical_{gate_name}_magic_state_injection"``.
         """
-        if gate_name in {"t", "tdg"}:
-            self.t_gate_count += 1
-
         physical_data_registers = [self.logical_qubits[idx].data for idx in logical_qubit_indices]
         physical_qubits = [qubit for register in physical_data_registers for qubit in register]
 
