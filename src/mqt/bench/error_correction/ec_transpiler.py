@@ -156,14 +156,13 @@ class ECTranspiler(ABC):
         for logical_qubit in self.logical_qubits:
             self._apply_encoding(self.transpiled_qc, logical_qubit.data)
 
-    def replace_gates(self, qc: QuantumCircuit | None = None) -> None:
+    def replace_gates(self) -> None:
         """Scan the original circuit and dispatch each instruction to its logical equivalent.
 
         For every instruction, the original circuit's qubits/clbits are resolved to logical
         indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
         """
-        qc = self.original_qc if qc is None else qc
-        for instruction in qc.data:
+        for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
             logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
