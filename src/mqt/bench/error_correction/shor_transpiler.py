@@ -76,7 +76,6 @@ class ShorTranspiler(ECTranspiler):
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit decoding to a physical data register."""
-        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
         for i in range(self.SHOR_NUM_BLOCKS):
             qc.compose(
                 get_three_qubit_bit_flip_encoding_decoding_circuit().inverse(),

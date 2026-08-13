@@ -96,7 +96,6 @@ class SteaneTranspiler(ECTranspiler):
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Steane 7-qubit decoding to a physical data register."""
-        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
         qc.compose(
             get_seven_qubit_steane_code_decoding_circuit(),
             qubits=physical_data_register[:],

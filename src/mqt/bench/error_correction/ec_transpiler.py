@@ -103,6 +103,8 @@ class ECTranspiler(ABC):
         # We need this for backwards compatibility with the testing suite
         self.physical_data_registers: list[QuantumRegister] = []
 
+        self.encoded_qubits = [False for _ in range(self.num_logical_qubits)]
+
     def transpile(self) -> QuantumCircuit:
         """Transpile the original circuit to a fault-tolerant circuit using the error-correcting code.
 
@@ -146,6 +148,8 @@ class ECTranspiler(ABC):
             self.logical_qubits.append(logical_qubit)
             all_registers.extend(logical_qubit.get_all_registers())
 
+            self.encoded_qubits[i] = True
+
         self.transpiled_qc = QuantumCircuit(*all_registers)
         self.transpiled_qc.name = f"{self.original_qc.name}_{self.CODE_NAME}_encoded"
 
@@ -158,12 +162,15 @@ class ECTranspiler(ABC):
         For every instruction, the original circuit's qubits/clbits are resolved to logical
         indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
         """
-        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
-        # (i.e. right here)
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
             logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
             logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
+
+            decoded_qubits = [q for q in logical_qubit_indices if self.encoded_qubits[q] is False]
+            if decoded_qubits:
+                msg = f"Instruction {gate_name} accesses qubits {decoded_qubits} after decoding"
+                raise RuntimeError(msg)
 
             self._apply_gate(gate_name, logical_qubit_indices, logical_clbit_indices)
 
