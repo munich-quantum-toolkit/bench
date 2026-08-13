@@ -161,6 +161,8 @@ class ECTranspiler(ABC):
 
         For every instruction, the original circuit's qubits/clbits are resolved to logical
         indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
+
+        Control-Flow instructions and c_if conditions are unsupported.
         """
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
