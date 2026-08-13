@@ -109,8 +109,8 @@ class ECTranspiler(ABC):
         """Transpile the original circuit to a fault-tolerant circuit using the error-correcting code.
 
         High-level Qiskit instructions such as ``QFTGate`` are first decomposed into the code's
-        supported basis gates. For QFT, this decomposition currently uses
-        ``approximation_degree=0.95``, so encoded QFT circuits are approximate rather than exact.
+        supported basis gates. This decomposition uses` `approximation_degree=0.95``,
+        so encoded circuits are approximate rather than exact.
 
         Returns:
              The transpiled fault-tolerant circuit.
@@ -118,7 +118,7 @@ class ECTranspiler(ABC):
         self.original_qc = transpile(
             self.original_qc,
             basis_gates=self.TARGET_GATE_SET,
-            optimization_level=3,
+            optimization_level=0,
             approximation_degree=0.95,
             seed_transpiler=10,
         )
