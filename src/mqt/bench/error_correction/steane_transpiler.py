@@ -35,6 +35,7 @@ from .ec_transpiler import ECTranspiler, LogicalQubit
 
 if TYPE_CHECKING:
     from qiskit import QuantumCircuit, QuantumRegister
+    from qiskit.circuit import Gate
 
 
 class SteaneTranspiler(ECTranspiler):
@@ -68,7 +69,7 @@ class SteaneTranspiler(ECTranspiler):
         "tdg",
     ]
     # Our Steane convention: logical S = physical Sdg on every qubit, logical Sdg = physical S on every qubit.
-    TRANSVERSAL_GATES: ClassVar = {
+    TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {
         "id": IGate(),
         "x": XGate(),
         "y": YGate(),
@@ -78,6 +79,11 @@ class SteaneTranspiler(ECTranspiler):
         "sdg": SGate(),
         "cx": CXGate(),
         "cz": CZGate(),
+    }
+    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {
+        "swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])],
+        "cy": [("s", [1], []), ("cx", [0, 1], []), ("sdg", [1], [])],
+        "dcx": [("cx", [0, 1], []), ("cx", [1, 0], [])],
     }
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
@@ -90,39 +96,11 @@ class SteaneTranspiler(ECTranspiler):
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Steane 7-qubit decoding to a physical data register."""
+        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
         qc.compose(
             get_seven_qubit_steane_code_decoding_circuit(),
             qubits=physical_data_register[:],
             inplace=True,
-        )
-
-    def _logical_cy(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
-        """Implement logical CY via S and Sdg on the target and a logical CX in between."""
-        self._apply_transversal_gate(self.TRANSVERSAL_GATES["s"], [target_logical_qubit_index])
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [control_logical_qubit_index, target_logical_qubit_index]
-        )
-        self._apply_transversal_gate(self.TRANSVERSAL_GATES["sdg"], [target_logical_qubit_index])
-
-    def _logical_swap(self, first_logical_qubit_index: int, second_logical_qubit_index: int) -> None:
-        """Implement logical SWAP via three logical CX gates."""
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [first_logical_qubit_index, second_logical_qubit_index]
-        )
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [second_logical_qubit_index, first_logical_qubit_index]
-        )
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [first_logical_qubit_index, second_logical_qubit_index]
-        )
-
-    def _logical_dcx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
-        """Implement logical DCX (double-CNOT) via two logical CX gates."""
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [control_logical_qubit_index, target_logical_qubit_index]
-        )
-        self._apply_transversal_gate(
-            self.TRANSVERSAL_GATES["cx"], [target_logical_qubit_index, control_logical_qubit_index]
         )
 
     def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:

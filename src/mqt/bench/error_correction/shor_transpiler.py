@@ -27,11 +27,7 @@ from .ec_transpiler import ECTranspiler, LogicalQubit
 
 if TYPE_CHECKING:
     from qiskit import QuantumCircuit, QuantumRegister
-
-# Constants for the Shor 9-qubit code structure
-SHOR_BLOCK_SIZE = 3
-SHOR_NUM_BLOCKS = 3
-SHOR_PHASE_FLIP_TARGETS = [0, 3, 6]
+    from qiskit.circuit import Gate
 
 
 class ShorTranspiler(ECTranspiler):
@@ -45,41 +41,51 @@ class ShorTranspiler(ECTranspiler):
     Shor code) -- is automatically realized as an opaque, ideal logical gadget.
     """
 
+    # Constants for the Shor 9-qubit code structure
+    SHOR_BLOCK_SIZE = 3
+    SHOR_NUM_BLOCKS = 3
+    SHOR_PHASE_FLIP_TARGETS: ClassVar[list[int]] = [0, 3, 6]
+
     CODE_NAME = "shor"
     BLOCK_SIZE = SHOR_BLOCK_SIZE * SHOR_NUM_BLOCKS
     BIT_FLIP_SYNDROME_SIZE = 6
     PHASE_FLIP_SYNDROME_SIZE = 2
     TARGET_GATE_SET: ClassVar[list[str]] = ["id", "h", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"]
-    TRANSVERSAL_GATES: ClassVar = {"id": IGate()}
+    TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {"id": IGate()}
+    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {
+        "swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])],
+        "dcx": [("cx", [0, 1], []), ("cx", [1, 0], [])],
+    }
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit encoding to a physical data register."""
         # Phase flip encoding on the first qubit of each block
         qc.compose(
             get_three_qubit_phase_flip_encoding_circuit(),
-            qubits=[physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS],
+            qubits=[physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS],
             inplace=True,
         )
 
         # Bit flip encoding on each block
-        for i in range(SHOR_NUM_BLOCKS):
+        for i in range(self.SHOR_NUM_BLOCKS):
             qc.compose(
                 get_three_qubit_bit_flip_encoding_decoding_circuit(),
-                qubits=physical_data_register[i * SHOR_BLOCK_SIZE : (i + 1) * SHOR_BLOCK_SIZE],
+                qubits=physical_data_register[i * self.SHOR_BLOCK_SIZE : (i + 1) * self.SHOR_BLOCK_SIZE],
                 inplace=True,
             )
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit decoding to a physical data register."""
-        for i in range(SHOR_NUM_BLOCKS):
+        # TODO: add entry guards for decoded qubits. This should be handled in ec_transpiler
+        for i in range(self.SHOR_NUM_BLOCKS):
             qc.compose(
                 get_three_qubit_bit_flip_encoding_decoding_circuit().inverse(),
-                qubits=physical_data_register[i * SHOR_BLOCK_SIZE : (i + 1) * SHOR_BLOCK_SIZE],
+                qubits=physical_data_register[i * self.SHOR_BLOCK_SIZE : (i + 1) * self.SHOR_BLOCK_SIZE],
                 inplace=True,
             )
         qc.compose(
             get_three_qubit_phase_flip_encoding_circuit().inverse(),
-            qubits=[physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS],
+            qubits=[physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS],
             inplace=True,
         )
 
@@ -91,7 +97,7 @@ class ShorTranspiler(ECTranspiler):
         applying one Z per block (Z_0 Z_3 Z_6) transversally achieves logical X.
         """
         physical_data_register = self.logical_qubits[logical_qubit_index].data
-        for q in (physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS):
+        for q in (physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS):
             self.transpiled_qc.z(q)
         self.insert_syndromes(logical_qubit_index)
 
@@ -106,7 +112,7 @@ class ShorTranspiler(ECTranspiler):
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         for q in (physical_data_register[0], physical_data_register[1], physical_data_register[2]):
             self.transpiled_qc.x(q)
-        for q in (physical_data_register[i] for i in SHOR_PHASE_FLIP_TARGETS):
+        for q in (physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS):
             self.transpiled_qc.z(q)
         self.insert_syndromes(logical_qubit_index)
 
@@ -139,27 +145,6 @@ class ShorTranspiler(ECTranspiler):
         self.insert_syndromes(control_logical_qubit_index)
         self.insert_syndromes(target_logical_qubit_index)
 
-    def _logical_dcx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
-        """Apply logical DCX (double-CNOT), implemented as two logical CX gates.
-
-        DCX(a, b) applies CX(a, b) followed by CX(b, a). Matching Qiskit's DCXGate
-        convention, the first qubit is the control of the first CX and the target of
-        the second. Each logical CX is transversal, so the composed DCX is transversal.
-        """
-        self._logical_cx(control_logical_qubit_index, target_logical_qubit_index)
-        self._logical_cx(target_logical_qubit_index, control_logical_qubit_index)
-
-    def _logical_swap(self, first_logical_qubit_index: int, second_logical_qubit_index: int) -> None:
-        """Apply logical SWAP (implemented as three alternating logical CX gates).
-
-        SWAP(a, b) = CX(a, b) . CX(b, a) . CX(a, b). Each logical CX is transversal,
-        so the composed SWAP is transversal as well. The individual _logical_cx calls
-        already insert their own syndrome extraction cycles.
-        """
-        self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
-        self._logical_cx(second_logical_qubit_index, first_logical_qubit_index)
-        self._logical_cx(first_logical_qubit_index, second_logical_qubit_index)
-
     def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:
         """Run the Shor code's bit-flip and phase-flip syndrome extraction and correction cycle.
 
@@ -187,10 +172,10 @@ class ShorTranspiler(ECTranspiler):
             raise ValueError(msg)
 
         self.transpiled_qc.reset(qubit.bit_flip_syndrome)
-        for i in range(SHOR_NUM_BLOCKS):
+        for i in range(self.SHOR_NUM_BLOCKS):
             self.transpiled_qc.compose(
                 get_three_qubit_bit_flip_syndrome_extraction_circuit(),
-                qubits=qubit.data[i * SHOR_BLOCK_SIZE : (i + 1) * SHOR_BLOCK_SIZE]
+                qubits=qubit.data[i * self.SHOR_BLOCK_SIZE : (i + 1) * self.SHOR_BLOCK_SIZE]
                 + qubit.bit_flip_syndrome[i * 2 : (i + 1) * 2],
                 inplace=True,
             )
