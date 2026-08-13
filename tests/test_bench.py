@@ -416,28 +416,28 @@ def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
 SHOR_BV = {
     "cx": 217,
     "if_else": 84,
-    "h": 79,
+    "h": 43,
     "measure": 58,
     "reset": 56,
-    "swap": 12,
+    "shor_logical_h_magic_state_injection": 4,
     "z": 3,
 }
 SHOR_GHZ = {
     "cx": 186,
     "if_else": 60,
-    "h": 47,
+    "h": 38,
     "measure": 43,
     "reset": 40,
-    "swap": 3,
+    "shor_logical_h_magic_state_injection": 1,
     "barrier": 1,
 }
 SHOR_GRAPHSTATE = {
     "cx": 435,
     "if_else": 180,
-    "h": 159,
+    "h": 78,
     "measure": 123,
     "reset": 120,
-    "swap": 27,
+    "shor_logical_h_magic_state_injection": 9,
     "barrier": 1,
 }
 SHOR_QFT = {
@@ -445,10 +445,10 @@ SHOR_QFT = {
     "if_else": 204,
     "measure": 139,
     "reset": 136,
-    "h": 113,
-    "swap": 9,
+    "h": 86,
+    "shor_logical_h_magic_state_injection": 3,
     "shor_logical_t_magic_state_injection": 4,
-    "shor_logical_t_magic_state_injection_dg": 2,
+    "shor_logical_tdg_magic_state_injection": 2,
     "barrier": 1,
 }
 STEANE_BV = {
@@ -478,13 +478,13 @@ STEANE_GRAPHSTATE = {
     "barrier": 1,
 }
 STEANE_QFT = {
-    "cx": 676,
-    "if_else": 244,
-    "h": 219,
-    "measure": 111,
+    "cx": 502,
+    "if_else": 238,
+    "h": 141,
+    "measure": 105,
     "reset": 102,
-    "t": 28,
-    "tdg": 14,
+    "steane_logical_t_magic_state_injection": 4,
+    "steane_logical_tdg_magic_state_injection": 2,
     "barrier": 1,
 }
 
