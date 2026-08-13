@@ -94,8 +94,14 @@ quality and licensing compliance.
 Please carefully read and follow our dedicated {doc}`ai_usage` before submitting
 any AI-assisted contribution. In short:
 **You are responsible for every line of code you submit**, and a
-**human must always be in the loop**. We require disclosure of AI tool usage in
-your PR description.
+**human must always be in the loop**. Agents may perform coding and GitHub tasks
+within an explicitly authorized scope, but you must review their work and remain
+accountable for the result. Every agent-authored or agent-edited public text
+body must begin with `🤖 *AI text below* 🤖`; issue and pull request titles are
+exempt. AI assistance must be disclosed in the PR description. Commit-level
+`Assisted-by: [Model Name] via [Tool Name]` trailers are recommended for commits
+prepared with AI assistance. AI assistance must not be used for contributions to
+issues labeled "good first issue".
 
 If you use an agent, it will automatically read the provided {code}`AGENTS.md`,
 which contains context and instructions to help the agent work on MQT Bench. For

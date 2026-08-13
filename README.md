@@ -20,7 +20,7 @@
 MQT Bench is a quantum circuit benchmark suite with cross-level support, i.e.,
 providing the same benchmark algorithms for different abstraction levels
 throughout the quantum computing software stack. MQT Bench is hosted at
-[https://mqt-bench.app/](https://mqt-bench.app/). It is part of the
+<https://mqt-bench.app/>. It is part of the
 [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">

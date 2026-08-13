@@ -377,8 +377,8 @@ def get_benchmark_native_gates(
     circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
     if target.description == "clifford+t":
-        from qiskit.transpiler import PassManager  # noqa: PLC0415
-        from qiskit.transpiler.passes.synthesis import SolovayKitaev  # noqa: PLC0415
+        from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
+        from qiskit.transpiler.passes.synthesis import SolovayKitaev  # ruff:ignore[import-outside-top-level]
 
         # Transpile the circuit to single- and two-qubit gates including rotations
         clifford_t_rotations = get_target_for_gateset("clifford+t+rotations", num_qubits=circuit.num_qubits)

@@ -18,13 +18,13 @@ import pytest
 from qiskit.transpiler import Target
 
 from mqt.bench.targets.devices import (
-    _module_from_device_name,  # noqa: PLC2701
+    _module_from_device_name,  # ruff:ignore[import-private-name]
     get_available_device_names,
     get_device,
     register_device,
 )
 from mqt.bench.targets.gatesets import (
-    _module_from_gateset_name,  # noqa: PLC2701
+    _module_from_gateset_name,  # ruff:ignore[import-private-name]
     get_available_gateset_names,
     get_gateset,
     get_target_for_gateset,

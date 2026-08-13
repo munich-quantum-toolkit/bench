@@ -67,10 +67,13 @@ class GPIGate(Gate):
     r"""Single-qubit GPI gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
              ┌───────┐
         q_0: ┤ GPI(φ)├
              └───────┘
+
     **Matrix Representation:**.
 
     .. math::
@@ -100,10 +103,13 @@ class GPI2Gate(Gate):
     r"""Single-qubit GPI2 gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
              ┌───────┐
         q_0: ┤GPI2(φ)├
              └───────┘
+
     **Matrix Representation:**.
 
     .. math::
@@ -136,12 +142,15 @@ class MSGate(Gate):
     r"""Entangling 2-Qubit MS gate.
 
     **Circuit symbol:**
+
     .. parsed-literal::
+
               _______
         q_0: ┤       ├-
-             |MS(ϴ,0)|
+             \|MS(ϴ,0)\|
         q_1: ┤       ├-
              └───────┘
+
     **Matrix representation:**.
 
     .. math::
@@ -208,10 +217,13 @@ class ZZGate(Gate):
     r"""Two-qubit ZZ-rotation gate.
 
     **Circuit Symbol:**
+
     .. parsed-literal::
+
         q_0: ───■────
                 │zz(θ)
         q_1: ───■────
+
     **Matrix Representation:**.
 
     .. math::

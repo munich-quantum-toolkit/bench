@@ -102,8 +102,8 @@ def get_gateset(gateset_name: str) -> list[str]:
 
 def _lazy_custom_gates() -> dict[str, Callable[[], Gate | type[Instruction]]]:
     """Import custom gates only when needed."""
-    from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate  # noqa: PLC0415
-    from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # noqa: PLC0415
+    from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate  # ruff:ignore[import-outside-top-level]
+    from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # ruff:ignore[import-outside-top-level]
 
     return {
         "gpi": lambda: GPIGate(Parameter("alpha")),

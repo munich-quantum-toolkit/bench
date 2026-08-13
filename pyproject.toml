@@ -58,7 +58,7 @@ classifiers = [
 test = [
     "pytest>=9.0.1",
     "pytest-console-scripts>=1.4.1",
-    "pytest-cov>=7.0.0",
+    "pytest-cov>=7.1.0",
     "pytest-sugar>=1.1.1",
     "pytest-xdist>=3.8.0",
 ]
@@ -69,6 +69,7 @@ docs = [
     "sphinx>=8.1.3",
     "sphinx>=8.2.3; python_version >= '3.11'",
     "sphinx-design>=0.6.1",
+    "sphinx-llm",
     "sphinx-autoapi>=3.6.0",
     "sphinx-copybutton>=0.5.2",
     "sphinxcontrib-bibtex>=2.6.5",
@@ -135,6 +136,8 @@ filterwarnings = [
 
 [tool.coverage]
 run.source = ["mqt.bench"]
+run.core = "sysmon"
+run.parallel = true
 run.disable_warnings = [
     "no-sysmon",
 ]
