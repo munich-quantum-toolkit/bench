@@ -19,7 +19,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
-- ⬆️ Increase minimum Qiskit version to 2.4.0 ([#930]) ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
+- ⬆️ Increase minimum Qiskit version to 2.4.0 ([#930]) ([**@Felix-Gundlach**],
+  [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ## [2.2.3] - 2026-07-07
 
