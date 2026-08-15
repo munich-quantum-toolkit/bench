@@ -288,7 +288,7 @@ class ECTranspiler(ABC):
         physical_qubits = [qubit for register in physical_data_registers for qubit in register]
 
         gadget = Instruction(
-            name=f"{self.CODE_NAME}_logical_{gate_name}_magic_state_injection",
+            name=f"{self.CODE_NAME}_ideal_logical_{gate_name}",
             num_qubits=len(physical_qubits),
             num_clbits=0,
             params=[],
