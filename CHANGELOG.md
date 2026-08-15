@@ -30,13 +30,6 @@ that minor releases may include breaking changes.
 - ✨ Add Iterative Quantum Phase Estimation (IQPE) benchmark ([#925])
   ([**@johanneswittmann9**])
 
-### Changed
-
-- ⚡ Improve `ShorTranspiler` to transpile input circuits to the target basis
-  using a circuit-wide compilation pass instead of individual manual gate
-  decomposition, representing logical T and T-dagger gates via opaque magic
-  state injection gadgets.
-
 ### Fixed
 
 - 🐛 Seed `GenericBackendV2` used by `get_target_for_gateset` to ensure
