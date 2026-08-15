@@ -226,7 +226,7 @@ def get_benchmark_alg(
         raise ValueError(msg)
 
     qc = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
-    
+
     if generate_mirror_circuit:
         qc = _create_mirror_circuit(qc, inplace=True)
 
