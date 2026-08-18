@@ -8,6 +8,8 @@
 
 """Initialization of the benchmark module."""
 
+# ruff: file-ignore[non-empty-init-module]
+
 from __future__ import annotations
 
 import importlib

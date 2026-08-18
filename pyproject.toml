@@ -36,6 +36,7 @@ dependencies = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
     "Operating System :: MacOS",
@@ -50,6 +51,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
     "Typing :: Typed",
 ]
 
@@ -68,11 +70,10 @@ docs = [
     "sphinx>=8.1.3",
     "sphinx>=8.2.3; python_version >= '3.11'",
     "sphinx-design>=0.6.1",
-    "sphinx-llm",
+    "sphinx-llm>=0.4.1",
     "sphinx-autoapi>=3.6.0",
     "sphinx-copybutton>=0.5.2",
     "sphinxcontrib-bibtex>=2.6.5",
-    "sphinxcontrib-svg2pdfconverter>=1.3.0",
     "sphinxext-opengraph>=0.13.0",
     "qiskit[visualization]>=1.2.1",
 ]
@@ -207,7 +208,6 @@ ignore = [
     "E501",    # Line too long (Black is enough)
     "PLR",     # Design related pylint codes
     "S101",    # Use of assert detected
-    "RUF067",  # `__init__` module should only contain docstrings and re-exports (we heavily use it for package initialization)
 ]
 flake8-unused-arguments.ignore-variadic-names = true
 future-annotations = true
@@ -256,8 +256,6 @@ benchs = "benchs"
 
 [tool.repo-review.ignore]
 GH200 = "We use Renovate instead of Dependabot"
-MY100 = "We use ty instead of mypy"
-PC111 = "We use ruff instead of blacken-docs"
 PC160 = "We use a mirror of crate-ci/typos"
 PC170 = "We do not use rST files anymore"
 
