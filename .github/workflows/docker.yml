@@ -11,6 +11,8 @@ on:
     branches:
       - "main"
 
+permissions: {}
+
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
@@ -25,6 +27,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # Check whether the Docker credentials are available as secrets. If both are set, then set a boolean flag and export it to the environment.
       - name: Check Docker credentials

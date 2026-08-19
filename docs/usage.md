@@ -49,7 +49,7 @@ Further examples can be found in the {doc}`quickstart` guide.
 
 ## Usage via the Command Line Interface (CLI)
 
-In addition to the Python API, **MQT Bench** provides a flexible and lightweight
+In addition to the Python API, MQT Bench provides a flexible and lightweight
 command-line interface (CLI) to generate individual benchmark circuits.
 
 The easiest way to get started with the CLI is via

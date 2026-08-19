@@ -8,6 +8,8 @@
 
 """Initialization of the devices module."""
 
+# ruff: file-ignore[non-empty-init-module]
+
 from __future__ import annotations
 
 import copy
