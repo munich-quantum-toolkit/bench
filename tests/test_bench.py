@@ -608,9 +608,7 @@ def test_error_correction_transpiler_circuit_structure(
             missing_gates = expected_gates.keys() - created_gates.keys()
             assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
         else:
-            assert expected_gates == created_gates, (
-                f"Created circuit does not contain the expected gates for {test_id}"
-            )
+            assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
 @pytest.mark.parametrize(
