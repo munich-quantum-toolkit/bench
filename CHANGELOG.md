@@ -12,6 +12,16 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- ✨ Add Steane's and Shor's encoding for benchmarks ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
+
+### Changed
+
+- ⬆️ Increase minimum Qiskit version to 2.4.0 ([#930]) ([**@Felix-Gundlach**],
+  [**@emilkanic0909**], [**@SalehAlsherif**])
+
 ## [2.2.3] - 2026-07-07
 
 ### Added
@@ -227,6 +237,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@TomasVF**]: https://github.com/TomasVF
 [**@flowerthrower**]: https://github.com/flowerthrower
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
+[**@Felix-Gundlach**]: https://github.com/Felix-Gundlach
+[**@emilkanic0909**]: https://github.com/emilkanic0909
+[**@SalehAlsherif**]: https://github.com/SalehAlsherif
 
 <!-- General links -->
 

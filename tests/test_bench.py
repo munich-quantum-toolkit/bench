@@ -33,6 +33,10 @@ from qiskit.transpiler import (
 )
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
+from mqt.bench import benchmark_generation
+from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
+from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
+
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
@@ -407,6 +411,204 @@ def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
     assert if_else_count == expected_if_else, (
         f"Expected {expected_if_else} conditional operations, found {if_else_count}"
     )
+
+
+SHOR_BV = {
+    "cx": 265,
+    "if_else": 108,
+    "measure": 74,
+    "reset": 72,
+    "h": 51,
+    "shor_ideal_logical_h": 6,
+    "z": 3,
+}
+SHOR_GHZ = {
+    "cx": 186,
+    "if_else": 60,
+    "h": 38,
+    "measure": 43,
+    "reset": 40,
+    "shor_ideal_logical_h": 1,
+    "barrier": 1,
+}
+SHOR_GRAPHSTATE = {
+    "cx": 435,
+    "if_else": 180,
+    "h": 78,
+    "measure": 123,
+    "reset": 120,
+    "shor_ideal_logical_h": 9,
+    "barrier": 1,
+}
+SHOR_QFT = {
+    "cx": 849,
+    "if_else": 360,
+    "measure": 243,
+    "reset": 240,
+    "h": 138,
+    "shor_ideal_logical_t": 6,
+    "shor_ideal_logical_h": 3,
+    "shor_ideal_logical_tdg": 3,
+    "barrier": 1,
+}
+STEANE_BV = {
+    "cx": 223,
+    "if_else": 98,
+    "h": 85,
+    "measure": 44,
+    "reset": 42,
+    "x": 7,
+    "cz": 7,
+}
+STEANE_GHZ = {
+    "cx": 200,
+    "if_else": 70,
+    "h": 55,
+    "measure": 33,
+    "reset": 30,
+    "barrier": 1,
+}
+STEANE_GRAPHSTATE = {
+    "cx": 282,
+    "if_else": 126,
+    "h": 93,
+    "measure": 57,
+    "reset": 54,
+    "cz": 21,
+    "barrier": 1,
+}
+STEANE_QFT = {
+    "cx": 849,
+    "if_else": 420,
+    "h": 219,
+    "measure": 183,
+    "reset": 180,
+    "steane_ideal_logical_t": 6,
+    "steane_ideal_logical_tdg": 3,
+    "barrier": 1,
+}
+
+
+@pytest.mark.parametrize(
+    ("logical_qubits", "code", "alg", "expected_gates"),
+    [
+        (3, "shor", "ghz", SHOR_GHZ),
+        (3, "shor", "bv", SHOR_BV),
+        (3, "shor", "graphstate", SHOR_GRAPHSTATE),
+        (3, "shor", "qft", SHOR_QFT),
+        (3, "steane", "ghz", STEANE_GHZ),
+        (3, "steane", "bv", STEANE_BV),
+        (3, "steane", "graphstate", STEANE_GRAPHSTATE),
+        (3, "steane", "qft", STEANE_QFT),
+    ],
+)
+def test_error_correction_transpiler_circuit_structure(
+    logical_qubits: int, code: str, alg: str, expected_gates: dict
+) -> None:
+    """Verify the physical circuit structure produced by the error-correction encoder.
+
+    Checks that the encoded circuit has the correct number of physical qubits,
+    classical bits, and register sizes for the given code and algorithm. Exact
+    gate counts are checked for all algorithms except QFT, whose decomposition
+    can differ between supported Qiskit versions.
+
+    The expected qubit and classical-bit counts are code-dependent:
+
+    * **Steane code**: 13 physical qubits per logical qubit (7 data + 3 bit-flip
+      ancilla + 3 phase-flip ancilla) and 6 classical bits per logical qubit (3
+      bit-flip syndrome + 3 phase-flip syndrome), plus one bit per original clbit.
+    * **Shor code**: 17 physical qubits per logical qubit (9 data + 6 Z-stabiliser
+      ancilla + 2 X-stabiliser ancilla) and 8 classical bits per logical qubit (6
+      bit-flip syndrome + 2 phase-flip syndrome), plus one bit per original clbit.
+
+    QFT circuits are excluded from the qubit-count checks because their ancilla
+    qubit count scales with the number of T gates rather than the logical qubit count.
+
+    Args:
+        logical_qubits: Number of logical qubits in the benchmark circuit.
+        code: The error-correction code to use; either ``"steane"`` or ``"shor"``.
+        alg: Name of the benchmark algorithm (e.g. ``"ghz"``, ``"bv"``,
+            ``"graphstate"``, ``"qft"``).
+        expected_gates: Expected occurrences of gates in the benchmark circuit (based on qc.count_ops()).
+    """
+    test_id = f"{logical_qubits} qubit {alg} on {code}"
+
+    log_qc = benchmark_generation.get_benchmark(
+        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
+    )
+
+    # add error correction to the logical circuit
+    qc = log_qc.copy()
+    if code not in ["shor", "steane"]:
+        msg = "incorrect code submitted"
+        raise ValueError(msg)
+    if code == "shor":
+        transpiler = ShorTranspiler(qc, add_syndromes=True)
+    elif code == "steane":
+        transpiler = SteaneTranspiler(qc, add_syndromes=True)
+    qc = transpiler.transpile()  # pyright: ignore[reportPossiblyUnboundVariable]
+    qc = transpiler.transpiled_qc  # pyright: ignore[reportPossiblyUnboundVariable]
+
+    qubit_code_factor = -1
+    classical_code_factor = -1
+    expected_qreg_sizes = []
+    expected_creg_sizes = []
+
+    if code == "steane":
+        # Each logical qubit is split in 7 physical qubits
+        # Additionally, 6 ancillary registers are added
+        qubit_code_factor = 13
+        classical_code_factor = 6
+
+        # Check quantum register sizes: 7n (data) + 3n (bit-flip syndrome) + 3n (phase-flip syndrome)
+        expected_qreg_sizes = sorted([7] * logical_qubits + [3] * logical_qubits + [3] * logical_qubits)
+        # Check classical register sizes: 3n (bit-flip) + 3n (phase-flip) + 1 for each original clbit
+        expected_creg_sizes = sorted([3] * logical_qubits + [3] * logical_qubits + [1] * log_qc.num_clbits)
+    elif code == "shor":
+        # Each logical qubit is split in 9 physical qubits
+        # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
+        # => 1 logical qubit = 17 physical qubits
+        qubit_code_factor = 17
+        # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
+        classical_code_factor = 8
+
+        # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
+        expected_qreg_sizes = sorted([9] * logical_qubits + [6] * logical_qubits + [2] * logical_qubits)
+        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
+        expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
+
+    # QFT creates qubits scaling with the number of t-gates -> non-trivial scaling not covered by these simple tests
+    if alg != "qft":
+        expected_qubits = qubit_code_factor * log_qc.num_qubits
+        found_qubits = qc.num_qubits
+        assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
+
+        expected_clbits = classical_code_factor * log_qc.num_qubits + log_qc.num_clbits
+        found_clbits = qc.num_clbits
+        assert found_clbits == expected_clbits, (
+            f"Expected {expected_clbits} classical bits, found {found_clbits} for {test_id}"
+        )
+
+        qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
+        assert qreg_sizes == expected_qreg_sizes, (
+            f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
+        )
+
+        creg_sizes = sorted(creg.size for creg in qc.cregs)
+        assert creg_sizes == expected_creg_sizes, (
+            f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
+        )
+
+    # Test parameters only incorporate gate counts for small examples
+    if logical_qubits == 3:
+        # Counts the occurrence of every gate in the created circuit
+        created_gates = qc.count_ops()
+        if alg == "qft":
+            # Checks only correct gate existence because of different synthesis in different qiskit versions
+            missing_gates = expected_gates.keys() - created_gates.keys()
+            assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
+        else:
+            assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
 @pytest.mark.parametrize(
