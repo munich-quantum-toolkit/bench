@@ -508,8 +508,9 @@ def test_error_correction_transpiler_circuit_structure(
     """Verify the physical circuit structure produced by the error-correction encoder.
 
     Checks that the encoded circuit has the correct number of physical qubits,
-    classical bits, and register sizes for the given code and algorithm, and that
-    the exact gate counts match the reference values stored in ``gate_counts.json``.
+    classical bits, and register sizes for the given code and algorithm. Exact
+    gate counts are checked for all algorithms except QFT, whose decomposition
+    can differ between supported Qiskit versions.
 
     The expected qubit and classical-bit counts are code-dependent:
 
@@ -602,7 +603,14 @@ def test_error_correction_transpiler_circuit_structure(
     if logical_qubits == 3:
         # Counts the occurrence of every gate in the created circuit
         created_gates = qc.count_ops()
-        assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+        if alg == "qft":
+            # Checks only correct gate existence because of different synthesis in different qiskit versions
+            missing_gates = expected_gates.keys() - created_gates.keys()
+            assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
+        else:
+            assert expected_gates == created_gates, (
+                f"Created circuit does not contain the expected gates for {test_id}"
+            )
 
 
 @pytest.mark.parametrize(
