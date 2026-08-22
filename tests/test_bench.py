@@ -419,7 +419,7 @@ SHOR_BV = {
     "measure": 74,
     "reset": 72,
     "h": 51,
-    "shor_logical_h_magic_state_injection": 6,
+    "shor_ideal_logical_h": 6,
     "z": 3,
 }
 SHOR_GHZ = {
@@ -428,7 +428,7 @@ SHOR_GHZ = {
     "h": 38,
     "measure": 43,
     "reset": 40,
-    "shor_logical_h_magic_state_injection": 1,
+    "shor_ideal_logical_h": 1,
     "barrier": 1,
 }
 SHOR_GRAPHSTATE = {
@@ -437,7 +437,7 @@ SHOR_GRAPHSTATE = {
     "h": 78,
     "measure": 123,
     "reset": 120,
-    "shor_logical_h_magic_state_injection": 9,
+    "shor_ideal_logical_h": 9,
     "barrier": 1,
 }
 SHOR_QFT = {
@@ -446,9 +446,9 @@ SHOR_QFT = {
     "measure": 243,
     "reset": 240,
     "h": 138,
-    "shor_logical_t_magic_state_injection": 6,
-    "shor_logical_h_magic_state_injection": 3,
-    "shor_logical_tdg_magic_state_injection": 3,
+    "shor_ideal_logical_t": 6,
+    "shor_ideal_logical_h": 3,
+    "shor_ideal_logical_tdg": 3,
     "barrier": 1,
 }
 STEANE_BV = {
@@ -483,8 +483,8 @@ STEANE_QFT = {
     "h": 219,
     "measure": 183,
     "reset": 180,
-    "steane_logical_t_magic_state_injection": 6,
-    "steane_logical_tdg_magic_state_injection": 3,
+    "steane_ideal_logical_t": 6,
+    "steane_ideal_logical_tdg": 3,
     "barrier": 1,
 }
 

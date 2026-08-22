@@ -282,7 +282,7 @@ class ECTranspiler(ABC):
         Since this benchmark suite is only concerned with the resulting circuit *structure*, such
         gates are instead represented by a single opaque, ideal placeholder instruction spanning
         the involved logical qubits' data registers, named
-        ``f"{CODE_NAME}_logical_{gate_name}_magic_state_injection"``.
+        ``f"{self.CODE_NAME}_ideal_logical_{gate_name}"``.
         """
         physical_data_registers = [self.logical_qubits[idx].data for idx in logical_qubit_indices]
         physical_qubits = [qubit for register in physical_data_registers for qubit in register]
