@@ -136,8 +136,8 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
 @pytest.mark.parametrize(
     ("structured_name", "expanded_name", "num_qubits", "kwargs"),
     [
-        ("grover_for_loop", "grover", 6, {}),
-        ("qwalk_for_loop", "qwalk", 6, {"depth": 5}),
+        ("grover_loop", "grover", 6, {}),
+        ("qwalk_loop", "qwalk", 6, {"depth": 5}),
     ],
 )
 def test_for_loop_benchmarks(
@@ -166,13 +166,13 @@ def test_for_loop_benchmarks(
     assert not any(isinstance(inst.operation, ForLoopOp) for inst in mirrored.data)
 
 
-def test_qwalk_for_loop_coin_state_preparation() -> None:
+def test_qwalk_loop_coin_state_preparation() -> None:
     """The structured quantum walk must retain optional coin preparation."""
     coin_state_preparation = QuantumCircuit(1)
     coin_state_preparation.h(0)
 
     structured = create_circuit(
-        "qwalk_for_loop",
+        "qwalk_loop",
         4,
         depth=2,
         coin_state_preparation=coin_state_preparation,
@@ -190,8 +190,8 @@ def test_qwalk_for_loop_coin_state_preparation() -> None:
 def test_for_loop_mirror_on_supporting_target() -> None:
     """Mirror generation must unroll loops without changing the mapped layout."""
     target = get_device("ibm_falcon_27")
-    mapped = get_benchmark_mapped("grover_for_loop", 3, target, 0)
-    mirrored = get_benchmark_mapped("grover_for_loop", 3, target, 0, generate_mirror_circuit=True)
+    mapped = get_benchmark_mapped("grover_loop", 3, target, 0)
+    mirrored = get_benchmark_mapped("grover_loop", 3, target, 0, generate_mirror_circuit=True)
 
     assert any(isinstance(inst.operation, ForLoopOp) for inst in mapped.data)
     assert not any(isinstance(inst.operation, ForLoopOp) for inst in mirrored.data)

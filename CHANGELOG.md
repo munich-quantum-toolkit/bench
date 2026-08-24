@@ -14,7 +14,7 @@ that minor releases may include breaking changes.
 
 ### Added
 
-- ✨ Add structured for-loop variants for Grover's algorithm and quantum walk
+- ✨ Add structured loop variants for Grover's algorithm and quantum walk
   ([#997]) ([**@flowerthrower**])
 
 ## [2.2.3] - 2026-07-07

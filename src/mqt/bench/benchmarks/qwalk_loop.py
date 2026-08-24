@@ -16,7 +16,7 @@ from ._registry import register_benchmark
 from .qwalk import _append_walk_step
 
 
-@register_benchmark("qwalk_for_loop", description="Quantum Walk with For-Loop Control Flow")
+@register_benchmark("qwalk_loop", description="Quantum Walk with Loop Control Flow")
 def create_circuit(
     num_qubits: int,
     depth: int = 3,
@@ -35,7 +35,7 @@ def create_circuit(
     """
     node = QuantumRegister(num_qubits - 1, "node")
     coin = QuantumRegister(1, "coin")
-    qc = QuantumCircuit(node, coin, name="qwalk_for_loop")
+    qc = QuantumCircuit(node, coin, name="qwalk_loop")
 
     if coin_state_preparation is not None:
         qc.append(coin_state_preparation, coin[:])

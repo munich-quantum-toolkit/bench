@@ -19,11 +19,11 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
-@register_benchmark("grover_for_loop", description="Grover's Algorithm with For-Loop Control Flow")
+@register_benchmark("grover_loop", description="Grover's Algorithm with Loop Control Flow")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
     """Return a Grover circuit whose iterations use a Qiskit for-loop operation.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
     """
-    return _create_circuit(num_qubits, use_for_loop=True, name="grover_for_loop")
+    return _create_circuit(num_qubits, use_for_loop=True, name="grover_loop")
