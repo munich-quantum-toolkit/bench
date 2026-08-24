@@ -10,10 +10,13 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit
+from typing import TYPE_CHECKING
 
 from ._registry import register_benchmark
 from .grover import _create_circuit
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 @register_benchmark("grover_for_loop", description="Grover's Algorithm with For-Loop Control Flow")
