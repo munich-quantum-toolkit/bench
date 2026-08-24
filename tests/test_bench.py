@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -31,7 +31,7 @@ from qiskit.transpiler import (
     PassManager,
     Target,  # For layout handling
 )
-from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
+from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
@@ -131,73 +131,6 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
                 0,
             )
             assert res_mapped
-
-
-@pytest.mark.parametrize(
-    ("structured_name", "expanded_name", "num_qubits", "kwargs"),
-    [
-        ("grover_loop", "grover", 6, {}),
-        ("qwalk_loop", "qwalk", 6, {"depth": 5}),
-    ],
-)
-def test_for_loop_benchmarks(
-    structured_name: str,
-    expanded_name: str,
-    num_qubits: int,
-    kwargs: dict[str, int],
-) -> None:
-    """Structured loops must preserve the existing benchmark semantics and exports."""
-    structured = create_circuit(structured_name, num_qubits, **kwargs)
-    expanded = create_circuit(expanded_name, num_qubits, **kwargs)
-
-    assert sum(isinstance(inst.operation, ForLoopOp) for inst in structured.data) == 1
-    assert PassManager(UnrollForLoops()).run(structured) == expanded
-
-    qasm3_output = io.StringIO()
-    write_circuit(structured, qasm3_output, BenchmarkLevel.ALG, fmt=OutputFormat.QASM3)
-    assert "for int " in qasm3_output.getvalue()
-
-    qasm2_output = io.StringIO()
-    write_circuit(structured, qasm2_output, BenchmarkLevel.ALG, fmt=OutputFormat.QASM2)
-    assert "OPENQASM 2.0" in qasm2_output.getvalue()
-    assert "for int " not in qasm2_output.getvalue()
-
-    mirrored = get_benchmark_alg(structured, generate_mirror_circuit=True)
-    assert not any(isinstance(inst.operation, ForLoopOp) for inst in mirrored.data)
-
-
-def test_qwalk_loop_coin_state_preparation() -> None:
-    """The structured quantum walk must retain optional coin preparation."""
-    coin_state_preparation = QuantumCircuit(1)
-    coin_state_preparation.h(0)
-
-    structured = create_circuit(
-        "qwalk_loop",
-        4,
-        depth=2,
-        coin_state_preparation=coin_state_preparation,
-    )
-    expanded = create_circuit(
-        "qwalk",
-        4,
-        depth=2,
-        coin_state_preparation=coin_state_preparation,
-    )
-
-    assert PassManager(UnrollForLoops()).run(structured) == expanded
-
-
-def test_for_loop_mirror_on_supporting_target() -> None:
-    """Mirror generation must unroll loops without changing the mapped layout."""
-    target = get_device("ibm_falcon_27")
-    mapped = get_benchmark_mapped("grover_loop", 3, target, 0)
-    mirrored = get_benchmark_mapped("grover_loop", 3, target, 0, generate_mirror_circuit=True)
-
-    assert any(isinstance(inst.operation, ForLoopOp) for inst in mapped.data)
-    assert not any(isinstance(inst.operation, ForLoopOp) for inst in mirrored.data)
-    assert mapped.layout is not None
-    assert mirrored.layout is not None
-    assert mapped.layout.initial_layout == mirrored.layout.initial_layout
 
 
 @pytest.mark.parametrize(
@@ -303,6 +236,13 @@ def test_bv() -> None:
 
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
+
+
+@pytest.mark.parametrize("benchmark_name", ["grover", "qwalk"])
+def test_for_loop_option(benchmark_name: str) -> None:
+    """Test the optional structured loop implementations."""
+    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
+    assert create_circuit(benchmark_name, 4, for_loop=True).count_ops()["for_loop"] == 1
 
 
 def test_iqpe() -> None:

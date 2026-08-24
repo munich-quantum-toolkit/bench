@@ -16,11 +16,6 @@ mystnb:
 The current release includes the following benchmark algorithms, with each
 abbreviated `benchmark_name` mapped to its full description in the table below:
 
-The `grover_loop` and `qwalk_loop` variants represent repeated algorithm steps
-with Qiskit's structured `ForLoopOp`. Algorithm-level OpenQASM 3 output keeps
-the loop intact. MQT Bench expands the loop when compiling for a target that
-does not support this control-flow operation or when exporting OpenQASM 2.
-
 ```{code-cell} ipython3
 :tags: [hide-input]
 from mqt.bench.benchmarks import get_benchmark_catalog

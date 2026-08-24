@@ -16,11 +16,10 @@ from typing import TYPE_CHECKING, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import ClassicalRegister, ControlFlowOp, ForLoopOp, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import Layout, PassManager, Target
-from qiskit.transpiler.passes import UnrollForLoops
+from qiskit.transpiler import Layout, Target
 from typing_extensions import assert_never
 
 if sys.version_info >= (3, 11):
@@ -42,27 +41,6 @@ class BenchmarkLevel(Enum):
     INDEP = auto()
     NATIVEGATES = auto()
     MAPPED = auto()
-
-
-def _contains_for_loop(qc: QuantumCircuit) -> bool:
-    """Return whether a circuit or nested control-flow block contains a for loop."""
-    for instruction in qc.data:
-        operation = instruction.operation
-        if isinstance(operation, ForLoopOp):
-            return True
-        if isinstance(operation, ControlFlowOp) and any(_contains_for_loop(block) for block in operation.blocks):
-            return True
-    return False
-
-
-def _unroll_for_loops(qc: QuantumCircuit) -> QuantumCircuit:
-    """Return a circuit with all structured for loops expanded."""
-    return PassManager(UnrollForLoops()).run(qc) if _contains_for_loop(qc) else qc
-
-
-def _prepare_for_target(qc: QuantumCircuit, target: Target) -> QuantumCircuit:
-    """Lower for loops when the target does not support them."""
-    return qc if "for_loop" in target.operation_names else _unroll_for_loops(qc)
 
 
 def _get_circuit(
@@ -130,7 +108,6 @@ def _create_mirror_circuit(
         The mirrored quantum circuit.
     """
     target_qc = qc_original if inplace else qc_original.copy()
-    target_qc = _unroll_for_loops(target_qc)
 
     # Remove measurements and barriers at the end of the circuit before mirroring.
     target_qc.remove_final_measurements(inplace=True)
@@ -377,11 +354,9 @@ def get_benchmark_native_gates(
     _validate_opt_level(opt_level)
 
     circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
-    if generate_mirror_circuit:
-        circuit = _unroll_for_loops(circuit)
-    circuit = _prepare_for_target(circuit, target)
 
     if target.description == "clifford+t":
+        from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes.synthesis import SolovayKitaev  # ruff:ignore[import-outside-top-level]
 
         # Transpile the circuit to single- and two-qubit gates including rotations
@@ -479,9 +454,6 @@ def get_benchmark_mapped(
     _validate_opt_level(opt_level)
 
     circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
-    if generate_mirror_circuit:
-        circuit = _unroll_for_loops(circuit)
-    circuit = _prepare_for_target(circuit, target)
 
     if "rigetti" in target.description:
         rigetti.add_equivalences(SessionEquivalenceLibrary)
