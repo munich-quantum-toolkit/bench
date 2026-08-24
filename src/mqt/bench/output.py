@@ -22,7 +22,7 @@ from qiskit.qasm3 import dump as dump3
 from qiskit.qpy import dump as dump_qpy
 from qiskit.version import __version__ as __qiskit_version__
 
-from .benchmark_generation import BenchmarkLevel
+from .benchmark_generation import BenchmarkLevel, _unroll_for_loops
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing import BinaryIO
@@ -52,6 +52,11 @@ def _attach_metadata(qc: QuantumCircuit, header: str) -> QuantumCircuit:
     clone = qc.copy()
     clone.metadata = (clone.metadata or {}) | {"mqt_bench": header}
     return clone
+
+
+def _prepare_for_qasm(qc: QuantumCircuit, fmt: OutputFormat) -> QuantumCircuit:
+    """Lower for loops for OpenQASM 2 while preserving them for OpenQASM 3."""
+    return _unroll_for_loops(qc) if fmt is OutputFormat.QASM2 else qc
 
 
 def generate_header(
@@ -153,7 +158,7 @@ def write_circuit(
                 raise MQTBenchExporterError(msg)
             try:
                 destination.write(header)
-                (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
+                (dump2 if fmt is OutputFormat.QASM2 else dump3)(_prepare_for_qasm(qc, fmt), destination)
             except Exception as exc:  # pragma: no cover - unforeseen I/O
                 msg = f"Failed to write QASM stream. (Original error: {exc})"
                 raise MQTBenchExporterError(msg) from exc
@@ -177,7 +182,7 @@ def write_circuit(
         try:
             with destination.open("w", encoding="utf-8") as f:
                 f.write(header)
-                (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, f)
+                (dump2 if fmt is OutputFormat.QASM2 else dump3)(_prepare_for_qasm(qc, fmt), f)
         except Exception as exc:
             msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
             raise MQTBenchExporterError(msg) from exc

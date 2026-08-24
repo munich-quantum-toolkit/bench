@@ -15,6 +15,26 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
+def _append_walk_step(qc: QuantumCircuit, node: QuantumRegister, coin: QuantumRegister) -> None:
+    """Append one quantum-walk step to a circuit."""
+    # Hadamard coin operator
+    qc.h(coin)
+
+    # controlled increment
+    for i in range(len(node) - 1):
+        qc.mcx(coin[:] + node[i + 1 :], node[i])
+    qc.cx(coin, node[-1])
+
+    # controlled decrement
+    qc.x(coin)
+    qc.x(node[1:])
+    for i in range(len(node) - 1):
+        qc.mcx(coin[:] + node[i + 1 :], node[i])
+    qc.cx(coin, node[-1])
+    qc.x(node[1:])
+    qc.x(coin)
+
+
 @register_benchmark("qwalk", description="Quantum Walk")
 def create_circuit(
     num_qubits: int,
@@ -43,22 +63,7 @@ def create_circuit(
         qc.append(coin_state_preparation, coin[:])
 
     for _ in range(depth):
-        # Hadamard coin operator
-        qc.h(coin)
-
-        # controlled increment
-        for i in range(num_qubits - 1):
-            qc.mcx(coin[:] + node[i + 1 :], node[i])
-        qc.cx(coin, node[num_qubits - 1])
-
-        # controlled decrement
-        qc.x(coin)
-        qc.x(node[1:])
-        for i in range(num_qubits - 1):
-            qc.mcx(coin[:] + node[i + 1 :], node[i])
-        qc.cx(coin, node[num_qubits - 1])
-        qc.x(node[1:])
-        qc.x(coin)
+        _append_walk_step(qc, node, coin)
 
     qc.measure_all()
     qc.name = qc.name

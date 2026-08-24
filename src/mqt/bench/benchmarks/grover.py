@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, ForLoopOp, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import grover_operator
 
 from ._registry import register_benchmark
@@ -24,6 +24,11 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
     """
+    return _create_circuit(num_qubits, use_for_loop=False, name="grover")
+
+
+def _create_circuit(num_qubits: int, *, use_for_loop: bool, name: str) -> QuantumCircuit:
+    """Create a Grover circuit with expanded or structured iterations."""
     num_qubits = num_qubits - 1  # -1 because of the flag qubit
     q = QuantumRegister(num_qubits, "q")
     flag = AncillaRegister(1, "flag")
@@ -42,10 +47,15 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     # num_qubits may differ now depending on the mcx_mode
     q2 = QuantumRegister(num_qubits, "q")
-    qc = QuantumCircuit(q2, flag, name="grover")
+    qc = QuantumCircuit(q2, flag, name=name)
     qc.compose(state_preparation, inplace=True)
 
-    qc.compose(operator.power(iterations), inplace=True)
+    if use_for_loop:
+        body = QuantumCircuit(q2, flag)
+        body.append(operator.to_gate(), body.qubits)
+        qc.append(ForLoopOp(range(iterations), None, body), qc.qubits)
+    else:
+        qc.compose(operator.power(iterations), inplace=True)
     qc.measure_all()
     qc.name = qc.name
 
