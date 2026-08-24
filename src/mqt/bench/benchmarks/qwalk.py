@@ -20,11 +20,12 @@ def create_circuit(
     num_qubits: int,
     depth: int = 3,
     coin_state_preparation: QuantumCircuit | None = None,
+    *,
     for_loop: bool = False,
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Walk algorithm.
 
-    Arguments:
+    Args:
         num_qubits: number of qubits of the returned quantum circuit
         depth: number of quantum steps
         coin_state_preparation: optional quantum circuit for state preparation

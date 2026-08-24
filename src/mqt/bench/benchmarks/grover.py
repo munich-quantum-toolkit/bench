@@ -18,10 +18,10 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("grover", description="Grover's Algorithm")
-def create_circuit(num_qubits: int, for_loop: bool = False) -> QuantumCircuit:
+def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit:
     """Returns a quantum circuit implementing Grover's algorithm.
 
-    Arguments:
+    Args:
         num_qubits: number of qubits of the returned quantum circuit
         for_loop: whether to use a structured for-loop for the Grover iterations
     """
