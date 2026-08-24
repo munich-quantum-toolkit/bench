@@ -12,6 +12,11 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- ✨ Add structured for-loop variants for Grover's algorithm and quantum walk
+  ([#997]) ([**@flowerthrower**])
+
 ## [2.2.3] - 2026-07-07
 
 ### Added
@@ -169,6 +174,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#997]: https://github.com/munich-quantum-toolkit/bench/pull/997
 [#952]: https://github.com/munich-quantum-toolkit/bench/pull/952
 [#946]: https://github.com/munich-quantum-toolkit/bench/pull/946
 [#925]: https://github.com/munich-quantum-toolkit/bench/pull/925
