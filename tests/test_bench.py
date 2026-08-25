@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import IfElseOp, Parameter
+from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -236,6 +236,19 @@ def test_bv() -> None:
 
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
+
+
+@pytest.mark.parametrize(
+    ("benchmark_name", "expected_iterations"),
+    [("grover", 2), ("qwalk", 3)],
+)
+def test_for_loop_option(benchmark_name: str, expected_iterations: int) -> None:
+    """Test the optional structured loop implementations."""
+    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
+    circuit = create_circuit(benchmark_name, 4, for_loop=True)
+    assert circuit.count_ops()["for_loop"] == 1
+    loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
+    assert loop.params[0] == range(expected_iterations)
 
 
 def test_iqpe() -> None:
