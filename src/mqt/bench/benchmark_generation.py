@@ -10,9 +10,8 @@
 
 from __future__ import annotations
 
-import sys
 from enum import Enum, auto
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
@@ -20,12 +19,6 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalence
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
-from typing_extensions import assert_never
-
-if sys.version_info >= (3, 11):
-    from typing import Unpack
-else:
-    from typing_extensions import Unpack
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti

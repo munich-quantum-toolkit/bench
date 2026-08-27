@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import datetime
-from enum import Enum
+from enum import StrEnum
 from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
@@ -31,7 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.transpiler import Target
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     """Enumeration of supported output formats for circuit export."""
 
     QASM2 = "qasm2"
@@ -82,7 +82,7 @@ def generate_header(
 
     lines: list[str] = []
     lines.extend((
-        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}",
+        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.UTC).date()}",
         "// For more info: https://mqt-bench.app/",
         f"// MQT Bench version: {version}",
         f"// Qiskit version: {__qiskit_version__}",

@@ -17,6 +17,11 @@ that minor releases may include breaking changes.
 - ✨ Add optional structured loops to Grover's algorithm and quantum walk
   ([#997]) ([**@flowerthrower**])
 
+### Changed
+
+- 🔥 Drop support for Python 3.10 ([#999]) ([**@denialhaag**])
+- 🍎 Stop testing on x86 macOS systems ([#999]) ([**@denialhaag**])
+
 ## [2.2.3] - 2026-07-07
 
 ### Added
@@ -174,6 +179,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
 [#997]: https://github.com/munich-quantum-toolkit/bench/pull/997
 [#952]: https://github.com/munich-quantum-toolkit/bench/pull/952
 [#946]: https://github.com/munich-quantum-toolkit/bench/pull/946

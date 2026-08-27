@@ -6,6 +6,17 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Platform note
+
+Starting with this release, x86 macOS is no longer tested in CI; we cannot
+guarantee that MQT Bench installs and runs correctly on those systems.
+
+### End of support for Python 3.10
+
+Starting with this release, MQT Bench no longer supports Python 3.10. As a
+result, MQT Bench is no longer tested under Python 3.10 and requires Python 3.11
+or later.
+
 ## [2.2.0]
 
 ### Dynamic benchmarks and device support for control flow
