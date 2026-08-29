@@ -80,11 +80,6 @@ class SteaneTranspiler(ECTranspiler):
         "cx": CXGate(),
         "cz": CZGate(),
     }
-    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {
-        "swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])],
-        "cy": [("sdg", [1], []), ("cx", [0, 1], []), ("s", [1], [])],
-        "dcx": [("cx", [0, 1], []), ("cx", [1, 0], [])],
-    }
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Steane 7-qubit encoding to a physical data register."""

@@ -15,14 +15,14 @@ import datetime
 import functools
 import io
 import re
-from enum import Enum
+from enum import StrEnum
 from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, qpy
-from qiskit.circuit import Barrier, IfElseOp, Parameter
+from qiskit.circuit import Barrier, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -242,6 +242,19 @@ def test_bv() -> None:
         create_circuit("bv", 3, hidden_string="wrong")
 
 
+@pytest.mark.parametrize(
+    ("benchmark_name", "expected_iterations"),
+    [("grover", 2), ("qwalk", 3)],
+)
+def test_for_loop_option(benchmark_name: str, expected_iterations: int) -> None:
+    """Test the optional structured loop implementations."""
+    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
+    circuit = create_circuit(benchmark_name, 4, for_loop=True)
+    assert circuit.count_ops()["for_loop"] == 1
+    loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
+    assert loop.params[0] == range(expected_iterations)
+
+
 def test_iqpe() -> None:
     """Test the creation of the IQPE benchmark."""
     qc = create_circuit("iqpe", 4, exact=True, rotation_threshold=1e-10, seed=42)
@@ -451,6 +464,16 @@ SHOR_QFT = {
     "shor_ideal_logical_tdg": 3,
     "barrier": 1,
 }
+SHOR_Z = {"cx": 32, "if_else": 12, "measure": 8, "reset": 8, "h": 7, "x": 3}
+SHOR_Y = {
+    "cx": 32,
+    "if_else": 12,
+    "h": 7,
+    "measure": 8,
+    "reset": 8,
+    "x": 3,
+    "z": 3,
+}
 STEANE_BV = {
     "cx": 223,
     "if_else": 98,
@@ -487,6 +510,8 @@ STEANE_QFT = {
     "steane_ideal_logical_tdg": 3,
     "barrier": 1,
 }
+STEANE_Z = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7}
+STEANE_Y = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7}
 
 
 @pytest.mark.parametrize(
@@ -500,6 +525,10 @@ STEANE_QFT = {
         (3, "steane", "bv", STEANE_BV),
         (3, "steane", "graphstate", STEANE_GRAPHSTATE),
         (3, "steane", "qft", STEANE_QFT),
+        (1, "shor", "Z", SHOR_Z),
+        (1, "shor", "Y", SHOR_Y),
+        (1, "steane", "Z", STEANE_Z),
+        (1, "steane", "Y", STEANE_Y),
     ],
 )
 def test_error_correction_transpiler_circuit_structure(
@@ -533,9 +562,16 @@ def test_error_correction_transpiler_circuit_structure(
     """
     test_id = f"{logical_qubits} qubit {alg} on {code}"
 
-    log_qc = benchmark_generation.get_benchmark(
-        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
-    )
+    if alg == "Z":
+        log_qc = QuantumCircuit(1)
+        log_qc.z(0)
+    elif alg == "Y":
+        log_qc = QuantumCircuit(1)
+        log_qc.y(0)
+    else:
+        log_qc = benchmark_generation.get_benchmark(
+            benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
+        )
 
     # add error correction to the logical circuit
     qc = log_qc.copy()
@@ -599,16 +635,14 @@ def test_error_correction_transpiler_circuit_structure(
             f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
         )
 
-    # Test parameters only incorporate gate counts for small examples
-    if logical_qubits == 3:
-        # Counts the occurrence of every gate in the created circuit
-        created_gates = qc.count_ops()
-        if alg == "qft":
-            # Checks only correct gate existence because of different synthesis in different qiskit versions
-            missing_gates = expected_gates.keys() - created_gates.keys()
-            assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
-        else:
-            assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+    # Counts the occurrence of every gate in the created circuit
+    created_gates = qc.count_ops()
+    if alg == "qft":
+        # Checks only correct gate existence because of different synthesis in different qiskit versions
+        missing_gates = expected_gates.keys() - created_gates.keys()
+        assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
+    else:
+        assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
 def test_error_correction_transpiler_edge_cases() -> None:
@@ -954,7 +988,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     hdr = generate_header(OutputFormat.QASM3, BenchmarkLevel.INDEP)
     lines = hdr.splitlines()
     # first line has today's date
-    assert lines[0] == f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
+    assert lines[0] == f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.UTC).date()}"
     # contains the fixed info lines
     assert "// For more info: https://mqt-bench.app/" in hdr
     assert "// MQT Bench version: 9.9.9" in hdr
@@ -1042,9 +1076,7 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert isinstance(circ, QuantumCircuit)
 
     header = circ.metadata["mqt_bench"]
-    assert header.startswith(
-        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
-    )
+    assert header.startswith(f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.UTC).date()}")
     assert "// MQT Bench version:" in header
     assert "// Output format: qpy" in header
 
@@ -1078,7 +1110,7 @@ def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     """Requesting an unsupported format should raise."""
 
-    class FakeFormat(str, Enum):
+    class FakeFormat(StrEnum):
         FAKE = "fake"
 
     qc = QuantumCircuit(1)
