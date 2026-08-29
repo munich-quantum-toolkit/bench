@@ -19,7 +19,6 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalence
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
-from typing_extensions import assert_never
 
 from .error_correction.shor_transpiler import ShorTranspiler
 from .error_correction.steane_transpiler import SteaneTranspiler

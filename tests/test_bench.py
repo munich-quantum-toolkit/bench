@@ -464,14 +464,7 @@ SHOR_QFT = {
     "shor_ideal_logical_tdg": 3,
     "barrier": 1,
 }
-SHOR_Z = {
-    "cx": 32,
-    "if_else": 12,
-    "measure": 8,
-    "reset": 8,
-    "h": 7,
-    "x": 3
-}
+SHOR_Z = {"cx": 32, "if_else": 12, "measure": 8, "reset": 8, "h": 7, "x": 3}
 SHOR_Y = {
     "cx": 32,
     "if_else": 12,
@@ -517,22 +510,9 @@ STEANE_QFT = {
     "steane_ideal_logical_tdg": 3,
     "barrier": 1,
 }
-STEANE_Z = {
-    "cx": 35,
-    "if_else": 14,
-    "h": 9,
-    "measure": 6,
-    "reset": 6,
-    "z": 7
-}
-STEANE_Y = {
-    "cx": 35,
-    "if_else": 14,
-    "h": 9,
-    "measure": 6,
-    "reset": 6,
-    "y": 7
-}
+STEANE_Z = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7}
+STEANE_Y = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7}
+
 
 @pytest.mark.parametrize(
     ("logical_qubits", "code", "alg", "expected_gates"),
@@ -582,10 +562,10 @@ def test_error_correction_transpiler_circuit_structure(
     """
     test_id = f"{logical_qubits} qubit {alg} on {code}"
 
-    if alg == 'Z':
+    if alg == "Z":
         log_qc = QuantumCircuit(1)
         log_qc.z(0)
-    elif alg == 'Y':
+    elif alg == "Y":
         log_qc = QuantumCircuit(1)
         log_qc.y(0)
     else:
