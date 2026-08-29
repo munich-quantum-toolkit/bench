@@ -111,10 +111,6 @@ class SteaneTranspiler(ECTranspiler):
         3. **Correction**: The ancillas are measured into the corresponding classical syndrome registers,
         and X and Z corrections are applied to the identified data qubit.
         """
-        if qubit.bit_flip_syndrome is None or qubit.phase_flip_syndrome is None:
-            msg = "Syndrome registers are missing or not initialized."
-            raise ValueError(msg)
-
         self.transpiled_qc.reset(qubit.bit_flip_syndrome)
         self.transpiled_qc.reset(qubit.phase_flip_syndrome)
 

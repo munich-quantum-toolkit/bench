@@ -31,10 +31,10 @@ class LogicalQubit:
     """Encapsulates the physical registers representing a single encoded logical qubit."""
 
     data: QuantumRegister
-    bit_flip_syndrome: AncillaRegister | None = None
-    phase_flip_syndrome: AncillaRegister | None = None
-    bit_flip_measure: ClassicalRegister | None = None
-    phase_flip_measure: ClassicalRegister | None = None
+    bit_flip_syndrome: AncillaRegister
+    phase_flip_syndrome: AncillaRegister
+    bit_flip_measure: ClassicalRegister
+    phase_flip_measure: ClassicalRegister
 
     def get_all_registers(self) -> list[QuantumRegister | ClassicalRegister]:
         """Return all active registers for this logical qubit."""
@@ -85,7 +85,7 @@ class ECTranspiler(ABC):
     #: E.g. ``{"swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])]}``.
     DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {}
 
-    def __init__(self, original_circuit: QuantumCircuit, *, add_syndromes: bool = True) -> None:
+    def __init__(self, original_circuit: QuantumCircuit) -> None:
         """Initialize the transpiler with the original QuantumCircuit.
 
         Args:
@@ -94,7 +94,6 @@ class ECTranspiler(ABC):
         """
         self.original_qc = original_circuit
         self.num_logical_qubits = original_circuit.num_qubits
-        self.add_syndromes = add_syndromes
         self.logical_qubits: list[LogicalQubit] = []
         self.transpiled_qc = QuantumCircuit()
 
@@ -132,16 +131,13 @@ class ECTranspiler(ABC):
             data_reg = QuantumRegister(self.BLOCK_SIZE, f"q{i}")
             self.physical_data_registers.append(data_reg)
 
-            if self.add_syndromes:
-                logical_qubit = LogicalQubit(
-                    data=data_reg,
-                    bit_flip_syndrome=AncillaRegister(self.BIT_FLIP_SYNDROME_SIZE, f"bs{i}"),
-                    phase_flip_syndrome=AncillaRegister(self.PHASE_FLIP_SYNDROME_SIZE, f"ps{i}"),
-                    bit_flip_measure=ClassicalRegister(self.BIT_FLIP_SYNDROME_SIZE, f"bsm{i}"),
-                    phase_flip_measure=ClassicalRegister(self.PHASE_FLIP_SYNDROME_SIZE, f"psm{i}"),
-                )
-            else:
-                logical_qubit = LogicalQubit(data=data_reg)
+            logical_qubit = LogicalQubit(
+                data=data_reg,
+                bit_flip_syndrome=AncillaRegister(self.BIT_FLIP_SYNDROME_SIZE, f"bs{i}"),
+                phase_flip_syndrome=AncillaRegister(self.PHASE_FLIP_SYNDROME_SIZE, f"ps{i}"),
+                bit_flip_measure=ClassicalRegister(self.BIT_FLIP_SYNDROME_SIZE, f"bsm{i}"),
+                phase_flip_measure=ClassicalRegister(self.PHASE_FLIP_SYNDROME_SIZE, f"psm{i}"),
+            )
 
             self.logical_qubits.append(logical_qubit)
             all_registers.extend(logical_qubit.get_all_registers())
@@ -308,8 +304,6 @@ class ECTranspiler(ABC):
             logical_qubit_index: Index of the logical qubit whose data block should undergo the
                 correction cycle.
         """
-        if not self.add_syndromes:
-            return
         self._run_syndrome_cycle(self.logical_qubits[logical_qubit_index])
 
     @abstractmethod
