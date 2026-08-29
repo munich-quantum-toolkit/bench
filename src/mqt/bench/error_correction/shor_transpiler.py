@@ -162,10 +162,6 @@ class ShorTranspiler(ECTranspiler):
 
     def _extract_bit_flip_syndromes(self, qubit: LogicalQubit) -> None:
         """Extract bit-flip syndromes for the three blocks."""
-        if qubit.bit_flip_syndrome is None:
-            msg = "Bit-flip syndrome register is missing or not initialized."
-            raise ValueError(msg)
-
         self.transpiled_qc.reset(qubit.bit_flip_syndrome)
         for i in range(self.SHOR_NUM_BLOCKS):
             self.transpiled_qc.compose(
@@ -177,10 +173,6 @@ class ShorTranspiler(ECTranspiler):
 
     def _extract_phase_flip_syndromes(self, qubit: LogicalQubit) -> None:
         """Extract phase-flip syndromes across the blocks."""
-        if qubit.phase_flip_syndrome is None:
-            msg = "Phase-flip syndrome register is missing or not initialized."
-            raise ValueError(msg)
-
         self.transpiled_qc.reset(qubit.phase_flip_syndrome)
         self.transpiled_qc.compose(
             get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit(),

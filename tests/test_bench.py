@@ -586,9 +586,9 @@ def test_error_correction_transpiler_circuit_structure(
         msg = "incorrect code submitted"
         raise ValueError(msg)
     if code == "shor":
-        transpiler = ShorTranspiler(qc, add_syndromes=True)
+        transpiler = ShorTranspiler(qc)
     elif code == "steane":
-        transpiler = SteaneTranspiler(qc, add_syndromes=True)
+        transpiler = SteaneTranspiler(qc)
     qc = transpiler.transpile()  # pyright: ignore[reportPossiblyUnboundVariable]
     qc = transpiler.transpiled_qc  # pyright: ignore[reportPossiblyUnboundVariable]
 
