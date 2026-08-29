@@ -21,12 +21,8 @@ that minor releases may include breaking changes.
 
 - ⬆️ Increase minimum Qiskit version to 2.4.0 ([#930]) ([**@Felix-Gundlach**],
   [**@emilkanic0909**], [**@SalehAlsherif**])
-
 - ✨ Add optional structured loops to Grover's algorithm and quantum walk
   ([#997]) ([**@flowerthrower**])
-
-### Changed
-
 - 🔥 Drop support for Python 3.10 ([#999]) ([**@denialhaag**])
 - 🍎 Stop testing on x86 macOS systems ([#999]) ([**@denialhaag**])
 
