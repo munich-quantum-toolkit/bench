@@ -19,14 +19,11 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalence
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
+from typing_extensions import assert_never
 
 from .error_correction.shor_transpiler import ShorTranspiler
 from .error_correction.steane_transpiler import SteaneTranspiler
 
-if sys.version_info >= (3, 11):
-    from typing import Unpack
-else:
-    from typing_extensions import Unpack
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
