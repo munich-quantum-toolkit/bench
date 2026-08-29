@@ -21,8 +21,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
-from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import IfElseOp, Parameter
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, qpy
+from qiskit.circuit import Barrier, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -609,6 +609,41 @@ def test_error_correction_transpiler_circuit_structure(
             assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
         else:
             assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+
+
+def test_error_correction_transpiler_edge_cases() -> None:
+    """This Test is supposed to check that various incorrect edge cases are handled correctly.
+
+    Generally, this means the right error message is raised
+    """
+    # decoded qubits must not be accessed again
+    qc = QuantumCircuit(1, 1)
+    qc.x(0)
+    qc.measure(0, 0)
+    qc.x(0)
+    for transpiler in [SteaneTranspiler(qc.copy()), ShorTranspiler(qc.copy())]:
+        with pytest.raises(ValueError, match=r"accesses qubits \[[\d, ]+\] after decoding"):
+            transpiler.transpile()
+
+    qr = QuantumRegister(2, "q")
+    cr = ClassicalRegister(2, "c")
+    qc = QuantumCircuit(qr, cr)
+    qc.h(qr[0])
+    qc.measure(qr[0], cr[0])
+    with qc.if_test((cr[0], 1)):
+        qc.x(qr[1])
+
+    for transpiler in [SteaneTranspiler(qc.copy()), ShorTranspiler(qc.copy())]:
+        with pytest.raises(ValueError, match=r"does not support control-flow operations such as .*"):
+            transpiler.transpile()
+
+    # barrier on single qubit
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    qc.append(Barrier(0), [])
+    for transpiler in [SteaneTranspiler(qc.copy()), ShorTranspiler(qc.copy())]:
+        qc = transpiler.transpile()
+        assert "barrier" in qc.count_ops()
 
 
 @pytest.mark.parametrize(

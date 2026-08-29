@@ -112,6 +112,11 @@ class ECTranspiler(ABC):
         Returns:
              The transpiled fault-tolerant circuit.
         """
+        for instruction in self.original_qc.data:
+            if instruction.is_control_flow():
+                msg = f"Error-correction transpilation currently does not support control-flow operations such as {instruction.operation.name}."
+                raise ValueError(msg)
+
         self.original_qc = transpile(
             self.original_qc,
             basis_gates=self.TARGET_GATE_SET,
@@ -156,7 +161,7 @@ class ECTranspiler(ABC):
         For every instruction, the original circuit's qubits/clbits are resolved to logical
         indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
 
-        Control-Flow instructions and c_if conditions are unsupported.
+        Control-Flow instructions conditions are unsupported.
         """
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
@@ -166,13 +171,6 @@ class ECTranspiler(ABC):
             decoded_qubits = [q for q in logical_qubit_indices if self.encoded_qubits[q] is False]
             if decoded_qubits:
                 msg = f"Instruction {gate_name} accesses qubits {decoded_qubits} after decoding"
-                raise RuntimeError(msg)
-
-            if instruction.is_control_flow():
-                msg = f"Error-correction transpilation currently does not support control-flow operations such as {gate_name}."
-                raise ValueError(msg)
-            if getattr(instruction.operation, "condition", None) is not None:
-                msg = f"Error-correction transpilation currently does not support gate internal conditions as in {gate_name}."
                 raise ValueError(msg)
 
             self._apply_gate(gate_name, logical_qubit_indices, logical_clbit_indices)
@@ -224,6 +222,7 @@ class ECTranspiler(ABC):
 
     def _handle_measure(self, logical_qubit_index: int, logical_classical_bit_index: int) -> None:
         """Decode a logical qubit and measure it into a fresh single-bit classical register."""
+        self.encoded_qubits[logical_qubit_index] = False
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         self._apply_decoding(self.transpiled_qc, physical_data_register)
 
@@ -261,14 +260,10 @@ class ECTranspiler(ABC):
 
         Note: this does not guard against a gate (directly or transitively) deriving from itself.
         """
-        if self.DERIVED_GATES[gate_name] is not None:
-            for gate, qubit_map, clbit_map in self.DERIVED_GATES[gate_name]:
-                mapped_qubit_indices = [logical_qubit_indices[i] for i in qubit_map]
-                mapped_clbit_indices = [logical_clbit_indices[i] for i in clbit_map]
-                self._apply_gate(gate, mapped_qubit_indices, mapped_clbit_indices)
-        else:
-            msg = f"No derivation specified for derived gate {self.DERIVED_GATES[gate_name]}."
-            raise ValueError(msg)
+        for gate, qubit_map, clbit_map in self.DERIVED_GATES[gate_name]:
+            mapped_qubit_indices = [logical_qubit_indices[i] for i in qubit_map]
+            mapped_clbit_indices = [logical_clbit_indices[i] for i in clbit_map]
+            self._apply_gate(gate, mapped_qubit_indices, mapped_clbit_indices)
 
     def _handle_unregistered_gate(self, gate_name: str, logical_qubit_indices: list[int]) -> None:
         """Realize a gate with no dedicated handler as an opaque, ideal logical gadget.
