@@ -15,14 +15,14 @@ import datetime
 import functools
 import io
 import re
-from enum import Enum
+from enum import StrEnum
 from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import IfElseOp, Parameter
+from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
@@ -240,6 +240,19 @@ def test_bv() -> None:
 
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
+
+
+@pytest.mark.parametrize(
+    ("benchmark_name", "expected_iterations"),
+    [("grover", 2), ("qwalk", 3)],
+)
+def test_for_loop_option(benchmark_name: str, expected_iterations: int) -> None:
+    """Test the optional structured loop implementations."""
+    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
+    circuit = create_circuit(benchmark_name, 4, for_loop=True)
+    assert circuit.count_ops()["for_loop"] == 1
+    loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
+    assert loop.params[0] == range(expected_iterations)
 
 
 def test_iqpe() -> None:
@@ -960,7 +973,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     hdr = generate_header(OutputFormat.QASM3, BenchmarkLevel.INDEP)
     lines = hdr.splitlines()
     # first line has today's date
-    assert lines[0] == f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
+    assert lines[0] == f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.UTC).date()}"
     # contains the fixed info lines
     assert "// For more info: https://mqt-bench.app/" in hdr
     assert "// MQT Bench version: 9.9.9" in hdr
@@ -1048,9 +1061,7 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert isinstance(circ, QuantumCircuit)
 
     header = circ.metadata["mqt_bench"]
-    assert header.startswith(
-        f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.timezone.utc).date()}"
-    )
+    assert header.startswith(f"// Benchmark created by MQT Bench on {datetime.datetime.now(tz=datetime.UTC).date()}")
     assert "// MQT Bench version:" in header
     assert "// Output format: qpy" in header
 
@@ -1084,7 +1095,7 @@ def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     """Requesting an unsupported format should raise."""
 
-    class FakeFormat(str, Enum):
+    class FakeFormat(StrEnum):
         FAKE = "fake"
 
     qc = QuantumCircuit(1)

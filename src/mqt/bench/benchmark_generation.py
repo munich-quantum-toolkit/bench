@@ -10,9 +10,8 @@
 
 from __future__ import annotations
 
-import sys
 from enum import Enum, auto
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
