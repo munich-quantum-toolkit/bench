@@ -50,12 +50,8 @@ class ShorTranspiler(ECTranspiler):
     BLOCK_SIZE = SHOR_BLOCK_SIZE * SHOR_NUM_BLOCKS
     BIT_FLIP_SYNDROME_SIZE = 6
     PHASE_FLIP_SYNDROME_SIZE = 2
-    TARGET_GATE_SET: ClassVar[list[str]] = ["id", "h", "x", "y", "z", "cx", "swap", "dcx", "t", "tdg"]
+    TARGET_GATE_SET: ClassVar[list[str]] = ["id", "h", "x", "y", "z", "cx", "t", "tdg"]
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {"id": IGate()}
-    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {
-        "swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])],
-        "dcx": [("cx", [0, 1], []), ("cx", [1, 0], [])],
-    }
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
         """Apply Shor 9-qubit encoding to a physical data register."""

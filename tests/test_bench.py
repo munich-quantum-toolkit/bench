@@ -451,6 +451,23 @@ SHOR_QFT = {
     "shor_ideal_logical_tdg": 3,
     "barrier": 1,
 }
+SHOR_Z = {
+    "cx": 32,
+    "if_else": 12,
+    "measure": 8,
+    "reset": 8,
+    "h": 7,
+    "x": 3
+}
+SHOR_Y = {
+    "cx": 32,
+    "if_else": 12,
+    "h": 7,
+    "measure": 8,
+    "reset": 8,
+    "x": 3,
+    "z": 3,
+}
 STEANE_BV = {
     "cx": 223,
     "if_else": 98,
@@ -487,7 +504,22 @@ STEANE_QFT = {
     "steane_ideal_logical_tdg": 3,
     "barrier": 1,
 }
-
+STEANE_Z = {
+    "cx": 35,
+    "if_else": 14,
+    "h": 9,
+    "measure": 6,
+    "reset": 6,
+    "z": 7
+}
+STEANE_Y = {
+    "cx": 35,
+    "if_else": 14,
+    "h": 9,
+    "measure": 6,
+    "reset": 6,
+    "y": 7
+}
 
 @pytest.mark.parametrize(
     ("logical_qubits", "code", "alg", "expected_gates"),
@@ -500,6 +532,10 @@ STEANE_QFT = {
         (3, "steane", "bv", STEANE_BV),
         (3, "steane", "graphstate", STEANE_GRAPHSTATE),
         (3, "steane", "qft", STEANE_QFT),
+        (1, "shor", "Z", SHOR_Z),
+        (1, "shor", "Y", SHOR_Y),
+        (1, "steane", "Z", STEANE_Z),
+        (1, "steane", "Y", STEANE_Y),
     ],
 )
 def test_error_correction_transpiler_circuit_structure(
@@ -533,9 +569,16 @@ def test_error_correction_transpiler_circuit_structure(
     """
     test_id = f"{logical_qubits} qubit {alg} on {code}"
 
-    log_qc = benchmark_generation.get_benchmark(
-        benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
-    )
+    if alg == 'Z':
+        log_qc = QuantumCircuit(1)
+        log_qc.z(0)
+    elif alg == 'Y':
+        log_qc = QuantumCircuit(1)
+        log_qc.y(0)
+    else:
+        log_qc = benchmark_generation.get_benchmark(
+            benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
+        )
 
     # add error correction to the logical circuit
     qc = log_qc.copy()
@@ -599,16 +642,14 @@ def test_error_correction_transpiler_circuit_structure(
             f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
         )
 
-    # Test parameters only incorporate gate counts for small examples
-    if logical_qubits == 3:
-        # Counts the occurrence of every gate in the created circuit
-        created_gates = qc.count_ops()
-        if alg == "qft":
-            # Checks only correct gate existence because of different synthesis in different qiskit versions
-            missing_gates = expected_gates.keys() - created_gates.keys()
-            assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
-        else:
-            assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+    # Counts the occurrence of every gate in the created circuit
+    created_gates = qc.count_ops()
+    if alg == "qft":
+        # Checks only correct gate existence because of different synthesis in different qiskit versions
+        missing_gates = expected_gates.keys() - created_gates.keys()
+        assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
+    else:
+        assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
 
 
 @pytest.mark.parametrize(
