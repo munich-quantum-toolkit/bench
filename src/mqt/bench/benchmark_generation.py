@@ -19,13 +19,10 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalence
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
-from typing_extensions import assert_never
-
-from .error_correction.shor_transpiler import ShorTranspiler
-from .error_correction.steane_transpiler import SteaneTranspiler
-
 
 from .benchmarks import create_circuit
+from .error_correction.shor_transpiler import ShorTranspiler
+from .error_correction.steane_transpiler import SteaneTranspiler
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
