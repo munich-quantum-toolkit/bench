@@ -5,4 +5,4 @@
 
 Thank you for your interest in contributing to MQT Bench! An extensive
 contribution guide is available in our
-[documentation](https://mqt.readthedocs.io/projects/bench/en/latest/contributing.html).
+[documentation](https://mqt.readthedocs.io/projects/bench/en/stable/contributing.html).
