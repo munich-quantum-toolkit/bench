@@ -562,11 +562,10 @@ def test_error_correction_transpiler_circuit_structure(
     """
     test_id = f"{logical_qubits} qubit {alg} on {code}"
 
+    log_qc = QuantumCircuit(1)
     if alg == "Z":
-        log_qc = QuantumCircuit(1)
         log_qc.z(0)
     elif alg == "Y":
-        log_qc = QuantumCircuit(1)
         log_qc.y(0)
     else:
         log_qc = benchmark_generation.get_benchmark(
@@ -638,7 +637,7 @@ def test_error_correction_transpiler_circuit_structure(
     # Counts the occurrence of every gate in the created circuit
     created_gates = qc.count_ops()
     if alg == "qft":
-        # Checks only correct gate existence because of different synthesis in different qiskit versions
+        # Checks only correct gate existence due to different synthesis in different qiskit versions
         missing_gates = expected_gates.keys() - created_gates.keys()
         assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
     else:
