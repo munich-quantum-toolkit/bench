@@ -763,7 +763,7 @@ def test_get_benchmark_alg_encoding_parameters() -> None:
     """Test get_benchmark method with different encoding values."""
     match = re.escape("Invalid `encoding` 'invalid encoding'. Must be one of ") + "[\\s\\S]*"
     with pytest.raises(ValueError, match=match):
-        get_benchmark_alg(benchmark="bv", circuit_size=3, encoding="invalid encoding")
+        get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="invalid encoding")
 
     assert get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="shor")
     assert get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="steane")
