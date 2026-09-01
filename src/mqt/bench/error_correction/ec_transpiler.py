@@ -89,10 +89,6 @@ class ECTranspiler(ABC):
         self.num_logical_qubits = original_circuit.num_qubits
         self.logical_qubits: list[LogicalQubit] = []
         self.transpiled_qc = QuantumCircuit()
-
-        # We need this for backwards compatibility with the testing suite
-        self.physical_data_registers: list[QuantumRegister] = []
-
         self.encoded_qubits = [False for _ in range(self.num_logical_qubits)]
 
     def transpile(self) -> QuantumCircuit:
@@ -127,8 +123,6 @@ class ECTranspiler(ABC):
         all_registers: list[QuantumRegister | ClassicalRegister] = []
         for i in range(self.num_logical_qubits):
             data_reg = QuantumRegister(self.BLOCK_SIZE, f"q{i}")
-            self.physical_data_registers.append(data_reg)
-
             logical_qubit = LogicalQubit(
                 data=data_reg,
                 bit_flip_syndrome=AncillaRegister(self.BIT_FLIP_SYNDROME_SIZE, f"bs{i}"),
