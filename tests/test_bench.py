@@ -85,6 +85,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "shors_nine_qubit_code": 17,
     "seven_qubit_steane_code": 13,
     "iqpe": 2,
+    "teleportation": 3,
 }
 
 
@@ -210,6 +211,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
         ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
+        ("teleportation", 4, None, "num_qubits must be divisible by 3."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -262,6 +264,32 @@ def test_iqpe() -> None:
     assert qc.num_qubits == 2
     assert qc.num_clbits == 3
     assert "iqpe" in qc.name
+
+
+def test_teleportation() -> None:
+    """Test the creation of the teleportation benchmark."""
+    qc = create_circuit("teleportation", 3)
+    assert qc.num_qubits == 3
+    assert qc.num_clbits == 2
+    assert "teleportation" in qc.name
+
+    # Test with state_preparation
+    prep = QuantumCircuit(1)
+    prep.h(0)
+    qc_prep = create_circuit("teleportation", 3, state_preparation=prep)
+    assert qc_prep.num_qubits == 3
+    # state_preparation is appended as a single opaque instruction
+    # Total data length increases by 1
+    assert len(qc_prep.data) == len(qc.data) + 1
+
+    # Test multi-block
+    qc6 = create_circuit("teleportation", 6)
+    assert qc6.num_qubits == 6
+    assert qc6.num_clbits == 4
+
+    # Test through pipeline
+    res = get_benchmark_alg("teleportation", 3)
+    assert res.num_qubits == 3
 
 
 def test_dj_constant_oracle() -> None:
