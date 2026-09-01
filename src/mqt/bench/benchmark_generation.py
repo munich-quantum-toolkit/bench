@@ -161,6 +161,7 @@ def _validate_opt_level(opt_level: int) -> None:
 def get_benchmark_alg(
     benchmark: str,
     circuit_size: int,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -172,6 +173,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -183,6 +185,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
