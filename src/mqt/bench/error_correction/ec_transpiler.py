@@ -77,13 +77,6 @@ class ECTranspiler(ABC):
     #: logical operator only acts on a subset of physical qubits) should instead be implemented as
     #: a dedicated ``_logical_<gate_name>`` method on the subclass.
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {}
-    #: Gates that are realized as a fixed sequence of other, already-specified gates. Each
-    #: entry maps a gate name to a list of ``(sub_gate_name, qubit_map, clbit_map)`` steps, where
-    #: ``qubit_map``/``clbit_map`` are indices into the *derived* gate's own qubit/clbit list.
-    #: A derived gate may reference other handlers, transversal gates, or derived gates,
-    #: but must not reference itself (directly or through other derived gates).
-    #: E.g. ``{"swap": [("cx", [0, 1], []), ("cx", [1, 0], []), ("cx", [0, 1], [])]}``.
-    DERIVED_GATES: ClassVar[dict[str, list[tuple[str, list[int], list[int]]]]] = {}
 
     def __init__(self, original_circuit: QuantumCircuit) -> None:
         """Initialize the transpiler with the original QuantumCircuit.
@@ -185,9 +178,7 @@ class ECTranspiler(ABC):
            single gate (e.g. a code-specific CX).
         3. Otherwise, if the gate is listed in :attr:`TRANSVERSAL_GATES`, it is applied
            transversally (see :meth:`_apply_transversal_gate`).
-        4. Otherwise, if the gate is listed in :attr:`DERIVED_GATES`, it is expanded into its
-           declared sequence of sub-gates (see :meth:`_apply_derived_gate`).
-        5. Otherwise, the gate is realized as an opaque, ideal logical gadget (see
+        4. Otherwise, the gate is realized as an opaque, ideal logical gadget (see
            :meth:`_handle_unregistered_gate`).
         """
         if gate_name == "barrier":
@@ -202,8 +193,6 @@ class ECTranspiler(ABC):
             getattr(self, handler_name)(*logical_qubit_indices)
         elif gate_name in self.TRANSVERSAL_GATES:
             self._apply_transversal_gate(self.TRANSVERSAL_GATES[gate_name], logical_qubit_indices)
-        elif gate_name in self.DERIVED_GATES:
-            self._apply_derived_gate(gate_name, logical_qubit_indices, [])
         else:
             self._handle_unregistered_gate(gate_name, logical_qubit_indices)
 
@@ -246,24 +235,6 @@ class ECTranspiler(ABC):
 
         for logical_qubit_index in dict.fromkeys(logical_qubit_indices):
             self.insert_syndromes(logical_qubit_index)
-
-    def _apply_derived_gate(
-        self, gate_name: str, logical_qubit_indices: list[int], logical_clbit_indices: list[int]
-    ) -> None:
-        """Apply a gate declared in :attr:`DERIVED_GATES` as a sequence of other gates.
-
-        Each declared step is a ``(sub_gate_name, qubit_map, clbit_map)`` tuple, where
-        ``qubit_map``/``clbit_map`` index into ``logical_qubit_indices``/``logical_clbit_indices``
-        (the qubits/clbits the *derived* gate was itself invoked on) to build the logical indices
-        for that step. Each step applies its gate through :meth:`_apply_gate`, so a sub-gate may
-        itself be transversal, another derived gate, or have a dedicated ``_logical_<name>`` handler.
-
-        Note: this does not guard against a gate (directly or transitively) deriving from itself.
-        """
-        for gate, qubit_map, clbit_map in self.DERIVED_GATES[gate_name]:
-            mapped_qubit_indices = [logical_qubit_indices[i] for i in qubit_map]
-            mapped_clbit_indices = [logical_clbit_indices[i] for i in clbit_map]
-            self._apply_gate(gate, mapped_qubit_indices, mapped_clbit_indices)
 
     def _handle_unregistered_gate(self, gate_name: str, logical_qubit_indices: list[int]) -> None:
         """Realize a gate with no dedicated handler as an opaque, ideal logical gadget.
