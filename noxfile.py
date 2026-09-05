@@ -48,7 +48,7 @@ def preserve_lockfile() -> Generator[None]:
             shutil.move(f"{temp_dir_name}/uv.lock", "uv.lock")
 
 
-@nox.session(reuse_venv=True, default=True)
+@nox.session(python=PYTHON_ALL_VERSIONS[-1], reuse_venv=True, default=True)
 def lint(session: nox.Session) -> None:
     """Run the linter."""
     if shutil.which("prek") is None:

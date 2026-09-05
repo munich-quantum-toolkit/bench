@@ -14,11 +14,15 @@ that minor releases may include breaking changes.
 
 ### Added
 
-- ✨ Add optional structured loops to Grover's algorithm and quantum walk
-  ([#997]) ([**@flowerthrower**])
+- ✨ Add Steane's and Shor's encoding for benchmarks ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ### Changed
 
+- ⬆️ Increase minimum Qiskit version to 2.4.0 ([#930]) ([**@Felix-Gundlach**],
+  [**@emilkanic0909**], [**@SalehAlsherif**])
+- ✨ Add optional structured loops to Grover's algorithm and quantum walk
+  ([#997]) ([**@flowerthrower**])
 - 🔥 Drop support for Python 3.10 ([#999]) ([**@denialhaag**])
 - 🍎 Stop testing on x86 macOS systems ([#999]) ([**@denialhaag**])
 
@@ -239,6 +243,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@TomasVF**]: https://github.com/TomasVF
 [**@flowerthrower**]: https://github.com/flowerthrower
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
+[**@Felix-Gundlach**]: https://github.com/Felix-Gundlach
+[**@emilkanic0909**]: https://github.com/emilkanic0909
+[**@SalehAlsherif**]: https://github.com/SalehAlsherif
 
 <!-- General links -->
 
