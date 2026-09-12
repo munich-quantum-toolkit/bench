@@ -150,5 +150,5 @@ repos:
     rev: v0.0.78
     hooks:
       - id: ty
-        args: [--isolated]
+        args: [--isolated, --extra=mqt]
         priority: 8

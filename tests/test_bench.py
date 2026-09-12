@@ -18,7 +18,7 @@ import re
 from enum import StrEnum
 from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn, cast
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
 import pytest
 from qiskit import QuantumCircuit, qpy
@@ -1271,3 +1271,28 @@ def test_configuration_options() -> None:
     # Test empty dict (all fields are optional due to total=False)
     empty_config: ConfigurationOptions = {}
     assert len(empty_config) == 0
+
+
+@pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
+def test_invalid_compiler(compiler: str) -> None:
+    """Reject unknown compilers before circuit generation."""
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=cast('Literal["qiskit", "mqt"]', compiler))
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 3])
+def test_mqt_optimization_level(opt_level: int) -> None:
+    """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
+    with pytest.raises(ValueError, match="MQT Core uses its default optimization pipeline"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level)
+
+
+def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A base installation works and gives an installation hint when Core is selected."""
+    import sys  # ruff:ignore[import-outside-top-level]
+
+    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
+    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
+    assert get_benchmark_indep("ghz", 3)
+    with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
+        get_benchmark_indep("ghz", 3, compiler="mqt")

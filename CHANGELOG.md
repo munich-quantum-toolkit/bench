@@ -12,6 +12,19 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- Add optional MQT Core compilation through `compiler="mqt"` and
+  `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
+  and compiler provenance in exported files. ([**@simon1hofmann**])
+
+  <!-- Add the pull request reference before submission. -->
+
+### Fixed
+
+- Default the CLI optimization level to 2 when omitted. ([**@simon1hofmann**])
+  <!-- Add the pull request reference before submission. -->
+
 ## [2.3.0] - 2026-09-12
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#230)._
