@@ -36,6 +36,20 @@ jobs:
     permissions:
       contents: read
 
+  mqt-compiler-tests:
+    name: MQT Core compiler
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-python-tests)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python -m pip install uv==0.12.10
+      - run: uvx nox -s mqt
+
   python-coverage:
     name: 🐍 Coverage
     needs: [change-detection, python-tests]
@@ -79,6 +93,7 @@ jobs:
     needs:
       - change-detection
       - python-tests
+      - mqt-compiler-tests
       - python-coverage
       - python-linter
       - build-sdist
@@ -91,7 +106,7 @@ jobs:
           allowed-skips: >-
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-tests)
-              && 'python-tests,python-coverage,' || ''
+              && 'python-tests,mqt-compiler-tests,python-coverage,' || ''
             }}
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-linter)

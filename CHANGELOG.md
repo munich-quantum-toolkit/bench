@@ -16,6 +16,11 @@ that minor releases may include breaking changes.
 
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
+- Add optional MQT Core compilation through `compiler="mqt"` and
+  `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
+  and compiler provenance in exported files. ([**@simon1hofmann**])
+
+  <!-- Add the pull request reference before submission. -->
 
 ### Fixed
 
@@ -23,6 +28,9 @@ that minor releases may include breaking changes.
   ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
+
+- Default the CLI optimization level to 2 when omitted. ([**@simon1hofmann**])
+  <!-- Add the pull request reference before submission. -->
 
 ## [2.3.0] - 2026-09-12
 

@@ -58,10 +58,14 @@ def main() -> None:
         required=True,
     )
     parser.add_argument(
+        "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
+    )
+    parser.add_argument(
         "--optimization-level",
         type=int,
         choices=range(4),
-        help="Qiskit compiler optimization level (0-3).",
+        default=2,
+        help="Qiskit optimization level (0-3, default: 2). The MQT compiler requires the default value 2.",
     )
     parser.add_argument(
         "--target",
@@ -124,6 +128,7 @@ def main() -> None:
         circuit_size=args.num_qubits,
         target=target,
         opt_level=args.optimization_level,
+        compiler=args.compiler,
         generate_mirror_circuit=args.mirror,
         random_parameters=args.random_parameters,
     )
@@ -147,6 +152,7 @@ def main() -> None:
         num_qubits=args.num_qubits,
         target=target,
         opt_level=args.optimization_level,
+        compiler=args.compiler,
         generate_mirror_circuit=args.mirror,
     )
     success = save_circuit(

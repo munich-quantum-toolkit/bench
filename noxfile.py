@@ -89,6 +89,12 @@ def tests(session: nox.Session) -> None:
     _run_tests(session)
 
 
+@nox.session(reuse_venv=True)
+def mqt(session: nox.Session) -> None:
+    """Test the optional MQT Core compiler."""
+    _run_tests(session, install_args=["--extra=mqt"], pytest_run_args=["tests/test_mqt_compiler.py"])
+
+
 @nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, venv_backend="uv", default=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
