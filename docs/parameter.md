@@ -119,6 +119,58 @@ Core filenames contain `_mqt_` and omit Qiskit's optimization level. QASM
 headers and QPY metadata record the compiler version. Existing Qiskit filenames
 remain unchanged.
 
+## QIR and LLVM output
+
+The `mqt` extra also enables QIR export for circuits generated with either
+compiler. QIR uses LLVM IR: `qir` and `llvm` both emit LLVM text (`.ll`), while
+`qir-bitcode` emits LLVM bitcode (`.bc`). These files contain quantum runtime
+calls and require a compatible QIR runtime to execute.
+
+```bash
+# Print LLVM text to stdout; add --save to write a .ll file.
+mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
+  --level indep --output-format qir
+
+# Binary output is always saved; the CLI prints its path.
+mqt-bench --compiler mqt --algorithm ghz_dynamic --num-qubits 3 \
+  --level indep --output-format qir-bitcode --qir-profile adaptive
+```
+
+The existing Python export functions accept the same formats:
+
+```python
+from pathlib import Path
+
+from mqt.bench import BenchmarkLevel, get_benchmark
+from mqt.bench.output import OutputFormat, write_circuit
+
+circuit = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+write_circuit(circuit, Path("ghz.ll"), BenchmarkLevel.INDEP, OutputFormat.QIR)
+write_circuit(
+    circuit,
+    Path("ghz.bc"),
+    BenchmarkLevel.INDEP,
+    OutputFormat.QIR_BITCODE,
+    qir_profile="base",
+)
+```
+
+`save_circuit` also accepts `qir_profile`. The default `base` profile handles
+static circuits. Select `adaptive` for measurement feedback and supported
+classical control flow. Core reports an error when a circuit cannot be lowered
+to the chosen profile. Bind all free circuit parameters before QIR export.
+
+Export lowers the supplied circuit through Core without running another
+optimization or mapping pipeline. QIR lowering can decompose gates and assign
+QIR resource identifiers; the output is not a device-native payload guaranteed
+to preserve the target gate set or physical qubit numbering. A runtime must
+support the emitted QIS calls, QIR version, and profile capabilities.
+
+LLVM text uses `;` comments for the Bench header and records the QIR exporter
+version separately from the circuit compiler. Bitcode contains Core's QIR
+metadata but no Bench header. QASM and QPY output remain available without the
+`mqt` extra.
+
 ## Native Gate-Set Support
 
 So far, MQT Bench supports the following native gatesets:
