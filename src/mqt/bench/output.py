@@ -145,6 +145,9 @@ def write_circuit(
         MQTBenchExporterError: On unsupported format or I/O errors.
     """
     header = generate_header(fmt, level, target)
+    compiler_info = (qc.metadata or {}).get("mqt_bench_compiler")
+    if compiler_info is not None:
+        header += f"// Compiler: {compiler_info['name']} {compiler_info['version']}\n\n"
 
     if not isinstance(destination, Path):
         if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
@@ -233,6 +236,8 @@ def generate_filename(
     target: Target | None = None,
     opt_level: int | None = None,
     generate_mirror_circuit: bool = False,
+    *,
+    compiler: str = "qiskit",
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
 
@@ -243,12 +248,22 @@ def generate_filename(
         target: target device (e.g., BenchmarkLevel.MAPPED)
         opt_level: optional optimization level (used for 'nativegates' and 'mapped')
         generate_mirror_circuit: whether this is a mirror circuit
+        compiler: Compiler name. MQT filenames omit the Qiskit optimization level.
 
     Returns:
         A string representing a filename (excluding extension) that encodes
         all relevant metadata for reproducibility and clarity.
     """
     base = f"{benchmark_name}_{level.name.lower()}{'_mirror' if generate_mirror_circuit else ''}"
+
+    if compiler not in {"qiskit", "mqt"}:
+        msg = f"Unknown compiler '{compiler}'. Choose 'qiskit' or 'mqt'."
+        raise ValueError(msg)
+    if compiler == "mqt" and level != BenchmarkLevel.ALG:
+        if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
+            assert target is not None, "target is required for native or mapped filenames."
+            base += f"_{target.description.strip().split(' ')[0]}"
+        return f"{base}_mqt_{num_qubits}"
 
     if level == BenchmarkLevel.INDEP:
         assert opt_level is not None, "opt_level is required for 'indep' level filenames."
