@@ -6,6 +6,11 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Qiskit 2.1 minimum
+
+The minimum Qiskit version increases from **2.0.0 to 2.1.0**, dropping support
+for Qiskit 2.0. Upgrade Qiskit to 2.1.0 or newer.
+
 ### Platform note
 
 Starting with this release, x86 macOS is no longer tested in CI; we cannot
