@@ -1303,3 +1303,5 @@ def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
     assert get_benchmark_indep("ghz", 3)
     with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
         get_benchmark_indep("ghz", 3, compiler="mqt")
+    with pytest.raises(MQTBenchExporterError, match=r"pip install.*mqt-bench\[mqt\]"):
+        write_circuit(QuantumCircuit(1), io.StringIO(), BenchmarkLevel.ALG, OutputFormat.QIR)
