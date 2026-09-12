@@ -213,6 +213,23 @@ def test_cli_qpy_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     assert expected_path.is_file()
 
 
+def test_cli_save_error(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """A failed save returns a nonzero exit code and reports the export error."""
+    target_dir = tmp_path / "missing"
+    ret = _run_cli(script_runner, ["--output-format", "qpy", "--target-directory", str(target_dir)])
+    assert ret.returncode == 1
+    assert "Failed to write QPY file" in ret.stdout
+    assert not target_dir.exists()
+
+
+@pytest.mark.parametrize("option", ["--output-format", "--qir-profile"])
+def test_cli_invalid_export_option(option: str, script_runner: ScriptRunner) -> None:
+    """Reject unknown formats and QIR profiles during argument parsing."""
+    ret = _run_cli(script_runner, [option, "invalid"])
+    assert ret.returncode == 2
+    assert "invalid choice" in ret.stderr
+
+
 def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     """QASM2 file should be saved for nativegates level when --save is specified."""
     target_dir = str(tmp_path)
