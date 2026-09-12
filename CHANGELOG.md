@@ -17,9 +17,7 @@ that minor releases may include breaking changes.
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 - Add optional MQT Core compilation through `compiler="mqt"` and
   `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
-  and compiler provenance in exported files. ([**@simon1hofmann**])
-
-  <!-- Add the pull request reference before submission. -->
+  and compiler provenance in exported files. ([#1027]) ([**@simon1hofmann**])
 
 ### Fixed
 
@@ -27,9 +25,8 @@ that minor releases may include breaking changes.
   ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
-
-- Default the CLI optimization level to 2 when omitted. ([**@simon1hofmann**])
-  <!-- Add the pull request reference before submission. -->
+- Default the CLI optimization level to 2 when omitted. ([#1027])
+  ([**@simon1hofmann**])
 
 ## [2.3.0] - 2026-09-12
 
@@ -213,6 +210,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1047]: https://github.com/munich-quantum-toolkit/bench/pull/1047
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
+[#1027]: https://github.com/munich-quantum-toolkit/bench/pull/1027
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
