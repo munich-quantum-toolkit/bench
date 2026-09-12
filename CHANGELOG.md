@@ -12,10 +12,21 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- Add optional MQT Core compilation through `compiler="mqt"` and
+  `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
+  and compiler provenance in exported files. ([**@simon1hofmann**])
+
+  <!-- Add the pull request reference before submission. -->
+
 ### Fixed
 
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
+
+- Default the CLI optimization level to 2 when omitted. ([**@simon1hofmann**])
+  <!-- Add the pull request reference before submission. -->
 
 ## [2.3.0] - 2026-09-12
 
