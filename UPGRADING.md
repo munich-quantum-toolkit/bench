@@ -125,7 +125,7 @@ other Qiskit components.
 The `get_benchmark` function has been redesigned to provide a more modular and
 extensible way to retrieve benchmarks. As a consequence, the function signature
 has changed. Please see the
-[API documentation](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html)
+[API documentation](https://mqt.readthedocs.io/projects/bench/en/stable/parameter.html)
 for the updated function signature and the examples provided below.
 
 ```python
