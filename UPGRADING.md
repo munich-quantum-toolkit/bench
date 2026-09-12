@@ -19,6 +19,14 @@ default of 2. Mapped results use physical wires without Qiskit layout metadata.
 See the [parameter guide](docs/parameter.md#mqt-core-compiler) for target
 support, control flow, mirror circuits, and output provenance.
 
+The same extra enables `--output-format qir` (or `llvm`) for LLVM text and
+`--output-format qir-bitcode` for binary output. Use `--qir-profile adaptive`
+for measurement feedback; the default is `base`. Python exports use
+`OutputFormat.QIR`, `OutputFormat.LLVM`, or `OutputFormat.QIR_BITCODE` and the
+keyword `qir_profile`. Circuit generation still returns `QuantumCircuit`. See
+[QIR and LLVM output](docs/parameter.md#qir-and-llvm-output) for parameter
+binding, runtime requirements, and target limitations.
+
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum
