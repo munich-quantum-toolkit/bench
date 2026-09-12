@@ -214,7 +214,7 @@ def write_circuit(
             try:
                 destination.write(header)
                 (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
-            except Exception as exc:  # pragma: no cover - unforeseen I/O
+            except Exception as exc:
                 msg = f"Failed to write QASM stream. (Original error: {exc})"
                 raise MQTBenchExporterError(msg) from exc
             return

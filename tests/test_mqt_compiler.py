@@ -19,8 +19,8 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import CXGate, HGate, PermutationGate, RZGate, SXGate, XGate
+from qiskit.circuit import ControlledGate, Gate, IfElseOp, Instruction, Parameter
+from qiskit.circuit.library import CXGate, HGate, PermutationGate, RZGate, SXGate, UnitaryGate, XGate
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import Target
 
@@ -420,3 +420,90 @@ def test_nested_permutation(controlled: bool) -> None:
     circuit.append(gate, range(gate.num_qubits))
     result = get_benchmark_indep(circuit, compiler="mqt")
     assert Operator(result).equiv(Operator(circuit))
+
+
+def test_controlled_unitary() -> None:
+    """Import a controlled matrix without requiring a standard base gate."""
+    circuit = QuantumCircuit(2)
+    circuit.append(UnitaryGate(np.array([[0, 1j], [1, 0]])).control(1, annotated=False), [0, 1])
+    result = get_benchmark_indep(circuit, compiler="mqt")
+    assert Operator(result).equiv(Operator(circuit))
+
+
+def test_array_parameter_definition() -> None:
+    """Import an array-valued custom instruction through its circuit definition."""
+    instruction = Instruction("array_rotation", 1, 0, [np.array([0.23])])
+    instruction.definition = QuantumCircuit(1)
+    instruction.definition.ry(0.23, 0)
+    circuit = QuantumCircuit(1)
+    circuit.append(instruction, [0])
+    original = circuit.copy()
+    result = get_benchmark_indep(circuit, compiler="mqt")
+    assert Operator(result).equiv(Operator(original))
+    assert circuit == original
+
+
+@pytest.mark.parametrize(
+    ("instruction", "message"),
+    [
+        (Instruction("opaque_array", 1, 0, [np.array([0.23])]), "cannot import non-scalar parameters"),
+        (
+            ControlledGate("opaque_controlled", 2, [], num_ctrl_qubits=1, base_gate=Gate("opaque_base", 1, [])),
+            "requires a definition for controlled instruction",
+        ),
+    ],
+)
+def test_opaque_instructions_rejected(instruction: Instruction, message: str) -> None:
+    """Reject unsupported opaque instructions before passing them to native import."""
+    circuit = QuantumCircuit(instruction.num_qubits)
+    circuit.append(instruction, range(circuit.num_qubits))
+    with pytest.raises(ValueError, match=message):
+        get_benchmark_indep(circuit, compiler="mqt")
+
+
+def test_deep_definition_rejected() -> None:
+    """Report the import depth limit for deeply nested gate definitions."""
+    circuit = QuantumCircuit(1)
+    circuit.x(0)
+    for index in range(65):
+        gate = Gate(f"layer_{index}", 1, [])
+        gate.definition = circuit
+        circuit = QuantumCircuit(1)
+        circuit.append(gate, [0])
+    with pytest.raises(ValueError, match="nested gate definitions"):
+        get_benchmark_indep(circuit, compiler="mqt")
+
+
+def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Validate block-local operands against their enclosing physical qubit sites."""
+    target = Target(num_qubits=3)
+    target.add_instruction(XGate(), {(0,): None})
+    target.add_instruction(CXGate())
+    target.add_instruction(IfElseOp, name="if_else")
+    block = QuantumCircuit(1)
+    block.x(0)
+    circuit = QuantumCircuit(3, 1)
+    circuit.if_else((circuit.clbits[0], True), block, QuantumCircuit(1), [2], [])
+    monkeypatch.setattr(core.QCOProgram, "to_qiskit", lambda *args, **kwargs: circuit)
+    source = QuantumCircuit(3)
+    source.x(0)
+    get_benchmark_native_gates(source, None, target, compiler="mqt")
+    with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
+        get_benchmark_mapped(source, None, target, compiler="mqt")
+
+
+@pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.QIR_BITCODE])
+def test_qir_io_failure(fmt: OutputFormat, tmp_path: Path) -> None:
+    """QIR export reports file and stream failures through the exporter API."""
+    circuit = QuantumCircuit(1)
+    circuit.x(0)
+    path = tmp_path / "missing" / f"circuit.{fmt.extension()}"
+    with pytest.raises(MQTBenchExporterError, match="Failed to write") as exc:
+        write_circuit(circuit, path, BenchmarkLevel.ALG, fmt)
+    assert isinstance(exc.value.__cause__, FileNotFoundError)
+    assert not path.exists()
+    stream = io.BytesIO() if fmt is OutputFormat.QIR_BITCODE else io.StringIO()
+    stream.close()
+    with pytest.raises(MQTBenchExporterError, match="Failed to write") as exc:
+        write_circuit(circuit, stream, BenchmarkLevel.ALG, fmt)
+    assert isinstance(exc.value.__cause__, ValueError)
