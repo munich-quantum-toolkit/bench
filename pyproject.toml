@@ -51,7 +51,7 @@ email = "nils.quetschlich@tum.de"
 
 [[project.authors]]
 name = "Lukas Burgholzer"
-email = "lukas.burgholzer@tum.de"
+email = "burgholzer@me.com"
 
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
