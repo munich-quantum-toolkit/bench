@@ -12,6 +12,10 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-12
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#230)._
+
 ### Added
 
 - ✨ Add optional structured loops to Grover's algorithm and quantum walk
@@ -174,7 +178,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.3...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.3.0
 [2.2.3]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.3
 [2.2.2]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.2
 [2.2.1]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.1
