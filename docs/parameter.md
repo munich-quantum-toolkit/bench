@@ -51,11 +51,125 @@ print(get_available_device_names())
 
 (required for "mapped" level)
 
-- `opt_level`: Optimization level for `"qiskit"` (`0`-`3`).
+- `compiler`: `"qiskit"` (default) or `"mqt"`. The algorithm level does not
+  compile.
+- `opt_level`: Optimization level for `"qiskit"` (`0`-`3`, default `2`). For
+  `"mqt"`, leave this at `2`; Core uses its own default pipeline.
 - `random_parameters`: Assign random parameters to the circuit's parameters if
   they exist.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
   the benchmark.
+
+## MQT Core compiler
+
+Install the optional compiler with `pip install "mqt-bench[mqt]"`. This requires
+MQT Core 4.x and Qiskit 2.5.x. The base installation keeps its broader Qiskit
+version support.
+
+```python
+from mqt.bench import BenchmarkLevel, get_benchmark
+from mqt.bench.targets import get_device
+
+circuit = get_benchmark(
+    "ghz",
+    BenchmarkLevel.MAPPED,
+    3,
+    target=get_device("iqm_crystal_5"),
+    compiler="mqt",
+)
+```
+
+The return type remains `QuantumCircuit`. Circuit generation uses Qiskit;
+optimization, native synthesis, and routing use MQT Core. The importer converts
+permutation gates to swaps with Qiskit's permutation utility before Core import;
+Core 4.0 cannot directly import their array parameters. Composite controlled
+gates use their existing circuit definitions before Core compilation. The
+level-specific functions also accept `compiler="mqt"`.
+
+- `INDEP` decomposes multi-controlled operations and runs Core's default
+  target-independent optimization pipeline.
+- `NATIVEGATES` uses the target's gate set with all-to-all connectivity and the
+  input circuit's width. It ignores physical gate placements.
+- `MAPPED` uses the device's width, connectivity, and ordered gate placements.
+  The result uses physical wires. Core does not emit Qiskit `TranspileLayout`
+  metadata; measurements retain their classical destinations.
+
+Core supports the bundled IBM, IQM, Quantinuum, and Clifford+T+rotations gate
+sets. IonQ and Rigetti custom native gates are not supported by this adapter.
+Core does not provide Qiskit's approximate Clifford+T synthesis. Unsupported
+instructions, parameter restrictions, or synthesis requests raise an error. Core
+never falls back to Qiskit transpilation. Dynamic circuits and structured loops
+use Core's supported translation and target control-flow capabilities; Core can
+unroll loops when required by the target.
+
+Mirrors are formed from the compiled circuit and compiled again with Core when a
+target is supplied. The barrier between both halves prevents cancellation. Core
+uses its own fixed pipeline; `opt_level=0`, `1`, or `3` raises an error. The
+mapper uses Core's default seed and CPU-dependent number of layout trials, so
+mapped results can differ across machines.
+
+The CLI accepts the same selection:
+
+```bash
+mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
+  --level mapped --target iqm_crystal_5 --save
+```
+
+Core filenames contain `_mqt_` and omit Qiskit's optimization level. QASM
+headers and QPY metadata record the compiler version. Existing Qiskit filenames
+remain unchanged.
+
+## QIR and LLVM output
+
+The `mqt` extra also enables QIR export for circuits generated with either
+compiler. QIR uses LLVM IR: `qir` and `llvm` both emit LLVM text (`.ll`), while
+`qir-bitcode` emits LLVM bitcode (`.bc`). These files contain quantum runtime
+calls and require a compatible QIR runtime to execute.
+
+```bash
+# Print LLVM text to stdout; add --save to write a .ll file.
+mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
+  --level indep --output-format qir
+
+# Binary output is always saved; the CLI prints its path.
+mqt-bench --compiler mqt --algorithm ghz_dynamic --num-qubits 3 \
+  --level indep --output-format qir-bitcode --qir-profile adaptive
+```
+
+The existing Python export functions accept the same formats:
+
+```python
+from pathlib import Path
+
+from mqt.bench import BenchmarkLevel, get_benchmark
+from mqt.bench.output import OutputFormat, write_circuit
+
+circuit = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+write_circuit(circuit, Path("ghz.ll"), BenchmarkLevel.INDEP, OutputFormat.QIR)
+write_circuit(
+    circuit,
+    Path("ghz.bc"),
+    BenchmarkLevel.INDEP,
+    OutputFormat.QIR_BITCODE,
+    qir_profile="base",
+)
+```
+
+`save_circuit` also accepts `qir_profile`. The default `base` profile handles
+static circuits. Select `adaptive` for measurement feedback and supported
+classical control flow. Core reports an error when a circuit cannot be lowered
+to the chosen profile. Bind all free circuit parameters before QIR export.
+
+Export lowers the supplied circuit through Core without running another
+optimization or mapping pipeline. QIR lowering can decompose gates and assign
+QIR resource identifiers; the output is not a device-native payload guaranteed
+to preserve the target gate set or physical qubit numbering. A runtime must
+support the emitted QIS calls, QIR version, and profile capabilities.
+
+LLVM text uses `;` comments for the Bench header and records the QIR exporter
+version separately from the circuit compiler. Bitcode contains Core's QIR
+metadata but no Bench header. QASM and QPY output remain available without the
+`mqt` extra.
 
 ## Native Gate-Set Support
 

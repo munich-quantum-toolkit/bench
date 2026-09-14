@@ -12,6 +12,20 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- Add optional MQT Core compilation through `compiler="mqt"` and
+  `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
+  and compiler provenance in exported files. ([#1027]) ([**@simon1hofmann**])
+- Add QIR export as LLVM text (`qir`/`llvm`) or bitcode (`qir-bitcode`), with
+  Base and Adaptive profile selection in Python and the CLI. Requires the `mqt`
+  extra. ([#1027]) ([**@simon1hofmann**])
+
+### Fixed
+
+- Default the CLI optimization level to 2 when omitted. ([#1027])
+  ([**@simon1hofmann**])
+
 ## [2.3.0] - 2026-09-12
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#230)._
@@ -191,6 +205,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1027]: https://github.com/munich-quantum-toolkit/bench/pull/1027
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999

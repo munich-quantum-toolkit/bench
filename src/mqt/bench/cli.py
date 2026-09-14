@@ -58,10 +58,14 @@ def main() -> None:
         required=True,
     )
     parser.add_argument(
+        "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
+    )
+    parser.add_argument(
         "--optimization-level",
         type=int,
         choices=range(4),
-        help="Qiskit compiler optimization level (0-3).",
+        default=2,
+        help="Qiskit optimization level (0-3, default: 2). The MQT compiler requires the default value 2.",
     )
     parser.add_argument(
         "--target",
@@ -83,10 +87,16 @@ def main() -> None:
         help=f"Output format. Possible values: {[fmt.value for fmt in OutputFormat]}.",
     )
     parser.add_argument(
+        "--qir-profile",
+        choices=["base", "adaptive"],
+        default="base",
+        help="Profile for QIR/LLVM output (default: base). Use adaptive for measurement feedback.",
+    )
+    parser.add_argument(
         "--target-directory",
         type=str,
         default=".",
-        help="Directory to save the output file (only used for 'qpy' or if --save is specified).",
+        help="Directory to save the output file (used for binary formats or if --save is specified).",
     )
     parser.add_argument(
         "--save",
@@ -124,6 +134,7 @@ def main() -> None:
         circuit_size=args.num_qubits,
         target=target,
         opt_level=args.optimization_level,
+        compiler=args.compiler,
         generate_mirror_circuit=args.mirror,
         random_parameters=args.random_parameters,
     )
@@ -134,10 +145,10 @@ def main() -> None:
         msg = f"Unknown output format: {args.output_format}"
         raise ValueError(msg) from None
 
-    # For QASM outputs, serialize and print
-    if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
+    # Text formats stream to stdout unless saving is requested.
+    if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
         assert isinstance(sys.stdout, TextIOBase)
-        write_circuit(circuit, sys.stdout, level, fmt, target)
+        write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
         return
 
     # Otherwise, save to file
@@ -147,6 +158,7 @@ def main() -> None:
         num_qubits=args.num_qubits,
         target=target,
         opt_level=args.optimization_level,
+        compiler=args.compiler,
         generate_mirror_circuit=args.mirror,
     )
     success = save_circuit(
@@ -156,12 +168,13 @@ def main() -> None:
         output_format=fmt,
         target=target,
         target_directory=args.target_directory,
+        qir_profile=args.qir_profile,
     )
     if not success:
         sys.exit(1)
 
     # Optionally, inform user of file location if saving
-    if args.save or fmt == OutputFormat.QPY:
+    if args.save or fmt in (OutputFormat.QPY, OutputFormat.QIR_BITCODE):
         file_ext = fmt.extension()
         path = Path(args.target_directory) / f"{filename}.{file_ext}"
         print(path)
