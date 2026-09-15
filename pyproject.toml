@@ -1,55 +1,89 @@
 [build-system]
+requires = [
+  "hatchling>=1.27.0",
+  "hatch-vcs>=0.4.0"
+]
 build-backend = "hatchling.build"
-requires = [ "hatch-vcs>=0.4", "hatchling>=1.27" ]
-
 
 [project]
-name = "mqt-bench"
+name = "mqt.bench"
 description = "MQT Bench - A MQT tool for Benchmarking Quantum Software Tools"
 readme = "README.md"
-keywords = [ "benchmarking", "MQT", "performance", "quantum computing", "testing" ]
+authors = [
+    { name = "Nils Quetschlich", email = "nils.quetschlich@tum.de" },
+    { name = "Lukas Burgholzer", email = "lukas.burgholzer@tum.de"},
+]
+keywords = ["MQT",  "quantum computing", "benchmarking", "performance", "testing"]
 license = "MIT"
-license-files = [ "LICENSE" ]
-requires-python = ">=3.11"
-classifiers = [
-  "Development Status :: 5 - Production/Stable",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Information Technology",
-  "Intended Audience :: Science/Research",
-  "Natural Language :: English",
-  "Operating System :: MacOS",
-  "Operating System :: Microsoft :: Windows",
-  "Operating System :: POSIX :: Linux",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-  "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
-  "Topic :: Scientific/Engineering :: Quantum Computing",
-  "Typing :: Typed",
-]
-dynamic = [ "version" ]
+license-files = ["LICENSE"]
+requires-python = ">=3.11, !=3.14.1"
+dynamic = ["version"]
+
 dependencies = [
-  "networkx>=2.8.8",
-  "numpy>=1.24",
-  "numpy>=1.26; python_version>='3.12'",
-  "numpy>=2.1; python_version>='3.13'",
-  "numpy>=2.3.2; python_version>='3.14'",
-  "qiskit[qasm3-import]>=2.1",
-  "scikit-learn>=1.5.2",
-  "scikit-learn>=1.7.2; python_version>='3.14'",
+    # Qiskit 1.3.2 contains some fixes for exporting OpenQASM 3 files
+    # Qiskit 2.0.0 fixes the SolovayKitaev transpiler for mid-circuit measurements
+    # Qiskit 2.4.0 fixes the transpilation to Clifford+T basis
+    "qiskit[qasm3-import]>=2.4.0",
+    "networkx>=2.8.8",
+    "numpy>=1.24",
+    "numpy>=1.26; python_version >= '3.12'",
+    "numpy>=2.1; python_version >= '3.13'",
+    "numpy>=2.3.2; python_version >= '3.14'",
+    "scikit-learn>=1.5.2",
+    "scikit-learn>=1.7.2; python_version >= '3.14'",
 ]
 
-[[project.authors]]
-name = "Nils Quetschlich"
-email = "nils.quetschlich@tum.de"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Typing :: Typed",
+]
 
-[[project.authors]]
-name = "Lukas Burgholzer"
-email = "burgholzer@me.com"
+[dependency-groups]
+test = [
+    "pytest>=9.0.1",
+    "pytest-console-scripts>=1.4.1",
+    "pytest-cov>=7.1.0",
+    "pytest-sugar>=1.1.1",
+    "pytest-xdist>=3.8.0",
+]
+docs = [
+    "furo>=2025.09.25",
+    "myst-nb>=1.3.0",
+    "openqasm-pygments>=0.2.0",
+    "sphinx>=8.2.3",
+    "sphinx-design>=0.6.1",
+    "sphinx-llm>=0.4.1",
+    "sphinx-autoapi>=3.6.0",
+    "sphinx-copybutton>=0.5.2",
+    "sphinxcontrib-bibtex>=2.6.5",
+    "sphinxext-opengraph>=0.13.0",
+    "qiskit[visualization]>=1.2.1",
+]
+dev = [
+    {include-group = "test"},
+    "nox>=2025.11.12",
+    "prek>=0.2.27",
+]
+
+[project.scripts]
+"mqt.bench.cli" = "mqt.bench.cli:main"  # Kept for backwards compatibility. To be removed in mqt-bench v3
+"mqt-bench" = "mqt.bench.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
@@ -57,38 +91,9 @@ Homepage = "https://github.com/munich-quantum-toolkit/bench"
 Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
 Research = "https://www.cda.cit.tum.de/research/quantum/"
 
-[project.scripts]
-"mqt.bench.cli" = "mqt.bench.cli:main"  # Kept for backwards compatibility. To be removed in mqt-bench v3
-mqt-bench = "mqt.bench.cli:main"
 
-
-[dependency-groups]
-dev = [
-  { include-group = "test" },
-  "nox>=2025.11.12",
-  "prek>=0.2.27",
-]
-test = [
-  "pytest>=9.0.1",
-  "pytest-console-scripts>=1.4.1",
-  "pytest-cov>=7.1",
-  "pytest-sugar>=1.1.1",
-  "pytest-xdist>=3.8",
-]
-docs = [
-  "furo>=2025.12.19",
-  "myst-nb>=1.4",
-  "openqasm-pygments>=0.2",
-  "qiskit[visualization]>=2.1",
-  "sphinx>=9",
-  "sphinx-autoapi>=3.6",
-  "sphinx-copybutton>=0.5.2",
-  "sphinx-design>=0.7",
-  "sphinx-llm>=1",
-  "sphinxcontrib-bibtex>=2.7",
-  "sphinxext-opengraph>=0.13",
-]
-
+[tool.hatch.build.targets.wheel]
+packages = ["src/mqt"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -96,17 +101,56 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mqt/bench/_version.py"
 
-[tool.hatch.build.targets.wheel]
-packages = [ "src/mqt" ]
+
+[tool.check-sdist]
+sdist-only = ["src/mqt/bench/_version.py"]
 
 
-[tool.uv.sources]
-mqt-bench = { workspace = true }
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+strict = true
+addopts = [
+    "-ra",
+    "--showlocals",
+    "--numprocesses=auto", # Automatically use all available CPU cores for parallel testing
+]
+log_level = "INFO"
+filterwarnings = [
+    "error",
+    'ignore:.*pkg_resources.*:DeprecationWarning:',
+    'ignore:.*Values in x.*:RuntimeWarning:',
+    'ignore:.*divide by zero encountered in det.*:RuntimeWarning:',
+    'ignore:.*invalid value encountered in det.*:RuntimeWarning:',
+    'ignore:.*invalid value encountered in divide.*:RuntimeWarning:',
+    'ignore:.*The iteration is not making good progress.*:RuntimeWarning:',
+    # Qiskit-internal warning
+    'ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*',
+    # Qiskit 2.3 deprecations
+    'ignore:.*argument ``annotated`` is deprecated as of Qiskit 2.3.*:DeprecationWarning:',
+]
+
+[tool.coverage]
+run.source = ["mqt.bench"]
+run.core = "sysmon"
+run.parallel = true
+run.disable_warnings = [
+    "no-sysmon",
+]
+report.exclude_also = [
+    '\.\.\.',
+    'if TYPE_CHECKING:',
+    'raise AssertionError',
+    'raise NotImplementedError',
+]
+show_missing = true
+skip_empty = true
+precision = 1
 
 
 [tool.ruff]
 line-length = 120
-namespace-packages = [ "mqt" ]
+namespace-packages = ["mqt"]
 preview = true
 fix = true
 unsafe-fixes = true
@@ -116,92 +160,84 @@ show-fixes = true
 preview = true
 docstring-code-format = true
 
-[tool.ruff.lint.per-file-ignores]
-"*.pyi" = [ "D" ]  # pydocstyle
-"*.ipynb" = [
-  "D",    # pydocstyle
-  "E402", # Allow imports to appear anywhere in Jupyter notebooks
-  "I002", # Allow missing `from __future__ import annotations` import
-]
-
-[tool.ruff.lint.isort]
-known-first-party = [ "mqt.bench" ]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
 [tool.ruff.lint]
 extend-select = [
-  "A",      # flake8-builtins
-  "ANN",    # flake8-annotations
-  "ARG",    # flake8-unused-arguments
-  "ASYNC",  # flake8-async
-  "B",      # flake8-bugbear
-  "C4",     # flake8-comprehensions
-  "D",      # pydocstyle
-  "EM",     # flake8-errmsg
-  "EXE",    # flake8-executable
-  "FA",     # flake8-future-annotations
-  "FLY",    # flynt
-  "FURB",   # refurb
-  "I",      # isort
-  "ICN",    # flake8-import-conventions
-  "ISC",    # flake8-implicit-str-concat
-  "LOG",    # flake8-logging-format
-  "N",      # flake8-naming
-  "NPY",    # numpy
-  "PERF",   # perflint
-  "PGH",    # pygrep-hooks
-  "PIE",    # flake8-pie
-  "PL",     # pylint
-  "PT",     # flake8-pytest-style
-  "PTH",    # flake8-use-pathlib
-  "PYI",    # flake8-pyi
-  "Q",      # flake8-quotes
-  "RET",    # flake8-return
-  "RSE",    # flake8-raise
-  "RUF",    # Ruff-specific
-  "SIM",    # flake8-simplify
-  "SLF",    # flake8-self
-  "SLOT",   # flake8-slots
-  "TC",     # flake8-type-checking
-  "TID251", # flake8-tidy-imports
-  "TRY",    # tryceratops
-  "UP",     # pyupgrade
-  "YTT",    # flake8-2020
+    "A",           # flake8-builtins
+    "ANN",         # flake8-annotations
+    "ARG",         # flake8-unused-arguments
+    "ASYNC",       # flake8-async
+    "B",           # flake8-bugbear
+    "C4",          # flake8-comprehensions
+    "D",           # pydocstyle
+    "EM",          # flake8-errmsg
+    "EXE",         # flake8-executable
+    "FA",          # flake8-future-annotations
+    "FLY",         # flynt
+    "FURB",        # refurb
+    "I",           # isort
+    "ICN",         # flake8-import-conventions
+    "ISC",         # flake8-implicit-str-concat
+    "LOG",         # flake8-logging-format
+    "N",           # flake8-naming
+    "NPY",         # numpy
+    "PERF",        # perflint
+    "PGH",         # pygrep-hooks
+    "PIE",         # flake8-pie
+    "PL",          # pylint
+    "PT",          # flake8-pytest-style
+    "PTH",         # flake8-use-pathlib
+    "PYI",         # flake8-pyi
+    "Q",           # flake8-quotes
+    "RET",         # flake8-return
+    "RSE",         # flake8-raise
+    "RUF",         # Ruff-specific
+    "SLF",         # flake8-self
+    "SLOT",        # flake8-slots
+    "SIM",         # flake8-simplify
+    "TC",          # flake8-type-checking
+    "TID251",      # flake8-tidy-imports
+    "TRY",         # tryceratops
+    "UP",          # pyupgrade
+    "YTT",         # flake8-2020
 ]
 ignore = [
-  "E501", # Line too long (Black is enough)
-  "PLR",  # Design related pylint codes
-  "S101", # Use of assert detected
+    "E501",    # Line too long (Black is enough)
+    "PLR",     # Design related pylint codes
+    "S101",    # Use of assert detected
 ]
 flake8-unused-arguments.ignore-variadic-names = true
 future-annotations = true
 
+[tool.ruff.lint.isort]
+known-first-party = ["mqt.bench"]
 
-[tool.repo-review.ignore]
-GH200 = "We use Renovate instead of Dependabot"
-PC160 = "We use a mirror of crate-ci/typos"
-PC170 = "We do not use rST files anymore"
+[tool.ruff.lint.per-file-ignores]
+"*.pyi" = ["D"]  # pydocstyle
+"*.ipynb" = [
+    "D",    # pydocstyle
+    "E402", # Allow imports to appear anywhere in Jupyter notebooks
+    "I002", # Allow missing `from __future__ import annotations` import
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 
-[tool.check-sdist]
-sdist-only = [ "src/mqt/bench/_version.py" ]
+[tool.uv]
+# symengine>=0.11,<0.14 (optional dependency of qiskit) is incompatible with Python 3.14
+override-dependencies = [
+    "symengine>=0.11,<0.14",
+    "symengine>=0.14.1; python_version >= '3.14'",
+]
 
-
-[tool.pyproject-fmt]
-generate_python_version_classifiers = false
-table_format = "long"
-sub_table_spacing = "\n"
-separate_root_table = "\n\n"
+[tool.uv.sources]
+mqt-bench = { workspace = true }
 
 
 [tool.typos]
-
-[tool.typos.default]
-extend-ignore-re = [
+default.extend-ignore-re = [
   '"id": ".*",',
-  "(?Rm)^.*(#|//)\\s*spellchecker:disable-line$",                      # ignore line
+  "(?Rm)^.*(#|//)\\s*spellchecker:disable-line$",  # ignore line
   "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on" # ignore block
 ]
 
@@ -214,52 +250,17 @@ bench = "bench"
 benchs = "benchs"
 
 
-[tool.ty.src]
-exclude = [
-  "docs/**",
-]
+[tool.repo-review.ignore]
+GH200 = "We use Renovate instead of Dependabot"
+PC160 = "We use a mirror of crate-ci/typos"
+PC170 = "We do not use rST files anymore"
+
 
 [tool.ty.terminal]
 # Error if ty emits any warning-level diagnostics.
 error-on-warning = true
 
-
-[tool.pytest]
-addopts = [
-  "-ra",
-  "--showlocals",
-  "--numprocesses=auto", # Automatically use all available CPU cores for parallel testing
-]
-filterwarnings = [
-  "error",
-  # Qiskit-internal warning
-  "ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*",
-  # Qiskit 2.3 deprecations
-  "ignore:.*argument ``annotated`` is deprecated as of Qiskit 2.3.*:DeprecationWarning:",
-]
-log_level = "INFO"
-minversion = "9.0"
-strict = true
-testpaths = [ "tests" ]
-
-
-[tool.coverage]
-precision = 1
-show_missing = true
-skip_empty = true
-
-[tool.coverage.run]
-source = [ "mqt.bench" ]
-parallel = true
-disable_warnings = [
-  "no-sysmon",
-]
-core = "sysmon"
-
-[tool.coverage.report]
-exclude_also = [
-  '\.\.\.',
-  "if TYPE_CHECKING:",
-  "raise AssertionError",
-  "raise NotImplementedError",
+[tool.ty.src]
+exclude = [
+    "docs/**",
 ]
