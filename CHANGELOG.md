@@ -12,6 +12,10 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- 🐛 Expose `__version__` and `__version_tuple__` at the package root
+
 ## [2.3.0] - 2026-09-12
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#230)._
