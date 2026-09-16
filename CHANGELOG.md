@@ -14,7 +14,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Expose `__version__` and `__version_tuple__` at the package root
+- 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
+  ([**@algovista-collab**])
 
 ## [2.3.0] - 2026-09-12
 
@@ -195,6 +196,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
@@ -245,6 +247,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Contributor -->
 
+[**@algovista-collab**]: https://github.com/algovista-collab
 [**@burgholzer**]: https://github.com/burgholzer
 [**@ystade**]: https://github.com/ystade
 [**@simon1hofmann**]: https://github.com/simon1hofmann
