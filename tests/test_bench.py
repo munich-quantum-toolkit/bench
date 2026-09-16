@@ -1276,7 +1276,5 @@ def test_configuration_options() -> None:
 
 def test_version() -> None:
     """Test that the package version is accessible."""
-    assert hasattr(mqt.bench, "__version__")
     assert isinstance(mqt.bench.__version__, str)
-    assert hasattr(mqt.bench, "__version_tuple__")
     assert isinstance(mqt.bench.__version_tuple__, tuple)

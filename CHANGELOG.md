@@ -247,7 +247,6 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Contributor -->
 
-[**@algovista-collab**]: https://github.com/algovista-collab
 [**@burgholzer**]: https://github.com/burgholzer
 [**@ystade**]: https://github.com/ystade
 [**@simon1hofmann**]: https://github.com/simon1hofmann
@@ -261,6 +260,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@flowerthrower**]: https://github.com/flowerthrower
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
 [**@cnYui**]: https://github.com/cnYui
+[**@algovista-collab**]: https://github.com/algovista-collab
 
 <!-- General links -->
 
