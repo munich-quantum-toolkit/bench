@@ -19,8 +19,13 @@ from mqt.bench.benchmark_generation import (
     get_benchmark_native_gates,
 )
 
+from ._version import version as __version__
+from ._version import version_tuple as __version_tuple__
+
 __all__ = [
     "BenchmarkLevel",
+    "__version__",
+    "__version_tuple__",
     "get_benchmark",
     "get_benchmark_alg",
     "get_benchmark_indep",
