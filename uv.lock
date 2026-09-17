@@ -1581,7 +1581,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mqt-core", marker = "extra == 'mqt'", git = "https://github.com/munich-quantum-toolkit/core.git?rev=70f6d6f394ba0b51729331078edb3ec7ed02fd9a" },
+    { name = "mqt-core", marker = "extra == 'mqt'", git = "https://github.com/munich-quantum-toolkit/core.git?rev=42564a8312ec5d31d04bb7efb18aec8f6eccdca2" },
     { name = "networkx", specifier = ">=2.8.8" },
     { name = "numpy", specifier = ">=1.24" },
     { name = "numpy", marker = "python_full_version >= '3.12'", specifier = ">=1.26" },
@@ -1627,8 +1627,8 @@ test = [
 
 [[package]]
 name = "mqt-core"
-version = "4.0.1.dev16+g70f6d6f39"
-source = { git = "https://github.com/munich-quantum-toolkit/core.git?rev=70f6d6f394ba0b51729331078edb3ec7ed02fd9a#70f6d6f394ba0b51729331078edb3ec7ed02fd9a" }
+version = "4.0.1.dev17+g42564a831"
+source = { git = "https://github.com/munich-quantum-toolkit/core.git?rev=42564a8312ec5d31d04bb7efb18aec8f6eccdca2#42564a8312ec5d31d04bb7efb18aec8f6eccdca2" }
 dependencies = [
     { name = "nanobind-backend" },
 ]

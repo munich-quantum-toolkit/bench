@@ -65,7 +65,7 @@ print(get_available_device_names())
 ## MQT Core compiler
 
 Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
-pins Core's development commit `70f6d6f394ba0b51729331078edb3ec7ed02fd9a` and
+pins Core's development commit `42564a8312ec5d31d04bb7efb18aec8f6eccdca2` and
 requires Qiskit 2.5.x. Core builds from source and requires a C++20 compiler and
 LLVM/MLIR 23.1 or newer; follow [Core's build instructions][core-build] and set
 `MLIR_DIR` before installing. The base installation keeps its broader Qiskit
