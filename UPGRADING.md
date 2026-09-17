@@ -9,15 +9,20 @@ of changes including minor and patch releases, please refer to the
 ### Optional MQT Core compiler
 
 Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
-or `--compiler mqt` in the CLI. The extra requires MQT Core 4.x and Qiskit
-2.5.x. Qiskit remains the default compiler; existing Python calls keep their
-behavior. The CLI now defaults to optimization level 2 when the option is
-omitted.
+or `--compiler mqt` in the CLI. The extra pins Core's development commit
+`70f6d6f394ba0b51729331078edb3ec7ed02fd9a` and requires Qiskit 2.5.x. Core
+builds from source; install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first.
+Qiskit remains the default compiler; existing Python calls keep their behavior.
+The CLI now defaults to optimization level 2 when the option is omitted.
 
 The Core compiler uses a fixed optimization pipeline. Leave `opt_level` at its
 default of 2. Mapped results use physical wires without Qiskit layout metadata.
 See the [parameter guide](docs/parameter.md#mqt-core-compiler) for target
 support, control flow, mirror circuits, and output provenance.
+
+Core compilation defaults to seed `10` and four mapping trials. Pass
+`compiler_options=CompilationOptions(...)` to override those defaults through
+Core's Python API, including during mirror recompilation.
 
 The same extra enables `--output-format qir` (or `llvm`) for LLVM text and
 `--output-format qir-bitcode` for binary output. Use `--qir-profile adaptive`

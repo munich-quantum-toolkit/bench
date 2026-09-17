@@ -11,26 +11,16 @@
 from __future__ import annotations
 
 from importlib.metadata import version
-from numbers import Number
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import (
-    AnnotatedOperation,
-    ControlFlowOp,
-    ControlledGate,
-    Instruction,
-    Parameter,
-    ParameterExpression,
-    QuantumCircuit,
-    Store,
-)
-from qiskit.circuit.library import PermutationGate, UnitaryGate
+from qiskit.circuit import ControlFlowOp, Parameter, QuantumCircuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-from qiskit.synthesis.permutation import synth_permutation_basic
 
 try:
     from mqt.core.mlir import (
+        CompilationOptions,
         CompilerTarget,
+        MappingOptions,
         PayloadFormat,
         PayloadSpecification,
         ProgramCapability,
@@ -43,7 +33,7 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name not in {"mqt.core", "mqt.core.mlir"}:
         raise
-    msg = 'MQT compilation and QIR export require MQT Core 4. Install it with: pip install "mqt-bench[mqt]"'
+    msg = 'MQT compilation and QIR export require the pinned MQT Core development version. Install it with: pip install "mqt-bench[mqt]"'
     raise ImportError(msg) from exc
 
 if TYPE_CHECKING:
@@ -129,56 +119,6 @@ def _check_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, site
                 _check_target(block, target, mapped=mapped, sites=list(qubits))
 
 
-def _prepare_circuit(circuit: QuantumCircuit, depth: int = 0) -> QuantumCircuit:
-    """Translate array-valued gate parameters before Core's native import."""
-    if depth > 64:
-        msg = "MQT circuit import exceeds 64 nested gate definitions or control-flow blocks."
-        raise ValueError(msg)
-    standard_types = {gate.base_class for gate in get_standard_gate_name_mapping().values()}
-    result = circuit.copy_empty_like()
-    for item in circuit.data:
-        operation = item.operation
-        if isinstance(operation, PermutationGate):
-            result.compose(synth_permutation_basic(operation.pattern), item.qubits, inplace=True)
-            continue
-        if isinstance(operation, ControlFlowOp):
-            operation = operation.replace_blocks(_prepare_circuit(block, depth + 1) for block in operation.blocks)
-        elif isinstance(operation, ControlledGate) and operation.base_class not in standard_types:
-            if not isinstance(operation.base_gate, UnitaryGate):
-                definition = operation.definition
-                if definition is None:
-                    msg = f"The MQT compiler requires a definition for controlled instruction '{operation.name}'."
-                    raise ValueError(msg)
-                result.compose(_prepare_circuit(definition, depth + 1), item.qubits, item.clbits, inplace=True)
-                continue
-        elif (
-            isinstance(operation, Instruction)
-            and operation.base_class not in standard_types
-            and not isinstance(operation, (UnitaryGate, Store))
-        ):
-            definition = operation.definition
-            if definition is not None:
-                operation = operation.copy()
-                operation.definition = _prepare_circuit(definition, depth + 1)
-            if any(not isinstance(parameter, (Number, ParameterExpression)) for parameter in operation.params):
-                if operation.definition is None:
-                    msg = f"The MQT compiler cannot import non-scalar parameters of instruction '{operation.name}'."
-                    raise ValueError(msg)
-                result.compose(operation.definition, item.qubits, item.clbits, inplace=True)
-                continue
-        elif (
-            isinstance(operation, AnnotatedOperation)
-            and not isinstance(operation.base_op, UnitaryGate)
-            and (not isinstance(operation.base_op, Instruction) or operation.base_op.base_class not in standard_types)
-        ):
-            base = QuantumCircuit(operation.base_op.num_qubits)
-            base.append(operation.base_op, range(base.num_qubits))
-            normalized = _prepare_circuit(base, depth + 1).to_gate()
-            operation = AnnotatedOperation(normalized, operation.modifiers)
-        result.append(operation, item.qubits, item.clbits)
-    return result
-
-
 def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProgram:
     """Lower a circuit to QIR without running target compilation or optimization."""
     if profile not in {"base", "adaptive"}:
@@ -187,32 +127,40 @@ def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProg
     if circuit.parameters:
         msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
         raise ValueError(msg)
-    program = QCProgram.from_qiskit(_prepare_circuit(circuit))
+    program = QCProgram.from_qiskit(circuit)
     return program.to_qir(QIRProfile.BASE if profile == "base" else QIRProfile.ADAPTIVE)
 
 
-def compile_circuit(circuit: QuantumCircuit, target: Target | None = None, *, mapped: bool = False) -> QuantumCircuit:
+def compile_circuit(
+    circuit: QuantumCircuit,
+    target: Target | None = None,
+    *,
+    mapped: bool = False,
+    options: CompilationOptions | None = None,
+) -> QuantumCircuit:
     """Compile through Core and return a Qiskit circuit with compiler provenance.
 
     Args:
         circuit: Circuit to compile. Core does not modify it.
         target: Optional Qiskit gate set or device target.
         mapped: Whether to enforce physical connectivity and operation placements.
+        options: Core compiler controls. Defaults to seed 10 and four mapping trials.
 
     Returns:
         A Qiskit circuit. Mapped circuits use physical wires without layout metadata.
     """
-    prepared = _prepare_circuit(circuit)
+    if options is None:
+        options = CompilationOptions(seed=10, mapping=MappingOptions(trials=4))
     if target is None:
-        result = compile_program(prepared, qco_pipeline="decompose-multi-controlled,mqt-qco-default").to_qiskit()
+        result = compile_program(
+            circuit, qco_pipeline="decompose-multi-controlled,mqt-qco-default", options=options
+        ).to_qiskit()
     else:
         environment = _target_environment(target, circuit.num_qubits, mapped=mapped)
-        program = QCProgram.from_qiskit(prepared).to_qco()
-        program.compile_for_target(environment)
+        program = QCProgram.from_qiskit(circuit).to_qco()
+        program.compile_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
         _check_target(result, target, mapped=mapped)
-    parameters = {parameter.name: parameter for parameter in circuit.parameters}
-    result.assign_parameters({parameter: parameters[parameter.name] for parameter in result.parameters}, inplace=True)
     result.name = circuit.name
     result.metadata = (circuit.metadata or {}) | {"mqt_bench_compiler": {"name": "mqt", "version": version("mqt-core")}}
     return result
