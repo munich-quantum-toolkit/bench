@@ -39,7 +39,7 @@ jobs:
   mqt-compiler-tests:
     name: MQT Core compiler
     needs: change-detection
-    if: fromJSON(needs.change-detection.outputs.run-python-tests)
+    if: fromJSON(needs.change-detection.outputs.run-python-tests) || fromJSON(needs.change-detection.outputs.run-python-linter)
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -53,6 +53,8 @@ jobs:
         with:
           llvm-version: "23.1.1"
       - run: uvx nox -s mqt -- --cov --cov-report=xml:coverage-mqt.xml
+      - name: Check Python types
+        run: uvx prek run -a ty
       - name: Upload MQT Core coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -76,10 +78,7 @@ jobs:
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@ace7363a2a8e036e5efc6717be67f1eda29a120e # v2.4.2
     with:
-      enable-ty: true
       enable-mypy: false
-      setup-mlir: true
-      llvm-version: "23.1.1"
     permissions:
       contents: read
 
@@ -119,7 +118,12 @@ jobs:
           allowed-skips: >-
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-tests)
-              && 'python-tests,mqt-compiler-tests,python-coverage,' || ''
+              && 'python-tests,python-coverage,' || ''
+            }}
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-python-tests)
+              && !fromJSON(needs.change-detection.outputs.run-python-linter)
+              && 'mqt-compiler-tests,' || ''
             }}
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-linter)
