@@ -55,6 +55,8 @@ print(get_available_device_names())
   compile.
 - `opt_level`: Optimization level for `"qiskit"` (`0`-`3`, default `2`). For
   `"mqt"`, leave this at `2`; Core uses its own default pipeline.
+- `compiler_options`: Core `CompilationOptions` for `compiler="mqt"` at a
+  compilation level. Defaults to seed `10` and four mapping trials.
 - `random_parameters`: Assign random parameters to the circuit's parameters if
   they exist.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
@@ -62,8 +64,11 @@ print(get_available_device_names())
 
 ## MQT Core compiler
 
-Install the optional compiler with `pip install "mqt-bench[mqt]"`. This requires
-MQT Core 4.x and Qiskit 2.5.x. The base installation keeps its broader Qiskit
+Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
+pins Core's development commit `70f6d6f394ba0b51729331078edb3ec7ed02fd9a` and
+requires Qiskit 2.5.x. Core builds from source and requires a C++20 compiler and
+LLVM/MLIR 23.1 or newer; follow [Core's build instructions][core-build] and set
+`MLIR_DIR` before installing. The base installation keeps its broader Qiskit
 version support.
 
 ```python
@@ -80,10 +85,8 @@ circuit = get_benchmark(
 ```
 
 The return type remains `QuantumCircuit`. Circuit generation uses Qiskit;
-optimization, native synthesis, and routing use MQT Core. The importer converts
-permutation gates to swaps with Qiskit's permutation utility before Core import;
-Core 4.0 cannot directly import their array parameters. Composite controlled
-gates use their existing circuit definitions before Core compilation. The
+import, optimization, native synthesis, and routing use MQT Core. Core handles
+permutation gates and preserves parameter identities and vector membership. The
 level-specific functions also accept `compiler="mqt"`.
 
 - `INDEP` decomposes multi-controlled operations and runs Core's default
@@ -104,9 +107,36 @@ unroll loops when required by the target.
 
 Mirrors are formed from the compiled circuit and compiled again with Core when a
 target is supplied. The barrier between both halves prevents cancellation. Core
-uses its own fixed pipeline; `opt_level=0`, `1`, or `3` raises an error. The
-mapper uses Core's default seed and CPU-dependent number of layout trials, so
-mapped results can differ across machines.
+uses its own fixed pipeline; `opt_level=0`, `1`, or `3` raises an error.
+
+Bench sets seed `10` and four mapping trials so defaults do not depend on the
+CPU count. To change compiler controls, pass Core's `CompilationOptions`:
+
+```python
+from mqt.core.mlir import CompilationOptions, MappingOptions
+
+circuit = get_benchmark(
+    "ghz",
+    BenchmarkLevel.MAPPED,
+    3,
+    target=get_device("iqm_crystal_5"),
+    compiler="mqt",
+    compiler_options=CompilationOptions(
+        seed=17,
+        mapping=MappingOptions(trials=8, iterations=2, lookahead=10),
+    ),
+)
+```
+
+Options also apply to mirror recompilation. Supplied options replace Bench's
+defaults: `CompilationOptions()` uses Core's default seeds and CPU-dependent
+trial count. Core also exposes timing, statistics, and routing search-memory
+controls. `compiler_options` is rejected with the Qiskit compiler or at the
+algorithm level, where no compilation runs. Benchmark-generation `seed` remains
+separate from the compilation seed. Fixed options do not promise identical
+results across Core versions or platforms.
+
+[core-build]: https://mqt.readthedocs.io/projects/core/en/latest/installation.html#setting-up-mlir
 
 The CLI accepts the same selection:
 

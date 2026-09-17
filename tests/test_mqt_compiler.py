@@ -11,15 +11,20 @@
 from __future__ import annotations
 
 import io
-import subprocess
-import sys
-import textwrap
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import ControlledGate, Gate, IfElseOp, Instruction, Parameter
+from qiskit.circuit import (
+    ControlledGate,
+    Gate,
+    IfElseOp,
+    Instruction,
+    Parameter,
+    ParameterVector,
+    ParameterVectorElement,
+)
 from qiskit.circuit.library import CXGate, HGate, PermutationGate, RZGate, SXGate, UnitaryGate, XGate
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import Target
@@ -27,6 +32,7 @@ from qiskit.transpiler import Target
 from mqt.bench import (
     BenchmarkLevel,
     get_benchmark,
+    get_benchmark_alg,
     get_benchmark_indep,
     get_benchmark_mapped,
     get_benchmark_native_gates,
@@ -38,6 +44,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Literal
 
+    from mqt.core.mlir import CompilationOptions, QCOProgram, QCProgram, TargetEnvironment
     from pytest_console_scripts import ScriptRunner
 
 core = pytest.importorskip("mqt.core.mlir")
@@ -220,6 +227,84 @@ def test_symbolic_independent_circuit() -> None:
         )
 
 
+def test_parameter_vector_identity() -> None:
+    """Core preserves vector membership and identity inside parameter expressions."""
+    angles = ParameterVector("angles", 3)
+    circuit = QuantumCircuit(1)
+    circuit.rx(2 * angles[2] + angles[0], 0)
+    result = get_benchmark_indep(circuit, compiler="mqt", random_parameters=False)
+    assert result.parameters == circuit.parameters
+    for parameter in result.parameters:
+        assert isinstance(parameter, ParameterVectorElement)
+        assert len(parameter.vector) == 3
+    values = {angles[0]: 0.2, angles[2]: 0.3}
+    assert Operator(result.assign_parameters(values)).equiv(Operator(circuit.assign_parameters(values)))
+
+
+@pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
+@pytest.mark.parametrize("mirror", [False, True])
+def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use caller options for compilation and target-specific mirror recompilation."""
+    options = core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=2, iterations=2, lookahead=0))
+    seen = []
+    compile_program = core.compile_program
+    compile_for_target = core.QCOProgram.compile_for_target
+
+    def record_program(program: QuantumCircuit, *, qco_pipeline: str, options: CompilationOptions) -> QCProgram:
+        seen.append(options)
+        return compile_program(program, qco_pipeline=qco_pipeline, options=options)
+
+    def record_target(program: QCOProgram, environment: TargetEnvironment, *, options: CompilationOptions) -> None:
+        seen.append(options)
+        compile_for_target(program, environment, options=options)
+
+    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_program", record_program)
+    monkeypatch.setattr(core.QCOProgram, "compile_for_target", record_target)
+    result = get_benchmark(
+        "ghz",
+        level,
+        3,
+        target=get_device("iqm_crystal_5"),
+        compiler="mqt",
+        compiler_options=options,
+        generate_mirror_circuit=mirror,
+    )
+    assert seen == [options] * (2 if mirror and level is not BenchmarkLevel.INDEP else 1)
+    assert options.seed == 17
+    assert options.mapping.trials == 2
+    assert options.mapping.iterations == 2
+    assert options.mapping.lookahead == 0
+    if mirror:
+        assert _measurement_probabilities(result) == pytest.approx({"000": 1.0})
+    else:
+        assert _measurement_probabilities(result) == pytest.approx({"000": 0.5, "111": 0.5})
+
+
+def test_default_mapping_reproducibility(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bench fixes the seed and trial count instead of depending on CPU count."""
+    compile_for_target = core.QCOProgram.compile_for_target
+    seeds_and_trials = []
+
+    def record_options(program: QCOProgram, environment: TargetEnvironment, *, options: CompilationOptions) -> None:
+        seeds_and_trials.append((options.seed, options.mapping.trials))
+        compile_for_target(program, environment, options=options)
+
+    monkeypatch.setattr(core.QCOProgram, "compile_for_target", record_options)
+    target = get_device("iqm_crystal_5")
+    results = [get_benchmark_mapped("ghz", 3, target, compiler="mqt") for _ in range(2)]
+    assert seeds_and_trials == [(10, 4), (10, 4)]
+    assert results[0] == results[1]
+
+
+def test_compiler_options_require_core_compilation() -> None:
+    """Reject compiler controls where they would otherwise be silently ignored."""
+    options = core.CompilationOptions()
+    with pytest.raises(ValueError, match='requires compiler="mqt"'):
+        get_benchmark_indep("ghz", 3, compiler_options=options)
+    with pytest.raises(ValueError, match="algorithm level does not compile"):
+        get_benchmark("ghz", BenchmarkLevel.ALG, 3, compiler="mqt", compiler_options=options)
+
+
 def test_mapped_measurement_order() -> None:
     """Routing preserves classical results and respects directed physical gates."""
     target = Target(num_qubits=4)
@@ -376,41 +461,15 @@ def test_classical_feed_forward(level: BenchmarkLevel) -> None:
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 def test_amplitude_estimation_import(level: BenchmarkLevel) -> None:
     """Import array-valued permutation parameters without aborting the Python process."""
-    script = textwrap.dedent(f"""\
-        from mqt.bench import BenchmarkLevel, get_benchmark, get_benchmark_alg
-        from mqt.bench.targets import get_device
-        from qiskit.quantum_info import Statevector
-        from qiskit import QuantumCircuit
-
-        original = get_benchmark_alg("ae", 3)
-        result = get_benchmark(original, BenchmarkLevel.{level.name}, target=get_device("iqm_crystal_5"), compiler="mqt")
-        assert result.name == original.name
-        # Compare classical probabilities after accounting for physical output wires.
-        def probabilities(circuit):
-            unitary = circuit.copy()
-            unitary.remove_final_measurements(inplace=True)
-            output = {{}}
-            for basis, probability in enumerate(Statevector.from_instruction(unitary).probabilities()):
-                bits = ["0"] * circuit.num_clbits
-                for item in circuit.data:
-                    if item.operation.name == "measure":
-                        q = circuit.find_bit(item.qubits[0]).index
-                        c = circuit.find_bit(item.clbits[0]).index
-                        bits[c] = str((basis >> q) & 1)
-                key = "".join(reversed(bits))
-                output[key] = output.get(key, 0.0) + probability
-            return output
-        reference = probabilities(original)
-        actual = probabilities(result)
-        assert all(abs(actual.get(key, 0) - value) < 1e-8 for key, value in reference.items())
-    """)
-    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=30, check=False)
-    assert result.returncode == 0, result.stderr
+    original = get_benchmark_alg("ae", 3)
+    result = get_benchmark(original, level, target=get_device("iqm_crystal_5"), compiler="mqt")
+    assert result.name == original.name
+    assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(original))
 
 
 @pytest.mark.parametrize("controlled", [False, True])
 def test_nested_permutation(controlled: bool) -> None:
-    """Normalize permutations inside reusable and controlled custom gate definitions."""
+    """Import permutations inside reusable and controlled custom gate definitions."""
     block = QuantumCircuit(3)
     block.append(PermutationGate([2, 0, 1]), range(3))
     gate = block.to_gate()
@@ -446,18 +505,18 @@ def test_array_parameter_definition() -> None:
 @pytest.mark.parametrize(
     ("instruction", "message"),
     [
-        (Instruction("opaque_array", 1, 0, [np.array([0.23])]), "cannot import non-scalar parameters"),
+        (Instruction("opaque_array", 1, 0, [np.array([0.23])]), "has no circuit definition"),
         (
             ControlledGate("opaque_controlled", 2, [], num_ctrl_qubits=1, base_gate=Gate("opaque_base", 1, [])),
-            "requires a definition for controlled instruction",
+            "has no circuit definition",
         ),
     ],
 )
 def test_opaque_instructions_rejected(instruction: Instruction, message: str) -> None:
-    """Reject unsupported opaque instructions before passing them to native import."""
+    """Core rejects unsupported opaque instructions with an import error."""
     circuit = QuantumCircuit(instruction.num_qubits)
     circuit.append(instruction, range(circuit.num_qubits))
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(RuntimeError, match=message):
         get_benchmark_indep(circuit, compiler="mqt")
 
 
@@ -470,7 +529,7 @@ def test_deep_definition_rejected() -> None:
         gate.definition = circuit
         circuit = QuantumCircuit(1)
         circuit.append(gate, [0])
-    with pytest.raises(ValueError, match="nested gate definitions"):
+    with pytest.raises(RuntimeError, match="nesting limit of 64"):
         get_benchmark_indep(circuit, compiler="mqt")
 
 
