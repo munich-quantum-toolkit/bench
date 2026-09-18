@@ -94,8 +94,8 @@ class GPIGate(Gate):
         phi = self.params[0]
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.x(0)
-        qc.rz(4 * phi * np.pi, 0)
+        qc.r(np.pi, 2 * np.pi * phi, 0)
+        qc.global_phase = np.pi / 2
         self.definition = qc
 
 
@@ -131,9 +131,7 @@ class GPI2Gate(Gate):
         phi = self.params[0]
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.rz(-2 * phi * np.pi, 0)
-        qc.rx(np.pi / 2, 0)
-        qc.rz(2 * phi * np.pi, 0)
+        qc.r(np.pi / 2, 2 * np.pi * phi, 0)
 
         self.definition = qc
 
@@ -185,30 +183,12 @@ class MSGate(Gate):
         phi1 = self.params[1]
         theta = self.params[2]
         q = QuantumRegister(2, "q")
-        alpha = phi0 + phi1
-        beta = phi0 - phi1
-
         qc = QuantumCircuit(q)
-        qc.cx(q[1], q[0])
-        qc.x(q[0])
-        qc.cu(
-            2 * theta * np.pi,
-            2 * alpha * np.pi - np.pi / 2,
-            np.pi / 2 - 2 * alpha * np.pi,
-            0,  # gamma
-            control_qubit=q[0],
-            target_qubit=q[1],
-        )
-        qc.x(q[0])
-        qc.cu(
-            2 * theta * np.pi,
-            -2 * beta * np.pi - np.pi / 2,
-            np.pi / 2 + 2 * beta * np.pi,
-            0,  # gamma
-            control_qubit=q[0],
-            target_qubit=q[1],
-        )
-        qc.cx(q[1], q[0])
+        qc.rz(-2 * np.pi * phi0, 0)
+        qc.rz(-2 * np.pi * phi1, 1)
+        qc.rxx(2 * np.pi * theta, 0, 1)
+        qc.rz(2 * np.pi * phi0, 0)
+        qc.rz(2 * np.pi * phi1, 1)
 
         self.definition = qc
 

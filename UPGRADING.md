@@ -10,7 +10,7 @@ of changes including minor and patch releases, please refer to the
 
 Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
 or `--compiler mqt` in the CLI. The extra pins Core's development commit
-`abff713c1c69b81bcb1ebd13045dddac6c536542` and requires Qiskit 2.5.x. Core
+`ace652688074a6807ce86a7f9c1abebbde2d4046` and requires Qiskit 2.5.x. Core
 builds from source; install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first.
 Qiskit remains the default compiler; existing Python calls keep their behavior.
 The CLI now defaults to optimization level 2 when the option is omitted.

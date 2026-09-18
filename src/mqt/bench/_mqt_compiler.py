@@ -75,6 +75,8 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
         if isinstance(instruction, type) or instruction.base_class is not expected_class:
             msg = f"The MQT compiler does not support target instruction '{name}'."
             raise ValueError(msg)
+        if not mapped and instruction.num_qubits > num_qubits:
+            continue
         symbols = [parameter for parameter in instruction.params if isinstance(parameter, Parameter)]
         if len(set(symbols)) != len(symbols) or any(
             not isinstance(parameter, Parameter) and not (isinstance(parameter, Real) and isfinite(parameter))
