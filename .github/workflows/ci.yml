@@ -36,9 +36,36 @@ jobs:
     permissions:
       contents: read
 
+  mqt-compiler-tests:
+    name: MQT Core compiler
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-python-tests) || fromJSON(needs.change-detection.outputs.run-python-linter)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python -m pip install uv==0.12.10
+      - name: Set up MLIR
+        uses: munich-quantum-software/setup-mlir@3f32263ce571a8b745068980f30f188b6e800763 # v1.4.2
+        with:
+          llvm-version: "23.1.1"
+      - run: uvx nox -s mqt -- --cov --cov-report=xml:coverage-mqt.xml
+      - name: Check Python types
+        run: uvx prek run -a ty
+      - name: Upload MQT Core coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-mqt
+          path: coverage-mqt.xml
+          if-no-files-found: error
+          archive: false
+
   python-coverage:
     name: 🐍 Coverage
-    needs: [change-detection, python-tests]
+    needs: [change-detection, python-tests, mqt-compiler-tests]
     if: fromJSON(needs.change-detection.outputs.run-python-tests)
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-coverage.yml@ace7363a2a8e036e5efc6717be67f1eda29a120e # v2.4.2
     permissions:
@@ -51,7 +78,6 @@ jobs:
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@ace7363a2a8e036e5efc6717be67f1eda29a120e # v2.4.2
     with:
-      enable-ty: true
       enable-mypy: false
     permissions:
       contents: read
@@ -79,6 +105,7 @@ jobs:
     needs:
       - change-detection
       - python-tests
+      - mqt-compiler-tests
       - python-coverage
       - python-linter
       - build-sdist
@@ -92,6 +119,11 @@ jobs:
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-tests)
               && 'python-tests,python-coverage,' || ''
+            }}
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-python-tests)
+              && !fromJSON(needs.change-detection.outputs.run-python-linter)
+              && 'mqt-compiler-tests,' || ''
             }}
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-linter)

@@ -51,6 +51,12 @@ email = "nils.quetschlich@tum.de"
 name = "Lukas Burgholzer"
 email = "burgholzer@me.com"
 
+[project.optional-dependencies]
+mqt = [
+  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@1a0c32f7cf3e264af9143146bf764fd669aa772d",
+  "qiskit[qasm3-import]>=2.5,<2.6",
+]
+
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
 "Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
@@ -92,6 +98,9 @@ docs = [
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mqt/bench/_version.py"
