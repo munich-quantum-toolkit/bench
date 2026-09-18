@@ -65,7 +65,7 @@ print(get_available_device_names())
 ## MQT Core compiler
 
 Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
-pins Core's development commit `42564a8312ec5d31d04bb7efb18aec8f6eccdca2` and
+pins Core's development commit `abff713c1c69b81bcb1ebd13045dddac6c536542` and
 requires Qiskit 2.5.x. Core builds from source and requires a C++20 compiler and
 LLVM/MLIR 23.1 or newer; follow [Core's build instructions][core-build] and set
 `MLIR_DIR` before installing. The base installation keeps its broader Qiskit
@@ -97,13 +97,18 @@ level-specific functions also accept `compiler="mqt"`.
   The result uses physical wires. Core does not emit Qiskit `TranspileLayout`
   metadata; measurements retain their classical destinations.
 
-Core supports the bundled IBM, IQM, Quantinuum, and Clifford+T+rotations gate
-sets. IonQ and Rigetti custom native gates are not supported by this adapter.
-Core does not provide Qiskit's approximate Clifford+T synthesis. Unsupported
-instructions, parameter restrictions, or synthesis requests raise an error. Core
-never falls back to Qiskit transpilation. Dynamic circuits and structured loops
-use Core's supported translation and target control-flow capabilities; Core can
-unroll loops when required by the target.
+Core supports the bundled IBM, IQM, Quantinuum, IonQ, Rigetti, and
+Clifford+T+rotations gate sets. IonQ capabilities use Core's direct GPI, GPI2,
+MS, and ZZ targets; their parameters stay in turns. Rigetti pulses map to fixed
+RX capabilities, and Bench restores their target names on export. Core does not
+provide Qiskit's approximate Clifford+T synthesis. Target parameters may be
+independent free parameters or finite fixed values; relations between parameters
+are unsupported. Synthesis requires a basis that Core recognizes, including one
+arbitrary RX/RY/RZ rotation and a fixed pulse about a different axis. Other
+unsupported instructions or synthesis requests raise an error. Core never falls
+back to Qiskit transpilation. Dynamic circuits and structured loops use Core's
+supported translation and target control-flow capabilities; Core can unroll
+loops when required by the target.
 
 Mirrors are formed from the compiled circuit and compiled again with Core when a
 target is supplied. The barrier between both halves prevents cancellation. Core
