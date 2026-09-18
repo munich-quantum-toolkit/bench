@@ -25,7 +25,18 @@ from qiskit.circuit import (
     ParameterVector,
     ParameterVectorElement,
 )
-from qiskit.circuit.library import CXGate, HGate, PermutationGate, RZGate, SXGate, UnitaryGate, XGate
+from qiskit.circuit.library import (
+    CXGate,
+    HGate,
+    PermutationGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SXGate,
+    UGate,
+    UnitaryGate,
+    XGate,
+)
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import Target
 
@@ -369,18 +380,89 @@ def test_benchmark_levels(benchmark: str, level: BenchmarkLevel) -> None:
 
 
 @pytest.mark.parametrize("gateset", ["ionq_aria", "ionq_forte", "rigetti"])
-def test_custom_targets_rejected(gateset: str) -> None:
-    """Unsupported target gates produce an error instead of a Qiskit fallback."""
-    with pytest.raises(ValueError, match="does not support target instruction"):
-        get_benchmark_native_gates("ghz", 3, get_target_for_gateset(gateset, 3), compiler="mqt")
+@pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
+def test_native_ion_and_fixed_pulse_targets(gateset: str, level: BenchmarkLevel) -> None:
+    """Core synthesizes provider gates with their native names and parameters."""
+    target = get_target_for_gateset(gateset, 2)
+    source = QuantumCircuit(2, global_phase=0.19)
+    source.u(0.37, 0.21, -0.52, 0)
+    source.cx(0, 1)
+    source.ry(0.46, 1)
+    result = get_benchmark(source, level, target=target, compiler="mqt")
+    assert np.allclose(Operator(result).data, Operator(source).data)
+    for item in result.data:
+        assert target.instruction_supported(
+            operation_name=item.operation.name,
+            qargs=tuple(result.find_bit(qubit).index for qubit in item.qubits),
+            parameters=item.operation.params,
+        )
+    if gateset.startswith("ionq"):
+        assert any(item.operation.name == "gpi2" for item in result.data)
+    else:
+        assert "rxpi2" in result.count_ops()
 
 
-def test_fixed_parameter_target_rejected() -> None:
-    """Core must not broaden a fixed-angle gate into an arbitrary rotation."""
+def test_fixed_parameter_target() -> None:
+    """Core preserves a supported fixed angle and rejects an unusable basis."""
     target = Target(num_qubits=1)
     target.add_instruction(RZGate(np.pi / 4))
-    with pytest.raises(ValueError, match="requires unrestricted parameters"):
-        get_benchmark_native_gates("ghz", 1, target, compiler="mqt")
+    source = QuantumCircuit(1)
+    source.rz(np.pi / 4, 0)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
+    assert result.data[0].operation.params == [np.pi / 4]
+    assert np.allclose(Operator(result).data, Operator(source).data)
+    source.h(0)
+    with pytest.raises(RuntimeError, match="Target compilation failed"):
+        get_benchmark_native_gates(source, None, target, compiler="mqt")
+
+
+@pytest.mark.parametrize(
+    ("free", "pulse"),
+    [(free, pulse) for free in (RXGate, RYGate, RZGate) for pulse in (RXGate, RYGate, RZGate) if free is not pulse],
+)
+@pytest.mark.parametrize("angle", [np.pi / 4, -0.37])
+def test_fixed_pulse_target_preserves_symbolic_parameters(
+    free: type[RXGate | RYGate | RZGate], pulse: type[RXGate | RYGate | RZGate], angle: float
+) -> None:
+    """Distinct arbitrary and fixed rotation axes preserve symbolic parameters."""
+    theta = Parameter("theta")
+    target = Target(num_qubits=1)
+    target.add_instruction(free(theta))
+    target.add_instruction(pulse(angle))
+    source = QuantumCircuit(1)
+    source.u(theta, 0.31, -0.42, 0)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
+    assert result.parameters == source.parameters
+    for value in [0.0, 0.37, np.pi]:
+        assert np.allclose(
+            Operator(result.assign_parameters({theta: value})).data,
+            Operator(source.assign_parameters({theta: value})).data,
+        )
+
+
+@pytest.mark.parametrize("case", ["nonfinite", "shared", "expression"])
+def test_target_parameter_restrictions_rejected(case: str) -> None:
+    """Relations between target parameters cannot be represented as fixed values."""
+    theta = Parameter("theta")
+    if case == "nonfinite":
+        gate = UGate(np.inf, 0.0, 0.0)
+    elif case == "shared":
+        gate = UGate(theta, theta, 0.0)
+    else:
+        gate = UGate(2 * theta, 0.0, 0.0)
+    target = Target(num_qubits=1)
+    target.add_instruction(gate)
+    with pytest.raises(ValueError, match="independent parameters or finite fixed values"):
+        get_benchmark_native_gates(QuantumCircuit(1), None, target, compiler="mqt")
+
+
+@pytest.mark.parametrize("name", ["custom", "rx", "gpi2"])
+def test_unknown_target_gate_definitions_rejected(name: str) -> None:
+    """A familiar name does not grant unknown gate definitions native semantics."""
+    target = Target(num_qubits=1)
+    target.add_instruction(Gate(name, 1, []))
+    with pytest.raises(ValueError, match="does not support target instruction"):
+        get_benchmark_native_gates(QuantumCircuit(1), None, target, compiler="mqt")
 
 
 def test_disconnected_target_rejected() -> None:
@@ -549,6 +631,16 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     get_benchmark_native_gates(source, None, target, compiler="mqt")
     with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
         get_benchmark_mapped(source, None, target, compiler="mqt")
+
+
+def test_fixed_pulse_validation_rejects_unavailable_angle(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Do not rename a non-native rotation to a fixed pulse with a different angle."""
+    target = get_target_for_gateset("rigetti", 2)
+    exported = QuantumCircuit(2)
+    exported.rx(0.37, 0)
+    monkeypatch.setattr(core.QCOProgram, "to_qiskit", lambda *args, **kwargs: exported)
+    with pytest.raises(ValueError, match="instruction 'rx' outside the requested target"):
+        get_benchmark_native_gates(QuantumCircuit(2), None, target, compiler="mqt")
 
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.QIR_BITCODE])
