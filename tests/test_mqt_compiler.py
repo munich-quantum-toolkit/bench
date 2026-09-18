@@ -50,6 +50,7 @@ from mqt.bench import (
 )
 from mqt.bench.output import MQTBenchExporterError, OutputFormat, generate_filename, save_circuit, write_circuit
 from mqt.bench.targets import get_device, get_target_for_gateset
+from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -400,6 +401,43 @@ def test_native_ion_and_fixed_pulse_targets(gateset: str, level: BenchmarkLevel)
         assert any(item.operation.name == "gpi2" for item in result.data)
     else:
         assert "rxpi2" in result.count_ops()
+
+
+@pytest.mark.parametrize("gate_name", ["gpi", "gpi2", "ms", "zz"])
+@pytest.mark.parametrize("symbolic", [False, True])
+def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None:
+    """Native pulses survive repeated compilation without extra gates."""
+    parameter = Parameter("theta") if symbolic else 0.13
+    gate = (
+        MSGate(parameter, -0.21, 0.17)
+        if gate_name == "ms"
+        else {"gpi": GPIGate, "gpi2": GPI2Gate, "zz": ZZGate}[gate_name](parameter)
+    )
+    source = QuantumCircuit(2, global_phase=0.19)
+    source.append(gate, range(gate.num_qubits))
+    target = get_target_for_gateset("ionq_forte" if gate_name == "zz" else "ionq_aria", 2)
+    result = source
+    for _ in range(2):
+        result = get_benchmark_native_gates(result, None, target, compiler="mqt", random_parameters=False)
+        assert result.count_ops() == {gate.name: 1}
+        assert result.parameters == source.parameters
+    for value in [-0.37, 0.0, 0.25]:
+        bindings = dict.fromkeys(source.parameters, value)
+        assert np.allclose(
+            Operator(result.assign_parameters(bindings)).data,
+            Operator(source.assign_parameters(bindings)).data,
+        )
+
+
+@pytest.mark.parametrize("gateset", ["ibm_falcon", "ionq_aria", "ionq_forte", "rigetti"])
+def test_single_qubit_circuit_with_two_qubit_target(gateset: str) -> None:
+    """Unused wider capabilities do not prevent single-qubit compilation."""
+    target = get_target_for_gateset(gateset, 2)
+    source = QuantumCircuit(1)
+    source.h(0)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
+    assert result.num_qubits == 1
+    assert np.allclose(Operator(result).data, Operator(source).data)
 
 
 def test_fixed_parameter_target() -> None:
