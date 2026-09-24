@@ -86,6 +86,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "shors_nine_qubit_code": 17,
     "seven_qubit_steane_code": 13,
     "iqpe": 2,
+    "superdense_coding": 2,
 }
 
 
@@ -211,6 +212,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
         ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
+        ("superdense_coding", 3, None, "num_qubits must be divisible by 2."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -221,6 +223,27 @@ def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | N
     else:
         with pytest.raises(ValueError, match=msg):
             create_circuit(benchmark_name, input_value)
+
+
+def test_superdense_coding() -> None:
+    """Test the creation of the superdense coding benchmark."""
+    qc = create_circuit("superdense_coding", 2)
+    assert qc.num_qubits == 2
+    assert qc.num_clbits == 2
+    assert "superdense_coding" in qc.name
+
+    # Test multi-block
+    qc4 = create_circuit("superdense_coding", 4)
+    assert qc4.num_qubits == 4
+    assert qc4.num_clbits == 4
+
+    # Test invalid message
+    with pytest.raises(ValueError, match="Invalid message"):
+        create_circuit("superdense_coding", 2, message="010")
+
+    # Test through pipeline
+    res = get_benchmark_alg("superdense_coding", 2)
+    assert res.num_qubits == 2
 
 
 def test_bv() -> None:
