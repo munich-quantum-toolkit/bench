@@ -18,7 +18,8 @@ from ._registry import register_benchmark
 def _superdense_coding_single_block(index: int, message: str = "11") -> QuantumCircuit:
     """Create a superdense coding circuit for one block of 2 qubits.
 
-    Each block implements the canonical superdense coding protocol:
+    Each block implements the canonical superdense coding protocol
+    (Bennett & Wiesner, 1992, Phys. Rev. Lett. 69, 2881):
     1. Alice and Bob share an entangled Bell pair: (|00> + |11>) / sqrt(2).
     2. Alice encodes two classical bits onto her single qubit using local Pauli operations:
        - '00': I

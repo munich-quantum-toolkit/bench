@@ -25,6 +25,7 @@ from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
+from qiskit.primitives import StatevectorSampler
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -225,25 +226,38 @@ def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | N
             create_circuit(benchmark_name, input_value)
 
 
-def test_superdense_coding() -> None:
-    """Test the creation of the superdense coding benchmark."""
-    qc = create_circuit("superdense_coding", 2)
+@pytest.mark.parametrize("message", ["00", "01", "10", "11"])
+def test_superdense_coding(message: str) -> None:
+    """Test the creation and correctness of the superdense coding benchmark."""
+    sampler = StatevectorSampler()
+
+    # 1. Test single block (2 qubits)
+    qc = create_circuit("superdense_coding", 2, message=message)
     assert qc.num_qubits == 2
     assert qc.num_clbits == 2
     assert "superdense_coding" in qc.name
 
-    # Test multi-block
-    qc4 = create_circuit("superdense_coding", 4)
+    result = sampler.run([qc], shots=10).result()
+    assert result[0].data.c0.get_counts() == {message: 10}
+
+    # 2. Test multi-block (4 qubits)
+    qc4 = create_circuit("superdense_coding", 4, message=message)
     assert qc4.num_qubits == 4
     assert qc4.num_clbits == 4
 
-    # Test invalid message
-    with pytest.raises(ValueError, match="Invalid message"):
-        create_circuit("superdense_coding", 2, message="010")
+    result4 = sampler.run([qc4], shots=10).result()
+    assert result4[0].data.c0.get_counts() == {message: 10}
+    assert result4[0].data.c1.get_counts() == {message: 10}
 
-    # Test through pipeline
+    # 3. Test through pipeline
     res = get_benchmark_alg("superdense_coding", 2)
     assert res.num_qubits == 2
+
+
+def test_superdense_coding_invalid_message() -> None:
+    """Test invalid message input."""
+    with pytest.raises(ValueError, match="Invalid message"):
+        create_circuit("superdense_coding", 2, message="010")
 
 
 def test_bv() -> None:
