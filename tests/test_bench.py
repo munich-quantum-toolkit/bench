@@ -238,7 +238,7 @@ def test_superdense_coding(message: str) -> None:
     assert "superdense_coding" in qc.name
 
     result = sampler.run([qc], shots=10).result()
-    assert result[0].data.c0.get_counts() == {message: 10}
+    assert result[0].data["c0"].get_counts() == {message: 10}
 
     # 2. Test multi-block (4 qubits)
     qc4 = create_circuit("superdense_coding", 4, message=message)
@@ -246,8 +246,8 @@ def test_superdense_coding(message: str) -> None:
     assert qc4.num_clbits == 4
 
     result4 = sampler.run([qc4], shots=10).result()
-    assert result4[0].data.c0.get_counts() == {message: 10}
-    assert result4[0].data.c1.get_counts() == {message: 10}
+    assert result4[0].data["c0"].get_counts() == {message: 10}
+    assert result4[0].data["c1"].get_counts() == {message: 10}
 
     # 3. Test through pipeline
     res = get_benchmark_alg("superdense_coding", 2)
