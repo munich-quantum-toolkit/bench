@@ -91,11 +91,6 @@ Homepage = "https://github.com/munich-quantum-toolkit/bench"
 Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
 Research = "https://www.cda.cit.tum.de/research/quantum/"
 
-[project.scripts]
-"mqt.bench.cli" = "mqt.bench.cli:main"  # Kept for backwards compatibility. To be removed in mqt-bench v3
-mqt-bench = "mqt.bench.cli:main"
-
-
 [dependency-groups]
 dev = [
   { include-group = "test" },
