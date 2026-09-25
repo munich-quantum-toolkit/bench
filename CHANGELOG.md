@@ -12,6 +12,15 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
+  ([**@algovista-collab**])
+
+## [2.3.0] - 2026-09-12
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#230)._
+
 ### Added
 
 - ✨ Add Steane's and Shor's encoding for benchmarks ([#930])
@@ -188,6 +197,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
+[#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
 [#997]: https://github.com/munich-quantum-toolkit/bench/pull/997
@@ -253,6 +264,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@emilkanic0909**]: https://github.com/emilkanic0909
 [**@SalehAlsherif**]: https://github.com/SalehAlsherif
 [**@cnYui**]: https://github.com/cnYui
+[**@algovista-collab**]: https://github.com/algovista-collab
 
 <!-- General links -->
 

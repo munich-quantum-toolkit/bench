@@ -45,6 +45,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from mqt.bench.configuration_options import ConfigurationOptions
 
+import mqt.bench
 import mqt.bench.configuration_options
 from mqt.bench.benchmark_generation import (
     BenchmarkLevel,
@@ -1572,3 +1573,9 @@ def test_configuration_options() -> None:
     # Test empty dict (all fields are optional due to total=False)
     empty_config: ConfigurationOptions = {}
     assert len(empty_config) == 0
+
+
+def test_version() -> None:
+    """Test that the package version is accessible."""
+    assert isinstance(mqt.bench.__version__, str)
+    assert isinstance(mqt.bench.__version_tuple__, tuple)
