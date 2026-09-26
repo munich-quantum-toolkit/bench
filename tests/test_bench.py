@@ -260,6 +260,24 @@ def test_superdense_coding_invalid_message() -> None:
         create_circuit("superdense_coding", 2, message="010")
 
 
+@pytest.mark.parametrize("num_qubits", [2, 4])
+@pytest.mark.parametrize("message", ["00", "01", "10", "11"])
+def test_superdense_coding_indep_compilation(num_qubits: int, message: str) -> None:
+    """Test that default target-independent compilation retains two CX gates per block and preserves output."""
+    sampler = StatevectorSampler()
+    qc = create_circuit("superdense_coding", num_qubits, message=message)
+    qc_indep = get_benchmark_indep(qc)
+
+    ops = qc_indep.count_ops()
+    num_blocks = num_qubits // 2
+    assert ops.get("cx", 0) == num_blocks * 2
+
+    result = sampler.run([qc_indep], shots=10).result()
+    assert result[0].data["c0"].get_counts() == {message: 10}
+    if num_blocks > 1:
+        assert result[0].data["c1"].get_counts() == {message: 10}
+
+
 def test_bv() -> None:
     """Test the creation of the BV benchmark."""
     qc = create_circuit("bv", 3)

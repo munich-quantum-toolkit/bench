@@ -48,6 +48,7 @@ def _superdense_coding_single_block(index: int, message: str = "11") -> QuantumC
     # Step 1: Entanglement preparation (Bell state |Phi+>)
     qc.h(q[0])
     qc.cx(q[0], q[1])
+    qc.barrier(q)
 
     # Step 2: Alice's encoding on qubit 0
     # message[0] encodes the X bit (bit flip), message[1] encodes the Z bit (phase flip)
@@ -55,6 +56,7 @@ def _superdense_coding_single_block(index: int, message: str = "11") -> QuantumC
         qc.x(q[0])
     if message[1] == "1":
         qc.z(q[0])
+    qc.barrier(q)
 
     # Step 3: Bob's Bell-basis decoding and measurement
     qc.cx(q[0], q[1])
@@ -74,7 +76,9 @@ def create_circuit(num_qubits: int, message: str = "11") -> QuantumCircuit:
         - qubit 2k: Alice's qubit (encoded and transmitted)
         - qubit 2k + 1: Bob's entangled qubit (receiver)
 
-    This allows scaling the benchmark to transmit 2k classical bits using k transmitted qubits.
+    Scaling repeats the transmission of the 2-bit `message` across each of the
+    k independent qubit pairs (communicating 2k classical bits in total using
+    k physically transmitted qubits).
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit. Must be divisible by 2.
