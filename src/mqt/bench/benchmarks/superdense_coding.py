@@ -17,39 +17,49 @@ from ._registry import register_benchmark
 
 @register_benchmark("superdense_coding", description="Superdense Coding")
 def create_circuit(num_qubits: int, message: str | None = None) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the scalable superdense coding benchmark.
+    r"""Returns a quantum circuit implementing the scalable superdense coding benchmark.
 
     This benchmark implements the canonical multipartite generalization of
-    superdense coding using an n-qubit Greenberger-Horne-Zeilinger (GHZ) state
+    superdense coding using an :math:`n`-qubit Greenberger-Horne-Zeilinger (GHZ) state
     (Bose, Vedral & Knight 1998, Phys. Rev. A 57, 822; Hao et al. 2001,
     Phys. Rev. A 63, 054301; Hillebrand 2012, arXiv:1210.0650, Section 3.6):
 
     1. Entanglement preparation:
-       A globally entangled n-qubit GHZ state (|0...0> + |1...1>) / sqrt(2) is
-       shared between a sender (Alice, holding qubits 0 to n-2) and a receiver
-       (Bob, holding qubit n-1).
+       A globally entangled :math:`n`-qubit GHZ state
+       :math:`\frac{1}{\sqrt{2}}(|0\dots 0\rangle + |1\dots 1\rangle)` is shared
+       between a sender (Alice, holding qubits :math:`q_0` to :math:`q_{n-2}`)
+       and a receiver (Bob, holding qubit :math:`q_{n-1}`).
+
     2. Alice's encoding:
-       Alice encodes an n-bit classical message into the shared state by applying
-       local single-qubit Pauli operations (X, Z) strictly on her n-1 qubits:
-       - Phase flip (Z) on qubit 0 encodes bit 0 (c_0).
-       - Global bit flip (X) on qubit 0 encodes bit n-1 (c_(n-1)).
-       - Local bit flip (X) on qubit i (1 <= i <= n-2) when c_i ^ c_(n-1) == 1.
-         Because the X on qubit 0 propagates through the decoding CNOT cascade,
-         applying X on qubit i when c_i ^ c_(n-1) == 1 compensates for this
-         global flip and ensures the decoded bit matches c_i.
-       Alice then transmits her n-1 physical qubits to Bob, communicating n
-       classical bits via n-1 transmitted qubits and pre-shared entanglement.
+       Alice encodes an :math:`n`-bit classical message into the shared state by
+       applying local single-qubit Pauli operations (:math:`X, Z`) strictly on
+       her :math:`n-1` qubits:
+
+       - Phase flip (:math:`Z`) on qubit :math:`q_0` encodes bit :math:`c_0`.
+       - Global bit flip (:math:`X`) on qubit :math:`q_0` encodes bit :math:`c_{n-1}`.
+       - Local bit flip (:math:`X`) on qubit :math:`q_i` (:math:`1 \le i \le n-2`)
+         when :math:`c_i \oplus c_{n-1} = 1`.
+         Because the :math:`X` on qubit :math:`q_0` propagates through the decoding
+         CNOT cascade, applying :math:`X` on qubit :math:`q_i` when
+         :math:`c_i \oplus c_{n-1} = 1` compensates for this global flip and
+         ensures the decoded bit matches :math:`c_i`.
+
+       Alice then transmits her :math:`n-1` physical qubits to Bob, communicating
+       :math:`n` classical bits via :math:`n-1` transmitted qubits and pre-shared
+       entanglement.
+
     3. Bob's decoding:
        Bob performs an inverse GHZ-basis transformation (a sequence of CX gates
-       followed by a Hadamard gate on qubit 0) and measures in the computational
-       basis, deterministically recovering Alice's exact n-bit classical message.
+       followed by a Hadamard gate on qubit :math:`q_0`) and measures in the
+       computational basis, deterministically recovering Alice's exact :math:`n`-bit
+       classical message.
 
-    For n = 2, this protocol reduces identically to the canonical Bennett &
+    For :math:`n = 2`, this protocol reduces identically to the canonical Bennett &
     Wiesner (1992, Phys. Rev. Lett. 69, 2881) 2-qubit superdense coding protocol.
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit (must be >= 2).
-        message: n-bit binary string to encode. If None, defaults to all ones ('1' * num_qubits).
+        message: :math:`n`-bit binary string to encode. If None, defaults to all ones (``'1' * num_qubits``).
 
     Returns:
         QuantumCircuit: A quantum circuit implementing scalable superdense coding.

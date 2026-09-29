@@ -12,6 +12,10 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
+
 ### Fixed
 
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
@@ -196,6 +200,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
@@ -261,6 +266,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
 [**@cnYui**]: https://github.com/cnYui
 [**@algovista-collab**]: https://github.com/algovista-collab
+[**@Anshu666666**]: https://github.com/Anshu666666
 
 <!-- General links -->
 
