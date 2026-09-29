@@ -22,7 +22,7 @@ def create_circuit(num_qubits: int, message: str | None = None) -> QuantumCircui
     This benchmark implements the canonical multipartite generalization of
     superdense coding using an n-qubit Greenberger-Horne-Zeilinger (GHZ) state
     (Bose, Vedral & Knight 1998, Phys. Rev. A 57, 822; Hao et al. 2001,
-    Phys. Rev. A 63, 054301):
+    Phys. Rev. A 63, 054301; Hillebrand 2012, arXiv:1210.0650, Section 3.6):
 
     1. Entanglement preparation:
        A globally entangled n-qubit GHZ state (|0...0> + |1...1>) / sqrt(2) is
@@ -31,9 +31,12 @@ def create_circuit(num_qubits: int, message: str | None = None) -> QuantumCircui
     2. Alice's encoding:
        Alice encodes an n-bit classical message into the shared state by applying
        local single-qubit Pauli operations (X, Z) strictly on her n-1 qubits:
-       - Phase flip (Z) on qubit 0 encodes bit 0.
-       - Global bit flip (X) on qubit 0 encodes bit n-1.
-       - Local bit flip (X) on qubit i (1 <= i <= n-2) encodes bit i.
+       - Phase flip (Z) on qubit 0 encodes bit 0 (c_0).
+       - Global bit flip (X) on qubit 0 encodes bit n-1 (c_(n-1)).
+       - Local bit flip (X) on qubit i (1 <= i <= n-2) when c_i ^ c_(n-1) == 1.
+         Because the X on qubit 0 propagates through the decoding CNOT cascade,
+         applying X on qubit i when c_i ^ c_(n-1) == 1 compensates for this
+         global flip and ensures the decoded bit matches c_i.
        Alice then transmits her n-1 physical qubits to Bob, communicating n
        classical bits via n-1 transmitted qubits and pre-shared entanglement.
     3. Bob's decoding:
