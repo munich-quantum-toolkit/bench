@@ -25,6 +25,7 @@ from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
+from qiskit.primitives import StatevectorSampler
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -211,6 +212,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
         ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
+        ("superdense_coding", 1, None, "num_qubits must be at least 2."),
     ],
 )
 def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | None, msg: str) -> None:
@@ -221,6 +223,79 @@ def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | N
     else:
         with pytest.raises(ValueError, match=msg):
             create_circuit(benchmark_name, input_value)
+
+
+@pytest.mark.parametrize("num_qubits", [2, 3, 4])
+def test_superdense_coding(num_qubits: int) -> None:
+    """Test the creation and correctness of the scalable superdense coding benchmark."""
+    sampler = StatevectorSampler()
+
+    # Test with default message (all ones)
+    qc_default = create_circuit("superdense_coding", num_qubits)
+    assert qc_default.num_qubits == num_qubits
+    assert qc_default.num_clbits == num_qubits
+    assert "superdense_coding" in qc_default.name
+
+    res_default = sampler.run([qc_default], shots=10).result()
+    assert res_default[0].data["c"].get_counts() == {"1" * num_qubits: 10}
+
+    # Test through pipeline
+    res_alg = get_benchmark_alg("superdense_coding", num_qubits)
+    assert res_alg.num_qubits == num_qubits
+
+
+@pytest.mark.parametrize("message", ["00", "01", "10", "11"])
+def test_superdense_coding_2qubits_all_messages(message: str) -> None:
+    """Test 2-qubit canonical superdense coding over all four 2-bit messages."""
+    sampler = StatevectorSampler()
+    qc = create_circuit("superdense_coding", 2, message=message)
+    result = sampler.run([qc], shots=10).result()
+    assert result[0].data["c"].get_counts() == {message: 10}
+
+
+@pytest.mark.parametrize("message", ["000", "001", "010", "011", "100", "101", "110", "111"])
+def test_superdense_coding_3qubits_all_messages(message: str) -> None:
+    """Test 3-qubit scalable superdense coding over all eight 3-bit messages."""
+    sampler = StatevectorSampler()
+    qc = create_circuit("superdense_coding", 3, message=message)
+    result = sampler.run([qc], shots=10).result()
+    assert result[0].data["c"].get_counts() == {message: 10}
+
+
+def test_superdense_coding_invalid_inputs() -> None:
+    """Test invalid message and qubit count inputs."""
+    with pytest.raises(ValueError, match="num_qubits must be at least 2"):
+        create_circuit("superdense_coding", 1)
+
+    with pytest.raises(ValueError, match="Invalid message"):
+        create_circuit("superdense_coding", 2, message="010")
+
+    with pytest.raises(ValueError, match="Invalid message"):
+        create_circuit("superdense_coding", 3, message="abc")
+
+
+@pytest.mark.parametrize(
+    ("num_qubits", "message"),
+    [
+        (2, "01"),
+        (2, "10"),
+        (3, "010"),
+        (3, "101"),
+        (4, "0110"),
+        (4, "1001"),
+    ],
+)
+def test_superdense_coding_indep_compilation(num_qubits: int, message: str) -> None:
+    """Test target-independent compilation retains 2*(n-1) CX gates and preserves output."""
+    sampler = StatevectorSampler()
+    qc = create_circuit("superdense_coding", num_qubits, message=message)
+    qc_indep = get_benchmark_indep(qc)
+
+    ops = qc_indep.count_ops()
+    assert ops.get("cx", 0) == 2 * (num_qubits - 1)
+
+    result = sampler.run([qc_indep], shots=10).result()
+    assert result[0].data["c"].get_counts() == {message: 10}
 
 
 def test_bv() -> None:
