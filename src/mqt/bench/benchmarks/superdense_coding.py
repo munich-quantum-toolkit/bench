@@ -15,93 +15,81 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-def _superdense_coding_single_block(index: int, message: str = "11") -> QuantumCircuit:
-    """Create a superdense coding circuit for one block of 2 qubits.
+@register_benchmark("superdense_coding", description="Superdense Coding")
+def create_circuit(num_qubits: int, message: str | None = None) -> QuantumCircuit:
+    """Returns a quantum circuit implementing the scalable superdense coding benchmark.
 
-    Each block implements the canonical superdense coding protocol
-    (Bennett & Wiesner, 1992, Phys. Rev. Lett. 69, 2881):
-    1. Alice and Bob share an entangled Bell pair: (|00> + |11>) / sqrt(2).
-    2. Alice encodes two classical bits onto her single qubit using local Pauli operations:
-       - '00': I
-       - '01': Z
-       - '10': X
-       - '11': X followed by Z (or XZ)
-    3. Alice transmits her qubit to Bob.
-    4. Bob performs a Bell-basis measurement (CX followed by H) to decode
-       and measure both classical bits.
+    This benchmark implements the canonical multipartite generalization of
+    superdense coding using an n-qubit Greenberger-Horne-Zeilinger (GHZ) state
+    (Bose, Vedral & Knight 1998, Phys. Rev. A 57, 822; Hao et al. 2001,
+    Phys. Rev. A 63, 054301):
+
+    1. Entanglement preparation:
+       A globally entangled n-qubit GHZ state (|0...0> + |1...1>) / sqrt(2) is
+       shared between a sender (Alice, holding qubits 0 to n-2) and a receiver
+       (Bob, holding qubit n-1).
+    2. Alice's encoding:
+       Alice encodes an n-bit classical message into the shared state by applying
+       local single-qubit Pauli operations (X, Z) strictly on her n-1 qubits:
+       - Phase flip (Z) on qubit 0 encodes bit 0.
+       - Global bit flip (X) on qubit 0 encodes bit n-1.
+       - Local bit flip (X) on qubit i (1 <= i <= n-2) encodes bit i.
+       Alice then transmits her n-1 physical qubits to Bob, communicating n
+       classical bits via n-1 transmitted qubits and pre-shared entanglement.
+    3. Bob's decoding:
+       Bob performs an inverse GHZ-basis transformation (a sequence of CX gates
+       followed by a Hadamard gate on qubit 0) and measures in the computational
+       basis, deterministically recovering Alice's exact n-bit classical message.
+
+    For n = 2, this protocol reduces identically to the canonical Bennett &
+    Wiesner (1992, Phys. Rev. Lett. 69, 2881) 2-qubit superdense coding protocol.
 
     Arguments:
-        index: Index for unique register names (e.g., q0, c0 for index=0).
-        message: 2-bit classical string to encode (default: "11").
+        num_qubits: Number of qubits of the returned quantum circuit (must be >= 2).
+        message: n-bit binary string to encode. If None, defaults to all ones ('1' * num_qubits).
 
     Returns:
-        QuantumCircuit: 2-qubit circuit implementing one superdense coding instance.
+        QuantumCircuit: A quantum circuit implementing scalable superdense coding.
     """
-    if len(message) != 2 or not set(message).issubset({"0", "1"}):
-        msg = f"Invalid message '{message}'. Must be a 2-bit binary string."
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2."
         raise ValueError(msg)
 
-    q = QuantumRegister(2, f"q{index}")
-    c = ClassicalRegister(2, f"c{index}")
+    if message is None:
+        message = "1" * num_qubits
+
+    if len(message) != num_qubits or not set(message).issubset({"0", "1"}):
+        msg = f"Invalid message '{message}'. Must be a binary string of length {num_qubits}."
+        raise ValueError(msg)
+
+    q = QuantumRegister(num_qubits, "q")
+    c = ClassicalRegister(num_qubits, "c")
     qc = QuantumCircuit(q, c, name="superdense_coding")
 
-    # Step 1: Entanglement preparation (Bell state |Phi+>)
+    # Step 1: Entanglement preparation (GHZ state)
     qc.h(q[0])
-    qc.cx(q[0], q[1])
+    for i in range(1, num_qubits):
+        qc.cx(q[0], q[i])
     qc.barrier(q)
 
-    # Step 2: Alice's encoding on qubit 0
-    # message[0] encodes the X bit (bit flip), message[1] encodes the Z bit (phase flip)
-    if message[0] == "1":
-        qc.x(q[0])
-    if message[1] == "1":
+    # Step 2: Alice's encoding on her n-1 qubits (q[0] .. q[n-2])
+    # Bit ordering: message[-(i+1)] corresponds to the measurement outcome of qubit i.
+    bits = [int(message[-(i + 1)]) for i in range(num_qubits)]
+    if bits[0] == 1:
         qc.z(q[0])
+    if bits[num_qubits - 1] == 1:
+        qc.x(q[0])
+    for i in range(1, num_qubits - 1):
+        if (bits[i] ^ bits[num_qubits - 1]) == 1:
+            qc.x(q[i])
     qc.barrier(q)
 
-    # Step 3: Bob's Bell-basis decoding and measurement
-    qc.cx(q[0], q[1])
+    # Step 3: Bob's decoding (joint GHZ-basis measurement)
+    for i in range(num_qubits - 1, 0, -1):
+        qc.cx(q[0], q[i])
     qc.h(q[0])
 
-    qc.measure(q[0], c[0])
-    qc.measure(q[1], c[1])
-
-    return qc
-
-
-@register_benchmark("superdense_coding", description="Superdense Coding")
-def create_circuit(num_qubits: int, message: str = "11") -> QuantumCircuit:
-    """Returns a quantum circuit implementing the superdense coding benchmark.
-
-    Each group of 2 qubits forms one independent superdense coding instance:
-        - qubit 2k: Alice's qubit (encoded and transmitted)
-        - qubit 2k + 1: Bob's entangled qubit (receiver)
-
-    Scaling repeats the transmission of the 2-bit `message` across each of the
-    k independent qubit pairs (communicating 2k classical bits in total using
-    k physically transmitted qubits).
-
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be divisible by 2.
-        message: 2-bit classical string to encode in each block (default: "11").
-
-    Returns:
-        QuantumCircuit: A quantum circuit implementing the superdense coding protocol.
-    """
-    if num_qubits % 2 != 0:
-        msg = "num_qubits must be divisible by 2."
-        raise ValueError(msg)
-
-    num_blocks = num_qubits // 2
-
-    # Start with the first block as the base
-    qc = _superdense_coding_single_block(0, message)
-    qc.name = "superdense_coding"
-
-    # Compose additional blocks
-    for i in range(1, num_blocks):
-        single = _superdense_coding_single_block(i, message)
-        qc.add_register(*single.qregs)
-        qc.add_register(*single.cregs)
-        qc.compose(single, qubits=single.qubits, clbits=single.clbits, inplace=True)
+    for i in range(num_qubits):
+        qc.measure(q[i], c[i])
 
     return qc
