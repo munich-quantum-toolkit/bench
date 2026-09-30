@@ -22,13 +22,13 @@ def create_circuit(
     num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the quantum part of ML-QAE.
- 
+
     Arguments:
         num_qubits: Total number of qubits (state qubits + 1 objective qubit). Must be at least 1.
         num_rounds: Number of Grover-amplified rounds (in addition to the m = 0 round). Must be at least 1.
         probability: Probability of the "good" state (objective qubit measured as 1).
         for_loop: Whether to use a structured for-loop for the Grover iterations within each round.
- 
+
     Returns:
         QuantumCircuit: The constructed ML-QAE circuit.
     """
@@ -52,7 +52,7 @@ def create_circuit(
     if objective > 0:
         state_preparation.h(range(objective))
     state_preparation.ry(theta_p, objective)
-    
+
     # Oracle marking the good state (objective = 1) and Grover operator Q = A S_0 A^dagger S_chi.
     oracle = QuantumCircuit(num_qubits, name="S_chi")
     oracle.z(objective)
@@ -67,7 +67,7 @@ def create_circuit(
 
     for k, m_k in enumerate(schedule):
         qc.compose(state_preparation, q, inplace=True)
- 
+
         if m_k > 0:
             if for_loop:
                 body = QuantumCircuit(q)
@@ -75,12 +75,11 @@ def create_circuit(
                 qc.append(ForLoopOp(range(m_k), None, body), qc.qubits)
             else:
                 qc.compose(operator.power(m_k), q, inplace=True)
- 
+
         qc.measure(q[objective], c[k])
- 
+
         # Reset the working qubits if more rounds are needed
         if k < len(schedule) - 1:
             qc.reset(q)
- 
+
     return qc
-    
