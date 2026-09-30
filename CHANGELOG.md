@@ -15,6 +15,7 @@ that minor releases may include breaking changes.
 ### Added
 
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
+- ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 
 ### Fixed
 
@@ -200,6 +201,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
