@@ -20,12 +20,14 @@ from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, cast
 
+import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
+from qiskit.quantum_info import Statevector
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -125,6 +127,9 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
             device = get_device(device_name)
             if device.num_qubits < qc.num_qubits:
                 # E.g. shors_nine_qubit_code on iqm_crystal_5
+                continue
+            if "reset" not in device.operation_names:
+                # mlqae has reset which has no native gates
                 continue
             res_mapped = get_benchmark_mapped(
                 qc,
@@ -338,6 +343,76 @@ def test_iqpe() -> None:
     assert qc.num_qubits == 2
     assert qc.num_clbits == 3
     assert "iqpe" in qc.name
+
+
+def _round_probabilities(qc: QuantumCircuit, objective: int) -> list[float]:
+    """Return P(objective = 1) right before each measurement of a mid-circuit-measurement circuit."""
+    probs: list[float] = []
+    segment = QuantumCircuit(qc.num_qubits)
+    for inst in qc.data:
+        name = inst.operation.name
+        if name == "measure":
+            probs.append(float(Statevector(segment).probabilities([objective])[1]))
+        elif name == "reset":
+            segment = QuantumCircuit(qc.num_qubits)
+        else:
+            segment.append(inst.operation, [qc.find_bit(q).index for q in inst.qubits])
+    return probs
+
+
+@pytest.mark.parametrize(("num_qubits", "num_rounds"), [(1, 1), (2, 2), (3, 3), (5, 4)])
+def test_mlqae_circuit_structure(num_qubits: int, num_rounds: int) -> None:
+    """Verify the structure of the ML-QAE circuit for various qubit and round counts."""
+    qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds)
+
+    assert qc.num_qubits == num_qubits
+    assert qc.num_clbits == num_rounds + 1
+    assert "mlqae" in qc.name
+
+    ops: OrderedDict[str, int] = qc.count_ops()
+    assert ops.get("measure", 0) == num_rounds + 1
+    assert ops.get("reset", 0) == num_rounds * num_qubits
+
+
+@pytest.mark.parametrize(("num_qubits", "probability"), [(1, 0.2), (3, 0.1), (3, 0.5)])
+def test_mlqae_round_probabilities(num_qubits: int, probability: float) -> None:
+    """Test that round k yields P(1) = sin^2((2 m_k + 1) theta_a) for the schedule m = 0, 1, 2, 4."""
+    num_rounds = 3
+    qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds, probability=probability)
+
+    theta_a = np.arcsin(np.sqrt(probability))
+    schedule = [0] + [2**k for k in range(num_rounds)]
+    expected = [np.sin((2 * m + 1) * theta_a) ** 2 for m in schedule]
+
+    assert _round_probabilities(qc, num_qubits - 1) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("probability", [0.0, 1.0])
+def test_mlqae_boundary_probabilities(probability: float) -> None:
+    """Test the boundary case for probability."""
+    qc = create_circuit("mlqae", 3, num_rounds=3, probability=probability)
+
+    probs = _round_probabilities(qc, 2)
+
+    assert probs == pytest.approx([probability] * 4)
+
+
+def test_mlqae_for_loop() -> None:
+    """Verify the structured for-loop version is constructed."""
+    qc = create_circuit("mlqae", 3, num_rounds=3, for_loop=True)
+
+    assert qc.num_qubits == 3
+    assert qc.num_clbits == 4
+    assert qc.count_ops().get("for_loop", 0) == 3
+
+
+def test_mlqae_invalid_parameters() -> None:
+    """Test the creation of the ML-QAE benchmark with faulty input values."""
+    with pytest.raises(ValueError, match=r"num_rounds must be at least 1."):
+        create_circuit("mlqae", 3, num_rounds=0)
+
+    with pytest.raises(ValueError, match=re.escape("probability must be in [0, 1].")):
+        create_circuit("mlqae", 3, probability=1.5)
 
 
 def test_dj_constant_oracle() -> None:
