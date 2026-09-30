@@ -9,13 +9,9 @@ readme = "README.md"
 keywords = [ "benchmarking", "MQT", "performance", "quantum computing", "testing" ]
 license = "MIT"
 license-files = [ "LICENSE" ]
-authors = [
-  { name = "Nils Quetschlich", email = "nils.quetschlich@tum.de" },
-  { name = "Lukas Burgholzer", email = "lukas.burgholzer@tum.de" },
-]
-requires-python = ">=3.11,!=3.14.1"
+requires-python = ">=3.11"
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Intended Audience :: Information Technology",
   "Intended Audience :: Science/Research",
@@ -24,12 +20,12 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
-  "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
   "Topic :: Scientific/Engineering :: Quantum Computing",
   "Typing :: Typed",
@@ -48,12 +44,24 @@ dependencies = [
   "scikit-learn>=1.5.2",
   "scikit-learn>=1.7.2; python_version>='3.14'",
 ]
-urls."Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
-urls.Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
-urls.Homepage = "https://github.com/munich-quantum-toolkit/bench"
-urls.Research = "https://www.cda.cit.tum.de/research/quantum/"
-scripts."mqt.bench.cli" = "mqt.bench.cli:main"  # Kept for backwards compatibility. To be removed in mqt-bench v3
-scripts.mqt-bench = "mqt.bench.cli:main"
+[[project.authors]]
+name = "Nils Quetschlich"
+email = "nils.quetschlich@tum.de"
+
+[[project.authors]]
+name = "Lukas Burgholzer"
+email = "burgholzer@me.com"
+
+[project.urls]
+Homepage = "https://github.com/munich-quantum-toolkit/bench"
+"Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
+Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
+Research = "https://www.cda.cit.tum.de/research/quantum/"
+
+[project.scripts]
+"mqt.bench.cli" = "mqt.bench.cli:main"  # Kept for backwards compatibility. To be removed in mqt-bench v3
+mqt-bench = "mqt.bench.cli:main"
+
 
 [dependency-groups]
 dev = [
@@ -82,18 +90,18 @@ docs = [
   "sphinxext-opengraph>=0.13",
 ]
 
-[tool.hatch]
-version.source = "vcs"
-build.hooks.vcs.version-file = "src/mqt/bench/_version.py"
-build.targets.wheel.packages = [ "src/mqt" ]
+[tool.hatch.version]
+source = "vcs"
 
-[tool.uv]
-# symengine>=0.11,<0.14 (optional dependency of qiskit) is incompatible with Python 3.14
-override-dependencies = [
-  "symengine>=0.11,<0.14",
-  "symengine>=0.14.1; python_version >= '3.14'",
-]
-sources.mqt-bench = { workspace = true }
+[tool.hatch.build.hooks.vcs]
+version-file = "src/mqt/bench/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/mqt" ]
+
+
+[tool.uv.sources]
+mqt-bench = { workspace = true }
 
 [tool.ruff]
 line-length = 120
@@ -102,9 +110,27 @@ preview = true
 fix = true
 unsafe-fixes = true
 show-fixes = true
-format.preview = true
-format.docstring-code-format = true
-lint.extend-select = [
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"*.pyi" = [ "D" ]  # pydocstyle
+"*.ipynb" = [
+  "D",    # pydocstyle
+  "E402", # Allow imports to appear anywhere in Jupyter notebooks
+  "I002", # Allow missing `from __future__ import annotations` import
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [ "mqt.bench" ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint]
+extend-select = [
   "A",      # flake8-builtins
   "ANN",    # flake8-annotations
   "ARG",    # flake8-unused-arguments
@@ -143,32 +169,33 @@ lint.extend-select = [
   "UP",     # pyupgrade
   "YTT",    # flake8-2020
 ]
-lint.ignore = [
+ignore = [
   "E501", # Line too long (Black is enough)
   "PLR",  # Design related pylint codes
   "S101", # Use of assert detected
 ]
-lint.per-file-ignores."*.ipynb" = [
-  "D",    # pydocstyle
-  "E402", # Allow imports to appear anywhere in Jupyter notebooks
-  "I002", # Allow missing `from __future__ import annotations` import
-]
-lint.per-file-ignores."*.pyi" = [ "D" ]  # pydocstyle
-lint.flake8-unused-arguments.ignore-variadic-names = true
-lint.isort.known-first-party = [ "mqt.bench" ]
-lint.pydocstyle.convention = "google"
-lint.future-annotations = true
+flake8-unused-arguments.ignore-variadic-names = true
+future-annotations = true
 
-[tool.repo-review]
-ignore.GH200 = "We use Renovate instead of Dependabot"
-ignore.PC160 = "We use a mirror of crate-ci/typos"
-ignore.PC170 = "We do not use rST files anymore"
+
+[tool.repo-review.ignore]
+GH200 = "We use Renovate instead of Dependabot"
+PC160 = "We use a mirror of crate-ci/typos"
+PC170 = "We do not use rST files anymore"
 
 [tool.check-sdist]
 sdist-only = [ "src/mqt/bench/_version.py" ]
 
+[tool.pyproject-fmt]
+generate_python_version_classifiers = false
+table_format = "long"
+sub_table_spacing = "\n"
+separate_root_table = "\n\n"
+
 [tool.typos]
-default.extend-ignore-re = [
+
+[tool.typos.default]
+extend-ignore-re = [
   '"id": ".*",',
   "(?Rm)^.*(#|//)\\s*spellchecker:disable-line$",                      # ignore line
   "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on" # ignore block
@@ -182,12 +209,14 @@ fom = "fom"
 bench = "bench"
 benchs = "benchs"
 
-[tool.ty]
-src.exclude = [
+[tool.ty.src]
+exclude = [
   "docs/**",
 ]
+
+[tool.ty.terminal]
 # Error if ty emits any warning-level diagnostics.
-terminal.error-on-warning = true
+error-on-warning = true
 
 [tool.pytest]
 addopts = [
@@ -197,12 +226,6 @@ addopts = [
 ]
 filterwarnings = [
   "error",
-  "ignore:.*pkg_resources.*:DeprecationWarning:",
-  "ignore:.*Values in x.*:RuntimeWarning:",
-  "ignore:.*divide by zero encountered in det.*:RuntimeWarning:",
-  "ignore:.*invalid value encountered in det.*:RuntimeWarning:",
-  "ignore:.*invalid value encountered in divide.*:RuntimeWarning:",
-  "ignore:.*The iteration is not making good progress.*:RuntimeWarning:",
   # Qiskit-internal warning
   "ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*",
   # Qiskit 2.3 deprecations
@@ -213,19 +236,24 @@ minversion = "9.0"
 strict = true
 testpaths = [ "tests" ]
 
+
 [tool.coverage]
-run.source = [ "mqt.bench" ]
-run.parallel = true
-run.disable_warnings = [
+precision = 1
+show_missing = true
+skip_empty = true
+
+[tool.coverage.run]
+source = [ "mqt.bench" ]
+parallel = true
+disable_warnings = [
   "no-sysmon",
 ]
-run.core = "sysmon"
-report.exclude_also = [
+core = "sysmon"
+
+[tool.coverage.report]
+exclude_also = [
   '\.\.\.',
   "if TYPE_CHECKING:",
   "raise AssertionError",
   "raise NotImplementedError",
 ]
-precision = 1
-show_missing = true
-skip_empty = true
