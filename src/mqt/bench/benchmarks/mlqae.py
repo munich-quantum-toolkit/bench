@@ -18,9 +18,7 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("mlqae", description="Maximum Likelihood Quantum Amplitude Estimation")
-def create_circuit(
-    num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False
-) -> QuantumCircuit:
+def create_circuit(num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False) -> QuantumCircuit:
     """Returns a quantum circuit implementing the quantum part of ML-QAE.
 
     Arguments:
@@ -32,9 +30,6 @@ def create_circuit(
     Returns:
         QuantumCircuit: The constructed ML-QAE circuit.
     """
-    if num_qubits < 1:
-        msg = "num_qubits must be at least 1."
-        raise ValueError(msg)
     if num_rounds < 1:
         msg = "num_rounds must be at least 1."
         raise ValueError(msg)
