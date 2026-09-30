@@ -34,27 +34,27 @@ throughout the quantum computing software stack. MQT Bench is hosted at
 - **Comprehensive Quantum Benchmark Suite:** Provides a wide range of quantum
   circuit benchmarks, including algorithms such as GHZ, QAOA, QFT, Grover, Shor,
   and many more.
-  [List of benchmarks](https://mqt.readthedocs.io/projects/bench/en/latest/benchmark_selection.html)
+  [List of benchmarks](https://mqt.readthedocs.io/projects/bench/en/stable/benchmark_selection.html)
 - **Cross-Level Benchmark Generation:** Supports four abstraction
   levels—algorithmic, target-independent, target-dependent native gates, and
   target-dependent mapped—enabling benchmarking across the entire quantum
   software stack.
-  [Abstraction levels](https://mqt.readthedocs.io/projects/bench/en/latest/abstraction_levels.html)
+  [Abstraction levels](https://mqt.readthedocs.io/projects/bench/en/stable/abstraction_levels.html)
 - **Flexible Target and Gateset Support:** Generate circuits for various
   hardware targets and native gatesets, including IBM, IonQ, Quantinuum,
   Rigetti, and more.
-  [Supported devices and gatesets](https://mqt.readthedocs.io/projects/bench/en/latest/parameter.html)
+  [Supported devices and gatesets](https://mqt.readthedocs.io/projects/bench/en/stable/parameter.html)
 - **Python API, CLI, and Web Interface:** Use MQT Bench programmatically via
   Python, from the command line, or through an interactive web
   interface—whichever fits your workflow.
-  [Usage guide](https://mqt.readthedocs.io/projects/bench/en/latest/usage.html)
+  [Usage guide](https://mqt.readthedocs.io/projects/bench/en/stable/usage.html)
 - **Parameterized and Mirror Circuits:** Easily generate parameterized circuits
   (with random or symbolic parameters) and mirror circuits for robust
   benchmarking and error detection.
-  [Quickstart](https://mqt.readthedocs.io/projects/bench/en/latest/quickstart.html)
+  [Quickstart](https://mqt.readthedocs.io/projects/bench/en/stable/quickstart.html)
 - **Export to Standard Formats:** Save generated circuits in OpenQASM 2,
   OpenQASM 3, and QPY formats for compatibility with other quantum tools.
-  [Output formats](https://mqt.readthedocs.io/projects/bench/en/latest/quickstart.html#output-formats)
+  [Output formats](https://mqt.readthedocs.io/projects/bench/en/stable/quickstart.html#output-formats)
 - **Extensible and Open Source:** Actively maintained, fully open-source, and
   designed for easy integration and extension within the quantum computing
   community.
@@ -101,7 +101,7 @@ To support this endeavor, please consider:
   requests
 - Citing the MQT in your publications (see [Cite This](#cite-this))
 - Citing our research in your publications (see
-  [References](https://mqt.readthedocs.io/projects/bench/en/latest/references.html))
+  [References](https://mqt.readthedocs.io/projects/bench/en/stable/references.html))
 - Using the MQT in research and teaching, and sharing feedback and use cases
 - Sponsoring us on GitHub: <https://github.com/sponsors/munich-quantum-toolkit>
 
