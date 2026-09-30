@@ -18,7 +18,9 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("mlqae", description="Maximum Likelihood Quantum Amplitude Estimation")
-def create_circuit(num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False) -> QuantumCircuit:
+def create_circuit(
+    num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False
+) -> QuantumCircuit:
     """Returns a quantum circuit implementing the quantum part of ML-QAE.
 
     Arguments:
