@@ -58,6 +58,8 @@ throughout the quantum computing software stack. MQT Bench is hosted at
 - **Extensible and Open Source:** Actively maintained, fully open-source, and
   designed for easy integration and extension within the quantum computing
   community.
+- **PennyLane Dataset:** MQT Bench is also available as a
+  [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
 If you have any questions, feel free to create a
 [discussion](https://github.com/munich-quantum-toolkit/bench/discussions) or an
@@ -130,10 +132,6 @@ qc_algorithmic_level = get_benchmark(benchmark="ghz", level=BenchmarkLevel.ALG, 
 # Draw the circuit
 print(qc_algorithmic_level.draw())
 ```
-
-> [!NOTE]
-> MQT Bench is also available as a
-> [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
 **Detailed documentation and examples are available at
 [ReadTheDocs](https://mqt.readthedocs.io/projects/bench).**
