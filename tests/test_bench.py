@@ -40,6 +40,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
 
+    from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
+
     from mqt.bench.configuration_options import ConfigurationOptions
 
 import mqt.bench
@@ -373,11 +375,11 @@ def test_teleportation_state_preparation() -> None:
     prep_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "prep"]
     assert prep_qubits == [0, 3]
 
-    with pytest.raises(ValueError, match="state_preparation must be a 1-qubit circuit."):
+    with pytest.raises(ValueError, match=r"state_preparation must be a 1-qubit circuit\."):
         create_circuit("teleportation", 3, state_preparation=QuantumCircuit(2))
 
 
-def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[str, int]:
+def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
     """Execute a circuit that contains ``if_else`` blocks, one clbit condition at a time.
 
     ``StatevectorSampler`` cannot run circuits with ``ControlFlowOp`` instructions
@@ -387,12 +389,13 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[str, int]:
     sampling ``measure`` outcomes and evaluating ``if_else`` conditions directly,
     so the real circuit (including its classical corrections) is exercised.
     """
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
     clbits = [0] * qc.num_clbits
     state = Statevector.from_label("0" * qc.num_qubits)
+    state.seed(rng)
 
-    def run_block(instructions: list, qubit_map: dict) -> None:
+    def run_block(instructions: QuantumCircuitData, qubit_map: dict) -> None:
         nonlocal state
         for instruction in instructions:
             op = instruction.operation
