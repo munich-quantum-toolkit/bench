@@ -15,79 +15,73 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from ._registry import register_benchmark
 
 
-def _teleport_single_block(index: int, state_preparation: QuantumCircuit | None = None) -> QuantumCircuit:
-    """Create a teleportation circuit for one block of 3 qubits.
-
-    Each block implements the standard quantum teleportation protocol:
-    the state of the source qubit (q0) is teleported to the destination
-    qubit (q2) using the Bell pair shared between q1 and q2.
-
-    Arguments:
-        index: Index for unique register names (e.g., q0, c0 for index=0).
-        state_preparation: Optional 1-qubit circuit applied to the source qubit
-            to prepare the state to be teleported. If None, |0⟩ is teleported.
-
-    Returns:
-        QuantumCircuit: 3-qubit circuit implementing one teleportation.
-    """
-    q = QuantumRegister(3, f"q{index}")
-    c = ClassicalRegister(2, f"c{index}")
-    qc = QuantumCircuit(q, c, name="teleportation")
-
-    qc.h(q[1])
-    qc.cx(q[1], q[2])
-
-    if state_preparation is not None:
-        qc.append(state_preparation, [q[0]])
-
-    qc.cx(q[0], q[1])
-    qc.h(q[0])
-    qc.measure(q[0], c[0])
-    qc.measure(q[1], c[1])
-
-    # Classically-controlled corrections on (q[2])
-    with qc.if_test((c[1], 1)):
-        qc.x(q[2])
-    with qc.if_test((c[0], 1)):
-        qc.z(q[2])
-
-    return qc
-
-
 @register_benchmark("teleportation", description="Quantum Teleportation")
 def create_circuit(num_qubits: int, state_preparation: QuantumCircuit | None = None) -> QuantumCircuit:
     """Returns a quantum circuit implementing the quantum teleportation protocol.
 
     Each group of 3 qubits forms one independent teleportation:
-        - qubits ``3k`` are the source qubits (states to be teleported)
-        - qubits ``3k + 1`` are Alice's halves of Bell pairs
-        - qubits ``3k + 2`` are Bob's halves of Bell pairs (destinations)
+        - qubit ``3k`` is the source qubit (the state to be teleported)
+        - qubit ``3k + 1`` is Alice's half of the Bell pair
+        - qubit ``3k + 2`` is Bob's half of the Bell pair (the destination)
 
-    This allows scaling the benchmark to teleport multi-qubit states.
+    Mid-circuit measurements on the source and Alice's qubit are used to classically
+    control the X and Z corrections on Bob's qubit. At the end, all destination
+    qubits are measured into a ``final_measurement`` register, so that the
+    teleported state can be verified.
 
     Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be divisible by 3.
+        num_qubits: Number of qubits of the returned quantum circuit. Must be a positive multiple of 3.
         state_preparation: Optional 1-qubit circuit applied to each source qubit
             to prepare the state to be teleported. If None, |0⟩ is teleported.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the quantum teleportation protocol.
     """
+    if num_qubits < 3:
+        msg = "num_qubits must be at least 3."
+        raise ValueError(msg)
     if num_qubits % 3:
         msg = "num_qubits must be divisible by 3."
+        raise ValueError(msg)
+    if state_preparation is not None and state_preparation.num_qubits != 1:
+        msg = "state_preparation must be a 1-qubit circuit."
         raise ValueError(msg)
 
     num_blocks = num_qubits // 3
 
-    # Start with the first block as the base
-    qc = _teleport_single_block(0, state_preparation)
-    qc.name = "teleportation"
+    q = QuantumRegister(num_qubits, "q")
+    qc = QuantumCircuit(q, name="teleportation")
 
-    # Compose additional blocks
-    for i in range(1, num_blocks):
-        single = _teleport_single_block(i, state_preparation)
-        qc.add_register(*single.qregs)
-        qc.add_register(*single.cregs)
-        qc.compose(single, qubits=single.qubits, clbits=single.clbits, inplace=True)
+    destinations = []
+    for k in range(num_blocks):
+        source, alice, bob = q[3 * k], q[3 * k + 1], q[3 * k + 2]
+        mid_measure = ClassicalRegister(2, f"mid_measurement{k}")
+        qc.add_register(mid_measure)
+
+        # Share a Bell pair between Alice and Bob
+        qc.h(alice)
+        qc.cx(alice, bob)
+
+        # Prepare the state to be teleported on the source qubit
+        if state_preparation is not None:
+            qc.append(state_preparation, [source])
+
+        # Bell-basis measurement of the source and Alice's qubit
+        qc.cx(source, alice)
+        qc.h(source)
+        qc.measure(source, mid_measure[0])
+        qc.measure(alice, mid_measure[1])
+
+        # Classically controlled corrections on Bob's qubit
+        with qc.if_test((mid_measure[1], 1)):
+            qc.x(bob)
+        with qc.if_test((mid_measure[0], 1)):
+            qc.z(bob)
+
+        destinations.append(bob)
+
+    final_measure = ClassicalRegister(num_blocks, "final_measurement")
+    qc.add_register(final_measure)
+    qc.measure(destinations, final_measure)
 
     return qc
