@@ -128,8 +128,8 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
             if device.num_qubits < qc.num_qubits:
                 # E.g. shors_nine_qubit_code on iqm_crystal_5
                 continue
-            if "reset" not in device.operation_names:
-                # mlqae has reset which has no native gates
+            if "reset" in qc.count_ops() and "reset" not in device.operation_names:
+                # This circuit needs reset, which the target does not support.
                 continue
             res_mapped = get_benchmark_mapped(
                 qc,
