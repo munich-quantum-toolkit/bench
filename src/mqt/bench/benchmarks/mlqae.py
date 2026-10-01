@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Maximum Likelihood Quantum Amplitude estimation benchmark definition."""
+"""Maximum Likelihood Quantum Amplitude estimation benchmark definition. Code is based on the paper Suzuki et al., 2020: https://arxiv.org/abs/1904.10246"""
 
 from __future__ import annotations
 
