@@ -42,7 +42,7 @@ def create_circuit(
     if b_max <= 0:
         msg = "b_max must be positive."
         raise ValueError(msg)
-    
+
     objective = num_qubits - 1
     num_state_qubits = objective
 
