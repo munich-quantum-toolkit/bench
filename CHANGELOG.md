@@ -14,8 +14,8 @@ that minor releases may include breaking changes.
 
 ### Added
 
-- ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
+- ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 
 ### Fixed
 

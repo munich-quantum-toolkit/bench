@@ -23,10 +23,11 @@ from ._registry import register_benchmark
 def create_circuit(
     num_qubits: int, num_rounds: int = 3, b_max: float = np.pi / 4, *, for_loop: bool = False
 ) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the quantum part of ML-QAE.
+    """Returns a quantum circuit implementing the quantum part of Maximum Likelihood Quantum Amplitude Estimation (ML-QAE).
 
-    The circuit is based on Section 4.2 of the paper. The circuit follows the fixed exponentially increasing schedule: round 0 applies A only,
-    round k (k = 1...num_rounds) applies ``Q^(2^(k-1))`` after A. Each round's result is stored in its own classical bit and all qubits are reset between rounds. The classical maximum-likelihood post-processing is not part of the circuit.
+    The circuit is based on Section 4.2 of Suzuki et al. (2020), "Amplitude Estimation without Phase Estimation" (https://arxiv.org/abs/1904.10246).
+    The circuit follows the fixed exponentially increasing schedule: round 0 applies :math:`A` only, round :math:`k` (:math:`k = 1 \\dots \\text{num\\_rounds}`) applies :math:`Q^{2^{k-1}}` after :math:`A`.
+    Each round's result is stored in its own classical bit and all qubits are reset between rounds. The classical maximum-likelihood post-processing is not part of the circuit.
 
     Arguments:
         num_qubits: Total number of qubits (state qubits + 1 objective qubit). Must be at least 1.
