@@ -10,15 +10,19 @@ of changes including minor and patch releases, please refer to the
 
 Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
 or `--compiler mqt` in the CLI. The extra pins Core's development commit
-`1a0c32f7cf3e264af9143146bf764fd669aa772d` and requires Qiskit 2.5.x. Core
+`8bb73e5a19d06bc92eea23d8b8007e93f1b1c8b9` and requires Qiskit 2.5.x. Core
 builds from source; install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first.
 Qiskit remains the default compiler; existing Python calls keep their behavior.
 The CLI now defaults to optimization level 2 when the option is omitted.
 
 The Core compiler uses a fixed optimization pipeline. Leave `opt_level` at its
 default of 2. Mapped results use physical wires without Qiskit layout metadata.
-See the [parameter guide](docs/parameter.md#mqt-core-compiler) for target
-support, control flow, mirror circuits, and output provenance.
+Recompilation treats these wires as the new inputs. IonQ gates keep Bench's
+turn-based parameters; the adapter converts to Core's radians and restores
+provider names on export. Compilation requires a complete supported synthesis
+basis, including for already-native inputs. See the
+[parameter guide](docs/parameter.md#mqt-core-compiler) for target support,
+control flow, mirror circuits, and output provenance.
 
 Core compilation defaults to seed `10` and four mapping trials. Pass
 `compiler_options=CompilationOptions(...)` to override those defaults through

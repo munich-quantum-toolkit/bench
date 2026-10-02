@@ -11,11 +11,20 @@
 from __future__ import annotations
 
 from importlib.metadata import version
-from math import isclose, isfinite
+from math import isclose, isfinite, pi
 from numbers import Real
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import ControlFlowOp, Parameter, QuantumCircuit
+from qiskit.circuit import (
+    AnnotatedOperation,
+    ControlFlowOp,
+    ControlledGate,
+    Gate,
+    Instruction,
+    Parameter,
+    QuantumCircuit,
+)
+from qiskit.circuit.library import RZZGate, UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 from .targets.gatesets.ionq import GPI2Gate, GPIGate, MSGate, ZZGate
@@ -42,9 +51,11 @@ except ModuleNotFoundError as exc:
     raise ImportError(msg) from exc
 
 if TYPE_CHECKING:
+    from qiskit.circuit import Operation
     from qiskit.transpiler import Target
 
 _NATIVE_GATES = {"gpi": GPIGate, "gpi2": GPI2Gate, "ms": MSGate, "zz": ZZGate}
+_STANDARD_GATE_TYPES = {gate.base_class for gate in get_standard_gate_name_mapping().values()}
 _FIXED_RX_GATES = {"rxpi": RXPIGate, "rxpi2": RXPI2Gate, "rxpi2dg": RXPI2DgGate}
 
 _CONTROL_FLOW = {
@@ -53,6 +64,52 @@ _CONTROL_FLOW = {
     "while_loop": ProgramCapability.CONDITIONAL_LOOP,
     "switch_case": ProgramCapability.MULTIWAY_BRANCHING,
 }
+
+
+def _core_operation(operation: Operation, depth: int) -> Operation:
+    """Translate Bench's native pulse units without changing custom semantics."""
+    if depth > 64:
+        # Core diagnoses definitions beyond its import nesting limit.
+        return operation
+    if isinstance(operation, ControlFlowOp):
+        return operation.replace_blocks(_core_circuit(block, depth + 1) for block in operation.blocks)
+    if isinstance(operation, AnnotatedOperation):
+        return AnnotatedOperation(_core_operation(operation.base_op, depth + 1), operation.modifiers)
+    if isinstance(operation, ControlledGate) and operation.base_gate is not None:
+        base = _core_operation(operation.base_gate, depth + 1)
+        if base is operation.base_gate:
+            return operation
+        result = operation.copy()
+        result.base_gate = base
+        return result
+    if not isinstance(operation, Instruction):
+        return operation
+    if operation.base_class in _NATIVE_GATES.values():
+        parameters = [2 * pi * parameter for parameter in operation.params]
+        if isinstance(operation, ZZGate):
+            return RZZGate(parameters[0], label=operation.label)
+        result = Gate(operation.name, operation.num_qubits, parameters, label=operation.label)
+        result.definition = operation.definition
+        return result
+    if (
+        operation.base_class not in _STANDARD_GATE_TYPES
+        and not isinstance(operation, UnitaryGate)
+        and operation.definition is not None
+    ):
+        result = operation.copy()
+        result.definition = _core_circuit(operation.definition, depth + 1)
+        return result
+    return operation
+
+
+def _core_circuit(circuit: QuantumCircuit, depth: int = 0) -> QuantumCircuit:
+    """Convert provider gates and import the circuit's physical wire semantics."""
+    result = circuit.copy_empty_like()
+    # Qiskit exposes no public setter for layout metadata.
+    result._layout = None  # ruff:ignore[private-member-access]
+    for item in circuit.data:
+        result.append(_core_operation(item.operation, depth), item.qubits, item.clbits)
+    return result
 
 
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> TargetEnvironment:
@@ -89,12 +146,15 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
             continue
         operations.append(
             CompilerTarget.OperationCapability(
-                "rx" if name in _FIXED_RX_GATES else name,
+                "rx" if name in _FIXED_RX_GATES else "rzz" if name == "zz" else name,
                 arity=instruction.num_qubits,
                 num_parameters=len(instruction.params),
                 site_tuples=sorted(placements) if mapped and placements is not None else None,
                 fixed_parameters=[
-                    None if isinstance(parameter, Parameter) else float(parameter) for parameter in instruction.params
+                    None
+                    if isinstance(parameter, Parameter)
+                    else float(parameter) * (2 * pi if name in _NATIVE_GATES else 1)
+                    for parameter in instruction.params
                 ],
             )
         )
@@ -120,7 +180,7 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
 
 
 def _finalize_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, sites: list[int] | None = None) -> None:
-    """Restore fixed-pulse names and validate instructions and physical placements."""
+    """Restore provider units and names, then check target conformance."""
     sites = list(range(circuit.num_qubits)) if sites is None else sites
     fixed_pulses = [gate() for name, gate in _FIXED_RX_GATES.items() if name in target]
     for index, item in enumerate(circuit.data):
@@ -128,6 +188,18 @@ def _finalize_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
         qubits = tuple(sites[circuit.find_bit(qubit).index] for qubit in item.qubits)
         if operation.name in {"barrier", "store"}:
             continue
+        native_name = operation.name
+        if (
+            native_name == "rzz"
+            and "zz" in target
+            and not target.instruction_supported(
+                operation_name="rzz", qargs=qubits if mapped else None, parameters=operation.params
+            )
+        ):
+            native_name = "zz"
+        if native_name in _NATIVE_GATES:
+            operation = _NATIVE_GATES[native_name](*(parameter / (2 * pi) for parameter in operation.params))
+            circuit.data[index] = item.replace(operation=operation)
         if (
             operation.name == "rx"
             and fixed_pulses
@@ -164,7 +236,7 @@ def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProg
     if circuit.parameters:
         msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
         raise ValueError(msg)
-    program = QCProgram.from_qiskit(circuit)
+    program = QCProgram.from_qiskit(_core_circuit(circuit))
     return program.to_qir(QIRProfile.BASE if profile == "base" else QIRProfile.ADAPTIVE)
 
 
@@ -190,14 +262,15 @@ def compile_circuit(
         options = CompilationOptions(seed=10, mapping=MappingOptions(trials=4))
     if target is None:
         result = compile_program(
-            circuit, qco_pipeline="decompose-multi-controlled,mqt-qco-default", options=options
+            _core_circuit(circuit), qco_pipeline="decompose-multi-controlled,mqt-qco-default", options=options
         ).to_qiskit()
     else:
         environment = _target_environment(target, circuit.num_qubits, mapped=mapped)
-        program = QCProgram.from_qiskit(circuit).to_qco()
+        program = QCProgram.from_qiskit(_core_circuit(circuit)).to_qco()
         program.compile_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
         _finalize_target(result, target, mapped=mapped)
+    result._layout = None  # ruff:ignore[private-member-access]
     result.name = circuit.name
     result.metadata = (circuit.metadata or {}) | {"mqt_bench_compiler": {"name": "mqt", "version": version("mqt-core")}}
     return result

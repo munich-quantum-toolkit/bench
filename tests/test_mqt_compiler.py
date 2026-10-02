@@ -420,6 +420,7 @@ def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None
     for _ in range(2):
         result = get_benchmark_native_gates(result, None, target, compiler="mqt", random_parameters=False)
         assert result.count_ops() == {gate.name: 1}
+        assert isinstance(result.data[0].operation, type(gate))
         assert result.parameters == source.parameters
     for value in [-0.37, 0.0, 0.25]:
         bindings = dict.fromkeys(source.parameters, value)
@@ -427,6 +428,95 @@ def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None
             Operator(result.assign_parameters(bindings)).data,
             Operator(source.assign_parameters(bindings)).data,
         )
+
+
+@pytest.mark.parametrize("entangler", ["ms", "zz"])
+def test_fixed_ion_entangler_uses_turns(entangler: str) -> None:
+    """Fixed provider turns constrain Core's radian synthesis and exported pulses."""
+    target = Target(num_qubits=2)
+    target.add_instruction(GPIGate(Parameter("phi")))
+    target.add_instruction(GPI2Gate(Parameter("phi2")))
+    target.add_instruction(MSGate(0, 0, 0.25) if entangler == "ms" else ZZGate(0.25), {(1, 0): None})
+    source = QuantumCircuit(2, global_phase=0.19)
+    source.u(0.37, -0.21, 0.42, 0)
+    source.cx(0, 1)
+    original = source.copy()
+    result = get_benchmark_mapped(source, None, target, compiler="mqt")
+    assert source == original
+    assert result.count_ops().get(entangler, 0) > 0
+    for item in result.data:
+        assert target.instruction_supported(
+            operation_name=item.operation.name,
+            qargs=tuple(result.find_bit(qubit).index for qubit in item.qubits),
+            parameters=item.operation.params,
+        )
+        if item.operation.name == entangler:
+            assert item.operation.params == ([0, 0, 0.25] if entangler == "ms" else [0.25])
+    assert np.allclose(Operator(result).data, Operator(source).data)
+
+
+@pytest.mark.parametrize("wrapper", ["custom", "controlled", "annotated", "inverse"])
+def test_nested_ion_gate_conversion(wrapper: str) -> None:
+    """Native pulse conversion preserves nested definitions, modifiers, and phase."""
+    block = QuantumCircuit(1)
+    block.append(GPIGate(Parameter("phi")), [0])
+    operation = block.to_gate() if wrapper == "custom" else block.data[0].operation
+    if wrapper in {"controlled", "annotated"}:
+        operation = operation.control(
+            1, ctrl_state=None if wrapper == "annotated" else 0, annotated=wrapper == "annotated"
+        )
+    elif wrapper == "inverse":
+        operation = operation.inverse(annotated=True)
+    source = QuantumCircuit(operation.num_qubits, global_phase=0.19)
+    source.append(operation, range(operation.num_qubits))
+    original = source.copy()
+    result = get_benchmark_indep(source, compiler="mqt", random_parameters=False)
+    assert source == original
+    assert result.parameters == source.parameters
+    for value in [-0.37, 0.13, 1.25]:
+        values = dict.fromkeys(source.parameters, value)
+        assert np.allclose(
+            Operator(result.assign_parameters(values)).data, Operator(source.assign_parameters(values)).data
+        )
+
+
+def test_ion_gates_in_control_flow() -> None:
+    """Nested native pulses keep provider units and conditional measurement results."""
+    source = QuantumCircuit(2, 2)
+    source.x(0)
+    source.measure(0, 0)
+    with source.if_test((source.clbits[0], True)):
+        source.append(GPIGate(0.13), [1])
+    source.measure(1, 1)
+    result = get_benchmark_native_gates(source, None, get_target_for_gateset("ionq_forte", 2), compiler="mqt")
+    conditional = next(item.operation for item in result.data if isinstance(item.operation, IfElseOp))
+    pulse = conditional.blocks[0].data[0].operation
+    assert isinstance(pulse, GPIGate)
+    assert pulse.params == pytest.approx([0.13])
+    assert core.QCProgram.from_qiskit(result).to_qco().sample(shots=16, seed=42) == {"11": 16}
+
+
+def test_compiled_input_layout_is_not_mutated() -> None:
+    """Recompile physical wires without mutating the caller's attached layout."""
+    source = QuantumCircuit(3, 3)
+    source.x(0)
+    source.cx(0, 2)
+    source.measure([0, 1, 2], [2, 0, 1])
+    target = get_target_for_gateset("ibm_falcon", 3)
+    environment = core.TargetEnvironment(
+        core.CompilerTarget.from_qiskit(target), core.PayloadSpecification(core.PayloadFormat("openqasm", "3.0"))
+    )
+    program = core.QCProgram.from_qiskit(source).to_qco()
+    program.compile_for_target(environment)
+    mapped = program.to_qiskit(target=environment.target)
+    original = mapped.copy()
+    assert mapped.layout is not None
+    for _ in range(2):
+        result = get_benchmark_mapped(mapped, None, target, compiler="mqt")
+        assert result.layout is None
+        assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(source))
+    assert mapped == original
+    assert mapped.layout == original.layout
 
 
 @pytest.mark.parametrize("gateset", ["ibm_falcon", "ionq_aria", "ionq_forte", "rigetti"])
@@ -441,17 +531,51 @@ def test_single_qubit_circuit_with_two_qubit_target(gateset: str) -> None:
 
 
 def test_fixed_parameter_target() -> None:
-    """Core preserves a supported fixed angle and rejects an unusable basis."""
+    """A native fixed pulse survives compilation with a complete synthesis basis."""
+    target = Target(num_qubits=1)
+    target.add_instruction(RZGate(Parameter("theta")))
+    target.add_instruction(RXGate(np.pi / 2))
+    source = QuantumCircuit(1)
+    source.rx(np.pi / 2, 0)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
+    assert result.count_ops() == {"rx": 1}
+    assert result.data[0].operation.params == [np.pi / 2]
+    assert np.allclose(Operator(result).data, Operator(source).data)
+
+
+@pytest.mark.parametrize("native", [False, True])
+def test_incomplete_target_requires_synthesis_basis(*, native: bool) -> None:
+    """Even native inputs need a complete basis for target compilation."""
     target = Target(num_qubits=1)
     target.add_instruction(RZGate(np.pi / 4))
     source = QuantumCircuit(1)
-    source.rz(np.pi / 4, 0)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
-    assert result.data[0].operation.params == [np.pi / 4]
-    assert np.allclose(Operator(result).data, Operator(source).data)
-    source.h(0)
-    with pytest.raises(RuntimeError, match="Target compilation failed"):
+    if native:
+        source.rz(np.pi / 4, 0)
+    else:
+        source.h(0)
+    with pytest.raises(RuntimeError, match="requires a single-qubit synthesis basis"):
         get_benchmark_native_gates(source, None, target, compiler="mqt")
+
+
+@pytest.mark.parametrize("angle", [np.pi / 2, -np.pi / 2])
+def test_fixed_pulse_target_preserves_symbolic_parameters(angle: float) -> None:
+    """RZ and fixed RX quarter turns synthesize symbolic inputs with exact phase."""
+    theta = Parameter("theta")
+    target = Target(num_qubits=1)
+    target.add_instruction(RZGate(Parameter("phi")))
+    target.add_instruction(RXGate(angle))
+    source = QuantumCircuit(1)
+    source.u(theta, 0.31, -0.42, 0)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
+    assert result.parameters == source.parameters
+    for instruction in result.data:
+        if instruction.operation.name == "rx":
+            assert instruction.operation.params == [angle]
+    for value in [0.0, 0.37, np.pi]:
+        assert np.allclose(
+            Operator(result.assign_parameters({theta: value})).data,
+            Operator(source.assign_parameters({theta: value})).data,
+        )
 
 
 @pytest.mark.parametrize(
@@ -459,23 +583,18 @@ def test_fixed_parameter_target() -> None:
     [(free, pulse) for free in (RXGate, RYGate, RZGate) for pulse in (RXGate, RYGate, RZGate) if free is not pulse],
 )
 @pytest.mark.parametrize("angle", [np.pi / 4, -0.37])
-def test_fixed_pulse_target_preserves_symbolic_parameters(
+def test_unsupported_fixed_pulse_basis_rejected(
     free: type[RXGate | RYGate | RZGate], pulse: type[RXGate | RYGate | RZGate], angle: float
 ) -> None:
-    """Distinct arbitrary and fixed rotation axes preserve symbolic parameters."""
+    """Representable fixed values do not imply a supported synthesis recipe."""
     theta = Parameter("theta")
     target = Target(num_qubits=1)
     target.add_instruction(free(theta))
     target.add_instruction(pulse(angle))
     source = QuantumCircuit(1)
     source.u(theta, 0.31, -0.42, 0)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
-    assert result.parameters == source.parameters
-    for value in [0.0, 0.37, np.pi]:
-        assert np.allclose(
-            Operator(result.assign_parameters({theta: value})).data,
-            Operator(source.assign_parameters({theta: value})).data,
-        )
+    with pytest.raises(RuntimeError, match="requires a single-qubit synthesis basis"):
+        get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
 
 
 @pytest.mark.parametrize("case", ["nonfinite", "shared", "expression"])
@@ -657,6 +776,8 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Validate block-local operands against their enclosing physical qubit sites."""
     target = Target(num_qubits=3)
     target.add_instruction(XGate(), {(0,): None})
+    target.add_instruction(RZGate(Parameter("theta")))
+    target.add_instruction(SXGate())
     target.add_instruction(CXGate())
     target.add_instruction(IfElseOp, name="if_else")
     block = QuantumCircuit(1)
