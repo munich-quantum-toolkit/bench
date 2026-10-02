@@ -90,7 +90,7 @@ docs = [
   "sphinx-autoapi>=3.6",
   "sphinx-copybutton>=0.5.2",
   "sphinx-design>=0.7",
-  "sphinx-llm>=1",
+  "sphinx-llm>=1,<1.1",            # 1.1 drops citation and Python signature nodes in Markdown output.
   "sphinxcontrib-bibtex>=2.7",
   "sphinxext-opengraph>=0.13",
 ]
@@ -215,6 +215,7 @@ extend-ignore-re = [
 ]
 
 [tool.typos.default.extend-words]
+braket = "braket"
 wille = "wille"
 anc = "anc"
 aer = "aer"

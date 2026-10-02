@@ -19,7 +19,7 @@ from ._registry import register_device
 
 @register_device("iqm_crystal_5")
 def get_iqm_crystal_5() -> Target:
-    """Get the target for a 5-qubit IQM Crystal architecture."""
+    """Get the ideal 5-qubit IQM Crystal architecture."""
     return _build_iqm_target(
         name="iqm_crystal_5",
         num_qubits=5,
@@ -35,7 +35,7 @@ def get_iqm_crystal_5() -> Target:
 
 @register_device("iqm_crystal_20")
 def get_iqm_crystal_20() -> Target:
-    """Get the target for a 20-qubit IQM Crystal architecture."""
+    """Get the ideal 20-qubit IQM Crystal architecture."""
     return _build_iqm_target(
         name="iqm_crystal_20",
         num_qubits=20,
@@ -82,7 +82,7 @@ def get_iqm_crystal_20() -> Target:
 
 @register_device("iqm_crystal_54")
 def get_iqm_crystal_54() -> Target:
-    """Get the target for a 54-qubit IQM Crystal architecture."""
+    """Get the ideal 54-qubit IQM Crystal architecture, including all couplers."""
     return _build_iqm_target(
         name="iqm_crystal_54",
         num_qubits=54,

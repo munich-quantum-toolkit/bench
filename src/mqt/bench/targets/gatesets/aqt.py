@@ -6,14 +6,14 @@
 #
 # Licensed under the MIT License
 
-"""Handles the available native gatesets for IBM."""
+"""Native AQT gates in Qiskit's radian convention."""
 
 from __future__ import annotations
 
 from ._registry import register_gateset
 
 
-@register_gateset("ibm_heron")
-def get_ibm_heron_gateset() -> list[str]:
-    """Returns the basis gates of the IBM Heron gateset."""
-    return ["id", "x", "sx", "rz", "cz"]
+@register_gateset("aqt")
+def get_aqt_gateset() -> list[str]:
+    """Return AQT's phased rotations, Z rotations, and XX interactions."""
+    return ["r", "rz", "rxx", "measure"]

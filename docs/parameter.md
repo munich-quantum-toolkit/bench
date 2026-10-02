@@ -65,11 +65,10 @@ print(get_available_device_names())
 ## MQT Core compiler
 
 Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
-pins Core's development commit `8bb73e5a19d06bc92eea23d8b8007e93f1b1c8b9` and
-requires Qiskit 2.5.x. Core builds from source and requires a C++20 compiler and
-LLVM/MLIR 23.1 or newer; follow [Core's build instructions][core-build] and set
-`MLIR_DIR` before installing. The base installation keeps its broader Qiskit
-version support.
+pins a tested Core development revision and requires Qiskit 2.5.x. Core builds
+from source and requires a C++20 compiler and LLVM/MLIR 23.1 or newer; follow
+[Core's build instructions][core-build] and set `MLIR_DIR` before installing.
+The base installation keeps its broader Qiskit version support.
 
 ```python
 from mqt.bench import BenchmarkLevel, get_benchmark
@@ -100,23 +99,28 @@ level-specific functions also accept `compiler="mqt"`.
   compilation and from the returned circuit. Recompilation treats the current
   circuit wires as inputs without applying an earlier layout again.
 
-Core supports the bundled IBM, IQM, Quantinuum, IonQ, Rigetti, and
-Clifford+T+rotations gate sets. IonQ capabilities use Core's direct GPI, GPI2,
-MS, and RZZ targets. Bench converts its IonQ turns to Core's radians and maps ZZ
-to RZZ on import, then restores provider units and names on export, including
-fixed target parameters. Native input gates retain their parameters and
-semantics through repeated compilation. Rigetti pulses map to fixed RX
-capabilities, and Bench restores their target names on export. Core does not
-provide Qiskit's approximate Clifford+T synthesis. Target parameters may be
-independent free parameters or finite fixed values; relations between parameters
-are unsupported. Synthesis requires a basis that Core recognizes, even when
-every input gate is already native. The fixed-pulse recipe supports unrestricted
-RZ with RX(π/2) or RX(-π/2), optionally RX(±π). Other fixed angles can be
-represented but do not supply a synthesis recipe. Unsupported instructions or
-synthesis requests raise an error. Core never falls back to Qiskit
-transpilation. Dynamic circuits and structured loops use Core's supported
-translation and target control-flow capabilities; Core can unroll loops when
-required by the target.
+Core supports the bundled IBM, IQM, Quantinuum, IonQ, AQT, Rigetti, and
+Clifford+T+rotations gate sets. Target conversion uses Core's Qiskit importer,
+which preserves instruction aliases, fixed parameters, and ordered placements.
+Mapped targets must specify a positive qubit count. Unrepresentable constraints,
+including open controls and angle bounds, raise an error before compilation.
+Symbolic target parameter slots are independent wildcards, as in Qiskit.
+
+All Bench gate parameters use radians. IonQ targets include GPI, GPI2, RZZ, and
+arbitrary virtual RZ. Virtual RZ represents a phase-frame update; a provider
+submission layer must absorb it into pulse phases when emitting a pulse-only
+native program. Bench returns compiler-level circuits and does not submit them
+to hardware. Native input gates retain their parameters and semantics through
+repeated compilation. Rigetti targets use standard RX gates under distinct
+fixed-angle names, shared by Qiskit and Core.
+
+Synthesis requires a basis that Core recognizes, even when every input gate is
+already native. Fixed-pulse synthesis supports unrestricted RZ with RX(π/2) or
+RX(-π/2), optionally RX(±π). Other fixed angles can be represented but do not
+supply a synthesis recipe. Core does not provide Qiskit's approximate Clifford+T
+synthesis and never falls back to Qiskit transpilation. Dynamic circuits and
+structured loops use Core's supported translation and target control-flow
+capabilities; Core can unroll loops when required by the target.
 
 Mirrors are formed from the compiled circuit and compiled again with Core when a
 target is supplied. The barrier between both halves prevents cancellation. Core

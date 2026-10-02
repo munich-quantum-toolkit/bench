@@ -439,7 +439,10 @@ def get_benchmark_native_gates(
         rigetti.add_equivalences(SessionEquivalenceLibrary)
     elif "ionq" in target.description:
         ionq.add_equivalences(SessionEquivalenceLibrary)
-    pm = generate_preset_pass_manager(optimization_level=opt_level, target=target, seed_transpiler=10)
+    # An explicit layout method also disables post-layout search during optimization.
+    pm = generate_preset_pass_manager(
+        optimization_level=opt_level, target=target, seed_transpiler=10, layout_method="trivial"
+    )
     pm.layout = None
     pm.routing = None
     pm.scheduling = None

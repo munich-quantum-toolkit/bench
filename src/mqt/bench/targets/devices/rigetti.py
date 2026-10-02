@@ -6,339 +6,44 @@
 #
 # Licensed under the MIT License
 
-"""File to create a target device from the Rigetti calibration data."""
+"""Rigetti Cepheus connectivity snapshot from Braket on 2026-10-02."""
 
 from __future__ import annotations
 
-from qiskit.circuit import IfElseOp, Parameter
-from qiskit.circuit.library import Measure, RZGate, iSwapGate
-from qiskit.transpiler import InstructionProperties, Target
+from math import pi
 
-from mqt.bench.targets.gatesets.rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import CZGate, Measure, RXGate, RZGate
+from qiskit.transpiler import InstructionProperties, Target
 
 from ._registry import register_device
 
+CEPHEUS_PHYSICAL_QUBITS = (*range(8), *range(9, 108))
+"""Provider qubit label for each dense Bench wire; physical qubit 8 is unavailable."""
 
-@register_device("rigetti_ankaa_84")
-def get_rigetti_ankaa_84() -> Target:
-    """Get the target device for Rigetti Ankaa 3."""
-    num_qubits = 84
-    connectivity = [
-        [34, 41],
-        [41, 34],
-        [56, 57],
-        [57, 56],
-        [65, 66],
-        [66, 65],
-        [37, 38],
-        [38, 37],
-        [39, 46],
-        [46, 39],
-        [15, 22],
-        [22, 15],
-        [7, 8],
-        [8, 7],
-        [68, 75],
-        [75, 68],
-        [8, 9],
-        [9, 8],
-        [76, 83],
-        [83, 76],
-        [51, 52],
-        [52, 51],
-        [25, 32],
-        [32, 25],
-        [10, 11],
-        [11, 10],
-        [61, 62],
-        [62, 61],
-        [22, 29],
-        [29, 22],
-        [31, 38],
-        [38, 31],
-        [19, 26],
-        [26, 19],
-        [33, 40],
-        [40, 33],
-        [68, 69],
-        [69, 68],
-        [0, 7],
-        [7, 0],
-        [51, 58],
-        [58, 51],
-        [49, 50],
-        [50, 49],
-        [46, 53],
-        [53, 46],
-        [54, 55],
-        [55, 54],
-        [81, 82],
-        [82, 81],
-        [63, 64],
-        [64, 63],
-        [4, 5],
-        [5, 4],
-        [44, 45],
-        [45, 44],
-        [60, 67],
-        [67, 60],
-        [55, 62],
-        [62, 55],
-        [35, 36],
-        [36, 35],
-        [45, 46],
-        [46, 45],
-        [5, 6],
-        [6, 5],
-        [65, 72],
-        [72, 65],
-        [11, 12],
-        [12, 11],
-        [8, 15],
-        [15, 8],
-        [24, 31],
-        [31, 24],
-        [22, 23],
-        [23, 22],
-        [61, 68],
-        [68, 61],
-        [38, 45],
-        [45, 38],
-        [36, 43],
-        [43, 36],
-        [52, 53],
-        [53, 52],
-        [75, 76],
-        [76, 75],
-        [15, 16],
-        [16, 15],
-        [82, 83],
-        [83, 82],
-        [2, 9],
-        [9, 2],
-        [3, 10],
-        [10, 3],
-        [45, 52],
-        [52, 45],
-        [21, 28],
-        [28, 21],
-        [28, 35],
-        [35, 28],
-        [47, 54],
-        [54, 47],
-        [67, 74],
-        [74, 67],
-        [12, 13],
-        [13, 12],
-        [16, 17],
-        [17, 16],
-        [69, 76],
-        [76, 69],
-        [7, 14],
-        [14, 7],
-        [9, 10],
-        [10, 9],
-        [71, 72],
-        [72, 71],
-        [17, 24],
-        [24, 17],
-        [25, 26],
-        [26, 25],
-        [58, 65],
-        [65, 58],
-        [54, 61],
-        [61, 54],
-        [30, 31],
-        [31, 30],
-        [75, 82],
-        [82, 75],
-        [71, 78],
-        [78, 71],
-        [66, 73],
-        [73, 66],
-        [74, 75],
-        [75, 74],
-        [49, 56],
-        [56, 49],
-        [50, 57],
-        [57, 50],
-        [26, 27],
-        [27, 26],
-        [64, 71],
-        [71, 64],
-        [59, 60],
-        [60, 59],
-        [9, 16],
-        [16, 9],
-        [57, 64],
-        [64, 57],
-        [3, 4],
-        [4, 3],
-        [52, 59],
-        [59, 52],
-        [40, 41],
-        [41, 40],
-        [1, 2],
-        [2, 1],
-        [64, 65],
-        [65, 64],
-        [23, 24],
-        [24, 23],
-        [4, 11],
-        [11, 4],
-        [73, 80],
-        [80, 73],
-        [36, 37],
-        [37, 36],
-        [60, 61],
-        [61, 60],
-        [44, 51],
-        [51, 44],
-        [46, 47],
-        [47, 46],
-        [16, 23],
-        [23, 16],
-        [79, 80],
-        [80, 79],
-        [73, 74],
-        [74, 73],
-        [33, 34],
-        [34, 33],
-        [56, 63],
-        [63, 56],
-        [38, 39],
-        [39, 38],
-        [59, 66],
-        [66, 59],
-        [32, 33],
-        [33, 32],
-        [28, 29],
-        [29, 28],
-        [13, 20],
-        [20, 13],
-        [78, 79],
-        [79, 78],
-        [19, 20],
-        [20, 19],
-        [11, 18],
-        [18, 11],
-        [1, 8],
-        [8, 1],
-        [72, 79],
-        [79, 72],
-        [24, 25],
-        [25, 24],
-        [77, 78],
-        [78, 77],
-        [29, 30],
-        [30, 29],
-        [67, 68],
-        [68, 67],
-        [37, 44],
-        [44, 37],
-        [62, 69],
-        [69, 62],
-        [80, 81],
-        [81, 80],
-        [6, 13],
-        [13, 6],
-        [2, 3],
-        [3, 2],
-        [53, 60],
-        [60, 53],
-        [26, 33],
-        [33, 26],
-        [58, 59],
-        [59, 58],
-        [40, 47],
-        [47, 40],
-        [63, 70],
-        [70, 63],
-        [74, 81],
-        [81, 74],
-        [14, 21],
-        [21, 14],
-        [12, 19],
-        [19, 12],
-        [29, 36],
-        [36, 29],
-        [30, 37],
-        [37, 30],
-        [70, 71],
-        [71, 70],
-        [18, 19],
-        [19, 18],
-        [14, 15],
-        [15, 14],
-        [20, 27],
-        [27, 20],
-        [0, 1],
-        [1, 0],
-        [43, 50],
-        [50, 43],
-        [39, 40],
-        [40, 39],
-        [70, 77],
-        [77, 70],
-        [23, 30],
-        [30, 23],
-        [17, 18],
-        [18, 17],
-        [57, 58],
-        [58, 57],
-        [72, 73],
-        [73, 72],
-        [50, 51],
-        [51, 50],
-        [5, 12],
-        [12, 5],
-        [18, 25],
-        [25, 18],
-        [53, 54],
-        [54, 53],
-        [21, 22],
-        [22, 21],
-        [32, 39],
-        [39, 32],
-    ]
-    return _build_rigetti_target(
-        name="rigetti_ankaa_84",
-        num_qubits=num_qubits,
-        connectivity=connectivity,
-        oneq_error=0.00151,
-        twoq_error=0.05379,
-        spam_error=0.06904,
+
+@register_device("rigetti_cepheus_107")
+def get_rigetti_cepheus_107() -> Target:
+    """Get Cepheus's 107 active qubits with CZ connectivity and no calibration.
+
+    The provider names the device Cepheus-1-108Q. Bench numbers active qubits
+    contiguously; ``CEPHEUS_PHYSICAL_QUBITS`` maps these wires to provider labels.
+    """
+    num_qubits = len(CEPHEUS_PHYSICAL_QUBITS)
+    target = Target(num_qubits=num_qubits, description="rigetti_cepheus_107")
+    oneq_props = {(q,): InstructionProperties() for q in range(num_qubits)}
+    for name, angle in (("rxpi", pi), ("rxpidg", -pi), ("rxpi2", pi / 2), ("rxpi2dg", -pi / 2)):
+        target.add_instruction(RXGate(angle), oneq_props, name=name)
+    target.add_instruction(RZGate(Parameter("theta")), oneq_props)
+    target.add_instruction(Measure(), oneq_props)
+    target.add_instruction(
+        CZGate(),
+        {
+            (i, j): InstructionProperties()
+            for i, physical_i in enumerate(CEPHEUS_PHYSICAL_QUBITS)
+            for j, physical_j in enumerate(CEPHEUS_PHYSICAL_QUBITS)
+            if abs(physical_i - physical_j) == 9
+            or (abs(physical_i - physical_j) == 1 and physical_i // 9 == physical_j // 9)
+        },
     )
-
-
-def _build_rigetti_target(
-    *,
-    name: str,
-    num_qubits: int,
-    connectivity: list[list[int]],
-    oneq_error: float,
-    twoq_error: float,
-    spam_error: float,
-) -> Target:
-    """Construct a hardcoded Rigetti target using mean values."""
-    target = Target(num_qubits=num_qubits, description=name)
-
-    # === Add single-qubit gates ===
-    single_qubit_gate_props = {(q,): InstructionProperties(error=oneq_error) for q in range(num_qubits)}
-    measure_props = {(q,): InstructionProperties(error=spam_error) for q in range(num_qubits)}
-    target.add_instruction(RXPIGate(), single_qubit_gate_props, name="rxpi")
-    target.add_instruction(RXPI2Gate(), single_qubit_gate_props, name="rxpi2")
-    target.add_instruction(RXPI2DgGate(), single_qubit_gate_props, name="rxpi2dg")
-
-    alpha = Parameter("alpha")
-    target.add_instruction(RZGate(alpha), single_qubit_gate_props)
-    target.add_instruction(Measure(), measure_props)
-
-    # === Add two-qubit gates ===
-    iswap_props = {(q1, q2): InstructionProperties(error=twoq_error) for q1, q2 in connectivity}
-    target.add_instruction(iSwapGate(), iswap_props)
-
-    # === Add control-flow ops ===
-    target.add_instruction(IfElseOp, name="if_else")
-
     return target
