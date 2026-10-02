@@ -18,6 +18,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve measurements and classical registers when compiling to Clifford+T
+  ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 
@@ -200,6 +202,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1047]: https://github.com/munich-quantum-toolkit/bench/pull/1047
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
