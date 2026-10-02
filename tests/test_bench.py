@@ -1289,6 +1289,24 @@ def test_get_benchmark_mirror_option() -> None:
         np.testing.assert_allclose(Operator(compact).data, np.eye(2 ** len(active_qubits)), atol=1e-12)
 
 
+def test_mapped_mirror_preserves_complete_layout() -> None:
+    """Mirror layout metadata keeps the original logical qubits and ancillas."""
+    source = QuantumCircuit(3)
+    source.h(2)
+    source.cx(2, 1)
+    source.cx(1, 0)
+    original = source.copy()
+    target = get_device("iqm_crystal_5")
+    base = get_benchmark_mapped(source, None, target)
+    mirror = get_benchmark_mapped(source, None, target, generate_mirror_circuit=True)
+    assert source == original
+    assert base.layout is not None
+    assert mirror.layout is not None
+    assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
+    mirror.remove_final_measurements(inplace=True)
+    np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
+
+
 def test_dynamic_benchmark_registration() -> None:
     """A benchmark registered at runtime should immediately be visible through the public helpers."""
 

@@ -92,7 +92,8 @@ level-specific functions also accept `compiler="mqt"`.
   target-independent optimization pipeline.
 - `NATIVEGATES` uses the target's gate set with all-to-all connectivity and the
   input circuit's width. Operations wider than the circuit are omitted; physical
-  gate placements are ignored.
+  gate placements are ignored. The result retains layout metadata needed to
+  interpret its logical wire order; use `Operator.from_circuit` for its unitary.
 - `MAPPED` uses the device's width, connectivity, and ordered gate placements.
   The result uses physical wires; measurements retain their classical
   destinations. Bench removes layout metadata from its input copy before

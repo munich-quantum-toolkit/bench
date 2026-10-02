@@ -893,3 +893,13 @@ def test_qir_io_failure(fmt: OutputFormat, tmp_path: Path) -> None:
     with pytest.raises(MQTBenchExporterError, match="Failed to write") as exc:
         write_circuit(circuit, stream, BenchmarkLevel.ALG, fmt)
     assert isinstance(exc.value.__cause__, ValueError)
+
+
+def test_native_compilation_preserves_logical_wire_layout() -> None:
+    """Native output retains the permutation needed to interpret its unitary."""
+    source = QuantumCircuit(3)
+    source.h(2)
+    source.cx(2, 1)
+    source.cx(1, 0)
+    result = get_benchmark_native_gates(source, None, get_target_for_gateset("rigetti", 3), compiler="mqt")
+    np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(source).data, atol=1e-12)

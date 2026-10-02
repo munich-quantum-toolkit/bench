@@ -161,7 +161,8 @@ def compile_circuit(
         program.compile_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
         _validate_target(result, target, mapped=mapped)
-    result._layout = None  # ruff:ignore[private-member-access]
+    if mapped:
+        result._layout = None  # ruff:ignore[private-member-access]
     result.name = circuit.name
     result.metadata = (circuit.metadata or {}) | {"mqt_bench_compiler": {"name": "mqt", "version": version("mqt-core")}}
     return result

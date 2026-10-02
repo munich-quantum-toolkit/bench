@@ -41,9 +41,13 @@ that minor releases may include breaking changes.
 
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
-- Correct IonQ and Rigetti gate equivalences, including global phase, register
-  them without duplicates, and use Qiskit's standard CX decomposition through
-  RZZ. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
+- Preserve global phase in IonQ equivalences and Rigetti pulse lowering. Use
+  standard Qiskit gates during Rigetti optimization and a local lowering library
+  so native results remain reusable. ([#1027]) ([**@simon1hofmann**],
+  [**@burgholzer**])
+- Retain logical wire layout metadata in Core's native compilation results and
+  preserve complete Qiskit layouts when compiling mirror circuits. ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 - Default the CLI optimization level to 2 when omitted. ([#1027])

@@ -10,20 +10,17 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from math import pi
-from typing import TYPE_CHECKING
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Gate, Parameter
-from qiskit.circuit.library import UGate
+from qiskit.circuit import EquivalenceLibrary, Gate
+from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary
+from qiskit.circuit.library import SXdgGate, SXGate, XGate
+from qiskit.transpiler import PassManager, Target
+from qiskit.transpiler.passes import BasisTranslator
 
 from ._registry import register_gateset
-
-if TYPE_CHECKING:
-    from qiskit.circuit import EquivalenceLibrary
-
-_U_GATE = UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda"))
-"""Stable parameter identities for equivalence lookup."""
 
 
 @register_gateset("rigetti")
@@ -32,23 +29,42 @@ def get_rigetti_gateset() -> list[str]:
     return ["rxpi", "rxpidg", "rxpi2", "rxpi2dg", "rz", "cz", "measure"]
 
 
-def add_equivalences(sel: EquivalenceLibrary) -> None:
-    """Register U decomposition with fixed RX target aliases once per library.
+def prepare_target(target: Target, *, native: bool) -> tuple[Target, PassManager]:
+    """Use standard X gates for Qiskit synthesis, then lower to native RX pulses.
 
-    Compare copies because Qiskit equality caches pulse definitions.
+    The input is a Rigetti RX/RZ/CZ target with all four fixed RX angles.
+    The local equivalences preserve full phase without changing Qiskit's
+    session library. Native compilation ignores physical placement.
     """
-    theta, phi, lam = _U_GATE.params
-    pulses = []
-    for name, angle in (("rxpi2", pi / 2), ("rxpi2dg", -pi / 2)):
+    compilation_target = Target(
+        num_qubits=target.num_qubits,
+        description=target.description,
+        dt=target.dt,
+        granularity=target.granularity,
+        min_length=target.min_length,
+        pulse_alignment=target.pulse_alignment,
+        acquire_alignment=target.acquire_alignment,
+        qubit_properties=target.qubit_properties,
+        concurrent_measurements=target.concurrent_measurements,
+    )
+    pulses = {"rxpi": (XGate(), pi), "rxpi2": (SXGate(), pi / 2), "rxpi2dg": (SXdgGate(), -pi / 2)}
+    library = EquivalenceLibrary(base=StandardEquivalenceLibrary)
+    for name in target.operation_names:
+        if name == "rxpidg":
+            # X uses the positive pi pulse; the native target retains both signs.
+            continue
+        operation = target.operation_from_name(name)
+        properties = None if native or isinstance(operation, type) else deepcopy(target[name])
+        if name not in pulses:
+            compilation_target.add_instruction(operation, properties, name=name)
+            continue
+        standard_gate, angle = pulses[name]
+        compilation_target.add_instruction(standard_gate, properties)
         pulse = Gate(name, 1, [angle])
         pulse.definition = QuantumCircuit(1)
         pulse.definition.rx(angle, 0)
-        pulses.append(pulse)
-    circuit = QuantumCircuit(1, global_phase=(phi + lam) / 2)
-    circuit.rz(lam, 0)
-    circuit.append(pulses[0], [0])
-    circuit.rz(theta, 0)
-    circuit.append(pulses[1], [0])
-    circuit.rz(phi, 0)
-    if circuit not in (entry.copy() for entry in sel.get_entry(_U_GATE)):
-        sel.add_equivalence(_U_GATE, circuit)
+        rule = QuantumCircuit(1, global_phase=angle / 2)
+        rule.append(pulse, [0])
+        library.add_equivalence(standard_gate, rule)
+    lowering = PassManager(BasisTranslator(library, list(target.operation_names), target=None if native else target))
+    return compilation_target, lowering
