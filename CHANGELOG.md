@@ -31,8 +31,9 @@ that minor releases may include breaking changes.
   level 3. The optional `mqt` extra requires Qiskit 2.5.x. ([#1027])
   ([**@simon1hofmann**], [**@burgholzer**])
 - Use radians for GPI/GPI2 and standard RZZ for IonQ targets, retaining
-  arbitrary virtual Z rotations. Represent Rigetti's fixed RX pulses as standard
-  RX target aliases. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
+  arbitrary virtual Z rotations. Represent Rigetti's fixed-angle RX gates as
+  standard RX target aliases. ([#1027]) ([**@simon1hofmann**],
+  [**@burgholzer**])
 - Replace obsolete Aria, Falcon, Eagle, Heron-133, and Braket Ankaa models with
   the current catalogue, including AQT IBEX Q1 and Rigetti Cepheus. Document
   static device provenance and physical qubit labels. ([#1027])
@@ -42,7 +43,7 @@ that minor releases may include breaking changes.
 
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
-- Preserve global phase in IonQ equivalences and Rigetti pulse lowering. Use
+- Preserve global phase in IonQ equivalences and Rigetti gate lowering. Use
   standard Qiskit gates during Rigetti optimization and a local lowering library
   so native results remain reusable. ([#1027]) ([**@simon1hofmann**],
   [**@burgholzer**])

@@ -127,9 +127,9 @@ class GPI2Gate(Gate):
 
 
 def add_equivalences(sel: EquivalenceLibrary) -> None:
-    """Add the exact U decomposition into IonQ pulses once per library.
+    """Add the exact U decomposition into IonQ gates once per library.
 
-    Compare copies because Qiskit equality caches pulse definitions.
+    Compare copies because Qiskit equality caches gate definitions.
     """
     theta, phi, lam = _U_GATE.params
     circuit = QuantumCircuit(1, global_phase=(phi + lam) / 2 - np.pi / 2)

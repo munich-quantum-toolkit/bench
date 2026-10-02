@@ -388,7 +388,7 @@ def test_native_compilation_semantics(gateset: str, opt_level: int, *, symbolic:
 
 @pytest.mark.parametrize(("gate_type", "angle", "phase"), [(GPIGate, pi, pi / 2), (GPI2Gate, pi / 2, 0)])
 def test_ionq_radian_definition(gate_type: type[GPIGate | GPI2Gate], angle: float, phase: float) -> None:
-    """Pulse phases use radians and retain the GPI gate's global phase."""
+    """Gate phases use radians and retain the GPI gate's global phase."""
     phi = Parameter("phi")
     circuit = QuantumCircuit(1)
     circuit.append(gate_type(phi), [0])
@@ -400,7 +400,7 @@ def test_ionq_radian_definition(gate_type: type[GPIGate | GPI2Gate], angle: floa
 
 
 def test_rigetti_fixed_rx_aliases() -> None:
-    """All four fixed pulses are standard RX capabilities with distinct names."""
+    """All four fixed gates are standard RX capabilities with distinct names."""
     for target in (get_target_for_gateset("rigetti", 2), get_device("rigetti_cepheus_107")):
         for name, angle in (("rxpi", pi), ("rxpidg", -pi), ("rxpi2", pi / 2), ("rxpi2dg", -pi / 2)):
             operation = target.operation_from_name(name)
@@ -433,8 +433,8 @@ def test_forte_virtual_z() -> None:
 
 
 @pytest.mark.parametrize("angle", [pi / 2, -pi / 2, pi, -pi])
-def test_rigetti_compilation_uses_one_native_rx_pulse(angle: float) -> None:
-    """Standard synthesis recognizes each native rotation as one physical pulse."""
+def test_rigetti_compilation_uses_one_native_rx_gate(angle: float) -> None:
+    """Standard synthesis recognizes each native rotation as one native RX gate."""
     circuit = QuantumCircuit(2)
     circuit.rx(angle, 0)
     target = get_target_for_gateset("rigetti", 2)

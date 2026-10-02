@@ -110,15 +110,15 @@ Symbolic target parameter slots are independent wildcards, as in Qiskit.
 
 All Bench gate parameters use radians. IonQ targets include GPI, GPI2, RZZ, and
 arbitrary virtual RZ. Virtual RZ represents a phase-frame update; a provider
-submission layer must absorb it into pulse phases when emitting a pulse-only
-native program. Bench returns compiler-level circuits and does not submit them
-to hardware. Native input gates retain their parameters and semantics through
+submission layer must absorb it into GPI/GPI2 gate phases when required by the
+provider. Bench returns compiler-level circuits and does not submit them to
+hardware. Native input gates retain their parameters and semantics through
 repeated compilation. Rigetti targets use standard RX gates under distinct
 fixed-angle names, shared by Qiskit and Core.
 
 Synthesis requires a basis that Core recognizes, even when every input gate is
-already native. Fixed-pulse synthesis supports unrestricted RZ with RX(π/2) or
-RX(-π/2), optionally RX(±π). Other fixed angles can be represented but do not
+already native. Fixed-angle gate synthesis supports unrestricted RZ with RX(π/2)
+or RX(-π/2), optionally RX(±π). Other fixed angles can be represented but do not
 supply a synthesis recipe. Core does not provide Qiskit's approximate Clifford+T
 synthesis and never falls back to Qiskit transpilation. Dynamic circuits and
 structured loops use Core's supported translation and target control-flow
