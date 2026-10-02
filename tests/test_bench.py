@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
@@ -781,6 +781,34 @@ def test_clifford_t() -> None:
     pm = PassManager(GatesInBasis(target=clifford_t_target))
     pm.run(qc)
     assert pm.property_set["all_gates_in_basis"]
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
+@pytest.mark.parametrize("measurement_case", ["none", "final", "repeated"])
+def test_clifford_t_preserves_measurements(opt_level: int, measurement_case: str) -> None:
+    """Preserve classical registers and measurement destinations during synthesis."""
+    qc = QuantumCircuit(2)
+    qc.x(1)
+    if measurement_case != "none":
+        qc.add_register(ClassicalRegister(1, "first"), ClassicalRegister(2, "last"))
+        if measurement_case == "repeated":
+            qc.measure(1, 0)
+            qc.reset(1)
+            qc.x(1)
+            qc.measure(1, 2)
+        else:
+            qc.measure([0, 1], [2, 0])
+
+    compiled = get_benchmark_native_gates(qc, None, get_target_for_gateset("clifford+t", 2), opt_level)
+
+    assert compiled.cregs == qc.cregs
+    assert compiled.clbits == qc.clbits
+    assert sorted(
+        compiled.find_bit(inst.clbits[0]).index for inst in compiled.data if inst.operation.name == "measure"
+    ) == ([] if measurement_case == "none" else [0, 2])
+    if measurement_case != "none":
+        expected_result = "10 1" if measurement_case == "repeated" else "00 1"
+        assert BasicSimulator().run(compiled, shots=16).result().get_counts() == {expected_result: 16}
 
 
 def test_benchmark_helper_shor() -> None:
