@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Maximum Likelihood Quantum Amplitude estimation benchmark definition. Code is based on the paper Suzuki et al., 2020: https://arxiv.org/abs/1904.10246."""
+"""Maximum Likelihood Quantum Amplitude estimation benchmark definition. Code is based on the paper Suzuki et al.,: Amplitude Estimation without Phase Estimation (2020): https://arxiv.org/abs/1904.10246."""
 
 from __future__ import annotations
 
@@ -19,14 +19,17 @@ from ._registry import register_benchmark
 
 @register_benchmark("mlqae", description="Maximum Likelihood Quantum Amplitude Estimation")
 def create_circuit(
-    num_qubits: int, num_rounds: int = 3, probability: float = 0.2, *, for_loop: bool = False
+    num_qubits: int, num_rounds: int = 3, b_max: float = np.pi / 4, *, for_loop: bool = False
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the quantum part of ML-QAE.
+
+    The circuit is based on Section 4.2 of the paper. The circuit follows the fixed exponentially increasing schedule: round 0 applies A only,
+    round k (k = 1...num_rounds) applies ``Q^(2^(k-1))`` after A. Each round's result is stored in its own classical bit and all qubits are reset between rounds. The classical maximum-likelihood post-processing is not part of the circuit.
 
     Arguments:
         num_qubits: Total number of qubits (state qubits + 1 objective qubit). Must be at least 1.
         num_rounds: Number of Grover-amplified rounds (in addition to the m = 0 round). Must be at least 1.
-        probability: Probability of the "good" state (objective qubit measured as 1).
+        b_max: Upper limit of the integral.
         for_loop: Whether to use a structured for-loop for the Grover iterations within each round.
 
     Returns:
@@ -35,20 +38,22 @@ def create_circuit(
     if num_rounds < 1:
         msg = "num_rounds must be at least 1."
         raise ValueError(msg)
-    if not 0 <= probability <= 1:
-        msg = "probability must be in [0, 1]."
+
+    if b_max <= 0:
+        msg = "b_max must be positive."
         raise ValueError(msg)
-
-    # Compute the rotation angle: theta_p = 2 * arcsin(sqrt(p))
-    theta_p = 2 * np.arcsin(np.sqrt(probability))
-
+    
     objective = num_qubits - 1
+    num_state_qubits = objective
 
-    # State preparation A: uniform superposition on the state qubits, Bernoulli(p) on the objective qubit.
+    # State preparation A (Sec. 4.2, Fig. 5): Hadamards create the uniform distribution on the state qubits,
+    # and controlled Y-rotations rotate the objective qubit
     state_preparation = QuantumCircuit(num_qubits, name="A")
     if objective > 0:
-        state_preparation.h(range(objective))
-    state_preparation.ry(theta_p, objective)
+        state_preparation.h(range(num_state_qubits))
+    state_preparation.ry(b_max / 2**num_state_qubits, objective)
+    for j in range(num_state_qubits):
+        state_preparation.cry(2 ** (j + 1) * b_max / 2**num_state_qubits, j, objective)
 
     # Oracle marking the good state (objective = 1) and Grover operator Q = A S_0 A^dagger S_chi.
     oracle = QuantumCircuit(num_qubits, name="S_chi")

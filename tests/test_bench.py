@@ -27,14 +27,14 @@ from qiskit.circuit import ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
-from qiskit.quantum_info import Statevector
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
     PassManager,
     Target,  # For layout handling
 )
-from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers
+from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
@@ -345,56 +345,53 @@ def test_iqpe() -> None:
     assert "iqpe" in qc.name
 
 
-def _round_probabilities(qc: QuantumCircuit, objective: int) -> list[float]:
-    """Return P(objective = 1) right before each measurement of a mid-circuit-measurement circuit."""
-    probs: list[float] = []
-    segment = QuantumCircuit(qc.num_qubits)
-    for inst in qc.data:
-        name = inst.operation.name
-        if name == "measure":
-            probs.append(float(Statevector(segment).probabilities([objective])[1]))
-        elif name == "reset":
-            segment = QuantumCircuit(qc.num_qubits)
-        else:
-            segment.append(inst.operation, [qc.find_bit(q).index for q in inst.qubits])
-    return probs
+def _success_rates(qc: QuantumCircuit, shots: int = 500) -> list[float]:
+    """Run the circuit on the BasicSimulator and return, for every round k, the fraction of shots with c[k] = 1."""
+    backend = BasicSimulator()
+    unrolled = PassManager(UnrollForLoops()).run(qc)
+    counts = backend.run(transpile(unrolled, backend), shots=shots, seed_simulator=42).result().get_counts()
+    return [sum(c for bits, c in counts.items() if bits[-1 - k] == "1") / shots for k in range(qc.num_clbits)]
+ 
+ 
+def _expected_success_rates(num_qubits: int, num_rounds: int, b_max: float) -> list[float]:
+    """Return sin^2((2 m_k + 1) theta_a) for the schedule m = 0, 1, 2, 4, ... with a = sin^2(theta_a) from Eq. (23)."""
+    num_state_qubits = num_qubits - 1
+    a = sum(np.sin((x + 0.5) * b_max / 2**num_state_qubits) ** 2 for x in range(2**num_state_qubits))
+    theta_a = np.arcsin(np.sqrt(a / 2**num_state_qubits))
+    schedule = [0] + [2**k for k in range(num_rounds)]
+    return [float(np.sin((2 * m + 1) * theta_a) ** 2) for m in schedule]
+
+
+@pytest.mark.parametrize(("num_qubits", "b_max", "for_loop"), [(1, np.pi / 4, False), (2, np.pi / 4, False), (3, np.pi / 4, False), (2, np.pi, True)])
+def test_mlqae_simulated_output(num_qubits: int, b_max: float, for_loop: bool) -> None:
+    """Test that simulating the circuit gives round k a success rate of sin^2((2 m_k + 1) theta_a)."""
+    num_rounds = 3
+    qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds, b_max=b_max, for_loop=for_loop)
+ 
+    expected = _expected_success_rates(num_qubits, num_rounds, b_max)
+ 
+    assert _success_rates(qc) == pytest.approx(expected, abs=0.1)
 
 
 @pytest.mark.parametrize(("num_qubits", "num_rounds"), [(1, 1), (2, 2), (3, 3), (5, 4)])
 def test_mlqae_circuit_structure(num_qubits: int, num_rounds: int) -> None:
     """Verify the structure of the ML-QAE circuit for various qubit and round counts."""
-    qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds)
-
+    qc = create_circuit("mlqae", num_qubits, num_rounds)
+ 
     assert qc.num_qubits == num_qubits
     assert qc.num_clbits == num_rounds + 1
     assert "mlqae" in qc.name
 
+    measured_clbits = [qc.find_bit(inst.clbits[0]).index for inst in qc.data if inst.operation.name == "measure"]
+    assert measured_clbits == list(range(num_rounds + 1))
+
+    reset_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "reset"]
+    for q_idx in range(num_qubits):
+        assert reset_qubits.count(q_idx) == num_rounds
+
     ops: OrderedDict[str, int] = qc.count_ops()
     assert ops.get("measure", 0) == num_rounds + 1
     assert ops.get("reset", 0) == num_rounds * num_qubits
-
-
-@pytest.mark.parametrize(("num_qubits", "probability"), [(1, 0.2), (3, 0.1), (3, 0.5)])
-def test_mlqae_round_probabilities(num_qubits: int, probability: float) -> None:
-    """Test that round k yields P(1) = sin^2((2 m_k + 1) theta_a) for the schedule m = 0, 1, 2, 4."""
-    num_rounds = 3
-    qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds, probability=probability)
-
-    theta_a = np.arcsin(np.sqrt(probability))
-    schedule = [0] + [2**k for k in range(num_rounds)]
-    expected = [np.sin((2 * m + 1) * theta_a) ** 2 for m in schedule]
-
-    assert _round_probabilities(qc, num_qubits - 1) == pytest.approx(expected)
-
-
-@pytest.mark.parametrize("probability", [0.0, 1.0])
-def test_mlqae_boundary_probabilities(probability: float) -> None:
-    """Test the boundary case for probability."""
-    qc = create_circuit("mlqae", 3, num_rounds=3, probability=probability)
-
-    probs = _round_probabilities(qc, 2)
-
-    assert probs == pytest.approx([probability] * 4)
 
 
 def test_mlqae_for_loop() -> None:
@@ -411,8 +408,8 @@ def test_mlqae_invalid_parameters() -> None:
     with pytest.raises(ValueError, match=r"num_rounds must be at least 1."):
         create_circuit("mlqae", 3, num_rounds=0)
 
-    with pytest.raises(ValueError, match=re.escape("probability must be in [0, 1].")):
-        create_circuit("mlqae", 3, probability=1.5)
+    with pytest.raises(ValueError, match=r"b_max must be positive."):
+        create_circuit("mlqae", 3, b_max=0.0)
 
 
 def test_dj_constant_oracle() -> None:
