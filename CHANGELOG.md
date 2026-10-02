@@ -18,6 +18,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve measurements and classical registers when compiling to Clifford+T
+  ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 

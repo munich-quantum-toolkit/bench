@@ -6,6 +6,13 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Clifford+T measurements
+
+Clifford+T compilation now preserves the input circuit's measurements and
+classical registers. Code that reads results must use the original classical
+registers instead of relying on the extra `meas` register previously added by
+the compiler. Circuits without measurements now remain unmeasured.
+
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum
