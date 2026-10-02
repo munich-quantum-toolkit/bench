@@ -27,6 +27,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- Require Qiskit 2.5 or newer for native-gate compilation without post-layout
+  search. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
 - Use radians for GPI/GPI2 and standard RZZ for IonQ targets, retaining
   arbitrary virtual Z rotations. Represent Rigetti's fixed RX pulses as standard
   RX target aliases. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])

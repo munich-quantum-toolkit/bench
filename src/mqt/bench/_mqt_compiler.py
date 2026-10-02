@@ -74,24 +74,11 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
     ]
     source = target
     if not mapped:
-        names = [
-            name
-            for name in names
-            if isinstance(target.operation_from_name(name), type)
-            or target.operation_from_name(name).num_qubits <= num_qubits
-        ]
-        # A single-qubit gate catalogue needs no physical coupling graph.
-        width = max(
-            (
-                target.operation_from_name(name).num_qubits
-                for name in names
-                if not isinstance(target.operation_from_name(name), type)
-            ),
-            default=1,
-        )
-        source = Target(num_qubits=width)
+        source = Target(num_qubits=num_qubits)
         for name in names:
             operation = target.operation_from_name(name)
+            if not isinstance(operation, type) and operation.num_qubits > num_qubits:
+                continue
             # Qiskit exposes bound predicates, but not the bounds for copying.
             if target.gate_has_angle_bounds(name) and any(
                 not target.supported_angle_bound(name, [bound] * len(operation.params)) for bound in (-inf, inf)
@@ -99,13 +86,8 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
                 msg = f"Cannot represent parameter constraints for '{name}'."
                 raise ValueError(msg)
             source.add_instruction(operation, name=name)
+        names = list(source.operation_names)
     core_target = CompilerTarget.from_qiskit(source, operation_names=names)
-    if not mapped:
-        core_target = CompilerTarget(
-            num_qubits,
-            connectivity=CompilerTarget.Connectivity.all_to_all(),
-            native_operations=CompilerTarget.NativeOperations(core_target.operations),
-        )
     return TargetEnvironment(
         core_target,
         PayloadSpecification(
