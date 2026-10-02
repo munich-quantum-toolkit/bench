@@ -18,8 +18,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import RXGate
+from qiskit.circuit import EquivalenceLibrary, Parameter
+from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary
+from qiskit.circuit.library import RXGate, UGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import Target
 
@@ -36,12 +37,14 @@ from mqt.bench.targets.gatesets import (
     get_available_gateset_names,
     get_gateset,
     get_target_for_gateset,
+    ionq,
     register_gateset,
+    rigetti,
 )
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -338,6 +341,23 @@ def test_module_from_gateset_name(gateset_name: str, module_name: str) -> None:
 def test_module_from_device_name(device_name: str, module_name: str) -> None:
     """Test module name extraction from device name."""
     assert _module_from_device_name(device_name) == module_name
+
+
+@pytest.mark.parametrize("register", [ionq.add_equivalences, rigetti.add_equivalences], ids=["ionq", "rigetti"])
+def test_equivalence_registration_is_idempotent(register: Callable[[EquivalenceLibrary], None]) -> None:
+    """Repeated registration preserves existing recipes without adding duplicates."""
+    library = EquivalenceLibrary(base=StandardEquivalenceLibrary)
+    gate = UGate(0.31, -0.72, 0.19)
+    original = library.get_entry(gate)
+    register(library)
+    registered = library.get_entry(gate)
+    assert len(registered) == len(original) + 1
+    assert all(circuit in registered for circuit in original)
+    register(library)
+    assert len(library.get_entry(gate)) == len(registered)
+    for bound_gate in (gate, UGate(-0.29, 0.12, 1.7)):
+        recipe = library.get_entry(bound_gate)[-1].copy()
+        np.testing.assert_allclose(Operator(recipe).data, Operator(bound_gate).data, atol=1e-12)
 
 
 @pytest.mark.parametrize("gateset", ["aqt", "ibm_heron", "ionq_forte", "iqm", "quantinuum", "rigetti"])

@@ -101,11 +101,11 @@ def minimums(session: nox.Session) -> None:
     with preserve_lockfile():
         _run_tests(
             session,
-            install_args=["--resolution=lowest-direct"],
+            install_args=["--resolution=lowest-direct", "--group=minimums"],
             pytest_run_args=["-Wdefault"],
         )
         env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-        session.run("uv", "tree", "--frozen", env=env)
+        session.run("uv", "tree", "--frozen", "--no-dev", "--group=test", "--group=minimums", env=env)
 
 
 @nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS)

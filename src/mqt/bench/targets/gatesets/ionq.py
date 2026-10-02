@@ -49,6 +49,9 @@ from ._registry import register_gateset
 if TYPE_CHECKING:
     from qiskit.circuit import EquivalenceLibrary, ParameterExpression
 
+_U_GATE = UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda"))
+"""Stable parameter identities for equivalence lookup."""
+
 
 @register_gateset("ionq_forte")
 def get_ionq_forte_gateset() -> list[str]:
@@ -130,12 +133,14 @@ class GPI2Gate(Gate):
 
 
 def add_equivalences(sel: EquivalenceLibrary) -> None:
-    """Add the exact U decomposition into IonQ pulses."""
-    theta = Parameter("theta")
-    phi = Parameter("phi")
-    lam = Parameter("lambda")
+    """Add the exact U decomposition into IonQ pulses once per library.
+
+    Compare copies because Qiskit equality caches pulse definitions.
+    """
+    theta, phi, lam = _U_GATE.params
     circuit = QuantumCircuit(1, global_phase=(phi + lam) / 2 - np.pi / 2)
     circuit.append(GPI2Gate(np.pi - lam), [0])
     circuit.append(GPIGate((theta + phi - lam) / 2), [0])
     circuit.append(GPI2Gate(np.pi + phi), [0])
-    sel.add_equivalence(UGate(theta, phi, lam), circuit)
+    if circuit not in (entry.copy() for entry in sel.get_entry(_U_GATE)):
+        sel.add_equivalence(_U_GATE, circuit)
