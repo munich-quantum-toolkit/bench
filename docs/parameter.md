@@ -102,7 +102,8 @@ level-specific functions also accept `compiler="mqt"`.
 Core supports the bundled IBM, IQM, Quantinuum, IonQ, AQT, Rigetti, and
 Clifford+T+rotations gate sets. Target conversion uses Core's Qiskit importer,
 which preserves instruction aliases, fixed parameters, and ordered placements.
-Mapped targets must specify a positive qubit count. Unrepresentable constraints,
+Multi-qubit compilation requires a target with an entangling gate. Mapped
+targets must specify a positive qubit count. Unrepresentable constraints,
 including open controls and angle bounds, raise an error before compilation.
 Symbolic target parameter slots are independent wildcards, as in Qiskit.
 

@@ -653,24 +653,24 @@ def test_unknown_target_gate_definitions_rejected(name: str) -> None:
         get_benchmark_native_gates(QuantumCircuit(1), None, target, compiler="mqt")
 
 
-def test_disconnected_target_rejected() -> None:
-    """An empty coupling graph must not be treated as all-to-all connectivity."""
+@pytest.mark.parametrize("mapped", [False, True])
+def test_disconnected_target_rejected(*, mapped: bool) -> None:
+    """A multi-qubit target needs an applicable entangling capability."""
     target = Target(num_qubits=2)
     target.add_instruction(HGate())
     target.add_instruction(CXGate(), {})
+    compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
     with pytest.raises(ValueError, match="topology must be connected"):
-        get_benchmark_mapped("ghz", 2, target, compiler="mqt")
+        compile_circuit("ghz", 2, target, compiler="mqt")
 
 
 @pytest.mark.parametrize("width", [None, 3])
-@pytest.mark.parametrize("entangler", [False, True])
 @pytest.mark.parametrize("circuit_width", [1, 2])
-def test_native_target_ignores_hardware_topology(width: int | None, circuit_width: int, *, entangler: bool) -> None:
+def test_native_target_ignores_hardware_topology(width: int | None, circuit_width: int) -> None:
     """Native compilation uses input width and ignores disconnected hardware."""
     target = Target(num_qubits=width)
     target.add_instruction(UGate(*ParameterVector("u", 3)))
-    if entangler:
-        target.add_instruction(CXGate(), {(0, 1): None} if width else None)
+    target.add_instruction(CXGate(), {(0, 1): None} if width else None)
     source = QuantumCircuit(circuit_width, global_phase=0.19)
     source.h(0)
     if circuit_width > 1:

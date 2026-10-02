@@ -6,6 +6,12 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Qiskit 2.5 minimum
+
+Upgrade Qiskit to 2.5 or newer. Native-gate compilation needs its preset
+pipeline to disable post-layout search at optimization level 3. Older Qiskit
+versions can fail on native target aliases even when layout is disabled.
+
 ### Optional MQT Core compiler
 
 Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
@@ -58,7 +64,9 @@ target to retain a historical architecture. AQT's IBEX Q1 is available as
 Cepheus uses 107 dense circuit wires. Convert them to the provider's sparse
 physical labels with `CEPHEUS_PHYSICAL_QUBITS` before submission. See the
 [target models](docs/targets.md) for provenance, calibration limits, virtual Z,
-and provider naming conventions.
+and provider naming conventions. Forte and Cepheus device models no longer
+advertise generic classical feedback; their native gate compilation supports
+unitary circuits and measurements.
 
 ## [2.3.0]
 
