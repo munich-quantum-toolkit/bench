@@ -39,12 +39,11 @@ from mqt.bench.targets.gatesets import (
     get_target_for_gateset,
     ionq,
     register_gateset,
-    rigetti,
 )
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -343,17 +342,16 @@ def test_module_from_device_name(device_name: str, module_name: str) -> None:
     assert _module_from_device_name(device_name) == module_name
 
 
-@pytest.mark.parametrize("register", [ionq.add_equivalences, rigetti.add_equivalences], ids=["ionq", "rigetti"])
-def test_equivalence_registration_is_idempotent(register: Callable[[EquivalenceLibrary], None]) -> None:
+def test_ionq_equivalence_registration_is_idempotent() -> None:
     """Repeated registration preserves existing recipes without adding duplicates."""
     library = EquivalenceLibrary(base=StandardEquivalenceLibrary)
     gate = UGate(0.31, -0.72, 0.19)
     original = library.get_entry(gate)
-    register(library)
+    ionq.add_equivalences(library)
     registered = library.get_entry(gate)
     assert len(registered) == len(original) + 1
     assert all(circuit in registered for circuit in original)
-    register(library)
+    ionq.add_equivalences(library)
     assert len(library.get_entry(gate)) == len(registered)
     for bound_gate in (gate, UGate(-0.29, 0.12, 1.7)):
         recipe = library.get_entry(bound_gate)[-1].copy()
@@ -432,3 +430,38 @@ def test_forte_virtual_z() -> None:
     assert target["rz"][0,].duration == 0
     assert target["rz"][0,].error == 0
     assert "rz" in get_gateset("ionq_forte")
+
+
+@pytest.mark.parametrize("angle", [pi / 2, -pi / 2, pi, -pi])
+def test_rigetti_compilation_uses_one_native_rx_pulse(angle: float) -> None:
+    """Standard synthesis recognizes each native rotation as one physical pulse."""
+    circuit = QuantumCircuit(2)
+    circuit.rx(angle, 0)
+    target = get_target_for_gateset("rigetti", 2)
+    result = get_benchmark(circuit, BenchmarkLevel.NATIVEGATES, target=target)
+    assert sum(count for name, count in result.count_ops().items() if name.startswith("rx")) == 1
+    np.testing.assert_allclose(Operator(result).data, Operator(circuit).data, atol=1e-12)
+
+
+@pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
+def test_rigetti_output_can_be_controlled_and_recompiled(level: BenchmarkLevel) -> None:
+    """Native definitions stay reusable outside their original target."""
+    from qiskit import transpile  # ruff:ignore[import-outside-top-level]
+
+    theta = Parameter("theta")
+    circuit = QuantumCircuit(2)
+    circuit.rx(theta, 0)
+    circuit.h(1)
+    circuit.cx(0, 1)
+    target = get_target_for_gateset("rigetti", 2)
+    result = get_benchmark(circuit, level, target=target, random_parameters=False)
+    for value in [-0.37, 0.29]:
+        bound = result.assign_parameters({theta: value})
+        expected = Operator(bound).data
+        recompiled = transpile(bound, basis_gates=["rz", "sx", "x", "cx"])
+        np.testing.assert_allclose(Operator.from_circuit(recompiled).data, expected, atol=1e-12)
+        np.testing.assert_allclose(
+            Operator(bound.to_gate().control()).data,
+            Operator(Operator(bound).to_instruction().control()).data,
+            atol=1e-12,
+        )

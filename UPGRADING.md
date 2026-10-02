@@ -22,10 +22,12 @@ default compiler; existing Python calls keep their behavior. The CLI now
 defaults to optimization level 2 when the option is omitted.
 
 The Core compiler uses a fixed optimization pipeline. Leave `opt_level` at its
-default of 2. Mapped results use physical wires without Qiskit layout metadata.
-Recompilation treats these wires as the new inputs. Both compilers use radians
-and the target's operation names. Compilation requires a complete supported
-synthesis basis, including for already-native inputs. See the
+default of 2. Native results retain layout metadata for logical wire order; use
+`Operator.from_circuit` to obtain their unitary. Mapped results use physical
+wires without Qiskit layout metadata. Recompilation treats the current wires as
+the new inputs. Both compilers use radians and the target's operation names.
+Compilation requires a complete supported synthesis basis, including for
+already-native inputs. See the
 [parameter guide](docs/parameter.md#mqt-core-compiler) for target support,
 control flow, mirror circuits, and output provenance.
 

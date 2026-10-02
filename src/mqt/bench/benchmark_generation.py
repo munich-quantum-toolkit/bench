@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from enum import Enum, auto
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Literal, Unpack, assert_never, overload
@@ -26,6 +27,7 @@ from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
     from mqt.core.mlir import CompilationOptions
+    from qiskit.transpiler import StagedPassManager
 
     from .configuration_options import ConfigurationOptions
 
@@ -80,7 +82,7 @@ def _get_circuit(
 
 
 def _create_mirror_circuit(
-    qc_original: QuantumCircuit, *, inplace: bool = False, target: Target | None = None, optimization_level: int = 2
+    qc_original: QuantumCircuit, *, inplace: bool = False, pass_manager: StagedPassManager | None = None
 ) -> QuantumCircuit:
     """Generates the mirror version (qc @ qc.inverse()) of a given quantum circuit.
 
@@ -90,15 +92,14 @@ def _create_mirror_circuit(
     the permutation of qubits, this benchmark requires that the final qubit permutation
     is identical to the initial one, requiring the explicit layout handling herein.
     Also ensures that the mirrored circuit respects the native gate set of the target device
-    if a target is provided.
+    if a pass manager is provided.
 
     All qubits are measured at the end of the mirror circuit.
 
     Args:
         qc_original: The quantum circuit to mirror.
         inplace: If True, modifies the circuit in place. Otherwise, returns a new circuit.
-        target: Target device for transpilation. If provided, ensures native gate set compliance.
-        optimization_level: Optimization level of the transpilation.
+        pass_manager: Compiler pipeline to reuse for the mirror.
 
     Returns:
         The mirrored quantum circuit.
@@ -118,18 +119,11 @@ def _create_mirror_circuit(
     target_qc.compose(qc_inv, inplace=True)
 
     # Transpile to ensure the final circuit uses only native gates while preserving the initial layout.
-    if target is not None:
-        layout = target_qc.layout.initial_layout if target_qc.layout is not None else None
-        target_qc = transpile(
-            target_qc,
-            target=target,
-            optimization_level=optimization_level,
-            layout_method=None,
-            routing_method=None,
-            seed_transpiler=10,
-        )
+    if pass_manager is not None:
+        layout = deepcopy(target_qc.layout)
+        target_qc = pass_manager.run(target_qc)
         if layout is not None and target_qc.layout is not None:
-            target_qc.layout.initial_layout = layout
+            target_qc._layout = layout  # ruff:ignore[private-member-access]
 
     # Add final measurements to all active qubits
     target_qc.barrier(active_qubits)
@@ -176,6 +170,29 @@ def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
     """Replace an earlier compiler record when Qiskit recompiles the circuit."""
     if "mqt_bench_compiler" in circuit.metadata:
         circuit.metadata = circuit.metadata | {"mqt_bench_compiler": {"name": "qiskit", "version": version("qiskit")}}
+
+
+def _get_qiskit_pass_manager(target: Target, opt_level: int, *, native: bool) -> StagedPassManager:
+    """Build the native or mapped pipeline, including final pulse lowering."""
+    lowering = None
+    description = target.description or ""
+    if "rigetti" in description:
+        target, lowering = rigetti.prepare_target(target, native=native)
+    elif "ionq" in description:
+        ionq.add_equivalences(SessionEquivalenceLibrary)
+    # An explicit layout method also disables post-layout search for native compilation.
+    pm = generate_preset_pass_manager(
+        optimization_level=opt_level,
+        target=target,
+        seed_transpiler=10,
+        layout_method="trivial" if native else None,
+    )
+    if native:
+        pm.layout = None
+        pm.routing = None
+        pm.scheduling = None
+    pm.post_scheduling = lowering
+    return pm
 
 
 def _get_mqt_benchmark(
@@ -435,22 +452,11 @@ def get_benchmark_native_gates(
         pm = PassManager(SolovayKitaev())
         circuit = pm.run(compiled_for_sk)
 
-    if "rigetti" in target.description:
-        rigetti.add_equivalences(SessionEquivalenceLibrary)
-    elif "ionq" in target.description:
-        ionq.add_equivalences(SessionEquivalenceLibrary)
-    # An explicit layout method also disables post-layout search during optimization.
-    pm = generate_preset_pass_manager(
-        optimization_level=opt_level, target=target, seed_transpiler=10, layout_method="trivial"
-    )
-    pm.layout = None
-    pm.routing = None
-    pm.scheduling = None
-
+    pm = _get_qiskit_pass_manager(target, opt_level, native=True)
     compiled_circuit = pm.run(circuit)
     _update_qiskit_provenance(compiled_circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(compiled_circuit, inplace=True, target=target, optimization_level=opt_level)
+        return _create_mirror_circuit(compiled_circuit, inplace=True, pass_manager=pm)
     return compiled_circuit
 
 
@@ -539,20 +545,11 @@ def get_benchmark_mapped(
             generate_mirror_circuit=generate_mirror_circuit,
         )
 
-    if "rigetti" in target.description:
-        rigetti.add_equivalences(SessionEquivalenceLibrary)
-    elif "ionq" in target.description:
-        ionq.add_equivalences(SessionEquivalenceLibrary)
-
-    mapped_circuit = transpile(
-        circuit,
-        target=target,
-        optimization_level=opt_level,
-        seed_transpiler=10,
-    )
+    pm = _get_qiskit_pass_manager(target, opt_level, native=False)
+    mapped_circuit = pm.run(circuit)
     _update_qiskit_provenance(mapped_circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, inplace=True, target=target, optimization_level=opt_level)
+        return _create_mirror_circuit(mapped_circuit, inplace=True, pass_manager=pm)
     return mapped_circuit
 
 
