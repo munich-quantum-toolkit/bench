@@ -26,7 +26,7 @@ def create_circuit(
     r"""Returns a quantum circuit implementing the quantum part of Maximum Likelihood Quantum Amplitude Estimation (ML-QAE).
 
     The circuit is based on Section 4.2 of Suzuki et al. (2020), "Amplitude Estimation without Phase Estimation" (https://arxiv.org/abs/1904.10246).
-    The circuit follows the fixed exponentially increasing schedule: round 0 applies :math:`A` only, round :math:`k` (:math:`k = 1 \\dots \\text{num\\_rounds}`) applies :math:`Q^{2^{k-1}}` after :math:`A`.
+    The circuit follows the fixed exponentially increasing schedule: round 0 applies :math:`A` only, round :math:`k = 1,\ldots,\text{num\_rounds}`) applies :math:`Q^{2^{k-1}}` after :math:`A`.
     Each round's result is stored in its own classical bit and all qubits are reset between rounds. The classical maximum-likelihood post-processing is not part of the circuit.
 
     Arguments:
