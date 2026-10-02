@@ -351,8 +351,8 @@ def _success_rates(qc: QuantumCircuit, shots: int = 500) -> list[float]:
     unrolled = PassManager(UnrollForLoops()).run(qc)
     counts = backend.run(transpile(unrolled, backend), shots=shots, seed_simulator=42).result().get_counts()
     return [sum(c for bits, c in counts.items() if bits[-1 - k] == "1") / shots for k in range(qc.num_clbits)]
- 
- 
+
+
 def _expected_success_rates(num_qubits: int, num_rounds: int, b_max: float) -> list[float]:
     """Return sin^2((2 m_k + 1) theta_a) for the schedule m = 0, 1, 2, 4, ... with a = sin^2(theta_a) from Eq. (23)."""
     num_state_qubits = num_qubits - 1
@@ -362,14 +362,17 @@ def _expected_success_rates(num_qubits: int, num_rounds: int, b_max: float) -> l
     return [float(np.sin((2 * m + 1) * theta_a) ** 2) for m in schedule]
 
 
-@pytest.mark.parametrize(("num_qubits", "b_max", "for_loop"), [(1, np.pi / 4, False), (2, np.pi / 4, False), (3, np.pi / 4, False), (2, np.pi, True)])
+@pytest.mark.parametrize(
+    ("num_qubits", "b_max", "for_loop"),
+    [(1, np.pi / 4, False), (2, np.pi / 4, False), (3, np.pi / 4, False), (2, np.pi, True)],
+)
 def test_mlqae_simulated_output(num_qubits: int, b_max: float, for_loop: bool) -> None:
     """Test that simulating the circuit gives round k a success rate of sin^2((2 m_k + 1) theta_a)."""
     num_rounds = 3
     qc = create_circuit("mlqae", num_qubits, num_rounds=num_rounds, b_max=b_max, for_loop=for_loop)
- 
+
     expected = _expected_success_rates(num_qubits, num_rounds, b_max)
- 
+
     assert _success_rates(qc) == pytest.approx(expected, abs=0.1)
 
 
@@ -377,7 +380,7 @@ def test_mlqae_simulated_output(num_qubits: int, b_max: float, for_loop: bool) -
 def test_mlqae_circuit_structure(num_qubits: int, num_rounds: int) -> None:
     """Verify the structure of the ML-QAE circuit for various qubit and round counts."""
     qc = create_circuit("mlqae", num_qubits, num_rounds)
- 
+
     assert qc.num_qubits == num_qubits
     assert qc.num_clbits == num_rounds + 1
     assert "mlqae" in qc.name
