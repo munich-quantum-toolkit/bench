@@ -40,7 +40,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import UGate
 
@@ -87,11 +87,8 @@ class GPIGate(Gate):
 
     def _define(self) -> None:
         """Define the GPI gate."""
-        phi = self.params[0]
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.r(np.pi, phi, 0)
-        qc.global_phase = np.pi / 2
+        qc = QuantumCircuit(1, global_phase=np.pi / 2)
+        qc.r(np.pi, self.params[0], 0)
         self.definition = qc
 
 
@@ -124,11 +121,8 @@ class GPI2Gate(Gate):
 
     def _define(self) -> None:
         """Define the GPI2 gate."""
-        phi = self.params[0]
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.r(np.pi / 2, phi, 0)
-
+        qc = QuantumCircuit(1)
+        qc.r(np.pi / 2, self.params[0], 0)
         self.definition = qc
 
 
