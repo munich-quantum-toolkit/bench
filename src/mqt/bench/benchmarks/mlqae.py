@@ -10,8 +10,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 import math
+
+import numpy as np
 from qiskit.circuit import ClassicalRegister, ForLoopOp, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import grover_operator
 
