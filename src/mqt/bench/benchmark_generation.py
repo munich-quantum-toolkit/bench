@@ -173,7 +173,7 @@ def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
 
 
 def _get_qiskit_pass_manager(target: Target, opt_level: int, *, native: bool) -> StagedPassManager:
-    """Build the native or mapped pipeline, including final pulse lowering."""
+    """Build the native or mapped pipeline, including final gate lowering."""
     lowering = None
     description = target.description or ""
     if "rigetti" in description:

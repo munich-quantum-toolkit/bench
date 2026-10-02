@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Fixed RX pulses and arbitrary RZ rotations for Rigetti targets."""
+"""Fixed-angle RX gates and arbitrary RZ rotations for Rigetti targets."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def get_rigetti_gateset() -> list[str]:
 
 
 def prepare_target(target: Target, *, native: bool) -> tuple[Target, PassManager]:
-    """Use standard X gates for Qiskit synthesis, then lower to native RX pulses.
+    """Use standard X gates for Qiskit synthesis, then lower to native RX gates.
 
     The input is a Rigetti RX/RZ/CZ target with all four fixed RX angles.
     The local equivalences preserve full phase without changing Qiskit's
@@ -47,24 +47,24 @@ def prepare_target(target: Target, *, native: bool) -> tuple[Target, PassManager
         qubit_properties=target.qubit_properties,
         concurrent_measurements=target.concurrent_measurements,
     )
-    pulses = {"rxpi": (XGate(), pi), "rxpi2": (SXGate(), pi / 2), "rxpi2dg": (SXdgGate(), -pi / 2)}
+    standard_gates = {"rxpi": (XGate(), pi), "rxpi2": (SXGate(), pi / 2), "rxpi2dg": (SXdgGate(), -pi / 2)}
     library = EquivalenceLibrary(base=StandardEquivalenceLibrary)
     for name in target.operation_names:
         if name == "rxpidg":
-            # X uses the positive pi pulse; the native target retains both signs.
+            # X lowers to RX(pi); the native target retains both signs.
             continue
         operation = target.operation_from_name(name)
         properties = None if native or isinstance(operation, type) else deepcopy(target[name])
-        if name not in pulses:
+        if name not in standard_gates:
             compilation_target.add_instruction(operation, properties, name=name)
             continue
-        standard_gate, angle = pulses[name]
+        standard_gate, angle = standard_gates[name]
         compilation_target.add_instruction(standard_gate, properties)
-        pulse = Gate(name, 1, [angle])
-        pulse.definition = QuantumCircuit(1)
-        pulse.definition.rx(angle, 0)
+        gate = Gate(name, 1, [angle])
+        gate.definition = QuantumCircuit(1)
+        gate.definition.rx(angle, 0)
         rule = QuantumCircuit(1, global_phase=angle / 2)
-        rule.append(pulse, [0])
+        rule.append(gate, [0])
         library.add_equivalence(standard_gate, rule)
     lowering = PassManager(BasisTranslator(library, list(target.operation_names), target=None if native else target))
     return compilation_target, lowering

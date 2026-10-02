@@ -26,21 +26,25 @@ provider.
 
 ## Native gate conventions
 
+Bench models native gates. Providers translate them into physical control
+pulses; Bench does not model those sequences.
+
 IonQ GPI and GPI2 take one phase in radians. GPI is `i * R(pi, phase)`; GPI2 is
 `R(pi / 2, phase)`. Forte supports arbitrary `rz` as a virtual frame change with
-zero duration and error in the model. A serializer for pulse-only verbatim
-execution must absorb these rotations into pulse phases. Bench does not perform
-that serialization. The entangler is Qiskit's standard `rzz`; provider adapters
-handle IonQ's `zz` spelling and turn-based parameters.
+zero duration and error in the model. A serializer for verbatim execution must
+absorb these rotations into GPI/GPI2 gate phases when the provider accepts only
+GPI/GPI2/ZZ. Bench does not perform that serialization. The entangler is
+Qiskit's standard `rzz`; provider adapters handle IonQ's `zz` spelling and
+turn-based parameters.
 
 Rigetti exposes four standard `RXGate` capabilities under the names `rxpi`,
 `rxpidg`, `rxpi2`, and `rxpi2dg`, with fixed angles pi, -pi, pi/2, and -pi/2.
 These names let Qiskit distinguish the supported angles. RZ remains arbitrary.
 Qiskit optimizes a private target with standard SX, SXdg, and X gates, then
-lowers them to the named RX pulses with exact phase corrections. The lowering
+lowers them to the named RX gates with exact phase corrections. The lowering
 uses a local equivalence library, so returned circuits can be controlled or
 compiled to other targets. Core consumes the standard RX capabilities directly
-and performs its own native pulse lowering.
+and performs its own native gate lowering.
 
 AQT's `prx` and `xx` operations correspond to Qiskit's `r` and `rxx`. No
 three-parameter IonQ MS operation is required. IQM's `prx` also corresponds to

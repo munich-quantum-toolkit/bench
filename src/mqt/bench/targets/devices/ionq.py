@@ -22,8 +22,9 @@ from ._registry import register_device
 def get_ionq_forte_36() -> Target:
     """Get the Forte architecture, including arbitrary virtual Z rotations.
 
-    Pulse-only provider serializers must lower virtual Z rotations into pulse
-    phases. Bench returns circuits; it does not submit them to a provider.
+    Provider serializers must absorb virtual Z rotations into GPI/GPI2 gate
+    phases when the provider requires only GPI/GPI2/ZZ. Bench returns circuits;
+    it does not submit them to a provider.
     """
     num_qubits = 36
     target = Target(num_qubits=num_qubits, description="ionq_forte_36")

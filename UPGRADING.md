@@ -49,12 +49,12 @@ GPI and GPI2 phase parameters now use radians. Multiply existing turn-based
 parameters by `2 * pi`. Replace `ZZGate(theta)` with Qiskit's
 `RZZGate(2 * pi * theta)`. The custom `ZZGate` and `MSGate` classes were
 removed. Forte retains arbitrary virtual `rz` rotations. Provider adapters must
-lower virtual frame changes and convert units before pulse-only verbatim
-submission.
+absorb virtual frame changes into GPI/GPI2 gate phases and convert units before
+verbatim submission when required by the provider.
 
-Rigetti pulse classes were removed. Use standard `RXGate` instances with fixed
-angles and distinct target names: `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg`. The
-Rigetti gate set now uses CZ, matching Cepheus, instead of iSWAP.
+Custom Rigetti gate classes were removed. Use standard `RXGate` instances with
+fixed angles and distinct target names: `rxpi`, `rxpidg`, `rxpi2`, and
+`rxpi2dg`. The Rigetti gate set now uses CZ, matching Cepheus, instead of iSWAP.
 
 The device catalogue no longer includes `ionq_aria_25`, `ibm_falcon_27`,
 `ibm_falcon_127`, `ibm_eagle_127`, `ibm_heron_133`, or `rigetti_ankaa_84`. The
