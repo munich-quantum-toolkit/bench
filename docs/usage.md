@@ -114,7 +114,7 @@ To generate a 5-qubit Deutsch-Josza benchmark circuit at the mapped level for
 the 27-qubit IBM Falcon target and save it in OpenQASM 3 format, you can use:
 
 ```shell
-mqt-bench --level mapped --algorithm dj --num-qubits 5 --optimization-level 3 --target ibm_falcon_27 --output-format qasm3 --save
+mqt-bench --level mapped --algorithm dj --num-qubits 5 --optimization-level 3 --target ibm_heron_156 --output-format qasm3 --save
 ```
 
 ```{code-cell} python3
@@ -128,7 +128,7 @@ result = subprocess.run(
         "--algorithm", "dj",
         "--num-qubits", "5",
         "--optimization-level", "3",
-        "--target", "ibm_falcon_27",
+        "--target", "ibm_heron_156",
         "--output-format", "qasm3",
         "--save"
     ],

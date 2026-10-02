@@ -9,18 +9,17 @@ of changes including minor and patch releases, please refer to the
 ### Optional MQT Core compiler
 
 Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
-or `--compiler mqt` in the CLI. The extra pins Core's development commit
-`8bb73e5a19d06bc92eea23d8b8007e93f1b1c8b9` and requires Qiskit 2.5.x. Core
-builds from source; install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first.
-Qiskit remains the default compiler; existing Python calls keep their behavior.
-The CLI now defaults to optimization level 2 when the option is omitted.
+or `--compiler mqt` in the CLI. The extra pins the Core development revision
+listed in `pyproject.toml` and requires Qiskit 2.5.x. Core builds from source;
+install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first. Qiskit remains the
+default compiler; existing Python calls keep their behavior. The CLI now
+defaults to optimization level 2 when the option is omitted.
 
 The Core compiler uses a fixed optimization pipeline. Leave `opt_level` at its
 default of 2. Mapped results use physical wires without Qiskit layout metadata.
-Recompilation treats these wires as the new inputs. IonQ gates keep Bench's
-turn-based parameters; the adapter converts to Core's radians and restores
-provider names on export. Compilation requires a complete supported synthesis
-basis, including for already-native inputs. See the
+Recompilation treats these wires as the new inputs. Both compilers use radians
+and the target's operation names. Compilation requires a complete supported
+synthesis basis, including for already-native inputs. See the
 [parameter guide](docs/parameter.md#mqt-core-compiler) for target support,
 control flow, mirror circuits, and output provenance.
 
@@ -35,6 +34,31 @@ for measurement feedback; the default is `base`. Python exports use
 keyword `qir_profile`. Circuit generation still returns `QuantumCircuit`. See
 [QIR and LLVM output](docs/parameter.md#qir-and-llvm-output) for parameter
 binding, runtime requirements, and target limitations.
+
+### Target catalogue and gate conventions
+
+GPI and GPI2 phase parameters now use radians. Multiply existing turn-based
+parameters by `2 * pi`. Replace `ZZGate(theta)` with Qiskit's
+`RZZGate(2 * pi * theta)`. The custom `ZZGate` and `MSGate` classes were
+removed. Forte retains arbitrary virtual `rz` rotations. Provider adapters must
+lower virtual frame changes and convert units before pulse-only verbatim
+submission.
+
+Rigetti pulse classes were removed. Use standard `RXGate` instances with fixed
+angles and distinct target names: `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg`. The
+Rigetti gate set now uses CZ, matching Cepheus, instead of iSWAP.
+
+The device catalogue no longer includes `ionq_aria_25`, `ibm_falcon_27`,
+`ibm_falcon_127`, `ibm_eagle_127`, `ibm_heron_133`, or `rigetti_ankaa_84`. The
+`ionq_aria`, `ibm_falcon`, and `ibm_eagle` gate sets were also removed. Use
+`ionq_forte_36`, `ibm_heron_156`, or `rigetti_cepheus_107`, or supply your own
+target to retain a historical architecture. AQT's IBEX Q1 is available as
+`aqt_ibex_12`, with the `aqt` gate set.
+
+Cepheus uses 107 dense circuit wires. Convert them to the provider's sparse
+physical labels with `CEPHEUS_PHYSICAL_QUBITS` before submission. See the
+[target models](docs/targets.md) for provenance, calibration limits, virtual Z,
+and provider naming conventions.
 
 ## [2.3.0]
 

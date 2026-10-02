@@ -12,17 +12,25 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from math import pi
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pytest
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import RXGate
+from qiskit.quantum_info import Operator
 from qiskit.transpiler import Target
 
+from mqt.bench import BenchmarkLevel, get_benchmark
 from mqt.bench.targets.devices import (
     _module_from_device_name,  # ruff:ignore[import-private-name]
     get_available_device_names,
     get_device,
     register_device,
 )
+from mqt.bench.targets.devices.rigetti import CEPHEUS_PHYSICAL_QUBITS
 from mqt.bench.targets.gatesets import (
     _module_from_gateset_name,  # ruff:ignore[import-private-name]
     get_available_gateset_names,
@@ -30,6 +38,7 @@ from mqt.bench.targets.gatesets import (
     get_target_for_gateset,
     register_gateset,
 )
+from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -67,8 +76,8 @@ def _assert_single_qubit_gate_properties(target: Target, gate_name: str, *, vend
         if dur is not None:
             assert dur >= 0, f"{vendor}: negative duration for '{gate_name}' on qubit {qubit}"
         err = getattr(props, "error", None)
-        assert err is not None, f"{vendor}: error rate for '{gate_name}' on qubit {qubit} missing"
-        assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on qubit {qubit}"
+        if err is not None:
+            assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on qubit {qubit}"
 
 
 def _assert_two_qubit_gate_properties(target: Target, gate_name: str, *, symmetric: bool, vendor: str) -> None:
@@ -82,8 +91,8 @@ def _assert_two_qubit_gate_properties(target: Target, gate_name: str, *, symmetr
         if dur is not None:
             assert dur > 0, f"{vendor}: non-positive duration for '{gate_name}' on ({q0}, {q1})"
         err = getattr(props, "error", None)
-        assert err is not None, f"{vendor}: error rate for '{gate_name}' on ({q0}, {q1}) missing"
-        assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on ({q0}, {q1})"
+        if err is not None:
+            assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on ({q0}, {q1})"
         if symmetric:
             assert (
                 q1,
@@ -102,35 +111,17 @@ def _assert_measure_properties(target: Target, *, vendor: str) -> None:
         if dur is not None:
             assert dur > 0, f"{vendor}: non-positive measure duration on qubit {qubit}"
         err = getattr(props, "error", None)
-        assert err is not None, f"{vendor}: error rate for qubit {qubit} missing"
-        assert 0 <= err < 1, f"{vendor}: measure error outside [0,1) on qubit {qubit}"
+        if err is not None:
+            assert 0 <= err < 1, f"{vendor}: measure error outside [0,1) on qubit {qubit}"
 
 
 DEVICE_SPECS: Sequence[DeviceSpec] = [
-    # ─────────────────────────────────────────────────────────────────── IBM ──
     DeviceSpec(
-        name="ibm_falcon_27",
-        num_qubits=27,
-        single_qubit_gates={"sx", "rz", "x", "measure"},
-        two_qubit_gates={"cx"},
-    ),
-    DeviceSpec(
-        name="ibm_falcon_127",
-        num_qubits=127,
-        single_qubit_gates={"sx", "rz", "x", "measure"},
-        two_qubit_gates={"cx"},
-    ),
-    DeviceSpec(
-        name="ibm_eagle_127",
-        num_qubits=127,
-        single_qubit_gates={"sx", "rz", "x", "measure"},
-        two_qubit_gates={"ecr"},
-    ),
-    DeviceSpec(
-        name="ibm_heron_133",
-        num_qubits=133,
-        single_qubit_gates={"sx", "rz", "x", "measure"},
-        two_qubit_gates={"cz"},
+        name="aqt_ibex_12",
+        num_qubits=12,
+        single_qubit_gates={"r", "rz", "measure"},
+        two_qubit_gates={"rxx"},
+        symmetric_connectivity={"rxx": True},
     ),
     DeviceSpec(
         name="ibm_heron_156",
@@ -140,18 +131,11 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
     ),
     # ────────────────────────────────────────────────────────────────── IonQ ──
     DeviceSpec(
-        name="ionq_aria_25",
-        num_qubits=25,
-        single_qubit_gates={"gpi", "gpi2", "measure"},
-        two_qubit_gates={"ms"},
-        symmetric_connectivity={"ms": True},
-    ),
-    DeviceSpec(
         name="ionq_forte_36",
         num_qubits=36,
-        single_qubit_gates={"gpi", "gpi2", "measure"},
-        two_qubit_gates={"zz"},
-        symmetric_connectivity={"zz": True},
+        single_qubit_gates={"gpi", "gpi2", "rz", "measure"},
+        two_qubit_gates={"rzz"},
+        symmetric_connectivity={"rzz": True},
     ),
     # ─────────────────────────────────────────────────────────────────── IQM ──
     DeviceSpec(
@@ -185,10 +169,11 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
     ),
     # ─────────────────────────────────────────────────────────────── Rigetti ──
     DeviceSpec(
-        name="rigetti_ankaa_84",
-        num_qubits=84,
-        single_qubit_gates={"rxpi", "rxpi2", "rxpi2dg", "rz", "measure"},
-        two_qubit_gates={"iswap"},
+        name="rigetti_cepheus_107",
+        num_qubits=107,
+        single_qubit_gates={"rxpi", "rxpidg", "rxpi2", "rxpi2dg", "rz", "measure"},
+        two_qubit_gates={"cz"},
+        symmetric_connectivity={"cz": True},
     ),
 ]
 
@@ -224,15 +209,17 @@ def test_get_unknown_device() -> None:
     """Requesting an unavailable device must raise *ValueError*."""
     unknown_name = "unknown_device"
     pattern = re.escape(
-        f"'{unknown_name}' is not a supported device. Known modules: ['ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
+        f"'{unknown_name}' is not a supported device. Known modules: ['aqt', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
     )
 
     with pytest.raises(ValueError, match=pattern):
         get_device(unknown_name)
 
 
-def test_dynamic_device_registration() -> None:
+def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
+    get_available_device_names()
+    monkeypatch.setattr("mqt.bench.targets.devices._registry._REGISTRY", {})
 
     @register_device("dummy_device")
     def _dummy_factory() -> Target:
@@ -245,8 +232,10 @@ def test_dynamic_device_registration() -> None:
     assert isinstance(dev, Target)
 
 
-def test_dynamic_gateset_registration() -> None:
+def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A gateset registered at runtime should immediately be visible through the public helpers."""
+    get_available_gateset_names()
+    monkeypatch.setattr("mqt.bench.targets.gatesets._registry._REGISTRY", {})
 
     @register_gateset("dummy_gateset")
     def _dummy_factory() -> list[str]:
@@ -262,8 +251,10 @@ def test_dynamic_gateset_registration() -> None:
         get_target_for_gateset("dummy_gateset", 2)
 
 
-def test_duplicate_device_registration() -> None:
+def test_duplicate_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """Registering the same name twice must raise ValueError."""
+    get_available_device_names()
+    monkeypatch.setattr("mqt.bench.targets.devices._registry._REGISTRY", {})
 
     @register_device("dup_device")
     def _factory1() -> Target:
@@ -277,8 +268,10 @@ def test_duplicate_device_registration() -> None:
             return Target(num_qubits=1)
 
 
-def test_duplicate_gateset_registration() -> None:
+def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """Registering the same name twice must raise ValueError."""
+    get_available_gateset_names()
+    monkeypatch.setattr("mqt.bench.targets.gatesets._registry._REGISTRY", {})
 
     @register_gateset("dup_device")
     def _factory1() -> list[str]:
@@ -294,12 +287,12 @@ def test_duplicate_gateset_registration() -> None:
 
 def test_get_device_immutability() -> None:
     """Changes to a device retrieved by get_device should not affect the device in the registry. Same for device names."""
-    device = get_device("ionq_aria_25")
+    device = get_device("ionq_forte_36")
     device.description = "dummy_description"
     assert device.description == "dummy_description"
 
-    device2 = get_device("ionq_aria_25")
-    assert device2.description == "ionq_aria_25"
+    device2 = get_device("ionq_forte_36")
+    assert device2.description == "ionq_forte_36"
 
     device_names = get_available_device_names()
     device_names.append("dummy_devicename")
@@ -310,11 +303,11 @@ def test_get_device_immutability() -> None:
 
 def test_get_gateset_immutability() -> None:
     """Changes to a gateset retrieved by get_gateset should not affect the gateset in the registry. Sames for gateset names."""
-    gateset = get_gateset("ibm_falcon")
+    gateset = get_gateset("ibm_heron")
     gateset.append("dummy_gate")
     assert "dummy_gate" in gateset
 
-    gateset2 = get_gateset("ibm_falcon")
+    gateset2 = get_gateset("ibm_heron")
     assert "dummy_gate" not in gateset2
 
     gateset_names = get_available_gateset_names()
@@ -329,7 +322,7 @@ def test_get_gateset_immutability() -> None:
     ("gateset_name", "module_name"),
     [
         ("rigetti", "rigetti"),
-        ("ionq_aria", "ionq"),
+        ("ionq_forte", "ionq"),
         ("clifford+t", "clifford_t"),
         ("clifford+t+rotations", "clifford_t"),
     ],
@@ -339,7 +332,83 @@ def test_module_from_gateset_name(gateset_name: str, module_name: str) -> None:
     assert _module_from_gateset_name(gateset_name) == module_name
 
 
-@pytest.mark.parametrize(("device_name", "module_name"), [("rigetti_ankaa_84", "rigetti"), ("ionq_aria_25", "ionq")])
+@pytest.mark.parametrize(
+    ("device_name", "module_name"), [("rigetti_cepheus_107", "rigetti"), ("ionq_forte_36", "ionq")]
+)
 def test_module_from_device_name(device_name: str, module_name: str) -> None:
     """Test module name extraction from device name."""
     assert _module_from_device_name(device_name) == module_name
+
+
+@pytest.mark.parametrize("gateset", ["aqt", "ibm_heron", "ionq_forte", "iqm", "quantinuum", "rigetti"])
+@pytest.mark.parametrize("opt_level", [0, 2, 3])
+@pytest.mark.parametrize("symbolic", [False, True])
+def test_native_compilation_semantics(gateset: str, opt_level: int, *, symbolic: bool) -> None:
+    """Each hardware family preserves the complete matrix and target constraints."""
+    theta = Parameter("theta")
+    circuit = QuantumCircuit(2)
+    circuit.rx(theta if symbolic else 0.31, 0)
+    circuit.h(1)
+    circuit.u(0.43, -0.25, theta if symbolic else 0.16, 1)
+    circuit.cx(0, 1)
+    circuit.rz(-0.7, 0)
+    target = get_target_for_gateset(gateset, 2)
+    result = get_benchmark(
+        circuit, BenchmarkLevel.NATIVEGATES, target=target, opt_level=opt_level, random_parameters=False
+    )
+    for instruction in result.data:
+        assert target.instruction_supported(
+            instruction.operation.name,
+            qargs=tuple(result.find_bit(q).index for q in instruction.qubits),
+            parameters=instruction.operation.params,
+        )
+    if symbolic:
+        circuit = circuit.assign_parameters({theta: 0.37})
+        result = result.assign_parameters({theta: 0.37})
+    np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(circuit).data, atol=1e-12)
+
+
+@pytest.mark.parametrize(("gate_type", "angle", "phase"), [(GPIGate, pi, pi / 2), (GPI2Gate, pi / 2, 0)])
+def test_ionq_radian_definition(gate_type: type[GPIGate | GPI2Gate], angle: float, phase: float) -> None:
+    """Pulse phases use radians and retain the GPI gate's global phase."""
+    phi = Parameter("phi")
+    circuit = QuantumCircuit(1)
+    circuit.append(gate_type(phi), [0])
+    reference = QuantumCircuit(1, global_phase=phase)
+    reference.r(angle, 0.37, 0)
+    np.testing.assert_allclose(
+        Operator(circuit.assign_parameters({phi: 0.37})).data, Operator(reference).data, atol=1e-12
+    )
+
+
+def test_rigetti_fixed_rx_aliases() -> None:
+    """All four fixed pulses are standard RX capabilities with distinct names."""
+    for target in (get_target_for_gateset("rigetti", 2), get_device("rigetti_cepheus_107")):
+        for name, angle in (("rxpi", pi), ("rxpidg", -pi), ("rxpi2", pi / 2), ("rxpi2dg", -pi / 2)):
+            operation = target.operation_from_name(name)
+            assert isinstance(operation, RXGate)
+            assert operation.params == [angle]
+            assert target.instruction_supported(name, (0,), parameters=[angle])
+            assert not target.instruction_supported(name, (0,), parameters=[0.123])
+
+
+def test_cepheus_physical_labels() -> None:
+    """Dense wires preserve the provider's sparse labels and grid edges."""
+    target = get_device("rigetti_cepheus_107")
+    assert len(CEPHEUS_PHYSICAL_QUBITS) == target.num_qubits == 107
+    assert set(CEPHEUS_PHYSICAL_QUBITS) == set(range(108)) - {8}
+    edges = {(CEPHEUS_PHYSICAL_QUBITS[i], CEPHEUS_PHYSICAL_QUBITS[j]) for i, j in target["cz"]}
+    assert len(edges) == 386
+    assert (0, 9) in edges
+    assert (98, 107) in edges
+    assert (7, 9) not in edges
+    assert (17, 18) not in edges
+
+
+def test_forte_virtual_z() -> None:
+    """Forte supports arbitrary virtual Z rotations in the compiler model."""
+    target = get_device("ionq_forte_36")
+    assert target.instruction_supported("rz", (0,), parameters=[0.123])
+    assert target["rz"][0,].duration == 0
+    assert target["rz"][0,].error == 0
+    assert "rz" in get_gateset("ionq_forte")

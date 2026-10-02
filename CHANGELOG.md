@@ -17,17 +17,30 @@ that minor releases may include breaking changes.
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 - Add optional MQT Core compilation through `compiler="mqt"` and
   `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
-  compiler options with reproducible seed and trial defaults, IonQ unit
-  conversion, and compiler provenance in exported files. ([#1027])
+  compiler options with reproducible seed and trial defaults, strict target
+  import, and compiler provenance in exported files. ([#1027])
   ([**@simon1hofmann**])
 - Add QIR export as LLVM text (`qir`/`llvm`) or bitcode (`qir-bitcode`), with
   Base and Adaptive profile selection in Python and the CLI. Requires the `mqt`
   extra. ([#1027]) ([**@simon1hofmann**])
 
+### Changed
+
+- Use radians for GPI/GPI2 and standard RZZ for IonQ targets, retaining
+  arbitrary virtual Z rotations. Represent Rigetti's fixed RX pulses as standard
+  RX target aliases. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
+- Replace obsolete Aria, Falcon, Eagle, Heron-133, and Braket Ankaa models with
+  the current catalogue, including AQT IBEX Q1 and Rigetti Cepheus. Document
+  static device provenance and physical qubit labels. ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
+
 ### Fixed
 
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
+- Correct IonQ and Rigetti gate equivalences, including global phase, and use
+  Qiskit's standard CX decomposition through RZZ. ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 - Default the CLI optimization level to 2 when omitted. ([#1027])
