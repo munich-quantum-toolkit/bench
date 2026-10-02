@@ -430,6 +430,7 @@ def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None
 def test_fixed_ion_entangler_uses_radians() -> None:
     """Fixed RZZ angles and ordered placements survive native synthesis."""
     target = Target(num_qubits=2)
+    target.add_instruction(RZGate(Parameter("theta")))
     target.add_instruction(GPIGate(Parameter("phi")))
     target.add_instruction(GPI2Gate(Parameter("phi2")))
     target.add_instruction(RZZGate(np.pi / 2), {(1, 0): None})

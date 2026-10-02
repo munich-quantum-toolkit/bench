@@ -41,16 +41,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit.circuit import Gate, Parameter
-from qiskit.circuit.library import UGate
+from qiskit.circuit import Gate
 
 from ._registry import register_gateset
 
 if TYPE_CHECKING:
-    from qiskit.circuit import EquivalenceLibrary, ParameterExpression
-
-_U_GATE = UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda"))
-"""Stable parameter identities for equivalence lookup."""
+    from qiskit.circuit import ParameterExpression
 
 
 @register_gateset("ionq_forte")
@@ -60,26 +56,7 @@ def get_ionq_forte_gateset() -> list[str]:
 
 
 class GPIGate(Gate):
-    r"""Single-qubit GPI gate with phase in radians.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌───────┐
-        q_0: ┤ GPI(φ)├
-             └───────┘
-
-    **Matrix Representation:**.
-
-    .. math::
-
-       GPI(\phi) =
-            \begin{pmatrix}
-                0 & e^{-i*\phi} \\
-                e^{i*\phi} & 0
-            \end{pmatrix}
-    """
+    """GPI(phi) = i * R(pi, phi), with phase in radians."""
 
     def __init__(self, phi: ParameterExpression | float, label: str | None = None) -> None:
         """Create new GPI gate."""
@@ -93,27 +70,7 @@ class GPIGate(Gate):
 
 
 class GPI2Gate(Gate):
-    r"""Single-qubit GPI2 gate with phase in radians.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌───────┐
-        q_0: ┤GPI2(φ)├
-             └───────┘
-
-    **Matrix Representation:**.
-
-    .. math::
-
-        GPI2(\phi) =
-            \frac{1}{\sqrt{2}}
-            \begin{pmatrix}
-                1 & -i*e^{-i*\phi} \\
-                -i*e^{i*\phi} & 1
-            \end{pmatrix}
-    """
+    """GPI2(phi) = R(pi / 2, phi), with phase in radians."""
 
     def __init__(self, phi: ParameterExpression | float, label: str | None = None) -> None:
         """Create new GPI2 gate."""
@@ -124,17 +81,3 @@ class GPI2Gate(Gate):
         qc = QuantumCircuit(1)
         qc.r(np.pi / 2, self.params[0], 0)
         self.definition = qc
-
-
-def add_equivalences(sel: EquivalenceLibrary) -> None:
-    """Add the exact U decomposition into IonQ gates once per library.
-
-    Compare copies because Qiskit equality caches gate definitions.
-    """
-    theta, phi, lam = _U_GATE.params
-    circuit = QuantumCircuit(1, global_phase=(phi + lam) / 2 - np.pi / 2)
-    circuit.append(GPI2Gate(np.pi - lam), [0])
-    circuit.append(GPIGate((theta + phi - lam) / 2), [0])
-    circuit.append(GPI2Gate(np.pi + phi), [0])
-    if circuit not in (entry.copy() for entry in sel.get_entry(_U_GATE)):
-        sel.add_equivalence(_U_GATE, circuit)

@@ -17,13 +17,14 @@ from typing import TYPE_CHECKING, Literal, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 
 from .benchmarks import create_circuit
-from .targets.gatesets import get_target_for_gateset, ionq, rigetti
+from .targets.gatesets import get_target_for_gateset
+from .targets.gatesets._compilation import prepare_target
 
 if TYPE_CHECKING:  # pragma: no cover
     from mqt.core.mlir import CompilationOptions
@@ -174,12 +175,7 @@ def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
 
 def _get_qiskit_pass_manager(target: Target, opt_level: int, *, native: bool) -> StagedPassManager:
     """Build the native or mapped pipeline, including final gate lowering."""
-    lowering = None
-    description = target.description or ""
-    if "rigetti" in description:
-        target, lowering = rigetti.prepare_target(target, native=native)
-    elif "ionq" in description:
-        ionq.add_equivalences(SessionEquivalenceLibrary)
+    target, lowering = prepare_target(target, native=native)
     # An explicit layout method also disables post-layout search for native compilation.
     pm = generate_preset_pass_manager(
         optimization_level=opt_level,

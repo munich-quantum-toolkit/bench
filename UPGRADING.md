@@ -50,7 +50,9 @@ parameters by `2 * pi`. Replace `ZZGate(theta)` with Qiskit's
 `RZZGate(2 * pi * theta)`. The custom `ZZGate` and `MSGate` classes were
 removed. Forte retains arbitrary virtual `rz` rotations. Provider adapters must
 absorb virtual frame changes into GPI/GPI2 gate phases and convert units before
-verbatim submission when required by the provider.
+verbatim submission when required by the provider. Qiskit compiles IonQ and
+Rigetti targets through standard X/SX gates, then emits the native gate names
+without changing the session equivalence library.
 
 Custom Rigetti gate classes were removed. Use standard `RXGate` instances with
 fixed angles and distinct target names: `rxpi`, `rxpidg`, `rxpi2`, and
