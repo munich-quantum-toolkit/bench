@@ -26,8 +26,9 @@ that minor releases may include breaking changes.
 
 ### Changed
 
-- Require Qiskit 2.5 or newer for native-gate compilation without post-layout
-  search. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
+- Require Qiskit 2.1.2 or newer to avoid a post-layout failure at optimization
+  level 3. The optional `mqt` extra requires Qiskit 2.5.x. ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - Use radians for GPI/GPI2 and standard RZZ for IonQ targets, retaining
   arbitrary virtual Z rotations. Represent Rigetti's fixed RX pulses as standard
   RX target aliases. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
@@ -40,9 +41,9 @@ that minor releases may include breaking changes.
 
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
-- Correct IonQ and Rigetti gate equivalences, including global phase, and use
-  Qiskit's standard CX decomposition through RZZ. ([#1027])
-  ([**@simon1hofmann**], [**@burgholzer**])
+- Correct IonQ and Rigetti gate equivalences, including global phase, register
+  them without duplicates, and use Qiskit's standard CX decomposition through
+  RZZ. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 - Default the CLI optimization level to 2 when omitted. ([#1027])

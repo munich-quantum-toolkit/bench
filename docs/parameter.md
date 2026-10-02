@@ -68,7 +68,7 @@ Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
 pins a tested Core development revision and requires Qiskit 2.5.x. Core builds
 from source and requires a C++20 compiler and LLVM/MLIR 23.1 or newer; follow
 [Core's build instructions][core-build] and set `MLIR_DIR` before installing.
-The base installation keeps its broader Qiskit version support.
+The base installation supports Qiskit 2.1.2 or newer, below version 3.
 
 ```python
 from mqt.bench import BenchmarkLevel, get_benchmark

@@ -22,6 +22,9 @@ from ._registry import register_gateset
 if TYPE_CHECKING:
     from qiskit.circuit import EquivalenceLibrary
 
+_U_GATE = UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda"))
+"""Stable parameter identities for equivalence lookup."""
+
 
 @register_gateset("rigetti")
 def get_rigetti_gateset() -> list[str]:
@@ -30,8 +33,11 @@ def get_rigetti_gateset() -> list[str]:
 
 
 def add_equivalences(sel: EquivalenceLibrary) -> None:
-    """Register U decomposition whose pulse names match fixed RX target aliases."""
-    theta, phi, lam = Parameter("theta"), Parameter("phi"), Parameter("lambda")
+    """Register U decomposition with fixed RX target aliases once per library.
+
+    Compare copies because Qiskit equality caches pulse definitions.
+    """
+    theta, phi, lam = _U_GATE.params
     pulses = []
     for name, angle in (("rxpi2", pi / 2), ("rxpi2dg", -pi / 2)):
         pulse = Gate(name, 1, [angle])
@@ -44,4 +50,5 @@ def add_equivalences(sel: EquivalenceLibrary) -> None:
     circuit.rz(theta, 0)
     circuit.append(pulses[1], [0])
     circuit.rz(phi, 0)
-    sel.add_equivalence(UGate(theta, phi, lam), circuit)
+    if circuit not in (entry.copy() for entry in sel.get_entry(_U_GATE)):
+        sel.add_equivalence(_U_GATE, circuit)
