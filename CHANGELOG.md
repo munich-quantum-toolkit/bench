@@ -42,10 +42,9 @@ that minor releases may include breaking changes.
 
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
-- Preserve global phase in IonQ equivalences and Rigetti gate lowering. Use
-  standard Qiskit gates during Rigetti optimization and a local lowering library
-  so native results remain reusable. ([#1027]) ([**@simon1hofmann**],
-  [**@burgholzer**])
+- Optimize IonQ and Rigetti circuits using standard Qiskit gates, then lower to
+  native gates with exact global phase and local equivalences so results remain
+  reusable. ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
 - Retain logical wire layout metadata in Core's native compilation results and
   preserve complete Qiskit layouts when compiling mirror circuits. ([#1027])
   ([**@simon1hofmann**], [**@burgholzer**])

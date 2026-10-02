@@ -18,9 +18,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.circuit import EquivalenceLibrary, Parameter
-from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary
-from qiskit.circuit.library import RXGate, UGate
+from qiskit.circuit import Gate, Parameter
+from qiskit.circuit.library import CZGate, HGate, RXGate, RYGate, RZGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import Target
 
@@ -37,9 +36,9 @@ from mqt.bench.targets.gatesets import (
     get_available_gateset_names,
     get_gateset,
     get_target_for_gateset,
-    ionq,
     register_gateset,
 )
+from mqt.bench.targets.gatesets._compilation import prepare_target  # ruff:ignore[import-private-name]
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
@@ -342,22 +341,6 @@ def test_module_from_device_name(device_name: str, module_name: str) -> None:
     assert _module_from_device_name(device_name) == module_name
 
 
-def test_ionq_equivalence_registration_is_idempotent() -> None:
-    """Repeated registration preserves existing recipes without adding duplicates."""
-    library = EquivalenceLibrary(base=StandardEquivalenceLibrary)
-    gate = UGate(0.31, -0.72, 0.19)
-    original = library.get_entry(gate)
-    ionq.add_equivalences(library)
-    registered = library.get_entry(gate)
-    assert len(registered) == len(original) + 1
-    assert all(circuit in registered for circuit in original)
-    ionq.add_equivalences(library)
-    assert len(library.get_entry(gate)) == len(registered)
-    for bound_gate in (gate, UGate(-0.29, 0.12, 1.7)):
-        recipe = library.get_entry(bound_gate)[-1].copy()
-        np.testing.assert_allclose(Operator(recipe).data, Operator(bound_gate).data, atol=1e-12)
-
-
 @pytest.mark.parametrize("gateset", ["aqt", "ibm_heron", "ionq_forte", "iqm", "quantinuum", "rigetti"])
 @pytest.mark.parametrize("opt_level", [0, 2, 3])
 @pytest.mark.parametrize("symbolic", [False, True])
@@ -432,19 +415,21 @@ def test_forte_virtual_z() -> None:
     assert "rz" in get_gateset("ionq_forte")
 
 
+@pytest.mark.parametrize("gateset", ["rigetti", "ionq_forte"])
 @pytest.mark.parametrize("angle", [pi / 2, -pi / 2, pi, -pi])
-def test_rigetti_compilation_uses_one_native_rx_gate(angle: float) -> None:
-    """Standard synthesis recognizes each native rotation as one native RX gate."""
+def test_fixed_rotation_uses_one_native_gate(gateset: str, angle: float) -> None:
+    """Quarter and half turns need only one native gate besides virtual Z."""
     circuit = QuantumCircuit(2)
     circuit.rx(angle, 0)
-    target = get_target_for_gateset("rigetti", 2)
+    target = get_target_for_gateset(gateset, 2)
     result = get_benchmark(circuit, BenchmarkLevel.NATIVEGATES, target=target)
-    assert sum(count for name, count in result.count_ops().items() if name.startswith("rx")) == 1
+    assert sum(count for name, count in result.count_ops().items() if name != "rz") == 1
     np.testing.assert_allclose(Operator(result).data, Operator(circuit).data, atol=1e-12)
 
 
+@pytest.mark.parametrize("gateset", ["rigetti", "ionq_forte"])
 @pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-def test_rigetti_output_can_be_controlled_and_recompiled(level: BenchmarkLevel) -> None:
+def test_native_output_can_be_controlled_and_recompiled(gateset: str, level: BenchmarkLevel) -> None:
     """Native definitions stay reusable outside their original target."""
     from qiskit import transpile  # ruff:ignore[import-outside-top-level]
 
@@ -453,7 +438,8 @@ def test_rigetti_output_can_be_controlled_and_recompiled(level: BenchmarkLevel) 
     circuit.rx(theta, 0)
     circuit.h(1)
     circuit.cx(0, 1)
-    target = get_target_for_gateset("rigetti", 2)
+    target = get_target_for_gateset(gateset, 2)
+    target.description = "custom target"
     result = get_benchmark(circuit, level, target=target, random_parameters=False)
     for value in [-0.37, 0.29]:
         bound = result.assign_parameters({theta: value})
@@ -465,3 +451,23 @@ def test_rigetti_output_can_be_controlled_and_recompiled(level: BenchmarkLevel) 
             Operator(Operator(bound).to_instruction().control()).data,
             atol=1e-12,
         )
+
+
+@pytest.mark.parametrize(
+    ("name", "operation"),
+    [
+        ("rxpi2", RXGate(0.37)),
+        ("rxpi2", RYGate(pi / 2)),
+        ("gpi2", HGate()),
+        ("gpi2", GPI2Gate(0.37)),
+    ],
+)
+def test_native_gate_names_do_not_override_capabilities(name: str, operation: Gate) -> None:
+    """A familiar alias must not change the declared gate or allowed angles."""
+    target = Target(num_qubits=2)
+    target.add_instruction(RZGate(Parameter("theta")))
+    target.add_instruction(CZGate())
+    target.add_instruction(operation, name=name)
+    prepared, lowering = prepare_target(target, native=True)
+    assert prepared is target
+    assert lowering is None

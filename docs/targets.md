@@ -40,11 +40,9 @@ turn-based parameters.
 Rigetti exposes four standard `RXGate` capabilities under the names `rxpi`,
 `rxpidg`, `rxpi2`, and `rxpi2dg`, with fixed angles pi, -pi, pi/2, and -pi/2.
 These names let Qiskit distinguish the supported angles. RZ remains arbitrary.
-Qiskit optimizes a private target with standard SX, SXdg, and X gates, then
-lowers them to the named RX gates with exact phase corrections. The lowering
-uses a local equivalence library, so returned circuits can be controlled or
-compiled to other targets. Core consumes the standard RX capabilities directly
-and performs its own native gate lowering.
+For IonQ and Rigetti, Qiskit optimizes standard X/SX gates and then emits native
+gates with exact phase corrections through a local equivalence library. Core
+uses existing R and RX gates and preserves native names on export.
 
 AQT's `prx` and `xx` operations correspond to Qiskit's `r` and `rxx`. No
 three-parameter IonQ MS operation is required. IQM's `prx` also corresponds to
