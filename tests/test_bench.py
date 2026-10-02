@@ -364,7 +364,7 @@ def _expected_success_rates(num_qubits: int, num_rounds: int, b_max: float) -> l
 
 @pytest.mark.parametrize(
     ("num_qubits", "b_max", "for_loop"),
-    [(1, np.pi / 4, False), (2, np.pi / 4, False), (3, np.pi / 4, False), (2, np.pi, True)],
+    [(1, np.pi / 4, False), (2, np.pi / 4, True), (3, np.pi / 4, False), (2, 1.0, True)],
 )
 def test_mlqae_simulated_output(num_qubits: int, b_max: float, for_loop: bool) -> None:
     """Test that simulating the circuit gives round k a success rate of sin^2((2 m_k + 1) theta_a)."""
