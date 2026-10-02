@@ -411,8 +411,14 @@ def test_mlqae_invalid_parameters() -> None:
     with pytest.raises(ValueError, match=r"num_rounds must be at least 1."):
         create_circuit("mlqae", 3, num_rounds=0)
 
-    with pytest.raises(ValueError, match=r"b_max must be positive."):
+    with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
         create_circuit("mlqae", 3, b_max=0.0)
+
+    with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
+        create_circuit("mlqae", 3, b_max=float("inf"))
+
+    with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
+        create_circuit("mlqae", 3, b_max=float("nan"))
 
 
 def test_dj_constant_oracle() -> None:

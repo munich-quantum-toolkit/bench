@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import numpy as np
+import math
 from qiskit.circuit import ClassicalRegister, ForLoopOp, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import grover_operator
 
@@ -39,8 +40,8 @@ def create_circuit(
         msg = "num_rounds must be at least 1."
         raise ValueError(msg)
 
-    if b_max <= 0:
-        msg = "b_max must be positive."
+    if not np.isfinite(b_max) or b_max <= 0:
+        msg = "b_max must be positive and finite."
         raise ValueError(msg)
 
     objective = num_qubits - 1
@@ -51,9 +52,10 @@ def create_circuit(
     state_preparation = QuantumCircuit(num_qubits, name="A")
     if objective > 0:
         state_preparation.h(range(num_state_qubits))
-    state_preparation.ry(b_max / 2**num_state_qubits, objective)
+    state_preparation.ry(math.ldexp(b_max, -num_state_qubits), objective)
     for j in range(num_state_qubits):
-        state_preparation.cry(2 ** (j + 1) * b_max / 2**num_state_qubits, j, objective)
+        angle = math.ldexp(b_max, j + 1 - num_state_qubits)
+        state_preparation.cry(angle, j, objective)
 
     # Oracle marking the good state (objective = 1) and Grover operator Q = A S_0 A^dagger S_chi.
     oracle = QuantumCircuit(num_qubits, name="S_chi")
