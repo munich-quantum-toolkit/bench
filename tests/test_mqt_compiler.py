@@ -405,6 +405,32 @@ def test_native_ion_and_fixed_rx_gate_targets(gateset: str, level: BenchmarkLeve
         assert any(item.operation.name == "rxpi2" for item in result.data)
 
 
+@pytest.mark.parametrize(
+    ("gateset", "entangler", "count"), [("ionq_forte", "rzz", 1), ("aqt", "rxx", 1), ("rigetti", "cz", 2)]
+)
+@pytest.mark.parametrize("gate", ["rxx", "ryy", "rzx", "rzz", "cp", "crx", "cry", "crz"])
+def test_symbolic_rotations_use_native_entanglers(gateset: str, entangler: str, count: int, gate: str) -> None:
+    """Compile before binding while preserving native names, phase, and parameters."""
+    theta = Parameter("theta")
+    source = QuantumCircuit(2, global_phase=0.19)
+    getattr(source, gate)(theta, 0, 1)
+    target = get_target_for_gateset(gateset, 2)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
+    assert result.parameters == source.parameters
+    assert result.count_ops().get(entangler, 0) == count
+    for item in result.data:
+        assert target.instruction_supported(
+            operation_name=item.operation.name,
+            qargs=tuple(result.find_bit(qubit).index for qubit in item.qubits),
+            parameters=item.operation.params,
+        )
+    for value in [-0.37, 0.0, np.pi, 2 * np.pi]:
+        assert np.allclose(
+            Operator.from_circuit(result.assign_parameters({theta: value})).data,
+            Operator(source.assign_parameters({theta: value})).data,
+        )
+
+
 @pytest.mark.parametrize("gate_name", ["gpi", "gpi2", "rzz", "rz"])
 @pytest.mark.parametrize("symbolic", [False, True])
 def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None:

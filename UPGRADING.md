@@ -27,9 +27,10 @@ default of 2. Native results retain layout metadata for logical wire order; use
 wires without Qiskit layout metadata. Recompilation treats the current wires as
 the new inputs. Both compilers use radians and the target's operation names.
 Compilation requires a complete supported synthesis basis, including for
-already-native inputs. See the
-[parameter guide](docs/parameter.md#mqt-core-compiler) for target support,
-control flow, mirror circuits, and output provenance.
+already-native inputs. Pauli rotations, single-controlled Pauli rotations, and
+controlled phase gates can retain free parameters through native compilation.
+See the [parameter guide](docs/parameter.md#mqt-core-compiler) for target
+support, control flow, mirror circuits, and output provenance.
 
 Core compilation defaults to seed `10` and four mapping trials. Pass
 `compiler_options=CompilationOptions(...)` to override those defaults through

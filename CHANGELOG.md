@@ -18,8 +18,8 @@ that minor releases may include breaking changes.
 - Add optional MQT Core compilation through `compiler="mqt"` and
   `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
   compiler options with reproducible seed and trial defaults, strict target
-  import, and compiler provenance in exported files. ([#1027])
-  ([**@simon1hofmann**])
+  import, runtime Pauli rotations, and compiler provenance in exported files.
+  ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
 - Add QIR export as LLVM text (`qir`/`llvm`) or bitcode (`qir-bitcode`), with
   Base and Adaptive profile selection in Python and the CLI. Requires the `mqt`
   extra. ([#1027]) ([**@simon1hofmann**])
