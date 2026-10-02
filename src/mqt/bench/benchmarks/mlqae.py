@@ -36,7 +36,7 @@ def create_circuit(
         for_loop: Whether to use a structured for-loop for the Grover iterations within each round.
 
     Returns:
-        QuantumCircuit: The constructed ML-QAE circuit.
+        The constructed ML-QAE circuit.
     """
     if num_rounds < 1:
         msg = "num_rounds must be at least 1."
