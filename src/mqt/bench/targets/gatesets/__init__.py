@@ -124,6 +124,8 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
     standard_gates = []
     other_gates = []
     for gate in gates:
+        if gateset_name == "ibm_heron_fractional" and gate in {"rx", "rzz"}:
+            continue
         if gate in get_standard_gate_name_mapping():
             standard_gates.append(gate)
         else:
@@ -131,6 +133,10 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
     backend = GenericBackendV2(num_qubits=num_qubits, basis_gates=standard_gates, control_flow=True, seed=10)
     target = backend.target
     target.description = gateset_name
+    if gateset_name == "ibm_heron_fractional":
+        from .ibm import add_fractional_gates  # ruff:ignore[import-outside-top-level]
+
+        add_fractional_gates(target)
 
     custom_factory = _lazy_custom_gates()
     for gate_name in other_gates:

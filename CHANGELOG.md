@@ -15,6 +15,9 @@ that minor releases may include breaking changes.
 ### Added
 
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
+- Add fractional Heron models with arbitrary RX and bounded RZZ gates, including
+  numeric angle folding in both compilers. Requires Qiskit 2.2 or newer.
+  ([#1027]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 - Add optional MQT Core compilation through `compiler="mqt"` and
   `--compiler mqt`, with native gate synthesis, device mapping, mirror circuits,
