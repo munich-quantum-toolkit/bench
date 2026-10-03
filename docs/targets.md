@@ -59,8 +59,9 @@ The `ibm_heron_fractional` gate set and `ibm_heron_156_fractional` device add
 and RZZ rotations in `[0, pi/2]`. Calibration remains synthetic. Both compilers
 fold numeric RZZ angles into this interval with local corrections. Bind
 parameters before Qiskit compilation to enforce the interval; Core lowers
-unknown runtime angles through CZ. These models require Qiskit 2.2 or newer; the
-other models retain the Qiskit 2.1.2 minimum.
+unknown runtime angles with two `RZZ(pi/2)` gates and local corrections. These
+models require Qiskit 2.2 or newer; the other models retain the Qiskit 2.1.2
+minimum.
 
 ## Physical qubit labels
 

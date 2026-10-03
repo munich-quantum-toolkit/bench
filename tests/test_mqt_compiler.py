@@ -28,7 +28,6 @@ from qiskit.circuit import (
 from qiskit.circuit.library import (
     CXGate,
     GlobalPhaseGate,
-    HGate,
     PermutationGate,
     RXGate,
     RYGate,
@@ -701,13 +700,16 @@ def test_unknown_target_gate_definitions_rejected(name: str) -> None:
 
 
 @pytest.mark.parametrize("mapped", [False, True])
-def test_disconnected_target_rejected(*, mapped: bool) -> None:
+def test_target_without_applicable_entangler_rejected(*, mapped: bool) -> None:
     """A multi-qubit target needs an applicable entangling capability."""
     target = Target(num_qubits=2)
-    target.add_instruction(HGate())
+    target.add_instruction(UGate(*ParameterVector("u", 3)))
     target.add_instruction(CXGate(), {})
     compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
-    with pytest.raises(ValueError, match="topology must be connected"):
+    error, message = (
+        (ValueError, "topology must be connected") if mapped else (RuntimeError, "no usable two-qubit entangler")
+    )
+    with pytest.raises(error, match=message):
         compile_circuit("ghz", 2, target, compiler="mqt")
 
 
@@ -967,7 +969,7 @@ def test_fractional_heron_mqt(*, mapped: bool, symbolic: bool) -> None:
             target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
         )
         if symbolic:
-            assert "rzz" not in result.count_ops()
+            assert result.count_ops()["rzz"] == 2
             circuit = circuit.assign_parameters({theta: angle})
             result = result.assign_parameters({theta: angle})
         else:
