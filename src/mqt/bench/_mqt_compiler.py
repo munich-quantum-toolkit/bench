@@ -71,9 +71,15 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
         and target.qargs_for_operation_name(name) != set()
         and not isinstance(target.operation_from_name(name), GlobalPhaseGate)
     ]
-    core_target = CompilerTarget.from_qiskit(
-        target, operation_names=names, native_num_qubits=None if mapped else num_qubits
-    )
+    if mapped:
+        core_target = CompilerTarget.from_qiskit(target, operation_names=names)
+    else:
+        names = [name for name in names if target.operation_from_name(name).num_qubits <= num_qubits]
+        core_target = CompilerTarget(
+            num_qubits,
+            connectivity=CompilerTarget.Connectivity.all_to_all(),
+            native_operations=CompilerTarget.NativeOperations.from_qiskit(target, operation_names=names),
+        )
     return TargetEnvironment(
         core_target,
         PayloadSpecification(
