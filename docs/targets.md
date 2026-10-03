@@ -12,6 +12,7 @@ The current hardware catalogue contains:
 | `aqt_ibex_12`              | `r`, `rz`, `rxx`                         | IBEX Q1, all-to-all connectivity; Braket snapshot of 2026-10-02 |
 | `ibm_heron_156_fractional` | `id`, `x`, `sx`, `rx`, `rz`, `cz`, `rzz` | Heron with fractional gates (Qiskit 2.2+)                       |
 | `ibm_heron_156`            | `id`, `x`, `sx`, `rz`, `cz`              | 156-qubit Heron architecture                                    |
+| `ibm_nighthawk_120`        | `id`, `x`, `sx`, `rz`, `cz`              | 120-qubit Nighthawk, 12-by-10 grid                              |
 | `ionq_forte_36`            | `gpi`, `gpi2`, `rz`, `rzz`               | Forte architecture with virtual Z rotations                     |
 | `iqm_crystal_5`            | `r`, `cz`                                | Ideal 5-qubit Crystal architecture, also used by IQM Spark      |
 | `iqm_crystal_20`           | `r`, `cz`                                | Ideal Garnet architecture                                       |
@@ -21,6 +22,10 @@ The current hardware catalogue contains:
 
 All device models include measurement. A target's control-flow instructions
 express Bench's compiler model; they do not promise provider submission support.
+Nighthawk's topology and gates follow IBM Runtime's
+[FakeNighthawk snapshot](https://github.com/Qiskit/qiskit-ibm-runtime/blob/main/qiskit_ibm_runtime/fake_provider/backends/nighthawk/conf_nighthawk.json).
+It has 218 undirected couplings and shares Heron's conventional gate set.
+Fractional gates are modeled for Heron only, following IBM's documented support.
 The ideal IQM models retain couplers that may be disabled in a live calibration.
 For a particular execution, supply an up-to-date Qiskit `Target` from the
 provider.
