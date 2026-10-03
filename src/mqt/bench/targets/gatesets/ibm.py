@@ -28,8 +28,9 @@ if TYPE_CHECKING:
 
 
 @register_gateset("ibm_heron")
+@register_gateset("ibm_nighthawk")
 def get_ibm_heron_gateset() -> list[str]:
-    """Returns the basis gates of the IBM Heron gateset."""
+    """Return the shared CZ basis of IBM Heron and Nighthawk."""
     return ["id", "x", "sx", "rz", "cz"]
 
 

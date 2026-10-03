@@ -130,6 +130,13 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
         single_qubit_gates={"sx", "rz", "x", "measure"},
         two_qubit_gates={"cz"},
     ),
+    DeviceSpec(
+        name="ibm_nighthawk_120",
+        num_qubits=120,
+        single_qubit_gates={"id", "sx", "rz", "x", "measure", "reset"},
+        two_qubit_gates={"cz"},
+        symmetric_connectivity={"cz": True},
+    ),
     # ────────────────────────────────────────────────────────────────── IonQ ──
     DeviceSpec(
         name="ionq_forte_36",
@@ -498,3 +505,25 @@ def test_fractional_heron_device() -> None:
     assert target.qargs_for_operation_name("rzz") == target.qargs_for_operation_name("cz")
     assert target.instruction_supported("rzz", (0, 1), parameters=[np.pi / 2])
     assert not target.instruction_supported("rzz", (0, 1), parameters=[-0.37])
+
+
+def test_nighthawk_topology_and_compilation() -> None:
+    """The numbered IBM grid compiles to supported physical instructions."""
+    target = get_device("ibm_nighthawk_120")
+    edges = set(target["cz"])
+    assert len(edges) == 436
+    assert {(0, 1), (0, 10), (109, 119), (118, 119)} <= edges
+    assert (9, 10) not in edges
+    circuit = QuantumCircuit(3)
+    circuit.h(0)
+    circuit.cx(0, 2)
+    circuit.rxx(-0.37, 1, 2)
+    result = get_benchmark(circuit, BenchmarkLevel.MAPPED, target=target, random_parameters=False)
+    assert all(
+        target.instruction_supported(
+            item.operation.name,
+            tuple(result.find_bit(qubit).index for qubit in item.qubits),
+            parameters=item.operation.params,
+        )
+        for item in result.data
+    )

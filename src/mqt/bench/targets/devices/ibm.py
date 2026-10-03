@@ -11,13 +11,31 @@
 from __future__ import annotations
 
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler import Target
+from qiskit.transpiler import CouplingMap, Target
 
 from ..gatesets import get_gateset
 from ..gatesets.ibm import add_fractional_gates
 from ._registry import register_device
 
 DEFAULT_SEED = 42
+
+
+@register_device("ibm_nighthawk_120")
+def get_ibm_nighthawk_120() -> Target:
+    """Get IBM's 12-by-10 Nighthawk grid with synthetic calibration.
+
+    Qubit numbering and gates follow IBM Runtime's FakeNighthawk snapshot.
+    """
+    target = GenericBackendV2(
+        num_qubits=120,
+        coupling_map=CouplingMap.from_grid(12, 10),
+        basis_gates=get_gateset("ibm_nighthawk"),
+        noise_info=True,
+        seed=DEFAULT_SEED,
+        control_flow=True,
+    ).target
+    target.description = "ibm_nighthawk_120"
+    return target
 
 
 @register_device("ibm_heron_156")

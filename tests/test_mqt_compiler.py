@@ -64,6 +64,26 @@ if TYPE_CHECKING:
 core = pytest.importorskip("mqt.core.mlir")
 
 
+@pytest.mark.parametrize("name", ["ibm_heron_156", "ibm_nighthawk_120", "ibm_heron_156_fractional"])
+def test_ibm_device_compilation(name: str) -> None:
+    """Compile the same workload against conventional and fractional IBM devices."""
+    target = get_device(name)
+    circuit = QuantumCircuit(3)
+    circuit.h(0)
+    circuit.cx(0, 2)
+    circuit.rzz(-0.37, 1, 2)
+    result = get_benchmark(circuit, BenchmarkLevel.MAPPED, target=target, compiler="mqt", random_parameters=False)
+    assert all(
+        target.instruction_supported(
+            item.operation.name,
+            tuple(result.find_bit(qubit).index for qubit in item.qubits),
+            parameters=item.operation.params,
+        )
+        for item in result.data
+    )
+    assert result.count_ops().get("rzz", 0) == (2 if name.endswith("fractional") else 0)
+
+
 @pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.LLVM, OutputFormat.QIR_BITCODE])
 @pytest.mark.parametrize("profile", ["base", "adaptive"])
 def test_qir_export(fmt: OutputFormat, profile: Literal["base", "adaptive"], tmp_path: Path) -> None:
