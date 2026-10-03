@@ -18,10 +18,8 @@ __all__ = ["ConfigurationOptions"]
 class ConfigurationOptions(TypedDict, total=False):
     """Configuration options for benchmark generation.
 
-    All fields are optional. Currently supported options:
-
-    Attributes:
-        seed: Random seed for deterministic benchmark generation (None for random behavior).
+    All fields are optional.
     """
 
     seed: int | None
+    """Random seed for deterministic benchmark generation (None for random behavior)."""

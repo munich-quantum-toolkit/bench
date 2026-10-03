@@ -6,14 +6,14 @@
 #
 # Licensed under the MIT License
 
-"""Fixed-angle RX gates and arbitrary RZ rotations for Rigetti targets."""
+"""Native AQT gates in Qiskit's radian convention."""
 
 from __future__ import annotations
 
 from ._registry import register_gateset
 
 
-@register_gateset("rigetti")
-def get_rigetti_gateset() -> list[str]:
-    """Return the RX/RZ/CZ basis used by Cepheus."""
-    return ["rxpi", "rxpidg", "rxpi2", "rxpi2dg", "rz", "cz", "measure"]
+@register_gateset("aqt")
+def get_aqt_gateset() -> list[str]:
+    """Return AQT's phased rotations, Z rotations, and XX interactions."""
+    return ["r", "rz", "rxx", "measure"]

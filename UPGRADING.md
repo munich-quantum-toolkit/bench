@@ -6,6 +6,81 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### IBM architecture models
+
+Use `ibm_nighthawk_120` for Nighthawk's 120-qubit grid or `ibm_heron_156` for
+Heron's 156-qubit heavy-hex topology. Both use the CZ-based gate set. The
+fractional variant is `ibm_heron_156_fractional`.
+
+### Qiskit 2.1.2 minimum
+
+Upgrade Qiskit to 2.1.2 or newer. Qiskit 2.1.0 and 2.1.1 have a post-layout
+failure at optimization level 3. Only the optional MQT Core compiler and QIR
+export require Qiskit 2.5.x. The new fractional Heron models require Qiskit 2.2
+or newer. Bind parameters before Qiskit compilation to legalize bounded RZZ
+angles; Core also supports unbound inputs through a fixed-gate fallback.
+
+### Optional MQT Core compiler
+
+Use `pip install "mqt-bench[mqt]"` and select `compiler="mqt"` in the Python API
+or `--compiler mqt` in the CLI. The extra pins the Core development revision
+listed in `pyproject.toml` and requires Qiskit 2.5.x. Core builds from source;
+install LLVM/MLIR 23.1 or newer and set `MLIR_DIR` first. Qiskit remains the
+default compiler; existing Python calls keep their behavior. The CLI now
+defaults to optimization level 2 when the option is omitted.
+
+The Core compiler uses a fixed optimization pipeline. Leave `opt_level` at its
+default of 2. Native results retain layout metadata for logical wire order; use
+`Operator.from_circuit` to obtain their unitary. Mapped results use physical
+wires without Qiskit layout metadata. Recompilation treats the current wires as
+the new inputs. Both compilers use radians and the target's operation names.
+Compilation requires a complete supported synthesis basis, including for
+already-native inputs. Pauli rotations, single-controlled Pauli rotations, and
+controlled phase gates can retain free parameters through native compilation.
+See the [parameter guide](docs/parameter.md#mqt-core-compiler) for target
+support, control flow, mirror circuits, and output provenance.
+
+Core compilation defaults to seed `10` and four mapping trials. Pass
+`compiler_options=CompilationOptions(...)` to override those defaults through
+Core's Python API, including during mirror recompilation.
+
+The same extra enables `--output-format qir` (or `llvm`) for LLVM text and
+`--output-format qir-bitcode` for binary output. Use `--qir-profile adaptive`
+for measurement feedback; the default is `base`. Python exports use
+`OutputFormat.QIR`, `OutputFormat.LLVM`, or `OutputFormat.QIR_BITCODE` and the
+keyword `qir_profile`. Circuit generation still returns `QuantumCircuit`. See
+[QIR and LLVM output](docs/parameter.md#qir-and-llvm-output) for parameter
+binding, runtime requirements, and target limitations.
+
+### Target catalogue and gate conventions
+
+GPI and GPI2 phase parameters now use radians. Multiply existing turn-based
+parameters by `2 * pi`. Replace `ZZGate(theta)` with Qiskit's
+`RZZGate(2 * pi * theta)`. The custom `ZZGate` and `MSGate` classes were
+removed. Forte retains arbitrary virtual `rz` rotations. Provider adapters must
+absorb virtual frame changes into GPI/GPI2 gate phases and convert units before
+verbatim submission when required by the provider. Qiskit compiles IonQ and
+Rigetti targets through standard X/SX gates, then emits the native gate names
+without changing the session equivalence library.
+
+Custom Rigetti gate classes were removed. Use standard `RXGate` instances with
+fixed angles and distinct target names: `rxpi`, `rxpidg`, `rxpi2`, and
+`rxpi2dg`. The Rigetti gate set now uses CZ, matching Cepheus, instead of iSWAP.
+
+The device catalogue no longer includes `ionq_aria_25`, `ibm_falcon_27`,
+`ibm_falcon_127`, `ibm_eagle_127`, `ibm_heron_133`, or `rigetti_ankaa_84`. The
+`ionq_aria`, `ibm_falcon`, and `ibm_eagle` gate sets were also removed. Use
+`ionq_forte_36`, `ibm_heron_156`, or `rigetti_cepheus_107`, or supply your own
+target to retain a historical architecture. AQT's IBEX Q1 is available as
+`aqt_ibex_12`, with the `aqt` gate set.
+
+Cepheus uses 107 dense circuit wires. Convert them to the provider's sparse
+physical labels with `CEPHEUS_PHYSICAL_QUBITS` before submission. See the
+[target models](docs/targets.md) for provenance, calibration limits, virtual Z,
+and provider naming conventions. Forte and Cepheus device models no longer
+advertise generic classical feedback; their native gate compilation supports
+unitary circuits and measurements.
+
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum
