@@ -10,7 +10,9 @@ of changes including minor and patch releases, please refer to the
 
 Upgrade Qiskit to 2.1.2 or newer. Qiskit 2.1.0 and 2.1.1 have a post-layout
 failure at optimization level 3. Only the optional MQT Core compiler and QIR
-export require Qiskit 2.5.x.
+export require Qiskit 2.5.x. The new fractional Heron models require Qiskit 2.2
+or newer. Bind parameters before Qiskit compilation to legalize bounded RZZ
+angles; Core also supports unbound inputs through a fixed-gate fallback.
 
 ### Optional MQT Core compiler
 

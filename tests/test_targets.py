@@ -471,3 +471,30 @@ def test_native_gate_names_do_not_override_capabilities(name: str, operation: Ga
     prepared, lowering = prepare_target(target, native=True)
     assert prepared is target
     assert lowering is None
+
+
+@pytest.mark.skipif(not hasattr(Target, "gate_has_angle_bounds"), reason="Fractional targets need Qiskit 2.2")
+@pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
+@pytest.mark.parametrize("angle", [-100.0, -np.pi, -0.37, 0.37, 2.4, 100.0])
+def test_fractional_heron_qiskit(level: BenchmarkLevel, angle: float) -> None:
+    """Fractional targets keep native RZZ angles within the hardware interval."""
+    target = get_target_for_gateset("ibm_heron_fractional", 2)
+    circuit = QuantumCircuit(2)
+    circuit.rzz(angle, 0, 1)
+    result = get_benchmark(circuit, level, target=target, random_parameters=False)
+    assert all(
+        target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
+    )
+    assert np.allclose(Operator(result).data, Operator(circuit).data)
+    assert result.count_ops().get("rzz", 0) <= 1
+
+
+@pytest.mark.skipif(not hasattr(Target, "gate_has_angle_bounds"), reason="Fractional targets need Qiskit 2.2")
+def test_fractional_heron_device() -> None:
+    """Fractional gates share the Heron sites and couplings."""
+    target = get_device("ibm_heron_156_fractional")
+    assert target.num_qubits == 156
+    assert target.qargs_for_operation_name("rx") == target.qargs_for_operation_name("sx")
+    assert target.qargs_for_operation_name("rzz") == target.qargs_for_operation_name("cz")
+    assert target.instruction_supported("rzz", (0, 1), parameters=[np.pi / 2])
+    assert not target.instruction_supported("rzz", (0, 1), parameters=[-0.37])

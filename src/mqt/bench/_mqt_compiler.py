@@ -11,12 +11,10 @@
 from __future__ import annotations
 
 from importlib.metadata import version
-from math import inf
 from typing import TYPE_CHECKING
 
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library import GlobalPhaseGate
-from qiskit.transpiler import Target
 
 try:
     from mqt.core.mlir import (
@@ -40,6 +38,7 @@ except ModuleNotFoundError as exc:
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+    from qiskit.transpiler import Target
 
 _CONTROL_FLOW = {
     "if_else": ProgramCapability.FORWARD_BRANCHING,
@@ -72,22 +71,9 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
         and target.qargs_for_operation_name(name) != set()
         and not isinstance(target.operation_from_name(name), GlobalPhaseGate)
     ]
-    source = target
-    if not mapped:
-        source = Target(num_qubits=num_qubits)
-        for name in names:
-            operation = target.operation_from_name(name)
-            if not isinstance(operation, type) and operation.num_qubits > num_qubits:
-                continue
-            # Qiskit exposes bound predicates, but not the bounds for copying.
-            if target.gate_has_angle_bounds(name) and any(
-                not target.supported_angle_bound(name, [bound] * len(operation.params)) for bound in (-inf, inf)
-            ):
-                msg = f"Cannot represent parameter constraints for '{name}'."
-                raise ValueError(msg)
-            source.add_instruction(operation, name=name)
-        names = list(source.operation_names)
-    core_target = CompilerTarget.from_qiskit(source, operation_names=names)
+    core_target = CompilerTarget.from_qiskit(
+        target, operation_names=names, native_num_qubits=None if mapped else num_qubits
+    )
     return TargetEnvironment(
         core_target,
         PayloadSpecification(

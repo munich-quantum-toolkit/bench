@@ -7,16 +7,17 @@ stated otherwise; IBM models use seeded synthetic calibration.
 
 The current hardware catalogue contains:
 
-| Device                | Gates                       | Model                                                           |
-| --------------------- | --------------------------- | --------------------------------------------------------------- |
-| `aqt_ibex_12`         | `r`, `rz`, `rxx`            | IBEX Q1, all-to-all connectivity; Braket snapshot of 2026-10-02 |
-| `ibm_heron_156`       | `id`, `x`, `sx`, `rz`, `cz` | 156-qubit Heron architecture                                    |
-| `ionq_forte_36`       | `gpi`, `gpi2`, `rz`, `rzz`  | Forte architecture with virtual Z rotations                     |
-| `iqm_crystal_5`       | `r`, `cz`                   | Ideal 5-qubit Crystal architecture, also used by IQM Spark      |
-| `iqm_crystal_20`      | `r`, `cz`                   | Ideal Garnet architecture                                       |
-| `iqm_crystal_54`      | `r`, `cz`                   | Ideal Emerald architecture, including all designed couplers     |
-| `quantinuum_h2_56`    | `rx`, `ry`, `rz`, `rzz`     | H2 architecture                                                 |
-| `rigetti_cepheus_107` | fixed `rx`, `rz`, `cz`      | Cepheus's 107 active qubits; Braket snapshot of 2026-10-02      |
+| Device                     | Gates                                    | Model                                                           |
+| -------------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| `aqt_ibex_12`              | `r`, `rz`, `rxx`                         | IBEX Q1, all-to-all connectivity; Braket snapshot of 2026-10-02 |
+| `ibm_heron_156_fractional` | `id`, `x`, `sx`, `rx`, `rz`, `cz`, `rzz` | Heron with fractional gates (Qiskit 2.2+)                       |
+| `ibm_heron_156`            | `id`, `x`, `sx`, `rz`, `cz`              | 156-qubit Heron architecture                                    |
+| `ionq_forte_36`            | `gpi`, `gpi2`, `rz`, `rzz`               | Forte architecture with virtual Z rotations                     |
+| `iqm_crystal_5`            | `r`, `cz`                                | Ideal 5-qubit Crystal architecture, also used by IQM Spark      |
+| `iqm_crystal_20`           | `r`, `cz`                                | Ideal Garnet architecture                                       |
+| `iqm_crystal_54`           | `r`, `cz`                                | Ideal Emerald architecture, including all designed couplers     |
+| `quantinuum_h2_56`         | `rx`, `ry`, `rz`, `rzz`                  | H2 architecture                                                 |
+| `rigetti_cepheus_107`      | fixed `rx`, `rz`, `cz`                   | Cepheus's 107 active qubits; Braket snapshot of 2026-10-02      |
 
 All device models include measurement. A target's control-flow instructions
 express Bench's compiler model; they do not promise provider submission support.
@@ -47,6 +48,14 @@ uses existing R and RX gates and preserves native names on export.
 AQT's `prx` and `xx` operations correspond to Qiskit's `r` and `rxx`. No
 three-parameter IonQ MS operation is required. IQM's `prx` also corresponds to
 `r`. These compiler names are independent of provider serialization names.
+
+The `ibm_heron_fractional` gate set and `ibm_heron_156_fractional` device add
+[arbitrary RX rotations](https://quantum.cloud.ibm.com/docs/en/guides/fractional-gates)
+and RZZ rotations in `[0, pi/2]`. Calibration remains synthetic. Both compilers
+fold numeric RZZ angles into this interval with local corrections. Bind
+parameters before Qiskit compilation to enforce the interval; Core lowers
+unknown runtime angles through CZ. These models require Qiskit 2.2 or newer; the
+other models retain the Qiskit 2.1.2 minimum.
 
 ## Physical qubit labels
 

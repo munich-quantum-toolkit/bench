@@ -10,16 +10,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from ._registry import register_device
-
-if TYPE_CHECKING:
-    from qiskit.transpiler import Target
-
 from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.transpiler import Target
 
 from ..gatesets import get_gateset
+from ..gatesets.ibm import add_fractional_gates
+from ._registry import register_device
 
 DEFAULT_SEED = 42
 
@@ -392,3 +388,15 @@ def get_ibm_heron_156() -> Target:
     target = backend.target
     target.description = "ibm_heron_156"
     return target
+
+
+def get_ibm_heron_156_fractional() -> Target:
+    """Get the Heron architecture with fractional gates and synthetic calibration."""
+    target = get_ibm_heron_156()
+    add_fractional_gates(target)
+    target.description = "ibm_heron_156_fractional"
+    return target
+
+
+if hasattr(Target, "gate_has_angle_bounds"):
+    register_device("ibm_heron_156_fractional")(get_ibm_heron_156_fractional)

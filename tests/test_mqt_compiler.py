@@ -930,3 +930,26 @@ def test_native_compilation_preserves_logical_wire_layout() -> None:
     source.cx(1, 0)
     result = get_benchmark_native_gates(source, None, get_target_for_gateset("rigetti", 3), compiler="mqt")
     np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(source).data, atol=1e-12)
+
+
+@pytest.mark.parametrize("mapped", [False, True])
+@pytest.mark.parametrize("symbolic", [False, True])
+def test_fractional_heron_mqt(*, mapped: bool, symbolic: bool) -> None:
+    """Core keeps numeric fractional entanglers and safely lowers unknown angles."""
+    target = get_target_for_gateset("ibm_heron_fractional", 2)
+    compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
+    theta = Parameter("theta")
+    for angle in (-100.0, -0.37, 0.37, 2.4, 100.0):
+        circuit = QuantumCircuit(2)
+        circuit.rzz(theta if symbolic else angle, 0, 1)
+        result = compile_circuit(circuit, None, target, compiler="mqt", random_parameters=False)
+        assert all(
+            target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
+        )
+        if symbolic:
+            assert "rzz" not in result.count_ops()
+            circuit = circuit.assign_parameters({theta: angle})
+            result = result.assign_parameters({theta: angle})
+        else:
+            assert result.count_ops()["rzz"] == 1
+        assert np.allclose(Operator.from_circuit(result).data, Operator(circuit).data)
