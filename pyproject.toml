@@ -53,7 +53,7 @@ email = "burgholzer@me.com"
 
 [project.optional-dependencies]
 mqt = [
-  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@cdf609911d4813a4e0c401a9d2baa0e9b8ece871",
+  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@02103652062415d71c8428d91e8bd927ad1993b2",
   "qiskit[qasm3-import]>=2.5,<2.6",
 ]
 
