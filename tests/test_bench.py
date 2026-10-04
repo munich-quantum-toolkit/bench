@@ -18,7 +18,7 @@ import re
 from enum import StrEnum
 from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn, cast
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
 import numpy as np
 import pytest
@@ -26,14 +26,17 @@ from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.quantum_info import Operator
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
     PassManager,
     Target,  # For layout handling
 )
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -130,6 +133,10 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
                 continue
             if "reset" in qc.count_ops() and "reset" not in device.operation_names:
                 # This circuit needs reset, which the target does not support.
+                continue
+            if "if_else" in qc.count_ops() and "if_else" not in device.operation_names:
+                with pytest.raises(TranspilerError, match="control-flow construct 'if_else'"):
+                    get_benchmark_mapped(qc, None, device, 0)
                 continue
             res_mapped = get_benchmark_mapped(
                 qc,
@@ -612,15 +619,15 @@ def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
             "ghz",
             BenchmarkLevel.MAPPED,
             3,
-            get_device("ibm_falcon_127"),
+            get_device("ibm_heron_156"),
             0,
         ),
-        ("ghz", BenchmarkLevel.MAPPED, 3, get_device("ibm_falcon_27"), 2),
+        ("ghz", BenchmarkLevel.MAPPED, 3, get_device("ibm_heron_156"), 2),
         (
             "ghz",
             BenchmarkLevel.MAPPED,
             3,
-            get_device("ionq_aria_25"),
+            get_device("ionq_forte_36"),
             0,
         ),
     ],
@@ -671,7 +678,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "dj",
             BenchmarkLevel.INDEP,
             None,
-            get_device("rigetti_ankaa_84"),
+            get_device("rigetti_cepheus_107"),
             1,
         )
     match = "`circuit_size` must be a positive integer when `benchmark` is a str."
@@ -680,7 +687,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "dj",
             BenchmarkLevel.INDEP,
             -1,
-            get_device("rigetti_ankaa_84"),
+            get_device("rigetti_cepheus_107"),
             1,
         )
     match = "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74."
@@ -689,7 +696,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             "shor",
             BenchmarkLevel.INDEP,
             3,
-            get_device("rigetti_ankaa_84"),
+            get_device("rigetti_cepheus_107"),
             1,
         )
     match = re.escape("Invalid `opt_level` '4'. Must be in the range [0, 3].")
@@ -698,11 +705,11 @@ def test_get_benchmark_faulty_parameters() -> None:
             "qpeexact",
             BenchmarkLevel.INDEP,
             3,
-            get_device("rigetti_ankaa_84"),
+            get_device("rigetti_cepheus_107"),
             4,
         )
     match = re.escape(
-        "'wrong_gateset' is not a supported gateset. Known modules: ['clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
+        "'wrong_gateset' is not a supported gateset. Known modules: ['aqt', 'clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
     )
     with pytest.raises(ValueError, match=match):
         get_benchmark(
@@ -713,7 +720,7 @@ def test_get_benchmark_faulty_parameters() -> None:
             1,
         )
     match = re.escape(
-        "'wrong_device' is not a supported device. Known modules: ['ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
+        "'wrong_device' is not a supported device. Known modules: ['aqt', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
     )
     with pytest.raises(ValueError, match=match):
         get_benchmark(
@@ -867,27 +874,27 @@ def test_validate_input() -> None:
         (BenchmarkLevel.INDEP, None, True, "ghz_indep_mirror_opt2_5"),
         (
             BenchmarkLevel.NATIVEGATES,
-            get_target_for_gateset("ibm_falcon", 5),
+            get_target_for_gateset("ibm_heron", 5),
             False,
-            "ghz_nativegates_ibm_falcon_opt2_5",
+            "ghz_nativegates_ibm_heron_opt2_5",
         ),
         (
             BenchmarkLevel.NATIVEGATES,
-            get_target_for_gateset("ibm_falcon", 5),
+            get_target_for_gateset("ibm_heron", 5),
             True,
-            "ghz_nativegates_mirror_ibm_falcon_opt2_5",
+            "ghz_nativegates_mirror_ibm_heron_opt2_5",
         ),
         (
             BenchmarkLevel.MAPPED,
-            get_device("ibm_falcon_127"),
+            get_device("ibm_heron_156"),
             False,
-            "ghz_mapped_ibm_falcon_127_opt2_5",
+            "ghz_mapped_ibm_heron_156_opt2_5",
         ),
         (
             BenchmarkLevel.MAPPED,
-            get_device("ibm_falcon_127"),
+            get_device("ibm_heron_156"),
             True,
-            "ghz_mapped_mirror_ibm_falcon_127_opt2_5",
+            "ghz_mapped_mirror_ibm_heron_156_opt2_5",
         ),
     ],
 )
@@ -1008,12 +1015,13 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert "// Output format: qpy" in header
 
 
-def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3, OutputFormat.QPY])
+def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fmt: OutputFormat) -> None:
     """Simulate I/O error while writing."""
     qc = QuantumCircuit(1)
     qc.h(0)
 
-    out = tmp_path / "readonly.qasm"
+    out = tmp_path / f"readonly.{fmt.extension()}"
 
     # Monkey-patch builtins.open to throw OSError on any attempt to open for writing
     def fake_open(*args: str, **kwargs: str) -> NoReturn:
@@ -1024,17 +1032,18 @@ def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(metadata, "version", lambda _: "0.1.0")
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=OutputFormat.QASM2)
+        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
 
     msg = str(exc.value)
-    assert "failed to write qasm2 file" in msg.lower()
+    assert f"failed to write {fmt.value} file" in msg.lower()
     assert "disk full" in msg.lower()
 
     # restore Path.open so other tests continue unharmed
     monkeypatch.setattr(Path, "open", builtins.open)
 
 
-def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
+@pytest.mark.parametrize("stream", [False, True])
+def test_write_circuit_unsupported_format(tmp_path: Path, stream: bool) -> None:
     """Requesting an unsupported format should raise."""
 
     class FakeFormat(StrEnum):
@@ -1043,7 +1052,12 @@ def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     qc = QuantumCircuit(1)
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, tmp_path / "foo.fake", BenchmarkLevel.INDEP, fmt=FakeFormat.FAKE)  # ty: ignore[no-matching-overload]
+        write_circuit(
+            qc,
+            io.StringIO() if stream else tmp_path / "foo.fake",
+            BenchmarkLevel.INDEP,
+            fmt=cast("OutputFormat", FakeFormat.FAKE),
+        )
 
     msg = str(exc.value)
     assert "unsupported output format" in msg.lower()
@@ -1114,6 +1128,16 @@ def test_stream_mode_mismatch_raises() -> None:
     # Text stream + QPY → error
     with pytest.raises(MQTBenchExporterError):
         write_circuit(qc, io.StringIO(), BenchmarkLevel.INDEP, fmt=OutputFormat.QPY)
+
+
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3, OutputFormat.QPY])
+def test_closed_export_stream(fmt: OutputFormat) -> None:
+    """Translate closed-stream errors without losing the original cause."""
+    stream = io.BytesIO() if fmt is OutputFormat.QPY else io.StringIO()
+    stream.close()
+    with pytest.raises(MQTBenchExporterError, match="Failed to write") as exc:
+        write_circuit(QuantumCircuit(1), stream, BenchmarkLevel.ALG, fmt)
+    assert isinstance(exc.value.__cause__, ValueError)
 
 
 def test_custom_target() -> None:
@@ -1191,7 +1215,7 @@ def test_native_gate_parity(benchmark: str, size: int, opt_level: int) -> None:
 @pytest.mark.parametrize(("benchmark", "size", "opt_level"), [("qft", 4, 1)])
 def test_mapped_parity(benchmark: str, size: int, opt_level: int) -> None:
     """Test parity of mapped benchmarks."""
-    target = get_device("ibm_falcon_127")
+    target = get_device("ibm_heron_156")
     qc_wrapper = get_benchmark_mapped(
         benchmark,
         size,
@@ -1219,7 +1243,7 @@ def test_validate_opt_level(benchmark: str, size: int, opt_level: int) -> None:
             opt_level=opt_level,
         )
 
-    target = get_device("ibm_falcon_127")
+    target = get_device("ibm_heron_156")
     with pytest.raises(ValueError, match=match):
         get_benchmark_native_gates(
             benchmark,
@@ -1264,12 +1288,12 @@ def test_get_benchmark_mirror_option() -> None:
         (
             BenchmarkLevel.NATIVEGATES,
             1,
-            get_target_for_gateset("ibm_falcon", num_qubits=logical_circuit_size),
+            get_target_for_gateset("ibm_heron", num_qubits=logical_circuit_size),
         ),
         (
             BenchmarkLevel.MAPPED,
             1,
-            get_device("ibm_falcon_27"),
+            get_device("ibm_heron_156"),
         ),
     ]
 
@@ -1338,16 +1362,29 @@ def test_get_benchmark_mirror_option() -> None:
         qc_mirror.remove_final_measurements(inplace=True)
         qc_mirror = RemoveBarriers()(qc_mirror)
 
-        optimized_circuit = transpile(
-            qc_mirror,
-            optimization_level=2,
-            basis_gates=["u", "cx"],
-        )
+        active_qubits = [q for q in qc_mirror.qubits if q not in circuit_to_dag(qc_mirror).idle_wires()]
+        compact = QuantumCircuit(len(active_qubits), global_phase=qc_mirror.global_phase)
+        for instruction in qc_mirror.data:
+            compact.append(instruction.operation, [active_qubits.index(q) for q in instruction.qubits])
+        np.testing.assert_allclose(Operator(compact).data, np.eye(2 ** len(active_qubits)), atol=1e-12)
 
-        assert len(optimized_circuit.data) == 0, (
-            f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
-            "did not optimize to an empty circuit. This means it might not represent the identity."
-        )
+
+def test_mapped_mirror_preserves_complete_layout() -> None:
+    """Mirror layout metadata keeps the original logical qubits and ancillas."""
+    source = QuantumCircuit(3)
+    source.h(2)
+    source.cx(2, 1)
+    source.cx(1, 0)
+    original = source.copy()
+    target = get_device("iqm_crystal_5")
+    base = get_benchmark_mapped(source, None, target)
+    mirror = get_benchmark_mapped(source, None, target, generate_mirror_circuit=True)
+    assert source == original
+    assert base.layout is not None
+    assert mirror.layout is not None
+    assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
+    mirror.remove_final_measurements(inplace=True)
+    np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
 
 
 def test_dynamic_benchmark_registration() -> None:
@@ -1462,3 +1499,51 @@ def test_version() -> None:
     """Test that the package version is accessible."""
     assert isinstance(mqt.bench.__version__, str)
     assert isinstance(mqt.bench.__version_tuple__, tuple)
+
+
+@pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
+def test_invalid_compiler(compiler: str) -> None:
+    """Reject unknown compilers before circuit generation."""
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=cast('Literal["qiskit", "mqt"]', compiler))
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=compiler)
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 3])
+def test_mqt_optimization_level(opt_level: int) -> None:
+    """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
+    with pytest.raises(ValueError, match="MQT Core uses its default optimization pipeline"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level)
+
+
+def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A base installation works and gives an installation hint when Core is selected."""
+    import sys  # ruff:ignore[import-outside-top-level]
+
+    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
+    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
+    assert get_benchmark_indep("ghz", 3)
+    with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
+        get_benchmark_indep("ghz", 3, compiler="mqt")
+    with pytest.raises(MQTBenchExporterError, match=r"pip install.*mqt-bench\[mqt\]"):
+        write_circuit(QuantumCircuit(1), io.StringIO(), BenchmarkLevel.ALG, OutputFormat.QIR)
+
+
+def test_broken_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Preserve dependency import failures instead of reporting Core as uninstalled."""
+    import sys  # ruff:ignore[import-outside-top-level]
+
+    original_import = cast("Callable[..., object]", builtins.__import__)
+
+    def fail_core_import(name: str, *args: object, **kwargs: object) -> object:
+        if name == "mqt.core.mlir":
+            msg = "Missing native dependency"
+            raise ModuleNotFoundError(msg, name="core_native_dependency")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
+    monkeypatch.setattr(builtins, "__import__", fail_core_import)
+    with pytest.raises(ModuleNotFoundError, match="Missing native dependency") as exc:
+        get_benchmark_indep("ghz", 3, compiler="mqt")
+    assert exc.value.name == "core_native_dependency"

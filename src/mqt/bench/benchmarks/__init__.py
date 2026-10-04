@@ -120,8 +120,7 @@ def create_circuit(benchmark_name: str, circuit_size: int, /, *args: Any, **kwar
         the given benchmark name.
 
     Raises:
-        ValueError: If the specified benchmark name is not in the list of available
-        benchmarks.
+        ValueError: If the specified benchmark name is not available.
     """
     if circuit_size <= 0:
         msg = "`circuit_size` must be a positive integer when `benchmark` is a str."

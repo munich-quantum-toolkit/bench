@@ -38,7 +38,7 @@ dependencies = [
   "numpy>=1.26; python_version>='3.12'",
   "numpy>=2.1; python_version>='3.13'",
   "numpy>=2.3.2; python_version>='3.14'",
-  "qiskit[qasm3-import]>=2.1,<3",
+  "qiskit[qasm3-import]>=2.1.2,<3",
   "scikit-learn>=1.5.2",
   "scikit-learn>=1.7.2; python_version>='3.14'",
 ]
@@ -50,6 +50,12 @@ email = "nils.quetschlich@tum.de"
 [[project.authors]]
 name = "Lukas Burgholzer"
 email = "burgholzer@me.com"
+
+[project.optional-dependencies]
+mqt = [
+  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@2949012238d2b3f2d425d02d97e62456f50a1d87",
+  "qiskit[qasm3-import]>=2.5,<2.6",
+]
 
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
@@ -84,14 +90,18 @@ docs = [
   "sphinx-autoapi>=3.6",
   "sphinx-copybutton>=0.5.2",
   "sphinx-design>=0.7",
-  "sphinx-llm>=1",
+  "sphinx-llm>=1,<1.1",            # 1.1 drops citation and Python signature nodes in Markdown output.
   "sphinxcontrib-bibtex>=2.7",
   "sphinxext-opengraph>=0.13",
 ]
+minimums = [ "qiskit==2.1.2" ]
 
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mqt/bench/_version.py"
@@ -99,6 +109,9 @@ version-file = "src/mqt/bench/_version.py"
 [tool.hatch.build.targets.wheel]
 packages = [ "src/mqt" ]
 
+
+[tool.uv]
+conflicts = [ [ { group = "minimums" }, { extra = "mqt" } ] ]
 
 [tool.uv.sources]
 mqt-bench = { workspace = true }
@@ -206,6 +219,7 @@ extend-ignore-re = [
 ]
 
 [tool.typos.default.extend-words]
+braket = "braket"
 wille = "wille"
 anc = "anc"
 aer = "aer"
