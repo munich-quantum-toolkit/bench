@@ -25,6 +25,7 @@ import pytest
 from qiskit import QuantumCircuit, qpy
 from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
+from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
