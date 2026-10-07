@@ -6,14 +6,6 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
-### Mirror circuit errors
-
-Requesting a mirror of a circuit that Qiskit cannot invert now raises
-`ValueError` with guidance to use `generate_mirror_circuit=False`, instead of
-propagating Qiskit's `CircuitError`. Update exception handlers that catch the
-old error. Final measurements remain supported; mid-circuit measurements,
-resets, and unsupported control flow cannot be mirrored.
-
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum
