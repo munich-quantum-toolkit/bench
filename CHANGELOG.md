@@ -20,8 +20,8 @@ that minor releases may include breaking changes.
 ### Fixed
 
 - 🐛 Report unsupported mirror circuits with a clear error and retain final
-  measurements when inversion fails ([**@simon1hofmann**])
-- 🐛 Support two-qubit quantum walks with and without structured loops
+  measurements when inversion fails ([#1052]) ([**@simon1hofmann**])
+- 🐛 Support two-qubit quantum walks with and without structured loops ([#1052])
   ([**@simon1hofmann**])
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
@@ -208,6 +208,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
+[#1052]: https://github.com/munich-quantum-toolkit/bench/pull/1052
 [#1047]: https://github.com/munich-quantum-toolkit/bench/pull/1047
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
