@@ -23,7 +23,7 @@ def create_circuit(
     r"""Returns a quantum circuit implementing a Quantum Metropolis Sampling step loop.
 
     The circuit is based on Temme et al. (2011), "Quantum Metropolis Sampling" (https://arxiv.org/abs/0911.3635).
-    It allocates four distinct quantum registers: a system register for spin configurations, two energy 
+    It allocates four distinct quantum registers: a system register for spin configurations, two energy
     estimation registers for tracking energy updates, and a single-qubit coin register for acceptance sampling.
     Mid-circuit measurement logs the selection result of each step into a dedicated classical register.
 
@@ -61,8 +61,6 @@ def create_circuit(
     c = ClassicalRegister(num_steps, "accept_bits")
 
     # 2. Main circuit container initialization
-    qc = QuantumCircuit(state_q, e1_q, e2_q, coin_q, c, name="quantum_metropolis")
+    return QuantumCircuit(state_q, e1_q, e2_q, coin_q, c, name="quantum_metropolis")
 
     # [NEXT STEP WILL ADD IN-LOOP GATES HERE]
-
-    return qc
