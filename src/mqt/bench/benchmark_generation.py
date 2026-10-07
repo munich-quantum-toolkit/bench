@@ -122,7 +122,7 @@ def _create_mirror_circuit(
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
     dag = circuit_to_dag(target_qc)
-    active_qubits = [qubit for qubit in target_qc.qubits if qubit not in dag.idle_wires()]
+    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
     target_qc.barrier(active_qubits)
 
     # Form the mirror circuit by composing the original circuit with its inverse.
@@ -139,6 +139,9 @@ def _create_mirror_circuit(
             routing_method=None,
             seed_transpiler=10,
         )
+        if target_qc.layout is not None:
+            final_indices = target_qc.layout.final_index_layout()
+            active_qubits = [final_indices[index] for index in active_qubits]
         if layout is not None and target_qc.layout is not None:
             target_qc.layout.initial_layout = layout
 

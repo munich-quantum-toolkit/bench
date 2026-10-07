@@ -23,6 +23,8 @@ that minor releases may include breaking changes.
   measurements when inversion fails ([#1052]) ([**@simon1hofmann**])
 - 🐛 Support two-qubit quantum walks with and without structured loops ([#1052])
   ([**@simon1hofmann**])
+- 🐛 Preserve active qubit references when recompiling mirror circuits ([#1052])
+  ([**@simon1hofmann**])
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])

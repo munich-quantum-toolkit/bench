@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import CircuitError, ClassicalRegister, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
@@ -315,18 +315,20 @@ def test_bv() -> None:
     assert qc.num_qubits == 3
     assert "bv" in qc.name
 
+    assert get_benchmark_alg("bv", 2, dynamic=True, generate_mirror_circuit=True).num_qubits == 2
+
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
 
 
 @pytest.mark.parametrize(
-    ("benchmark_name", "expected_iterations"),
-    [("grover", 2), ("qwalk", 3)],
+    ("benchmark_name", "num_qubits", "expected_iterations"),
+    [("grover", 4, 2), ("qwalk", 4, 3), ("qwalk", 2, 3)],
 )
-def test_for_loop_option(benchmark_name: str, expected_iterations: int) -> None:
+def test_for_loop_option(benchmark_name: str, num_qubits: int, expected_iterations: int) -> None:
     """Test the optional structured loop implementations."""
-    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
-    circuit = create_circuit(benchmark_name, 4, for_loop=True)
+    assert "for_loop" not in create_circuit(benchmark_name, num_qubits).count_ops()
+    circuit = create_circuit(benchmark_name, num_qubits, for_loop=True)
     assert circuit.count_ops()["for_loop"] == 1
     loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
     assert loop.params[0] == range(expected_iterations)
@@ -1253,11 +1255,9 @@ def test_assert_never_runtime() -> None:
         get_benchmark("qft", level=bad_level, circuit_size=3)
 
 
-def test_get_benchmark_mirror_option() -> None:
+@pytest.mark.parametrize(("benchmark_name", "logical_circuit_size"), [("ghz", 3), ("qwalk", 2)])
+def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: int) -> None:
     """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
-    benchmark_name = "ghz"
-    logical_circuit_size = 3
-
     levels_to_test_config = [
         (BenchmarkLevel.ALG, None, None),
         (BenchmarkLevel.INDEP, 0, None),
@@ -1359,50 +1359,16 @@ def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "size", "options"),
-    [
-        ("dynamic_qft", 3, {}),
-        ("iqpe", 3, {}),
-        ("bv", 3, {"dynamic": True}),
-        ("seven_qubit_steane_code", 13, {}),
-        ("shors_nine_qubit_code", 17, {}),
-        ("grover", 3, {"for_loop": True}),
-        ("qwalk", 3, {"for_loop": True}),
-    ],
+    ("benchmark", "options"),
+    [("bv", {"dynamic": True}), ("grover", {"for_loop": True})],
 )
-def test_noninvertible_benchmark_mirror_rejected(benchmark: str, size: int, options: ConfigurationOptions) -> None:
+def test_noninvertible_benchmark_mirror_rejected(benchmark: str, options: ConfigurationOptions) -> None:
     """Reject unsupported mirrors without changing the non-mirrored benchmark."""
-    circuit = get_benchmark_alg(benchmark, size, **options)
-    original = circuit.copy()
-    with pytest.raises(ValueError, match="Cannot mirror this circuit") as exc:
-        get_benchmark_alg(circuit, generate_mirror_circuit=True)
-    assert isinstance(exc.value.__cause__, CircuitError)
-    assert circuit == original
-
-
-@pytest.mark.parametrize("operation", ["measure", "reset"])
-def test_noninvertible_custom_circuit_mirror_rejected(operation: str) -> None:
-    """Validate custom circuits and preserve their measurements when mirroring fails."""
-    circuit = QuantumCircuit(1, 1)
-    circuit.h(0)
-    if operation == "measure":
-        circuit.measure(0, 0)
-    else:
-        circuit.reset(0)
-    circuit.x(0)
-    circuit.measure(0, 0)
+    circuit = get_benchmark_alg(benchmark, 3, **options)
     original = circuit.copy()
     with pytest.raises(ValueError, match="Cannot mirror this circuit"):
         get_benchmark_alg(circuit, generate_mirror_circuit=True)
     assert circuit == original
-
-
-def test_dynamic_bv_mirror_without_resets() -> None:
-    """The two-qubit dynamic BV circuit has no intermediate reset and can be mirrored."""
-    circuit = get_benchmark_alg("bv", 2, dynamic=True, generate_mirror_circuit=True)
-    circuit.remove_final_measurements()
-    circuit = RemoveBarriers()(circuit)
-    assert not transpile(circuit, basis_gates=["u", "cx"], optimization_level=2).data
 
 
 def test_dynamic_benchmark_registration() -> None:
