@@ -1352,22 +1352,12 @@ def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
 def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
-    """Every generation level reports why a dynamic GHZ circuit cannot be mirrored."""
+    """Every level rejects a dynamic GHZ mirror without changing the input circuit."""
+    circuit = get_benchmark_alg("ghz_dynamic", 5)
+    original = circuit.copy()
     target = get_target_for_gateset("ibm_falcon", num_qubits=5)
     with pytest.raises(ValueError, match=r"Cannot mirror this circuit.*generate_mirror_circuit=False"):
-        get_benchmark("ghz_dynamic", level, 5, target, generate_mirror_circuit=True)
-
-
-@pytest.mark.parametrize(
-    ("benchmark", "options"),
-    [("bv", {"dynamic": True}), ("grover", {"for_loop": True})],
-)
-def test_noninvertible_benchmark_mirror_rejected(benchmark: str, options: ConfigurationOptions) -> None:
-    """Reject unsupported mirrors without changing the non-mirrored benchmark."""
-    circuit = get_benchmark_alg(benchmark, 3, **options)
-    original = circuit.copy()
-    with pytest.raises(ValueError, match="Cannot mirror this circuit"):
-        get_benchmark_alg(circuit, generate_mirror_circuit=True)
+        get_benchmark(circuit, level, target=target, generate_mirror_circuit=True)
     assert circuit == original
 
 

@@ -19,6 +19,7 @@ from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, Sess
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
+from qiskit.transpiler.passes import RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
@@ -104,10 +105,8 @@ def _create_mirror_circuit(
         ValueError: If the circuit cannot be inverted after removing final measurements.
     """
     # Check inversion before modifying the input circuit.
-    target_qc = qc_original.copy()
-    target_qc.remove_final_measurements(inplace=True)
     try:
-        qc_inv = target_qc.inverse()
+        qc_inv = RemoveFinalMeasurements()(qc_original).inverse()
     except CircuitError as exc:
         msg = (
             "Cannot mirror this circuit: after removing final measurements, it contains operations "
@@ -116,9 +115,8 @@ def _create_mirror_circuit(
         )
         raise ValueError(msg) from exc
 
-    if inplace:
-        qc_original.remove_final_measurements(inplace=True)
-        target_qc = qc_original
+    target_qc = qc_original if inplace else qc_original.copy()
+    target_qc.remove_final_measurements(inplace=True)
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
     dag = circuit_to_dag(target_qc)
