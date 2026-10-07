@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
@@ -99,12 +99,26 @@ def _create_mirror_circuit(
 
     Returns:
         The mirrored quantum circuit.
-    """
-    target_qc = qc_original if inplace else qc_original.copy()
 
-    # Remove measurements and barriers at the end of the circuit before mirroring.
+    Raises:
+        ValueError: If the circuit cannot be inverted after removing final measurements.
+    """
+    # Check inversion before modifying the input circuit.
+    target_qc = qc_original.copy()
     target_qc.remove_final_measurements(inplace=True)
-    qc_inv = target_qc.inverse()
+    try:
+        qc_inv = target_qc.inverse()
+    except CircuitError as exc:
+        msg = (
+            "Cannot mirror this circuit: after removing final measurements, it contains operations "
+            "without a supported inverse (such as mid-circuit measurements, resets, or control flow). "
+            "Set generate_mirror_circuit=False."
+        )
+        raise ValueError(msg) from exc
+
+    if inplace:
+        qc_original.remove_final_measurements(inplace=True)
+        target_qc = qc_original
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
     dag = circuit_to_dag(target_qc)

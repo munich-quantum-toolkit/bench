@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qpy
-from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import CircuitError, ClassicalRegister, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
@@ -1348,6 +1348,61 @@ def test_get_benchmark_mirror_option() -> None:
             f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
             "did not optimize to an empty circuit. This means it might not represent the identity."
         )
+
+
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
+def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
+    """Every generation level reports why a dynamic GHZ circuit cannot be mirrored."""
+    target = get_target_for_gateset("ibm_falcon", num_qubits=5)
+    with pytest.raises(ValueError, match=r"Cannot mirror this circuit.*generate_mirror_circuit=False"):
+        get_benchmark("ghz_dynamic", level, 5, target, generate_mirror_circuit=True)
+
+
+@pytest.mark.parametrize(
+    ("benchmark", "size", "options"),
+    [
+        ("dynamic_qft", 3, {}),
+        ("iqpe", 3, {}),
+        ("bv", 3, {"dynamic": True}),
+        ("seven_qubit_steane_code", 13, {}),
+        ("shors_nine_qubit_code", 17, {}),
+        ("grover", 3, {"for_loop": True}),
+        ("qwalk", 3, {"for_loop": True}),
+    ],
+)
+def test_noninvertible_benchmark_mirror_rejected(benchmark: str, size: int, options: ConfigurationOptions) -> None:
+    """Reject unsupported mirrors without changing the non-mirrored benchmark."""
+    circuit = get_benchmark_alg(benchmark, size, **options)
+    original = circuit.copy()
+    with pytest.raises(ValueError, match="Cannot mirror this circuit") as exc:
+        get_benchmark_alg(circuit, generate_mirror_circuit=True)
+    assert isinstance(exc.value.__cause__, CircuitError)
+    assert circuit == original
+
+
+@pytest.mark.parametrize("operation", ["measure", "reset"])
+def test_noninvertible_custom_circuit_mirror_rejected(operation: str) -> None:
+    """Validate custom circuits and preserve their measurements when mirroring fails."""
+    circuit = QuantumCircuit(1, 1)
+    circuit.h(0)
+    if operation == "measure":
+        circuit.measure(0, 0)
+    else:
+        circuit.reset(0)
+    circuit.x(0)
+    circuit.measure(0, 0)
+    original = circuit.copy()
+    with pytest.raises(ValueError, match="Cannot mirror this circuit"):
+        get_benchmark_alg(circuit, generate_mirror_circuit=True)
+    assert circuit == original
+
+
+def test_dynamic_bv_mirror_without_resets() -> None:
+    """The two-qubit dynamic BV circuit has no intermediate reset and can be mirrored."""
+    circuit = get_benchmark_alg("bv", 2, dynamic=True, generate_mirror_circuit=True)
+    circuit.remove_final_measurements()
+    circuit = RemoveBarriers()(circuit)
+    assert not transpile(circuit, basis_gates=["u", "cx"], optimization_level=2).data
 
 
 def test_dynamic_benchmark_registration() -> None:

@@ -19,6 +19,10 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Report unsupported mirror circuits with a clear error and retain final
+  measurements when inversion fails ([**@simon1hofmann**])
+- 🐛 Support two-qubit quantum walks with and without structured loops
+  ([**@simon1hofmann**])
 - 🐛 Preserve measurements and classical registers when compiling to Clifford+T
   ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
