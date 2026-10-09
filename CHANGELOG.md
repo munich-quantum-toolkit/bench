@@ -14,6 +14,7 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- 👷 Enable testing on Python 3.15 ([#1054]) ([**@denialhaag**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 
@@ -203,6 +204,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1054]: https://github.com/munich-quantum-toolkit/bench/pull/1054
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1047]: https://github.com/munich-quantum-toolkit/bench/pull/1047
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
