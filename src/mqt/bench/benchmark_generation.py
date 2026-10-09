@@ -15,10 +15,11 @@ from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
+from qiskit.transpiler.passes import RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
@@ -99,16 +100,27 @@ def _create_mirror_circuit(
 
     Returns:
         The mirrored quantum circuit.
-    """
-    target_qc = qc_original if inplace else qc_original.copy()
 
-    # Remove measurements and barriers at the end of the circuit before mirroring.
+    Raises:
+        ValueError: If the circuit cannot be inverted after removing final measurements.
+    """
+    # Check inversion before modifying the input circuit.
+    try:
+        qc_inv = RemoveFinalMeasurements()(qc_original).inverse()
+    except CircuitError as exc:
+        msg = (
+            "Cannot mirror this circuit: after removing final measurements, it contains operations "
+            "without a supported inverse (such as mid-circuit measurements, resets, or control flow). "
+            "Set generate_mirror_circuit=False."
+        )
+        raise ValueError(msg) from exc
+
+    target_qc = qc_original if inplace else qc_original.copy()
     target_qc.remove_final_measurements(inplace=True)
-    qc_inv = target_qc.inverse()
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
     dag = circuit_to_dag(target_qc)
-    active_qubits = [qubit for qubit in target_qc.qubits if qubit not in dag.idle_wires()]
+    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
     target_qc.barrier(active_qubits)
 
     # Form the mirror circuit by composing the original circuit with its inverse.
@@ -125,6 +137,9 @@ def _create_mirror_circuit(
             routing_method=None,
             seed_transpiler=10,
         )
+        if target_qc.layout is not None:
+            final_indices = target_qc.layout.final_index_layout()
+            active_qubits = [final_indices[index] for index in active_qubits]
         if layout is not None and target_qc.layout is not None:
             target_qc.layout.initial_layout = layout
 

@@ -56,11 +56,13 @@ def create_circuit(
 
         # controlled decrement
         walk.x(coin)
-        walk.x(node[1:])
+        if num_qubits > 1:
+            walk.x(node[1:])
         for i in range(num_qubits - 1):
             walk.mcx(coin[:] + node[i + 1 :], node[i])
         walk.cx(coin, node[num_qubits - 1])
-        walk.x(node[1:])
+        if num_qubits > 1:
+            walk.x(node[1:])
         walk.x(coin)
 
     if for_loop:

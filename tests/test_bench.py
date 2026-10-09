@@ -315,18 +315,20 @@ def test_bv() -> None:
     assert qc.num_qubits == 3
     assert "bv" in qc.name
 
+    assert get_benchmark_alg("bv", 2, dynamic=True, generate_mirror_circuit=True).num_qubits == 2
+
     with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
 
 
 @pytest.mark.parametrize(
-    ("benchmark_name", "expected_iterations"),
-    [("grover", 2), ("qwalk", 3)],
+    ("benchmark_name", "num_qubits", "expected_iterations"),
+    [("grover", 4, 2), ("qwalk", 4, 3), ("qwalk", 2, 3)],
 )
-def test_for_loop_option(benchmark_name: str, expected_iterations: int) -> None:
+def test_for_loop_option(benchmark_name: str, num_qubits: int, expected_iterations: int) -> None:
     """Test the optional structured loop implementations."""
-    assert "for_loop" not in create_circuit(benchmark_name, 4).count_ops()
-    circuit = create_circuit(benchmark_name, 4, for_loop=True)
+    assert "for_loop" not in create_circuit(benchmark_name, num_qubits).count_ops()
+    circuit = create_circuit(benchmark_name, num_qubits, for_loop=True)
     assert circuit.count_ops()["for_loop"] == 1
     loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
     assert loop.params[0] == range(expected_iterations)
@@ -1253,11 +1255,9 @@ def test_assert_never_runtime() -> None:
         get_benchmark("qft", level=bad_level, circuit_size=3)
 
 
-def test_get_benchmark_mirror_option() -> None:
+@pytest.mark.parametrize(("benchmark_name", "logical_circuit_size"), [("ghz", 3), ("qwalk", 2)])
+def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: int) -> None:
     """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
-    benchmark_name = "ghz"
-    logical_circuit_size = 3
-
     levels_to_test_config = [
         (BenchmarkLevel.ALG, None, None),
         (BenchmarkLevel.INDEP, 0, None),
@@ -1348,6 +1348,17 @@ def test_get_benchmark_mirror_option() -> None:
             f"Unitary part of mirror (U@U_inv) for level '{level_enum.name}' ({qc_mirror.num_qubits} qubits) "
             "did not optimize to an empty circuit. This means it might not represent the identity."
         )
+
+
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
+def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
+    """Every level rejects a dynamic GHZ mirror without changing the input circuit."""
+    circuit = get_benchmark_alg("ghz_dynamic", 5)
+    original = circuit.copy()
+    target = get_target_for_gateset("ibm_falcon", num_qubits=5)
+    with pytest.raises(ValueError, match=r"Cannot mirror this circuit.*generate_mirror_circuit=False"):
+        get_benchmark(circuit, level, target=target, generate_mirror_circuit=True)
+    assert circuit == original
 
 
 def test_dynamic_benchmark_registration() -> None:
