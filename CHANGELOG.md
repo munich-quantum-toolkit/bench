@@ -20,6 +20,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Restore final measurements on all qubits in QAOA benchmarks
+  ([**@flowerthrower**])
 - 🐛 Report unsupported mirror circuits with a clear error and retain final
   measurements when inversion fails ([#1052]) ([**@simon1hofmann**])
 - 🐛 Support two-qubit quantum walks with and without structured loops ([#1052])

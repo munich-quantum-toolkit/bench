@@ -140,6 +140,19 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
             assert res_mapped
 
 
+def test_qaoa_measurements() -> None:
+    """QAOA measures each qubit once at the end of the circuit."""
+    num_qubits = 4
+    qc = create_circuit("qaoa", num_qubits)
+
+    assert qc.num_clbits == num_qubits
+    assert qc.count_ops()["measure"] == num_qubits
+    for index, instruction in enumerate(qc.data[-num_qubits:]):
+        assert instruction.operation.name == "measure"
+        assert instruction.qubits == (qc.qubits[index],)
+        assert instruction.clbits == (qc.clbits[index],)
+
+
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind"),
     [
