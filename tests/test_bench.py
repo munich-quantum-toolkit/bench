@@ -140,6 +140,12 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
             assert res_mapped
 
 
+def test_qaoa() -> None:
+    """Test that the QAOA benchmark includes measurements."""
+    qc = create_circuit("qaoa", 3)
+    assert qc.count_ops().get("measure", 0) == 3
+
+
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind"),
     [

@@ -20,6 +20,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Restore final measurements on all qubits in QAOA benchmarks ([#1059])
+  ([**@flowerthrower**])
 - 🐛 Report unsupported mirror circuits with a clear error and retain final
   measurements when inversion fails ([#1052]) ([**@simon1hofmann**])
 - 🐛 Support two-qubit quantum walks with and without structured loops ([#1052])
@@ -210,6 +212,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1059]: https://github.com/munich-quantum-toolkit/bench/pull/1059
 [#1054]: https://github.com/munich-quantum-toolkit/bench/pull/1054
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1052]: https://github.com/munich-quantum-toolkit/bench/pull/1052

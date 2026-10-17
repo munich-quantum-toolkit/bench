@@ -6,6 +6,13 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### QAOA final measurements
+
+QAOA benchmarks now measure all qubits at the end of the circuit. Remove any
+extra `measure_all()` call added as a workaround to avoid duplicate
+measurements. If you need a circuit without measurements, call
+`qc.remove_final_measurements(inplace=True)`.
+
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum

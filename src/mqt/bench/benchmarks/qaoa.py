@@ -55,4 +55,5 @@ def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> Qua
 
     qc.name = "qaoa"
 
+    qc.measure_all()
     return qc
