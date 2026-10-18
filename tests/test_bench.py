@@ -28,6 +28,7 @@ from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, XGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.quantum_info import Statevector
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -39,6 +40,8 @@ from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoop
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
+
+    from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
     from mqt.bench.configuration_options import ConfigurationOptions
 
@@ -89,6 +92,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "shors_nine_qubit_code": 17,
     "seven_qubit_steane_code": 13,
     "iqpe": 2,
+    "teleportation": 3,
 }
 
 
@@ -217,6 +221,8 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("ae", 1, None, r"Number of qubits must be at least 2 \(1 evaluation \+ 1 target\)."),
         ("shors_nine_qubit_code", 9, None, "num_qubits must be divisible by 17."),
         ("seven_qubit_steane_code", 9, None, "num_qubits must be divisible by 13."),
+        ("teleportation", 1, None, "num_qubits must be at least 3."),
+        ("teleportation", 4, None, "num_qubits must be divisible by 3."),
         ("superdense_coding", 1, None, "num_qubits must be at least 2."),
     ],
 )
@@ -347,6 +353,95 @@ def test_iqpe() -> None:
     assert "iqpe" in qc.name
 
 
+def test_teleportation() -> None:
+    """Test the creation of the teleportation benchmark."""
+    qc = create_circuit("teleportation", 3)
+    assert qc.num_qubits == 3
+    assert qc.num_clbits == 3  # 2 mid-circuit bits + 1 final measurement bit
+    assert "teleportation" in qc.name
+    assert qc.count_ops()["if_else"] == 2
+
+    # Multi-block: 2 corrections and 3 classical bits per block
+    qc6 = create_circuit("teleportation", 6)
+    assert qc6.num_qubits == 6
+    assert qc6.num_clbits == 6
+    assert qc6.count_ops()["if_else"] == 4
+
+    # Test through pipeline
+    res = get_benchmark_alg("teleportation", 3)
+    assert res.num_qubits == 3
+
+
+def test_teleportation_state_preparation() -> None:
+    """The state preparation is applied to the source qubit of every block."""
+    prep = QuantumCircuit(1, name="prep")
+    prep.h(0)
+
+    qc = create_circuit("teleportation", 6, state_preparation=prep)
+    prep_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "prep"]
+    assert prep_qubits == [0, 3]
+
+    with pytest.raises(ValueError, match=r"state_preparation must be a 1-qubit circuit\."):
+        create_circuit("teleportation", 3, state_preparation=QuantumCircuit(2))
+
+
+def test_teleportation_state_preparation_rejects_classical_bits() -> None:
+    """State preparation must not contain classical bits."""
+    prep = QuantumCircuit(1, 1)
+
+    with pytest.raises(ValueError, match="classical bits"):
+        create_circuit("teleportation", 3, state_preparation=prep)
+
+
+def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
+    """Execute a circuit that contains ``if_else`` blocks, one clbit condition at a time.
+
+    ``StatevectorSampler`` cannot run circuits with ``ControlFlowOp`` instructions
+    (Qiskit 2.5.2 raises ``QiskitError: StatevectorSampler cannot handle ControlFlowOp``),
+    and no control-flow-capable simulator is installed in this project. This helper
+    plays each instruction against a :class:`~qiskit.quantum_info.Statevector`,
+    sampling ``measure`` outcomes and evaluating ``if_else`` conditions directly,
+    so the real circuit (including its classical corrections) is exercised.
+    """
+    rng = np.random.default_rng(seed)
+    bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
+    clbits = [0] * qc.num_clbits
+    state = Statevector.from_label("0" * qc.num_qubits)
+    state.seed(rng)
+
+    def run_block(instructions: QuantumCircuitData, qubit_map: dict, state: Statevector) -> Statevector:
+        for instruction in instructions:
+            op = instruction.operation
+            qubits = [qubit_map[q] for q in instruction.qubits]
+            if op.name == "measure":
+                outcome, state = state.measure(qubits)
+                clbits[bit_index[instruction.clbits[0]]] = int(outcome)
+            elif isinstance(op, IfElseOp):
+                condition_bit, condition_value = op.condition
+                if clbits[bit_index[condition_bit]] == condition_value:
+                    block = op.blocks[0]
+                    inner_map = dict(zip(block.qubits, qubits, strict=True))
+                    state = run_block(block.data, inner_map, state)
+            else:
+                state = state.evolve(op, qubits)
+        return state
+
+    state = run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
+    final_bits = [clbits[bit_index[bit]] for bit in qc.cregs[-1]]
+    return "".join(str(bit) for bit in reversed(final_bits))
+
+
+@pytest.mark.parametrize("num_qubits", [3, 6, 9])
+def test_teleportation_correctness(num_qubits: int) -> None:
+    """Teleporting |1⟩ must always yield 1 on every destination qubit."""
+    prep = QuantumCircuit(1)
+    prep.x(0)
+
+    qc = create_circuit("teleportation", num_qubits, state_preparation=prep)
+    outcomes = {_run_with_control_flow(qc, seed=seed) for seed in range(20)}
+    assert outcomes == {"1" * (num_qubits // 3)}
+
+
 def _success_rates(qc: QuantumCircuit, shots: int = 500) -> list[float]:
     """Run the circuit on the BasicSimulator and return, for every round k, the fraction of shots with c[k] = 1."""
     backend = BasicSimulator()
@@ -421,6 +516,20 @@ def test_mlqae_invalid_parameters() -> None:
 
     with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
         create_circuit("mlqae", 3, b_max=float("nan"))
+
+
+def test_teleportation_preserves_phase() -> None:
+    """Teleporting |+⟩ must yield 0 when Bob measures in the X basis."""
+    prep = QuantumCircuit(1)
+    prep.h(0)
+
+    qc = create_circuit("teleportation", 3, state_preparation=prep)
+    final_measurement = qc.data.pop()
+    qc.h(2)
+    qc.append(final_measurement.operation, final_measurement.qubits, final_measurement.clbits)
+
+    outcomes = {_run_with_control_flow(qc, seed=seed) for seed in range(20)}
+    assert outcomes == {"0"}
 
 
 def test_dj_constant_oracle() -> None:
