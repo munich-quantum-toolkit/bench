@@ -59,6 +59,17 @@ print(get_available_device_names())
   the mirror. Circuits that Qiskit cannot invert, for example those with
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
+- `encoding`: Error correction code applied to the output. Encoding of
+  non-transversal gates uses placeholders.
+
+Possible values for `encoding`:
+
+```text
+{code-cell} ipython3
+:tags: [hide-input]
+from mqt.bench.error_correction import get_available_encoding_names
+
+print(get_available_encoding_names())```
 
 ## Native Gate-Set Support
 

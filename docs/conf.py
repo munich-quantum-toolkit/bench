@@ -67,7 +67,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "typing_extensions": ("https://typing-extensions.readthedocs.io/en/latest/", None),
     "qiskit": ("https://docs.quantum.ibm.com/api/qiskit", None),
-    "mqt": ("https://mqt.readthedocs.io/en/stable/", None),
+    "mqt": ("https://mqt.readthedocs.io/en/latest/", None),
 }
 
 myst_enable_extensions = [
