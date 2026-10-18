@@ -43,6 +43,7 @@ installation
 quickstart
 usage
 abstraction_levels
+targets
 parameter
 benchmark_selection
 references

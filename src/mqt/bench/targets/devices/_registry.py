@@ -22,7 +22,7 @@ def register_device(device_name: str) -> Callable[[_DeviceFactory], _DeviceFacto
     """Decorator to register a device factory under a unique device_name.
 
     Arguments:
-        device_name: unique identifier for the device (e.g., ``"ibm_falcon_27"``).
+        device_name: unique identifier for the device (e.g., ``"ibm_heron_156"``).
 
     Returns:
         The original factory function, unmodified.
