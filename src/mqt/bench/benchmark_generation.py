@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import warnings
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
@@ -21,6 +22,7 @@ from qiskit.transpiler import Layout, Target
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
+from .error_correction import get_available_encoding_names, get_transpiler
 from .targets.gatesets import get_target_for_gateset, ionq, rigetti
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -175,6 +177,7 @@ def _validate_opt_level(opt_level: int) -> None:
 def get_benchmark_alg(
     benchmark: str,
     circuit_size: int,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -186,6 +189,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -197,6 +201,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -207,6 +212,7 @@ def get_benchmark_alg(
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -217,6 +223,7 @@ def get_benchmark_alg(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        encoding: Error correction code to be used, can be any of {"", "steane", "shor"}.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -224,10 +231,21 @@ def get_benchmark_alg(
     Returns:
         Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
     """
+    valid_encodings = {"", *get_available_encoding_names()}
+    if encoding not in valid_encodings:
+        msg = f"Invalid `encoding` '{encoding}'. Must be one of {valid_encodings}."
+        raise ValueError(msg)
+
     qc = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+
     if generate_mirror_circuit:
         # Only modify in place if `qc` is not the caller's circuit.
-        return _create_mirror_circuit(qc, inplace=qc is not benchmark)
+        qc = _create_mirror_circuit(qc, inplace=qc is not benchmark)
+
+    if encoding:
+        transpiler = get_transpiler(encoding)(qc)
+        qc = transpiler.transpile()
+
     return qc
 
 
@@ -496,6 +514,7 @@ def get_benchmark(
     circuit_size: int,
     target: Target | None = None,
     opt_level: int = 2,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -510,6 +529,7 @@ def get_benchmark(
     circuit_size: None,
     target: Target | None = None,
     opt_level: int = 2,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -524,6 +544,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -537,6 +558,7 @@ def get_benchmark(
     circuit_size: int | None = None,
     target: Target | None = None,
     opt_level: int = 2,
+    encoding: str = "",
     *,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
@@ -551,6 +573,8 @@ def get_benchmark(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
+        encoding: Error correction code to be used, can be any of {"", "steane", "shor"}.
+                Only supported for `BenchmarkLevel.ALG`; ignored (with a warning) for other levels.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -558,12 +582,20 @@ def get_benchmark(
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
     """
+    if level is not BenchmarkLevel.ALG and encoding:
+        warnings.warn(
+            f"`encoding` is only supported for BenchmarkLevel.ALG and will be ignored for level={level.name}.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if level is BenchmarkLevel.ALG:
         return get_benchmark_alg(
             benchmark=benchmark,
             circuit_size=circuit_size,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            encoding=encoding,
             **kwargs,
         )
 

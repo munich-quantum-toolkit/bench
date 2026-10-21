@@ -21,9 +21,13 @@ that minor releases may include breaking changes.
 - ✨ Add quantum teleportation benchmark ([#1045]) ([**@AsharHusain**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
+- ✨ Add Steane's and Shor's encoding for benchmarks ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ### Changed
 
+- ⬆️ Raise the minimum Qiskit version from 2.1.0 to 2.4.0 ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 - ✨ Measure arithmetic sums and products in a `result` register, excluding
   input and helper qubits ([#1065]) ([**@simon1hofmann**])
 
@@ -305,6 +309,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@TomasVF**]: https://github.com/TomasVF
 [**@flowerthrower**]: https://github.com/flowerthrower
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
+[**@Felix-Gundlach**]: https://github.com/Felix-Gundlach
+[**@emilkanic0909**]: https://github.com/emilkanic0909
+[**@SalehAlsherif**]: https://github.com/SalehAlsherif
 [**@cnYui**]: https://github.com/cnYui
 [**@algovista-collab**]: https://github.com/algovista-collab
 [**@Anshu666666**]: https://github.com/Anshu666666
