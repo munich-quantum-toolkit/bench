@@ -49,6 +49,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve logical permutations in target-independent and native QASM
+  exports, and ignore device capacity during native compilation
+  ([**@simon1hofmann**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])

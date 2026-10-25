@@ -491,7 +491,7 @@ def test_native_gate_names_do_not_override_capabilities(name: str, operation: Ga
     target.add_instruction(RZGate(Parameter("theta")))
     target.add_instruction(CZGate())
     target.add_instruction(operation, name=name)
-    prepared, lowering = prepare_target(target, native=True)
+    prepared, lowering = prepare_target(target, native_num_qubits=2)
     assert prepared.operation_from_name(name) == operation
     assert lowering is None
 
