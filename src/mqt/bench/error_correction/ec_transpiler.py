@@ -20,10 +20,42 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
+from packaging.version import Version
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit import AncillaRegister, Gate, Instruction
+from qiskit.circuit import AncillaRegister, Gate, Instruction, SessionEquivalenceLibrary
+from qiskit.synthesis import SolovayKitaevDecomposition
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes import BasisTranslator, OptimizeCliffordT
+from qiskit.version import VERSION as QISKIT_VERSION
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
+
+class _SolovayKitaevRZ(TransformationPass):
+    """Approximate each RZ rotation with Solovay-Kitaev at recursion degree 0.
+
+    Recursion degree 0 picks the closest precomputed sequence of at most 12 H, T, and Tdg gates.
+    ``OptimizeCliffordT`` then reduces the T count of this sequence, for example by merging T
+    pairs into S gates. Unlike Qiskit's ``SolovayKitaev`` pass, this pass changes only RZ
+    rotations, so Clifford gates such as Z do not become T gates.
+    """
+
+    def __init__(self) -> None:
+        """Precompute the Solovay-Kitaev basic approximations."""
+        super().__init__()
+        self._decomposition = SolovayKitaevDecomposition()
+        self._optimization = OptimizeCliffordT()
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Replace each RZ rotation in ``dag`` with its approximation."""
+        for node in dag.named_nodes("rz"):
+            approximation = self._decomposition.run(node.op, recursion_degree=0, return_dag=True)
+            dag.substitute_node_with_dag(node, self._optimization.run(approximation))
+        return dag
 
 
 @dataclass
@@ -94,8 +126,12 @@ class ECTranspiler(ABC):
         """Transpile the original circuit to a fault-tolerant circuit using the error-correcting code.
 
         High-level Qiskit instructions such as ``QFTGate`` are first decomposed into the code's
-        supported basis gates. This decomposition uses ``approximation_degree=0.95``,
-        so encoded circuits are approximate rather than exact.
+        supported basis gates. On Qiskit 2.5.0 and newer, Qiskit's Clifford+T compilation
+        approximates rotations with ``approximation_degree=0.95``. Earlier Qiskit versions
+        replace each RZ rotation with the closest sequence of at most 12 H, T, and Tdg gates
+        (Solovay-Kitaev at recursion degree 0) and then reduce the T count of that sequence.
+        Encoded circuits are therefore approximate rather than exact, and their gate counts can
+        differ between Qiskit versions.
 
         Returns:
              The transpiled fault-tolerant circuit.
@@ -110,13 +146,29 @@ class ECTranspiler(ABC):
                 msg = f"Error-correction transpilation currently does not support control-flow operations such as {instruction.operation.name}."
                 raise ValueError(msg)
 
-        self.original_qc = transpile(
-            self.original_qc,
-            basis_gates=self.TARGET_GATE_SET,
-            optimization_level=0,
-            approximation_degree=0.95,
-            seed_transpiler=10,
-        )
+        if Version(QISKIT_VERSION) >= Version("2.5.0"):
+            self.original_qc = transpile(
+                self.original_qc,
+                basis_gates=self.TARGET_GATE_SET,
+                optimization_level=0,
+                approximation_degree=0.95,
+                seed_transpiler=10,
+            )
+        else:
+            # Before Qiskit 2.4, Clifford+T compilation turns each rotation into about 24,000 gates.
+            # In Qiskit 2.4, gridsynth fails for many rotation angles at this approximation degree.
+            rz_qc = transpile(
+                self.original_qc,
+                basis_gates=[*self.TARGET_GATE_SET, "rz"],
+                optimization_level=0,
+                approximation_degree=0.95,
+                seed_transpiler=10,
+            )
+            # The basis translation rewrites gates such as S that the code's gate set does not contain.
+            self.original_qc = PassManager([
+                _SolovayKitaevRZ(),
+                BasisTranslator(SessionEquivalenceLibrary, self.TARGET_GATE_SET),
+            ]).run(rz_qc)
 
         self.encode_qubits()
         self.replace_gates()

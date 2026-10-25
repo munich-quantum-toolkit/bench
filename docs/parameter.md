@@ -65,7 +65,8 @@ print(get_available_device_names())
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
 - `encoding`: Error correction code applied to the output. Encoding of
-  non-transversal gates uses placeholders.
+  non-transversal gates uses placeholders. Because the encoding approximates
+  rotations, gate counts can differ between Qiskit versions.
 
 Possible values for `encoding`:
 

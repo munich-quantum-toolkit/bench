@@ -30,7 +30,7 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.quantum_info import Operator, Statevector
+from qiskit.quantum_info import Operator, Statevector, process_fidelity
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -49,6 +49,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
 
+    from qiskit.circuit import Gate
     from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
     from mqt.bench.configuration_options import ConfigurationOptions
@@ -1020,6 +1021,25 @@ def test_error_correction_transpiler_circuit_structure(
         assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
     else:
         assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+@pytest.mark.parametrize("gate", [RZGate(0.3), RXGate(1.1)])
+def test_error_correction_approximates_rotations(code: str, gate: Gate) -> None:
+    """Check that the encoding replaces a rotation with a short Clifford+T approximation.
+
+    The encoding adds a syndrome cycle after every logical gate, so each rotation must stay a short
+    gate sequence on every supported Qiskit version. The approximation must keep a process fidelity
+    of at least the approximation degree of 0.95.
+    """
+    qc = QuantumCircuit(1)
+    qc.append(gate, [0])
+    transpiler = get_transpiler(code)(qc)
+    transpiler.transpile()
+
+    logical_qc = transpiler.original_qc
+    assert logical_qc.size() <= 50
+    assert process_fidelity(Operator(logical_qc), Operator(qc)) >= 0.95
 
 
 @pytest.mark.parametrize(
