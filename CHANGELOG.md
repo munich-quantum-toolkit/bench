@@ -33,6 +33,9 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
+  ready pull requests. Keep the full matrix on main, merge queues, and manual
+  runs ([#1112]) ([**@simon1hofmann**])
 - ⬆️ Raise the minimum Qiskit version to 2.2.3 ([#1087])
   ([**@simon1hofmann**])
 - ✨ Use gridsynth for native Clifford+T compilation on Qiskit 2.4.2 and newer,
@@ -262,6 +265,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
 [#1109]: https://github.com/munich-quantum-toolkit/bench/pull/1109
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
