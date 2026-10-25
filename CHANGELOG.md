@@ -46,6 +46,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Select Clifford+T synthesis from target capabilities instead of
+  descriptions ([#1110]) ([**@simon1hofmann**])
 - 🐛 Validate benchmark sizes and options, document factory constraints, and
   type supported keyword arguments ([#1108]) ([**@simon1hofmann**])
 - 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
@@ -82,6 +84,8 @@ that minor releases may include breaking changes.
 
 ### Removed
 
+- 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
+  dependencies ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])
   ([**@burgholzer**])
 
@@ -264,7 +268,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
+[#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
 [#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
