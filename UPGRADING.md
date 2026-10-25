@@ -6,6 +6,13 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Seeded parameter values
+
+An explicit `seed` now controls random parameter binding as well as benchmark
+construction. Seeded variational circuits therefore have different numeric
+parameters than before. Calls without a seed retain the previous binding seed of
+10.
+
 ### Clifford+T compilation
 
 Native Clifford+T compilation uses gridsynth on Qiskit 2.4.2 and newer, and

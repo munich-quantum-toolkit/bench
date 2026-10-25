@@ -85,6 +85,25 @@ print(result.stdout)
 
 ### Example Usage
 
+List benchmark names and descriptions, or available gate sets and devices:
+
+```shell
+mqt-bench --list-benchmarks
+mqt-bench --list-targets
+```
+
+Use `--seed` to control random circuit construction and parameter values. Pass
+factory options through `--benchmark-options` as a JSON object:
+
+```shell
+mqt-bench --level alg --algorithm graphstate --num-qubits 6 --seed 42
+mqt-bench --level alg --algorithm qwalk --num-qubits 3 --benchmark-options '{"depth": 5, "for_loop": true}'
+```
+
+The Python API accepts the same options as keyword arguments. With
+`random_parameters=True`, `seed` also controls the numeric values assigned to
+symbolic parameters. Omitting `seed` preserves each factory's default.
+
 To generate a 5-qubit Deutsch-Josza benchmark circuit at the algorithm level and
 print it in OpenQASM 3 format, you can use the following command:
 
