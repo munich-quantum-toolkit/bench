@@ -10,8 +10,8 @@
 
 from __future__ import annotations
 
-import warnings
 import json
+import warnings
 from copy import deepcopy
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Unpack, assert_never, overload
@@ -295,8 +295,8 @@ def get_benchmark_alg(
         qc = qc.copy()
     _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit)
     if generate_mirror_circuit:
-        qc =  _create_mirror_circuit(qc, inplace=True)
-      
+        qc = _create_mirror_circuit(qc, inplace=True)
+
     if encoding:
         transpiler = get_transpiler(encoding)(qc)
         qc = transpiler.transpile()
