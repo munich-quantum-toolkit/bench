@@ -900,6 +900,8 @@ STEANE_Z = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7}
 STEANE_Y = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7}
 
 
+# Since Rotations (rz) are handled differently according to qiskit versions (>= vs. < 2.6),
+# their gate counts couldn't be compared by this test, version checks would be required as well
 @pytest.mark.parametrize(
     ("logical_qubits", "code", "alg", "expected_gates"),
     [
