@@ -32,6 +32,7 @@ class ConfigurationOptions(TypedDict, total=False):
     """Random seed for parameter values and factories that accept a seed (None for random behavior)."""
 
     hidden_string: str | None
+    balanced: bool
     dynamic: bool
     message: str | None
     kind: str

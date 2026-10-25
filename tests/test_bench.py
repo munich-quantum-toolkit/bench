@@ -453,6 +453,8 @@ def test_bv() -> None:
     [
         ("bv", {"hidden_string": "x0"}, "binary string"),
         ("qwalk", {"depth": -1}, "nonnegative"),
+        ("graphstate", {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
         ("ae", {"probability": -0.1}, "between 0 and 1"),
         ("ae", {"probability": float("nan")}, "between 0 and 1"),
     ],
@@ -670,9 +672,10 @@ def test_teleportation_preserves_phase() -> None:
 
 
 def test_dj_constant_oracle() -> None:
-    """Test the creation of the DJ benchmark constant oracle."""
-    qc = create_circuit("dj", 5, False)
-    assert qc.depth() > 0
+    """The public balanced=False option produces the constant-oracle result."""
+    qc = get_benchmark_alg("dj", 5, balanced=False)
+    qc.remove_final_measurements()
+    assert Statevector(qc).probabilities([0, 1, 2, 3])[0] == pytest.approx(1)
 
 
 @pytest.mark.parametrize("benchmark", ["graphstate", "randomcircuit", "vqe_real_amp"])
@@ -1268,6 +1271,15 @@ def test_validate_input() -> None:
         (BenchmarkLevel.ALG, None, True, "ghz_alg_mirror_5"),
         (BenchmarkLevel.INDEP, None, False, "ghz_indep_opt2_5"),
         (BenchmarkLevel.INDEP, None, True, "ghz_indep_mirror_opt2_5"),
+        *[
+            (BenchmarkLevel.NATIVEGATES, Target(num_qubits=5, description=description), False, expected)
+            for description, expected in [
+                (None, "ghz_nativegates_custom_target_opt2_5"),
+                ("   ", "ghz_nativegates_custom_target_opt2_5"),
+                (r"Custom/native\target", "ghz_nativegates_Custom_native_target_opt2_5"),
+                ("clifford+t", "ghz_nativegates_clifford+t_opt2_5"),
+            ]
+        ],
         (
             BenchmarkLevel.NATIVEGATES,
             get_target_for_gateset("ibm_heron", 5),

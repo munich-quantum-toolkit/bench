@@ -49,6 +49,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
+  `balanced` option, and handle custom target names in generated filenames
+  ([**@simon1hofmann**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])
