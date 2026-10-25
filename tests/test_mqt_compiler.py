@@ -11,8 +11,9 @@
 from __future__ import annotations
 
 import io
+import json
 import sys
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NoReturn, cast
 
 import numpy as np
 import pytest
@@ -53,7 +54,7 @@ from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal
+    from typing import BinaryIO, Literal
 
     from mqt.core.mlir import CompilationOptions, QCOProgram, QCProgram, TargetEnvironment
     from pytest_console_scripts import ScriptRunner
@@ -178,9 +179,17 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         target=get_device("iqm_crystal_5"),
         compiler="mqt",
         compiler_options=options,
+        seed=42,
         generate_mirror_circuit=mirror,
     )
     assert seen == [options] * (2 if mirror and level is not BenchmarkLevel.INDEP else 1)
+    generation = result.metadata["mqt_bench_generation"]
+    assert generation["benchmark"] == "ghz"
+    assert generation["level"] == level.name.lower()
+    assert generation["options"] == {"seed": 42}
+    assert generation["mirror"] is mirror
+    assert generation["opt_level"] is None
+    assert generation["target"] == (None if level is BenchmarkLevel.INDEP else "iqm_crystal_5")
     assert options.seed == 17
     assert options.mapping.trials == 2
     assert options.mapping.iterations == 2
@@ -656,11 +665,14 @@ def test_compiler_provenance() -> None:
     text = io.StringIO()
     write_circuit(result, text, BenchmarkLevel.INDEP)
     assert "// Compiler: mqt " in text.getvalue()
+    generation = result.metadata["mqt_bench_generation"]
+    assert json.loads(text.getvalue().split("// Generation options: ")[1].splitlines()[0]) == generation
     binary = io.BytesIO()
     write_circuit(result, binary, BenchmarkLevel.INDEP, OutputFormat.QPY)
     binary.seek(0)
     restored = qpy.load(binary)[0]
     assert restored.metadata["mqt_bench_compiler"] == result.metadata["mqt_bench_compiler"]
+    assert restored.metadata["mqt_bench_generation"] == generation
     assert generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt") == "ghz_indep_mqt_3"
 
 
@@ -697,10 +709,14 @@ def test_mqt_cli(
             "mqt-bench",
             "--compiler",
             "mqt",
+            "--seed",
+            "42",
+            "--benchmark-options",
+            '{"degree": 2}',
             "--level",
             "nativegates",
             "--algorithm",
-            "ghz",
+            "graphstate",
             "--num-qubits",
             "3",
             "--target",
@@ -713,7 +729,11 @@ def test_mqt_cli(
     )
     cli.main()
     assert seen == [(seed, trials)]
-    assert "ghz_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
+    assert "graphstate_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
+    exported = (tmp_path / "graphstate_nativegates_ibm_heron_mqt_3.qasm").read_text()
+    generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
+    assert generation["options"] == {"seed": 42, "degree": 2}
+    assert "// Compiler: mqt " in exported
 
 
 @pytest.mark.parametrize(
@@ -864,6 +884,7 @@ def test_qir_export(fmt: OutputFormat, profile: Literal["base", "adaptive"], tmp
     circuit = QuantumCircuit(2, 2, metadata={"user": 42})
     circuit.x(0)
     circuit.measure([0, 1], [1, 0])
+    circuit = get_benchmark_alg(circuit, seed=42)
     original = circuit.copy()
     binary = fmt is OutputFormat.QIR_BITCODE
     stream = io.BytesIO() if binary else io.StringIO()
@@ -877,6 +898,10 @@ def test_qir_export(fmt: OutputFormat, profile: Literal["base", "adaptive"], tmp
     if isinstance(data, str):
         assert data.startswith("; Benchmark created by MQT Bench")
         assert "; QIR exporter: MQT Core " in data
+        assert (
+            json.loads(data.split("; Generation options: ")[1].splitlines()[0])
+            == circuit.metadata["mqt_bench_generation"]
+        )
         assert f'"qir_profiles"="{profile}_profile"' in data
     else:
         assert data.startswith(b"BC\xc0\xde")
@@ -979,7 +1004,7 @@ def test_qir_cli(fmt: str, save: bool, script_runner: ScriptRunner, tmp_path: Pa
 
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.QIR_BITCODE])
-def test_qir_io_failure(fmt: OutputFormat, tmp_path: Path) -> None:
+def test_qir_io_failure(fmt: OutputFormat, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """QIR export reports file and stream failures through the exporter API."""
     circuit = QuantumCircuit(1)
     circuit.x(0)
@@ -993,6 +1018,25 @@ def test_qir_io_failure(fmt: OutputFormat, tmp_path: Path) -> None:
     with pytest.raises(MQTBenchExporterError, match="Failed to write") as exc:
         write_circuit(circuit, stream, BenchmarkLevel.ALG, fmt)
     assert isinstance(exc.value.__cause__, ValueError)
+
+    path = tmp_path / f"existing.{fmt.extension()}"
+    path.write_text("previous circuit")
+
+    def fail_after_writing(
+        _qc: QuantumCircuit, stream: io.TextIOBase | BinaryIO, _header: str, **_kwargs: object
+    ) -> NoReturn:
+        if isinstance(stream, io.TextIOBase):
+            stream.write("partial circuit")
+        else:
+            stream.write(b"partial circuit")
+        msg = "disk full"
+        raise OSError(msg)
+
+    monkeypatch.setattr("mqt.bench.output._write_qir", fail_after_writing)
+    with pytest.raises(MQTBenchExporterError, match="disk full"):
+        write_circuit(circuit, path, BenchmarkLevel.ALG, fmt)
+    assert path.read_text() == "previous circuit"
+    assert list(tmp_path.iterdir()) == [path]
 
 
 @pytest.mark.parametrize("compiler", ["qiskit", "mqt"])

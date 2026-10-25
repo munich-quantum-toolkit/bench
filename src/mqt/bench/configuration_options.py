@@ -23,12 +23,13 @@ __all__ = ["ConfigurationOptions"]
 class ConfigurationOptions(TypedDict, total=False):
     """Configuration options for benchmark generation.
 
-    All fields are optional and are passed to the selected benchmark factory.
-    Each factory accepts only its documented options.
+    All fields are optional. Each factory accepts only its documented options.
+    The shared seed also controls random parameter values and is passed to
+    factories that accept it.
     """
 
     seed: int | None
-    """Random seed for deterministic benchmark generation (None for random behavior)."""
+    """Random seed for parameter values and factories that accept a seed (None for random behavior)."""
 
     hidden_string: str | None
     dynamic: bool

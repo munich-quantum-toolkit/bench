@@ -11,10 +11,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
+import sys
 from enum import StrEnum
 from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Literal, overload
 
 from qiskit.qasm2 import dump as dump2
@@ -63,38 +66,34 @@ def _attach_metadata(qc: QuantumCircuit, header: str) -> QuantumCircuit:
 
 def _write_qir(
     qc: QuantumCircuit,
-    destination: Path | TextIOBase | BinaryIO,
+    destination: TextIOBase | BinaryIO,
     header: str,
     *,
     binary: bool,
     profile: Literal["base", "adaptive"],
 ) -> None:
-    """Lower to QIR before opening the destination, then write LLVM text or bitcode."""
+    """Lower to QIR and write LLVM text or bitcode to the stream."""
     from ._mqt_compiler import circuit_to_qir  # ruff:ignore[import-outside-top-level]
 
     program = circuit_to_qir(qc, profile=profile)
     if binary:
         data = program.to_bitcode()
-        if isinstance(destination, Path):
-            destination.write_bytes(data)
-        else:
-            assert not isinstance(destination, TextIOBase)
-            destination.write(data)
+        assert not isinstance(destination, TextIOBase)
+        destination.write(data)
     else:
         header += f"// QIR exporter: MQT Core {metadata.version('mqt-core')}\n// QIR profile: {profile}\n\n"
         text = "\n".join(";" + line[2:] if line.startswith("//") else line for line in header.split("\n"))
         text += program.llvm_ir
-        if isinstance(destination, Path):
-            destination.write_text(text, encoding="utf-8")
-        else:
-            assert isinstance(destination, TextIOBase)
-            destination.write(text)
+        assert isinstance(destination, TextIOBase)
+        destination.write(text)
 
 
 def generate_header(
     fmt: OutputFormat,
     level: BenchmarkLevel,
     target: Target | None = None,
+    *,
+    generation_options: dict | None = None,
 ) -> str:
     """Generate a standardized header for MQT Bench outputs.
 
@@ -102,6 +101,7 @@ def generate_header(
         fmt: The chosen output format enum member
         level: The level of the circuit (e.g., "nativegates", "mapped")
         target: The transpilation target, if any.
+        generation_options: Available generation and compilation settings.
 
     Returns:
         A string containing the formatted header.
@@ -125,12 +125,15 @@ def generate_header(
         f"// MQT Bench version: {version}",
         f"// Qiskit version: {__qiskit_version__}",
         f"// Output format: {fmt.value}",
+        f"// Level: {level.name.lower()}",
     ))
+
+    if generation_options:
+        lines.append(f"// Generation options: {json.dumps(generation_options, sort_keys=True)}")
 
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert target is not None, "Target must be provided for nativegates or mapped level."
         lines.extend((
-            f"// Level: {level.name.lower()}",
             f"// Target: {target.description}",
             f"// Used gateset: {list(target.operation_names)}",
         ))
@@ -140,6 +143,25 @@ def generate_header(
             lines.append(f"// Coupling map: {edges}")
 
     return "\n".join(lines) + "\n\n"
+
+
+def _write_file_atomically(
+    qc: QuantumCircuit,
+    destination: Path,
+    level: BenchmarkLevel,
+    fmt: OutputFormat,
+    target: Target | None,
+    qir_profile: Literal["base", "adaptive"],
+) -> None:
+    """Serialize beside the destination, then replace it after a successful write."""
+    with TemporaryDirectory(dir=destination.parent) as directory:
+        temporary = Path(directory) / destination.name
+        binary = fmt in (OutputFormat.QPY, OutputFormat.QIR_BITCODE)
+        with temporary.open("wb") if binary else temporary.open("w", encoding="utf-8") as stream:
+            write_circuit(qc, stream, level, fmt, target, qir_profile=qir_profile)
+        if destination.exists():
+            temporary.chmod(destination.stat().st_mode)
+        temporary.replace(destination)
 
 
 @overload
@@ -191,14 +213,26 @@ def write_circuit(
     Raises:
         MQTBenchExporterError: On missing dependencies, unsupported export, or I/O errors.
     """
-    header = generate_header(fmt, level, target)
+    if isinstance(destination, Path):
+        try:
+            _write_file_atomically(qc, destination, level, fmt, target, qir_profile)
+        except Exception as exc:
+            msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
+            raise MQTBenchExporterError(msg) from exc
+        return
+
+    generation = (qc.metadata or {}).get("mqt_bench_generation")
+    header = generate_header(
+        fmt, level, target, generation_options=generation if isinstance(generation, dict) else None
+    )
+
     compiler_info = (qc.metadata or {}).get("mqt_bench_compiler")
     if compiler_info is not None:
         header += f"// Compiler: {compiler_info['name']} {compiler_info['version']}\n\n"
 
     if fmt in (OutputFormat.QIR, OutputFormat.LLVM, OutputFormat.QIR_BITCODE):
         binary = fmt is OutputFormat.QIR_BITCODE
-        if not isinstance(destination, Path) and isinstance(destination, TextIOBase) == binary:
+        if isinstance(destination, TextIOBase) == binary:
             msg = f"{fmt.value.upper()} output requires a *{'binary' if binary else 'text'}* stream."
             raise MQTBenchExporterError(msg)
         try:
@@ -208,53 +242,31 @@ def write_circuit(
             raise MQTBenchExporterError(msg) from exc
         return
 
-    if not isinstance(destination, Path):
-        if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
-            if not isinstance(destination, TextIOBase):
-                msg = "QASM output requires a *text* stream."
-                raise MQTBenchExporterError(msg)
-            try:
-                destination.write(header)
-                (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
-            except Exception as exc:
-                msg = f"Failed to write QASM stream. (Original error: {exc})"
-                raise MQTBenchExporterError(msg) from exc
-            return
-
-        if fmt is OutputFormat.QPY:
-            if isinstance(destination, TextIOBase):
-                msg = "QPY output requires a *binary* stream."
-                raise MQTBenchExporterError(msg)
-            try:
-                dump_qpy(_attach_metadata(qc, header), destination)
-            except Exception as exc:
-                msg = f"Failed to write QPY stream. (Original error: {exc})"
-                raise MQTBenchExporterError(msg) from exc
-            return
-
-        msg = f"Unsupported output format {fmt}. Supported formats are {[m.value for m in OutputFormat]}."
-        raise MQTBenchExporterError(msg)
-
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
+        if not isinstance(destination, TextIOBase):
+            msg = "QASM output requires a *text* stream."
+            raise MQTBenchExporterError(msg)
         try:
-            with destination.open("w", encoding="utf-8") as f:
-                f.write(header)
-                (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, f)
-        except Exception as exc:
-            msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
+            destination.write(header)
+            (dump2 if fmt is OutputFormat.QASM2 else dump3)(qc, destination)
+        except Exception as exc:  # pragma: no cover - unforeseen I/O
+            msg = f"Failed to write QASM stream. (Original error: {exc})"
             raise MQTBenchExporterError(msg) from exc
+        return
 
-    elif fmt is OutputFormat.QPY:
+    if fmt is OutputFormat.QPY:
+        if isinstance(destination, TextIOBase):
+            msg = "QPY output requires a *binary* stream."
+            raise MQTBenchExporterError(msg)
         try:
-            with destination.open("wb") as f:
-                dump_qpy(_attach_metadata(qc, header), f)
+            dump_qpy(_attach_metadata(qc, header), destination)
         except Exception as exc:
-            msg = f"Failed to write QPY file to {destination}. (Original error: {exc})"
+            msg = f"Failed to write QPY stream. (Original error: {exc})"
             raise MQTBenchExporterError(msg) from exc
+        return
 
-    else:
-        msg = f"Unsupported output format {fmt}. Supported formats are {[m.value for m in OutputFormat]}."
-        raise MQTBenchExporterError(msg)
+    msg = f"Unsupported output format {fmt}. Supported formats are {[m.value for m in OutputFormat]}."
+    raise MQTBenchExporterError(msg)
 
 
 def save_circuit(
@@ -283,9 +295,10 @@ def save_circuit(
     """
     path = Path(target_directory) / f"{filename}.{output_format.extension()}"
     try:
+        path.parent.mkdir(parents=True, exist_ok=True)
         write_circuit(qc, path, level, output_format, target, qir_profile=qir_profile)
-    except MQTBenchExporterError as e:
-        print(e)
+    except (MQTBenchExporterError, OSError) as e:
+        print(e, file=sys.stderr)
         return False
 
     return True
@@ -313,8 +326,9 @@ def generate_filename(
         compiler: Compiler name. MQT filenames omit the Qiskit optimization level.
 
     Returns:
-        A string representing a filename (excluding extension) that encodes
-        all relevant metadata for reproducibility and clarity.
+        A filename without an extension, containing the benchmark name, level,
+        size, and compilation settings. Factory options are stored in the circuit
+        metadata and export header.
     """
     base = f"{benchmark_name}_{level.name.lower()}{'_mirror' if generate_mirror_circuit else ''}"
 

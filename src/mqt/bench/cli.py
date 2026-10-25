@@ -11,16 +11,32 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
 
-from mqt.bench.targets.devices import get_device
-from mqt.bench.targets.gatesets import get_target_for_gateset
+from qiskit.exceptions import QiskitError
+
+from mqt.bench.benchmarks import get_available_benchmark_names, get_benchmark_catalog
+from mqt.bench.targets.devices import get_available_device_names, get_device
+from mqt.bench.targets.gatesets import get_available_gateset_names, get_target_for_gateset
 
 from .benchmark_generation import BenchmarkLevel, get_benchmark
-from .output import OutputFormat, generate_filename, save_circuit, write_circuit
+from .output import MQTBenchExporterError, OutputFormat, generate_filename, save_circuit, write_circuit
+
+
+def _benchmark_options(text: str) -> dict[str, object]:
+    """Read a JSON object of options for the selected benchmark factory."""
+    try:
+        options = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    if not isinstance(options, dict):
+        msg = "Benchmark options must be a JSON object."
+        raise argparse.ArgumentTypeError(msg)
+    return options
 
 
 def main() -> None:
@@ -35,19 +51,17 @@ def main() -> None:
         type=str,
         choices=["alg", "indep", "nativegates", "mapped"],
         help='Level to generate benchmarks for ("alg", "indep", "nativegates" or "mapped").',
-        required=True,
     )
     parser.add_argument(
         "--algorithm",
         type=str,
         help="Name of the benchmark (e.g., 'grover', 'shor').",
-        required=True,
+        choices=get_available_benchmark_names(),
     )
     parser.add_argument(
         "--num-qubits",
         type=int,
         help="Number of qubits for the benchmark.",
-        required=True,
     )
     parser.add_argument(
         "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
@@ -103,17 +117,35 @@ def main() -> None:
         help="If set, generate the mirror version of the benchmark (circuit @ circuit.inverse()).",
     )
 
+    catalogue = parser.add_mutually_exclusive_group()
+    catalogue.add_argument("--list-benchmarks", action="store_true", help="List benchmarks and descriptions.")
+    catalogue.add_argument("--list-targets", action="store_true", help="List native gate sets and mapped devices.")
+    parser.add_argument("--seed", type=int, help="Seed for benchmark construction and random parameter values.")
+    parser.add_argument(
+        "--benchmark-options",
+        type=_benchmark_options,
+        default={},
+        metavar="JSON",
+        help='Benchmark-specific options as a JSON object, e.g. {"depth": 5, "for_loop": true}.',
+    )
+
     args = parser.parse_args()
 
-    if args.level == "alg":
-        level = BenchmarkLevel.ALG
-    elif args.level == "indep":
-        level = BenchmarkLevel.INDEP
-    elif args.level == "nativegates":
-        level = BenchmarkLevel.NATIVEGATES
-    else:
-        level = BenchmarkLevel.MAPPED
+    if args.list_benchmarks:
+        for name, description in sorted(get_benchmark_catalog().items()):
+            print(f"{name}: {description}")
+        return
+    if args.list_targets:
+        print("Gate sets:", *get_available_gateset_names(), sep="\n")
+        print("Devices:", *get_available_device_names(), sep="\n")
+        return
 
+    missing = [
+        f"--{name.replace('_', '-')}" for name in ("level", "algorithm", "num_qubits") if getattr(args, name) is None
+    ]
+    if missing:
+        parser.error(f"the following arguments are required: {', '.join(missing)}")
+    level = BenchmarkLevel[args.level.upper()]
     if level in (BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED) and not args.target:
         parser.error(f"--target is required when --level is '{args.level}'.")
 
@@ -137,36 +169,44 @@ def main() -> None:
             mapping=MappingOptions(trials=args.mapping_trials if args.mapping_trials is not None else 4),
         )
 
-    if level == BenchmarkLevel.NATIVEGATES:
-        target = get_target_for_gateset(args.target, num_qubits=args.num_qubits)
-    elif level == BenchmarkLevel.MAPPED:
-        target = get_device(args.target)
-    else:
-        target = None
-
-    # Generate circuit
-    circuit = get_benchmark(
-        benchmark=args.algorithm,
-        level=level,
-        circuit_size=args.num_qubits,
-        target=target,
-        opt_level=args.optimization_level,
-        compiler=args.compiler,
-        compiler_options=compiler_options,
-        generate_mirror_circuit=args.mirror,
-        random_parameters=args.random_parameters,
-    )
-
+    options = dict(args.benchmark_options)
+    if args.seed is not None:
+        if "seed" in options:
+            parser.error("Specify the seed only once.")
+        options["seed"] = args.seed
+    target = None
     try:
-        fmt = OutputFormat(args.output_format)
-    except ValueError:
-        msg = f"Unknown output format: {args.output_format}"
-        raise ValueError(msg) from None
+        if level in (BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED):
+            target = (
+                get_device(args.target)
+                if level == BenchmarkLevel.MAPPED
+                else get_target_for_gateset(args.target, num_qubits=args.num_qubits)
+            )
+        circuit = get_benchmark(
+            benchmark=args.algorithm,
+            level=level,
+            circuit_size=args.num_qubits,
+            target=target,
+            opt_level=args.optimization_level,
+            compiler=args.compiler,
+            compiler_options=compiler_options,
+            generate_mirror_circuit=args.mirror,
+            random_parameters=args.random_parameters,
+            **options,
+        )
+    except (ValueError, TypeError, KeyError, QiskitError) as exc:
+        parser.error(str(exc))
+
+    fmt = OutputFormat(args.output_format)
 
     # Text formats stream to stdout unless saving is requested.
     if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
         assert isinstance(sys.stdout, TextIOBase)
-        write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
+        try:
+            write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
+        except MQTBenchExporterError as exc:
+            print(exc, file=sys.stderr)
+            sys.exit(1)
         return
 
     # Otherwise, save to file
