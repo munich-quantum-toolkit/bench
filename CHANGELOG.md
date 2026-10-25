@@ -49,6 +49,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Retain mirror provenance when recompiling existing circuits
+  ([**@simon1hofmann**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])

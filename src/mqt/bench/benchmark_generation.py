@@ -122,7 +122,7 @@ def _record_generation(
         "level": level.name.lower(),
         "opt_level": opt_level,
         "target": target.description if target is not None else None,
-        "mirror": mirror,
+        "mirror": mirror or generation.get("mirror", False),
     })
     qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
