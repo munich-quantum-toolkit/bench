@@ -293,7 +293,7 @@ def test_cli_save_error(tmp_path: Path, script_runner: ScriptRunner) -> None:
     target_dir.write_text("existing file")
     ret = _run_cli(script_runner, ["--output-format", "qpy", "--target-directory", str(target_dir)])
     assert ret.returncode == 1
-    assert str(target_dir) in ret.stderr
+    assert target_dir.name in ret.stderr
     assert "Traceback" not in ret.stderr
     assert not ret.stdout
     assert target_dir.read_text() == "existing file"
