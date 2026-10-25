@@ -18,7 +18,7 @@ from ._registry import register_benchmark
 
 @register_benchmark("qnn", description="Quantum Neural Network (QNN)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a Z FeatureMap and a RealAmplitudes ansatz.
+    """Returns a quantum circuit implementing a Quantum Neural Network (QNN) with a ZZ FeatureMap and a RealAmplitudes ansatz.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
