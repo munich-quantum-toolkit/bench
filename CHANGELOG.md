@@ -91,7 +91,7 @@ that minor releases may include breaking changes.
 ### Removed
 
 - 🔥 Move the QASM 3 importer to test dependencies and remove the pytest-sugar
-  test plugin ([**@simon1hofmann**])
+  test plugin ([#1120]) ([**@simon1hofmann**])
 - 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
   dependencies ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])
@@ -276,6 +276,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
