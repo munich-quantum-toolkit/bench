@@ -90,6 +90,8 @@ that minor releases may include breaking changes.
 
 ### Removed
 
+- 🔥 Move the QASM 3 importer to test dependencies and remove the pytest-sugar
+  test plugin ([**@simon1hofmann**])
 - 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
   dependencies ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])

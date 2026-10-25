@@ -35,8 +35,12 @@ MQT Bench requires Qiskit 2.2.3 or newer, up from 2.1.2. Update lower dependency
 pins and upgrade Qiskit:
 
 ```console
-python -m pip install --upgrade "qiskit[qasm3-import]>=2.2.3,<3"
+python -m pip install --upgrade "qiskit>=2.2.3,<3"
 ```
+
+To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
+MQT Bench no longer installs the importer automatically. QASM 3 export is
+unchanged.
 
 ### Device models
 
