@@ -43,7 +43,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Correct HHL solutions, IQPE phase results, and fixed-width VBE addition; preserve caller random state and test benchmark semantics ([#1109]) ([**@simon1hofmann**])
+- 🐛 Correct HHL solutions, IQPE phase results, and fixed-width VBE addition;
+  preserve caller random state and test benchmark semantics ([#1109])
+  ([**@simon1hofmann**])
 - 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
   BMW copula benchmarks; combine size checks for Bell pairs and teleportation
   ([#1098]) ([#1106]) ([**@jyothikacodes**], [**@simon1hofmann**],
