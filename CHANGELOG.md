@@ -14,6 +14,9 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
+  generation settings in circuit metadata and export headers ([#1115])
+  ([**@simon1hofmann**])
 - ✨ Add Simon's algorithm benchmark ([#1079]) ([**gautham0104-neitizen**])
 - ✨ Add the full 108-qubit Rigetti Cepheus architecture and document target
   models ([#1095]) ([**@simon1hofmann**], [**@burgholzer**])
@@ -43,6 +46,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve existing files when export fails, create output directories, and
+  report CLI argument and export errors on stderr ([#1115])
+  ([**@simon1hofmann**])
 - 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
   BMW copula benchmarks; combine size checks for Bell pairs and teleportation
   ([#1098]) ([#1106]) ([**@jyothikacodes**], [**@simon1hofmann**],
@@ -259,6 +265,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
 [#1095]: https://github.com/munich-quantum-toolkit/bench/pull/1095
