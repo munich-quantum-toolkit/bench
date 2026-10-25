@@ -288,6 +288,11 @@ def test_arithmetic_mirror_measurements() -> None:
         ),
         ("vbe_ripple_carry_adder", 3, "unknown_adder", "kind must be 'full', 'half', or 'fixed'."),
         ("hhl", 2, None, "Number of qubits must be at least 3 for HHL."),
+        ("grover", 1, None, "num_qubits must be at least 2 for Grover's algorithm."),
+        ("qwalk", 1, None, "num_qubits must be at least 2 for quantum walks."),
+        ("qpeinexact", 1, None, "num_qubits must be at least 2 for inexact QPE."),
+        ("bv", 1, None, "num_qubits must be at least 2 for Bernstein-Vazirani."),
+        ("dj", 1, None, "num_qubits must be at least 2 for Deutsch-Jozsa."),
         ("qpeexact", 1, None, "Number of qubits must be at least 2 for QPE exact."),
         ("iqpe", 1, None, "Number of qubits must be at least 2 for IQPE."),
         ("bmw_quark_copula", 3, None, "num_qubits must be a positive multiple of 2."),
@@ -438,8 +443,23 @@ def test_bv() -> None:
 
     assert get_benchmark_alg("bv", 2, dynamic=True, generate_mirror_circuit=True).num_qubits == 2
 
-    with pytest.raises(ValueError, match=r"Length of hidden_string must be num_qubits - 1."):
+    with pytest.raises(ValueError, match=r"hidden_string must be a binary string of length num_qubits - 1."):
         create_circuit("bv", 3, hidden_string="wrong")
+
+
+@pytest.mark.parametrize(
+    ("benchmark", "kwargs", "message"),
+    [
+        ("bv", {"hidden_string": "x0"}, "binary string"),
+        ("qwalk", {"depth": -1}, "nonnegative"),
+        ("ae", {"probability": -0.1}, "between 0 and 1"),
+        ("ae", {"probability": float("nan")}, "between 0 and 1"),
+    ],
+)
+def test_invalid_benchmark_options(benchmark: str, kwargs: dict, message: str) -> None:
+    """Reject invalid problem parameters before constructing the circuit."""
+    with pytest.raises(ValueError, match=message):
+        create_circuit(benchmark, 3, **kwargs)
 
 
 @pytest.mark.parametrize(
