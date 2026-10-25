@@ -15,6 +15,13 @@ IQPE stores its phase estimate in the same bit order as ordinary QPE. Remove any
 reversal of its result strings. Inexact IQPE now selects the same phase as
 `qpeinexact` with the default seed, so previously generated instances differ.
 
+### Seeded parameter values
+
+An explicit `seed` now controls random parameter binding as well as benchmark
+construction. Seeded variational circuits therefore have different numeric
+parameters than before. Calls without a seed retain the previous binding seed of
+10.
+
 ### Clifford+T compilation
 
 Native Clifford+T compilation uses gridsynth on Qiskit 2.4.2 and newer, and
