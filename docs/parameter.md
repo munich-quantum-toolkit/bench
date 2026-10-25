@@ -26,8 +26,7 @@ print(get_available_benchmark_names())
 
 - `level`: BenchmarkLevel.ALG, BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES,
   BenchmarkLevel.MAPPED
-- `circuit_size`: Number of qubits in the circuit. IQPE is the exception: it
-  always uses two physical qubits and estimates `circuit_size - 1` phase bits.
+- `circuit_size`: Define the number of qubits in the circuit.
 - `target`: Target, which can also be instantiated based on gatesets using
   `get_target_for_gateset(gateset_name, num_qubits)` or based on a device using
   `get_device(device_name)`. Possible values for `gateset_name`:
@@ -65,30 +64,6 @@ print(get_available_device_names())
   the mirror. Circuits that Qiskit cannot invert, for example those with
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
-
-## Benchmark options and sizes
-
-Additional keyword arguments go to the selected benchmark's `create_circuit`
-function. For example, use `hidden_string="10"` for BV, `kind="fixed"` for an
-adder, or `seed=42` for graph-state generation. See each factory's API page for
-its supported options.
-
-All named benchmarks require a positive size. Other constraints are:
-
-| Benchmarks                                                                                 | Size constraint                                                 |
-| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `bv`, `dj`, `grover`, `qwalk`, `qpeexact`, `qpeinexact`, `iqpe`, `ae`, `superdense_coding` | At least 2                                                      |
-| `hhl`                                                                                      | At least 3                                                      |
-| `bell`, `bmw_quark_copula`, `simon`                                                        | Positive even size                                              |
-| `teleportation`, `seven_qubit_steane_code`, `shors_nine_qubit_code`                        | Positive multiples of 3, 13, and 17, respectively               |
-| `shor`                                                                                     | 18, 42, 58, or 74                                               |
-| `graphstate`                                                                               | `0 <= degree < circuit_size`, with even `degree * circuit_size` |
-
-Arithmetic widths depend on the adder kind or multiplier. Their factory
-reference documents include the register and helper-qubit constraints. Qwalk
-depth can be zero but cannot be negative. AE probabilities must lie in `[0, 1]`.
-BV and Simon hidden strings must be binary; character `i` corresponds to
-classical bit `i`.
 
 ## Native Gate-Set Support
 
