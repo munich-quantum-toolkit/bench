@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""QOE exact benchmark definition."""
+"""QPE exact benchmark definition."""
 
 from __future__ import annotations
 
@@ -21,11 +21,12 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("qpeexact", description="Quantum Phase Estimation (QPE) exactly representable phase")
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
+        seed: Random seed for the target phase.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.
@@ -41,12 +42,11 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     qc = QuantumCircuit(q, psi, c, name="qpeexact")
 
     # get random n-bit string as target phase
-    random.seed(10)
+    rng = random.Random(seed)
     theta = 0
     while theta == 0:
-        theta = random.getrandbits(num_qubits)
+        theta = rng.getrandbits(num_qubits)
     lam = Fraction(0, 1)
-    # print("theta : ", theta, "correspond to", theta / (1 << n), "bin: ")
     for i in range(num_qubits):
         if theta & (1 << (num_qubits - i - 1)):
             lam += Fraction(1, (1 << i))

@@ -6,6 +6,15 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### HHL and IQPE results
+
+HHL now measures a `success` register. Read the system bit in `c` only for shots
+where `success[0]` is one. Its successful state solves the documented matrix.
+
+IQPE stores its phase estimate in the same bit order as ordinary QPE. Remove any
+reversal of its result strings. Inexact IQPE now selects the same phase as
+`qpeinexact` with the default seed, so previously generated instances differ.
+
 ### Clifford+T compilation
 
 Native Clifford+T compilation uses gridsynth on Qiskit 2.4.2 and newer, and
