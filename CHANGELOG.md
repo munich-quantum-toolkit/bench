@@ -36,6 +36,9 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
+  ready pull requests. Keep the full matrix on main, merge queues, and manual
+  runs ([#1112]) ([**@simon1hofmann**])
 - ⬆️ Raise the minimum Qiskit version to 2.2.3 ([#1087])
   ([**@simon1hofmann**])
 - ✨ Use gridsynth for native Clifford+T compilation on Qiskit 2.4.2 and newer,
@@ -46,9 +49,14 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Reject invalid qubit counts in the Shor, Steane, and BMW copula benchmarks;
-  combine size checks for Bell pairs and teleportation ([#1098])
-  ([**@jyothikacodes**], [**@simon1hofmann**])
+- 🐛 Select Clifford+T synthesis from target capabilities instead of
+  descriptions ([#1110]) ([**@simon1hofmann**])
+- 🐛 Validate benchmark sizes and options, document factory constraints, and
+  type supported keyword arguments ([#1108]) ([**@simon1hofmann**])
+- 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
+  BMW copula benchmarks; combine size checks for Bell pairs and teleportation
+  ([#1098]) ([#1106]) ([**@jyothikacodes**], [**@simon1hofmann**],
+  [**@NiranjanRSoorej06**])
 - 🐛 Keep native Clifford+T optimization in the target basis, including loops
   and mirrors, and preserve permutations in QASM exports ([#1093])
   ([**@simon1hofmann**], [**@burgholzer**])
@@ -79,6 +87,8 @@ that minor releases may include breaking changes.
 
 ### Removed
 
+- 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
+  dependencies ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])
   ([**@burgholzer**])
 
@@ -261,6 +271,11 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
+[#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
+[#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
+[#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
+[#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
 [#1095]: https://github.com/munich-quantum-toolkit/bench/pull/1095
 [#1093]: https://github.com/munich-quantum-toolkit/bench/pull/1093
