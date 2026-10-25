@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Unpack, assert_never, overload
@@ -80,7 +81,7 @@ def _get_circuit(
         if circuit_size is not None:
             msg = "`circuit_size` must be omitted or None when `benchmark` is a QuantumCircuit."
             raise ValueError(msg)
-        qc = benchmark
+        qc = benchmark.copy()
 
     else:
         if circuit_size is None:
@@ -89,12 +90,42 @@ def _get_circuit(
         qc = create_circuit(benchmark, circuit_size, **kwargs)
 
     if len(qc.parameters) > 0 and random_parameters:
-        rng = np.random.default_rng(10)
+        rng = np.random.default_rng(kwargs.get("seed", 10))
         param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
-        if qc is benchmark:
-            qc = qc.copy()
         qc.assign_parameters(param_dict, inplace=True)
         assert len(qc.parameters) == 0, "All parameters should be assigned."
+    metadata = dict(qc.metadata or {})
+    previous = metadata.get("mqt_bench_generation", {})
+    generation = dict(previous) if isinstance(previous, dict) else {}
+    generation.setdefault("benchmark", benchmark if isinstance(benchmark, str) else qc.name)
+    generation.setdefault("circuit_size", circuit_size if circuit_size is not None else qc.num_qubits)
+    generation["random_parameters"] = random_parameters
+    options = dict(generation.get("options", {}))
+    for name, value in kwargs.items():
+        try:
+            options[name] = json.loads(json.dumps(value, allow_nan=False))
+        except (TypeError, ValueError):
+            continue
+    generation["options"] = options
+    qc.metadata = metadata | {"mqt_bench_generation": generation}
+    return qc
+
+
+def _record_generation(
+    qc: QuantumCircuit,
+    level: BenchmarkLevel,
+    *,
+    target: Target | None = None,
+    opt_level: int | None = None,
+    mirror: bool = False,
+) -> QuantumCircuit:
+    """Attach the compilation settings to the circuit's generation record."""
+    qc.metadata["mqt_bench_generation"].update({
+        "level": level.name.lower(),
+        "opt_level": opt_level,
+        "target": target.description if target is not None else None,
+        "mirror": mirror,
+    })
     return qc
 
 
@@ -251,9 +282,8 @@ def get_benchmark_alg(
     """
     qc = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if generate_mirror_circuit:
-        # Only modify in place if `qc` is not the caller's circuit.
-        return _create_mirror_circuit(qc, inplace=qc is not benchmark)
-    return qc
+        qc = _create_mirror_circuit(qc, inplace=True)
+    return _record_generation(qc, BenchmarkLevel.ALG, mirror=generate_mirror_circuit)
 
 
 @overload
@@ -319,8 +349,8 @@ def get_benchmark_indep(
     circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc_processed, inplace=True)
-    return qc_processed
+        qc_processed = _create_mirror_circuit(qc_processed, inplace=True)
+    return _record_generation(qc_processed, BenchmarkLevel.INDEP, opt_level=opt_level, mirror=generate_mirror_circuit)
 
 
 @overload
@@ -435,8 +465,10 @@ def get_benchmark_native_gates(
 
     compiled_circuit = pm.run(circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(compiled_circuit, inplace=True, pass_manager=mirror_pm)
-    return compiled_circuit
+        compiled_circuit = _create_mirror_circuit(compiled_circuit, inplace=True, pass_manager=mirror_pm)
+    return _record_generation(
+        compiled_circuit, BenchmarkLevel.NATIVEGATES, target=target, opt_level=opt_level, mirror=generate_mirror_circuit
+    )
 
 
 @overload
@@ -509,8 +541,10 @@ def get_benchmark_mapped(
     pm = _get_qiskit_pass_manager(target, opt_level, native=False)
     mapped_circuit = pm.run(circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, inplace=True, pass_manager=pm)
-    return mapped_circuit
+        mapped_circuit = _create_mirror_circuit(mapped_circuit, inplace=True, pass_manager=pm)
+    return _record_generation(
+        mapped_circuit, BenchmarkLevel.MAPPED, target=target, opt_level=opt_level, mirror=generate_mirror_circuit
+    )
 
 
 @overload

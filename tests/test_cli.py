@@ -17,6 +17,7 @@ import pytest
 from qiskit.qasm3 import dumps
 
 from mqt.bench.benchmark_generation import BenchmarkLevel, get_benchmark
+from mqt.bench.benchmarks import create_circuit
 from mqt.bench.targets import get_device, get_target_for_gateset
 
 if TYPE_CHECKING:
@@ -162,6 +163,16 @@ if TYPE_CHECKING:
                 )
             ),
         ),
+        (["--list-benchmarks"], "qwalk: Quantum Walk"),
+        (["--list-targets"], "ibm_heron_156"),
+        (
+            ["--level", "alg", "--algorithm", "vqe_real_amp", "--num-qubits", "2", "--seed", "42"],
+            dumps(get_benchmark("vqe_real_amp", BenchmarkLevel.ALG, 2, seed=42)),
+        ),
+        (
+            ["--level", "alg", "--algorithm", "qwalk", "--num-qubits", "3", "--benchmark-options", '{"depth": 0}'],
+            dumps(create_circuit("qwalk", 3, depth=0)),
+        ),
         (["--help"], "usage:"),
     ],
 )
@@ -170,6 +181,9 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
     ret = script_runner.run(["mqt-bench", *args])
     assert ret.success
     assert expected_output in ret.stdout
+    if args == ["--help"]:
+        assert "MQT Bench version:" in ret.stdout
+        assert "Qiskit version:" in ret.stdout
 
 
 @pytest.mark.parametrize(
@@ -178,14 +192,13 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
         ([], "usage:"),
         (["asd"], "usage:"),
         (["--benchmark", "ae"], "usage:"),
-        # Note: We don't care about the actual error messages in most cases
         (
             ["--level", "not-a-valid-level", "--algorithm", "ae", "--num-qubits", "20"],
             "invalid choice: 'not-a-valid-level' ",
         ),
         (
             ["--level", "alg", "--algorithm", "not-a-valid-benchmark", "--num-qubits", "20"],
-            "",
+            "invalid choice: 'not-a-valid-benchmark'",
         ),
         (
             ["--level", "nativegates", "--algorithm", "ghz", "--num-qubits", "20"],
@@ -195,6 +208,32 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
             ["--level", "mapped", "--algorithm", "ghz", "--num-qubits", "20"],
             "--target is required when --level is 'mapped'",
         ),
+        (
+            ["--level", "mapped", "--algorithm", "ghz", "--num-qubits", "3", "--target", "unknown"],
+            "not a supported device",
+        ),
+        (["--level", "alg", "--algorithm", "bv", "--num-qubits", "0"], "must be a positive integer"),
+        (["--benchmark-options", "{"], "--benchmark-options:"),
+        (["--benchmark-options", "[]"], "must be a JSON object"),
+        (
+            ["--level", "alg", "--algorithm", "ghz", "--num-qubits", "3", "--benchmark-options", '{"unknown": 1}'],
+            "unexpected keyword argument",
+        ),
+        (
+            [
+                "--level",
+                "alg",
+                "--algorithm",
+                "ghz",
+                "--num-qubits",
+                "3",
+                "--seed",
+                "42",
+                "--benchmark-options",
+                '{"seed": 43}',
+            ],
+            "Specify the seed only once",
+        ),
     ],
 )
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
@@ -202,6 +241,8 @@ def test_cli_errors(args: list[str], expected_output: str, script_runner: Script
     ret = script_runner.run(["mqt-bench", *args])
     assert not ret.success
     assert expected_output in ret.stderr
+    assert "Traceback" not in ret.stderr
+    assert not ret.stdout
 
 
 def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> RunResult:
@@ -222,7 +263,7 @@ def test_cli_qasm_stdout(fmt: str, script_runner: ScriptRunner) -> None:
 
 def test_cli_qpy_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     """When *--save* is given, QPY file is persisted and path is echoed."""
-    target_dir = str(tmp_path)
+    target_dir = str(tmp_path / "new" / "circuits")
     ret = _run_cli(
         script_runner,
         [
