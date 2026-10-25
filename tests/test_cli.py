@@ -251,10 +251,15 @@ def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> RunResult:
     return script_runner.run(cmd)
 
 
-@pytest.mark.parametrize("fmt", ["qasm3", "qasm2"])
-def test_cli_qasm_stdout(fmt: str, script_runner: ScriptRunner) -> None:
-    """QASM2/3 should stream directly to stdout when *--save* is omitted."""
-    ret = _run_cli(script_runner, ["--output-format", fmt])
+@pytest.mark.parametrize(("algorithm", "fmt"), [("ghz", "qasm3"), ("ghz", "qasm2"), ("iqpe", "qasm2")])
+def test_cli_qasm_stdout(algorithm: str, fmt: str, script_runner: ScriptRunner) -> None:
+    """Stream QASM to stdout and report unsupported exports on stderr."""
+    ret = _run_cli(script_runner, ["--algorithm", algorithm, "--output-format", fmt])
+    if algorithm == "iqpe":
+        assert ret.returncode == 1
+        assert "Failed to write QASM stream" in ret.stderr
+        assert "Traceback" not in ret.stderr
+        return
     assert ret.success
     assert "// MQT Bench version:" in ret.stdout  # header present
     assert "OPENQASM" in ret.stdout  # body starts with keyword

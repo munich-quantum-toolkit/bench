@@ -42,6 +42,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
     from pathlib import Path
+    from typing import BinaryIO
 
     from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
@@ -512,9 +513,10 @@ def test_teleportation_state_preparation() -> None:
     prep = QuantumCircuit(1, name="prep")
     prep.h(0)
 
-    qc = create_circuit("teleportation", 6, state_preparation=prep)
+    qc = get_benchmark_alg("teleportation", 6, state_preparation=prep)
     prep_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "prep"]
     assert prep_qubits == [0, 3]
+    assert "state_preparation" not in qc.metadata["mqt_bench_generation"]["options"]
 
     with pytest.raises(ValueError, match=r"state_preparation must be a 1-qubit circuit\."):
         create_circuit("teleportation", 3, state_preparation=QuantumCircuit(2))
@@ -1373,13 +1375,17 @@ def test_generate_header_pkg_not_installed(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
 def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
-    """Test writing a QASM circuit."""
+    """Replace a QASM file while preserving its permissions."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
 
     out = tmp_path / "test.qasm"
+    out.write_text("previous circuit")
+    out.chmod(0o640)
+    mode = out.stat().st_mode
     write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
+    assert out.stat().st_mode == mode
 
     text = out.read_text().splitlines()
     # header lines at top
@@ -1417,26 +1423,32 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert json.loads(header.split("// Generation options: ")[1].splitlines()[0]) == generation
 
 
-def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QPY])
+def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fmt: OutputFormat) -> None:
     """A failed export leaves the previous file intact and removes temporary files."""
     qc = QuantumCircuit(1)
     qc.h(0)
 
-    out = tmp_path / "existing.qasm"
+    out = tmp_path / f"existing.{fmt.extension()}"
     out.write_text("previous circuit")
 
-    def fail_after_writing(_qc: QuantumCircuit, stream: io.TextIOBase) -> NoReturn:
-        stream.write("partial circuit")
+    def fail_after_writing(_qc: QuantumCircuit, stream: io.TextIOBase | BinaryIO) -> NoReturn:
+        if isinstance(stream, io.TextIOBase):
+            stream.write("partial circuit")
+        else:
+            stream.write(b"partial circuit")
         msg = "disk full"
         raise OSError(msg)
 
-    monkeypatch.setattr("mqt.bench.output.dump2", fail_after_writing)
+    monkeypatch.setattr(
+        "mqt.bench.output.dump2" if fmt is OutputFormat.QASM2 else "mqt.bench.output.dump_qpy", fail_after_writing
+    )
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=OutputFormat.QASM2)
+        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
 
     msg = str(exc.value)
-    assert "failed to write qasm2 file" in msg.lower()
+    assert f"failed to write {fmt.value} file" in msg.lower()
     assert "disk full" in msg.lower()
 
     assert out.read_text() == "previous circuit"
