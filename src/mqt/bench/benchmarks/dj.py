@@ -81,9 +81,13 @@ def create_circuit(num_qubits: int, balanced: bool = True) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Deutsch-Josza algorithm.
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
         balanced: True for a balanced and False for a constant oracle
     """
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2 for Deutsch-Jozsa."
+        raise ValueError(msg)
+
     oracle_mode = "balanced" if balanced else "constant"
     num_qubits = num_qubits - 1  # because of ancilla qubit
     oracle_gate = dj_oracle(oracle_mode, num_qubits)

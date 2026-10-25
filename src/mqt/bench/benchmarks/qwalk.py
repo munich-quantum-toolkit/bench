@@ -26,14 +26,22 @@ def create_circuit(
     """Returns a quantum circuit implementing the Quantum Walk algorithm.
 
     Args:
-        num_qubits: number of qubits of the returned quantum circuit
-        depth: number of quantum steps
+        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
+        depth: Number of quantum steps. Must be nonnegative.
         coin_state_preparation: optional quantum circuit for state preparation
         for_loop: whether to use a structured for-loop for the quantum walk steps
 
     Returns:
         qc: a quantum circuit implementing the Quantum Walk algorithm
     """
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2 for quantum walks."
+        raise ValueError(msg)
+
+    if depth < 0:
+        msg = "depth must be nonnegative."
+        raise ValueError(msg)
+
     num_qubits = num_qubits - 1  # because one qubit is needed for the coin
     coin = QuantumRegister(1, "coin")
     node = QuantumRegister(num_qubits, "node")
@@ -69,6 +77,5 @@ def create_circuit(
         qc.append(ForLoopOp(range(depth), None, walk), qc.qubits)
 
     qc.measure_all()
-    qc.name = qc.name
 
     return qc
