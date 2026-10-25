@@ -22,9 +22,13 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     """Returns a quantum circuit implementing Grover's algorithm.
 
     Args:
-        num_qubits: number of qubits of the returned quantum circuit
+        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
         for_loop: whether to use a structured for-loop for the Grover iterations
     """
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2 for Grover's algorithm."
+        raise ValueError(msg)
+
     num_qubits = num_qubits - 1  # -1 because of the flag qubit
     q = QuantumRegister(num_qubits, "q")
     flag = AncillaRegister(1, "flag")
@@ -53,6 +57,5 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     else:
         qc.compose(operator.power(iterations), inplace=True)
     qc.measure_all()
-    qc.name = qc.name
 
     return qc
