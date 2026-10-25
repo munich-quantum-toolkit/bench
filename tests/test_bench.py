@@ -1927,7 +1927,7 @@ def test_version() -> None:
     assert isinstance(mqt.bench.__version_tuple__, tuple)
 
 
-@pytest.mark.parametrize("level", [BenchmarkLevel.ALG, BenchmarkLevel.INDEP])
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("parameterized", [False, True])
 def test_get_benchmark_does_not_modify_input_circuit(level: BenchmarkLevel, mirror: bool, parameterized: bool) -> None:
@@ -1938,13 +1938,23 @@ def test_get_benchmark_does_not_modify_input_circuit(level: BenchmarkLevel, mirr
     circuit.rx(theta if parameterized else 0.5, 1)
     circuit.cx(0, 1)
     circuit.measure_all()
-    circuit.metadata = {"user": {"label": "input"}}
+    circuit.metadata = {
+        "user": {"label": "input"},
+        "mqt_bench_generation": {"options": {"rotation_blocks": ["ry"]}},
+    }
     original = circuit.copy()
 
-    result = get_benchmark(circuit, level, generate_mirror_circuit=mirror)
+    target = None
+    if level == BenchmarkLevel.NATIVEGATES:
+        target = get_target_for_gateset("ibm_heron", 2)
+    elif level == BenchmarkLevel.MAPPED:
+        target = get_device("ibm_heron_156")
+    result = get_benchmark(circuit, level, target=target, generate_mirror_circuit=mirror)
 
     assert circuit == original
     assert set(circuit.parameters) == set(original.parameters)
     assert circuit.metadata == original.metadata
     assert result.metadata["user"] == circuit.metadata["user"]
     assert result.metadata["mqt_bench_generation"]["mirror"] is mirror
+    result.metadata["mqt_bench_generation"]["options"]["rotation_blocks"].append("rz")
+    assert circuit.metadata == original.metadata
