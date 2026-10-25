@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import io
+import json
 import sys
 from typing import TYPE_CHECKING
 
@@ -176,9 +177,17 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         target=get_device("iqm_crystal_5"),
         compiler="mqt",
         compiler_options=options,
+        seed=42,
         generate_mirror_circuit=mirror,
     )
     assert seen == [options] * (2 if mirror and level is not BenchmarkLevel.INDEP else 1)
+    generation = result.metadata["mqt_bench_generation"]
+    assert generation["benchmark"] == "ghz"
+    assert generation["level"] == level.name.lower()
+    assert generation["options"] == {"seed": 42}
+    assert generation["mirror"] is mirror
+    assert generation["opt_level"] is None
+    assert generation["target"] == (None if level is BenchmarkLevel.INDEP else "iqm_crystal_5")
     assert options.seed == 17
     assert options.mapping.trials == 2
     assert options.mapping.iterations == 2
@@ -654,11 +663,14 @@ def test_compiler_provenance() -> None:
     text = io.StringIO()
     write_circuit(result, text, BenchmarkLevel.INDEP)
     assert "// Compiler: mqt " in text.getvalue()
+    generation = result.metadata["mqt_bench_generation"]
+    assert json.loads(text.getvalue().split("// Generation options: ")[1].splitlines()[0]) == generation
     binary = io.BytesIO()
     write_circuit(result, binary, BenchmarkLevel.INDEP, OutputFormat.QPY)
     binary.seek(0)
     restored = qpy.load(binary)[0]
     assert restored.metadata["mqt_bench_compiler"] == result.metadata["mqt_bench_compiler"]
+    assert restored.metadata["mqt_bench_generation"] == generation
     assert generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt") == "ghz_indep_mqt_3"
 
 
@@ -695,10 +707,14 @@ def test_mqt_cli(
             "mqt-bench",
             "--compiler",
             "mqt",
+            "--seed",
+            "42",
+            "--benchmark-options",
+            '{"degree": 2}',
             "--level",
             "nativegates",
             "--algorithm",
-            "ghz",
+            "graphstate",
             "--num-qubits",
             "3",
             "--target",
@@ -711,7 +727,11 @@ def test_mqt_cli(
     )
     cli.main()
     assert seen == [(seed, trials)]
-    assert "ghz_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
+    assert "graphstate_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
+    exported = (tmp_path / "graphstate_nativegates_ibm_heron_mqt_3.qasm").read_text()
+    generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
+    assert generation["options"] == {"seed": 42, "degree": 2}
+    assert "// Compiler: mqt " in exported
 
 
 @pytest.mark.parametrize(
