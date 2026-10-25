@@ -1001,7 +1001,7 @@ def test_invalid_circuit_size_combinations(getter: Callable[..., QuantumCircuit]
 
 @pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
 def test_clifford_t(opt_level: int) -> None:
-    """Test the Clifford+T gateset."""
+    """Renaming a Clifford+T target must preserve its synthesis pipeline."""
     target = get_target_for_gateset("clifford+t", 4)
     target.description = "User-defined Clifford+T target"
     qc = get_benchmark(
