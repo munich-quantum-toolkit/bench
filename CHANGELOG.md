@@ -36,6 +36,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
+  directly from sparse edges ([**@simon1hofmann**])
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
   ready pull requests. Keep the full matrix on main, merge queues, and manual
   runs ([#1112]) ([**@simon1hofmann**])
