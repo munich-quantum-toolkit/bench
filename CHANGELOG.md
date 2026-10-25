@@ -46,8 +46,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Correct HHL solutions, IQPE phase results, and fixed-width VBE addition;
-  preserve caller random state and test benchmark semantics ([#1109])
+- 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
+  addition; preserve caller random state and test benchmark semantics ([#1109])
   ([**@simon1hofmann**])
 - 🐛 Select Clifford+T synthesis from target capabilities instead of
   descriptions ([#1110]) ([**@simon1hofmann**])

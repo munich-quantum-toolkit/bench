@@ -25,7 +25,7 @@ import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.classical import expr
-from qiskit.circuit.library import CXGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate
+from qiskit.circuit.library import CXGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
@@ -44,6 +44,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
 
+    from qiskit.circuit import Gate
     from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
     from mqt.bench.configuration_options import ConfigurationOptions
@@ -483,9 +484,18 @@ def test_phase_estimation_preserves_random_state(benchmark: str) -> None:
 
 
 @pytest.mark.parametrize("num_qubits", [3, 5])
-def test_hhl_solution(num_qubits: int) -> None:
-    """Successful HHL output solves the documented matrix, including its phase."""
-    qc = create_circuit("hhl", num_qubits)
+@pytest.mark.parametrize("level", [BenchmarkLevel.ALG, BenchmarkLevel.INDEP])
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
+def test_hhl_solution(num_qubits: int, level: BenchmarkLevel, fmt: OutputFormat) -> None:
+    """HHL preserves the successful solution and measurement wiring through QASM export."""
+    qc = get_benchmark("hhl", level, num_qubits)
+    stream = io.StringIO()
+    write_circuit(qc, stream, level, fmt)
+    qc = (
+        qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+        if fmt is OutputFormat.QASM2
+        else qasm3.loads(stream.getvalue())
+    )
     assert [
         (qc.find_bit(item.qubits[0]).index, qc.find_bit(item.clbits[0]).index)
         for item in qc
@@ -749,17 +759,18 @@ def test_dynamic_qft(num_qubits: int, number: int) -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "width", "data_width"),
+    ("benchmark", "width"),
     [
-        ("seven_qubit_steane_code", 13, 7),
-        ("shors_nine_qubit_code", 17, 9),
+        ("seven_qubit_steane_code", 13),
+        ("shors_nine_qubit_code", 17),
     ],
 )
-def test_error_correction(benchmark: str, width: int, data_width: int) -> None:
-    """Recover a state with relative phase after a combined bit and phase error."""
+@pytest.mark.parametrize(("error", "qubit"), [(XGate(), 0), (ZGate(), 0), (YGate(), -1)])
+def test_error_correction(benchmark: str, width: int, error: Gate, qubit: int) -> None:
+    """Recover a state with relative phase after bit, phase, and combined errors."""
     code = create_circuit(benchmark, width)
     encoded = next(i for i, item in enumerate(code.data) if item.operation.name == "barrier")
-    code.data.insert(encoded, CircuitInstruction(YGate(), [code.qubits[data_width - 1]], []))
+    code.data.insert(encoded, CircuitInstruction(error, [code.qregs[0][qubit]], []))
     qc = code.copy_empty_like()
     qc.h(0)
     qc.s(0)

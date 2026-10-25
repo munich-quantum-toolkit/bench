@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFTGate, UnitaryGate
+from qiskit.circuit.library import QFTGate, UGate
 
 from ._registry import register_benchmark
 
@@ -49,8 +49,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     qc.x(system[0])
 
     # U = exp(i*pi*(A - lambda_min*I)/(lambda_max - lambda_min)). Its square is I.
-    matrix = np.array([[1, 1], [1, 3]])
-    evolution = UnitaryGate((2 * np.eye(2) - matrix) / np.sqrt(2))
+    evolution = UGate(np.pi / 2, np.pi, 0)
     estimation = QuantumCircuit(len(phase) + 1)
     estimation.h(range(len(phase)))
     estimation.append(evolution.control(), [0, len(phase)])
