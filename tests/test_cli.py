@@ -170,6 +170,9 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
     ret = script_runner.run(["mqt-bench", *args])
     assert ret.success
     assert expected_output in ret.stdout
+    if args == ["--help"]:
+        assert "MQT Bench version:" in ret.stdout
+        assert "Qiskit version:" in ret.stdout
 
 
 @pytest.mark.parametrize(

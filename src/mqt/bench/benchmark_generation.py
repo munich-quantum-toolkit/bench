@@ -71,7 +71,7 @@ def _get_circuit(
 
     Arguments:
         benchmark: Name of the benchmark for which the circuit is to be created.
-        circuit_size: Size of the circuit to be created, required for benchmarks other than "shor".
+        circuit_size: Size of the circuit to be created, required when the benchmark is a name.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
@@ -460,7 +460,7 @@ def get_benchmark_native_gates(
         return _get_mqt_benchmark(
             circuit, target, compiler_options=compiler_options, generate_mirror_circuit=generate_mirror_circuit
         )
-    if target.description == "clifford+t":
+    if {"h", "t"} <= target.operation_names <= get_target_for_gateset("clifford+t", circuit.num_qubits).operation_names:
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes import BasisTranslator, HighLevelSynthesis  # ruff:ignore[import-outside-top-level]
 

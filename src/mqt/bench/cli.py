@@ -23,21 +23,13 @@ from .benchmark_generation import BenchmarkLevel, get_benchmark
 from .output import OutputFormat, generate_filename, save_circuit, write_circuit
 
 
-class CustomArgumentParser(argparse.ArgumentParser):
-    """Custom argument parser that includes version information in the help message."""
-
-    def format_help(self) -> str:
-        """Include version information in the help message."""
-        help_message = super().format_help()
-        version_info = (
-            f"\nMQT Bench version: {metadata.version('mqt.bench')}\nQiskit version: {metadata.version('qiskit')}\n"
-        )
-        return help_message + version_info
-
-
 def main() -> None:
     """Generate a single benchmark and output in specified format."""
-    parser = CustomArgumentParser(description="Generate a single benchmark")
+    parser = argparse.ArgumentParser(
+        description="Generate a single benchmark",
+        epilog=f"MQT Bench version: {metadata.version('mqt.bench')}\nQiskit version: {metadata.version('qiskit')}",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--level",
         type=str,
