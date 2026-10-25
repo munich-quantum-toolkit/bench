@@ -10,14 +10,13 @@
 
 from __future__ import annotations
 
-import builtins
 import datetime as dt
 import functools
 import io
+import json
 import re
 from enum import StrEnum
 from importlib import metadata
-from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, cast
 
 import numpy as np
@@ -42,6 +41,8 @@ from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoop
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
     from collections.abc import Callable
+    from pathlib import Path
+    from typing import BinaryIO
 
     from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
@@ -512,9 +513,10 @@ def test_teleportation_state_preparation() -> None:
     prep = QuantumCircuit(1, name="prep")
     prep.h(0)
 
-    qc = create_circuit("teleportation", 6, state_preparation=prep)
+    qc = get_benchmark_alg("teleportation", 6, state_preparation=prep)
     prep_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "prep"]
     assert prep_qubits == [0, 3]
+    assert "state_preparation" not in qc.metadata["mqt_bench_generation"]["options"]
 
     with pytest.raises(ValueError, match=r"state_preparation must be a 1-qubit circuit\."):
         create_circuit("teleportation", 3, state_preparation=QuantumCircuit(2))
@@ -673,14 +675,16 @@ def test_dj_constant_oracle() -> None:
     assert qc.depth() > 0
 
 
-def test_graphstate_seed() -> None:
-    """Test the creation of the graphstate benchmark with and without a custom seed."""
-    assert get_benchmark_alg("graphstate", 5, seed=42) == get_benchmark_alg("graphstate", 5, seed=42)
-    assert get_benchmark_alg("graphstate", 5, seed=0) != get_benchmark_alg("graphstate", 5, seed=42)
-    # Verify that omitting the seed still produces valid circuits (no need to test inequality)
-    qc_no_seed = get_benchmark_alg("graphstate", 5)
+@pytest.mark.parametrize("benchmark", ["graphstate", "randomcircuit", "vqe_real_amp"])
+def test_benchmark_seed(benchmark: str) -> None:
+    """The seed controls both random construction and parameter binding."""
+    seeded = get_benchmark_alg(benchmark, 5, seed=42)
+    assert seeded == get_benchmark_alg(benchmark, 5, seed=42)
+    assert seeded != get_benchmark_alg(benchmark, 5, seed=0)
+    assert seeded.metadata["mqt_bench_generation"]["options"]["seed"] == 42
+    qc_no_seed = get_benchmark_alg(benchmark, 5)
     assert qc_no_seed.num_qubits == 5
-    assert qc_no_seed.name == "graphstate"
+    assert qc_no_seed.name == benchmark
 
 
 # Test the dynamic GHZ circuit
@@ -887,6 +891,11 @@ def test_get_benchmark(
         opt_level=opt_level if opt_level is not None else 2,
     )
     assert qc.depth() > 0
+    generation = qc.metadata["mqt_bench_generation"]
+    assert generation["benchmark"] == benchmark_name
+    assert generation["circuit_size"] == circuit_size
+    assert generation["level"] == level.name.lower()
+    assert generation["target"] == (target.description if target is not None else None)
     if target:
         assert isinstance(qc, QuantumCircuit)
         for qc_instruction in qc.data:
@@ -902,6 +911,7 @@ def test_get_benchmark_alg_with_quantum_circuit() -> None:
     qc_bench = get_benchmark(qc, BenchmarkLevel.ALG)
 
     assert qc == qc_bench
+    assert not qc.metadata
 
 
 def test_get_benchmark_faulty_parameters() -> None:
@@ -1315,6 +1325,7 @@ def test_generate_header_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "// MQT Bench version: 9.9.9" in hdr
     assert f"// Qiskit version: {__qiskit_version__}" in hdr
     assert f"// Output format: {OutputFormat.QASM3.value}" in hdr
+    assert "// Level: indep" in hdr
     # no gateset or mapping lines when omitted
     assert "// Used gateset:" not in hdr
     assert "// Coupling map:" not in hdr
@@ -1364,13 +1375,17 @@ def test_generate_header_pkg_not_installed(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
 def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
-    """Test writing a QASM circuit."""
+    """Replace a QASM file while preserving its permissions."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
 
     out = tmp_path / "test.qasm"
+    out.write_text("previous circuit")
+    out.chmod(0o640)
+    mode = out.stat().st_mode
     write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
+    assert out.stat().st_mode == mode
 
     text = out.read_text().splitlines()
     # header lines at top
@@ -1383,8 +1398,7 @@ def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
 
 def test_write_circuit_qpy(tmp_path: Path) -> None:
     """Test writing a QPY circuit with header embedded in metadata."""
-    qc = QuantumCircuit(1)
-    qc.x(0)
+    qc = get_benchmark_indep("graphstate", 4, seed=42)
     out = tmp_path / "test.qpy"
     write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=OutputFormat.QPY)
 
@@ -1402,32 +1416,43 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert "// MQT Bench version:" in header
     assert "// SPDX-License-Identifier: MIT" in header.splitlines()
     assert "// Output format: qpy" in header
+    generation = circ.metadata["mqt_bench_generation"]
+    assert generation == qc.metadata["mqt_bench_generation"]
+    assert generation["options"] == {"seed": 42}
+    assert generation["opt_level"] == 2
+    assert json.loads(header.split("// Generation options: ")[1].splitlines()[0]) == generation
 
 
-def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Simulate I/O error while writing."""
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QPY])
+def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fmt: OutputFormat) -> None:
+    """A failed export leaves the previous file intact and removes temporary files."""
     qc = QuantumCircuit(1)
     qc.h(0)
 
-    out = tmp_path / "readonly.qasm"
+    out = tmp_path / f"existing.{fmt.extension()}"
+    out.write_text("previous circuit")
 
-    # Monkey-patch builtins.open to throw OSError on any attempt to open for writing
-    def fake_open(*args: str, **kwargs: str) -> NoReturn:
+    def fail_after_writing(_qc: QuantumCircuit, stream: io.TextIOBase | BinaryIO) -> NoReturn:
+        if isinstance(stream, io.TextIOBase):
+            stream.write("partial circuit")
+        else:
+            stream.write(b"partial circuit")
         msg = "disk full"
         raise OSError(msg)
 
-    monkeypatch.setattr(Path, "open", fake_open)
-    monkeypatch.setattr(metadata, "version", lambda _: "0.1.0")
+    monkeypatch.setattr(
+        "mqt.bench.output.dump2" if fmt is OutputFormat.QASM2 else "mqt.bench.output.dump_qpy", fail_after_writing
+    )
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=OutputFormat.QASM2)
+        write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
 
     msg = str(exc.value)
-    assert "failed to write qasm2 file" in msg.lower()
+    assert f"failed to write {fmt.value} file" in msg.lower()
     assert "disk full" in msg.lower()
 
-    # restore Path.open so other tests continue unharmed
-    monkeypatch.setattr(Path, "open", builtins.open)
+    assert out.read_text() == "previous circuit"
+    assert list(tmp_path.iterdir()) == [out]
 
 
 def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
@@ -1458,7 +1483,9 @@ def test_save_circuit_success(tmp_path: Path) -> None:
     assert (tmp_path / "bar.qpy").exists()
 
 
-def test_save_circuit_write_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_save_circuit_write_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """save_circuit returns False when write_circuit fails."""
     qc = QuantumCircuit(1)
     qc.h(0)
@@ -1470,6 +1497,9 @@ def test_save_circuit_write_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
     ok = save_circuit(qc, "baz", BenchmarkLevel.INDEP, OutputFormat.QASM3, target_directory=str(tmp_path))
     assert ok is False
+    captured = capsys.readouterr()
+    assert not captured.out
+    assert "boom" in captured.err
 
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
@@ -1931,7 +1961,7 @@ def test_version() -> None:
     assert isinstance(mqt.bench.__version_tuple__, tuple)
 
 
-@pytest.mark.parametrize("level", [BenchmarkLevel.ALG, BenchmarkLevel.INDEP])
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("parameterized", [False, True])
 def test_get_benchmark_does_not_modify_input_circuit(level: BenchmarkLevel, mirror: bool, parameterized: bool) -> None:
@@ -1942,9 +1972,23 @@ def test_get_benchmark_does_not_modify_input_circuit(level: BenchmarkLevel, mirr
     circuit.rx(theta if parameterized else 0.5, 1)
     circuit.cx(0, 1)
     circuit.measure_all()
+    circuit.metadata = {
+        "user": {"label": "input"},
+        "mqt_bench_generation": {"options": {"rotation_blocks": ["ry"]}},
+    }
     original = circuit.copy()
 
-    get_benchmark(circuit, level, generate_mirror_circuit=mirror)
+    target = None
+    if level == BenchmarkLevel.NATIVEGATES:
+        target = get_target_for_gateset("ibm_heron", 2)
+    elif level == BenchmarkLevel.MAPPED:
+        target = get_device("ibm_heron_156")
+    result = get_benchmark(circuit, level, target=target, generate_mirror_circuit=mirror)
 
     assert circuit == original
     assert set(circuit.parameters) == set(original.parameters)
+    assert circuit.metadata == original.metadata
+    assert result.metadata["user"] == circuit.metadata["user"]
+    assert result.metadata["mqt_bench_generation"]["mirror"] is mirror
+    result.metadata["mqt_bench_generation"]["options"]["rotation_blocks"].append("rz")
+    assert circuit.metadata == original.metadata

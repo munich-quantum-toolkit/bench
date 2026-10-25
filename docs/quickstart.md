@@ -151,6 +151,15 @@ qc_symbolic.draw(output="mpl")
 The `save_circuit` function lets you export circuits in several
 industry‑standard formats so that they can be run or analyzed by other tools.
 
+Circuits returned by `get_benchmark` store their benchmark name, size, level,
+compilation settings, and explicitly supplied options in
+`qc.metadata["mqt_bench_generation"]`. Export headers include this record; QPY
+also retains it as metadata. Only JSON-serializable options are recorded, so
+custom gates and state-preparation circuits must be stored separately.
+
+File exports replace the destination only after serialization succeeds.
+`save_circuit` creates missing output directories and reports errors on stderr.
+
 ### OpenQASM2
 
 ```{code-cell} ipython3
