@@ -51,7 +51,7 @@ that minor releases may include breaking changes.
 
 - 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
   `balanced` option, and handle custom target names in generated filenames
-  ([**@simon1hofmann**])
+  ([#1118]) ([**@simon1hofmann**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])
@@ -277,6 +277,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
