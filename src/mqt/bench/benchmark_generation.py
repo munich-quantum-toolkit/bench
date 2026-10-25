@@ -424,7 +424,7 @@ def get_benchmark_native_gates(
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
-    if target.description == "clifford+t":
+    if {"h", "t"} <= target.operation_names <= get_target_for_gateset("clifford+t", circuit.num_qubits).operation_names:
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes import BasisTranslator, HighLevelSynthesis  # ruff:ignore[import-outside-top-level]
 
