@@ -37,7 +37,7 @@ that minor releases may include breaking changes.
 ### Changed
 
 - ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
-  directly from sparse edges ([**@simon1hofmann**])
+  directly from sparse edges ([#1119]) ([**@simon1hofmann**])
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
   ready pull requests. Keep the full matrix on main, merge queues, and manual
   runs ([#1112]) ([**@simon1hofmann**])
@@ -276,6 +276,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
