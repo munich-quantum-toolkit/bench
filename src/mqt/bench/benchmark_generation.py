@@ -71,7 +71,7 @@ def _get_circuit(
 
     Arguments:
         benchmark: Name of the benchmark for which the circuit is to be created.
-        circuit_size: Size of the circuit to be created, required for benchmarks other than "shor".
+        circuit_size: Size of the circuit to be created, required when the benchmark is a name.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
 

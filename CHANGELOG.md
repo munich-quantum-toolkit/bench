@@ -50,6 +50,8 @@ that minor releases may include breaking changes.
 
 - 🐛 Select Clifford+T synthesis from target capabilities instead of
   descriptions ([#1110]) ([**@simon1hofmann**])
+- 🐛 Validate benchmark sizes and options, document factory constraints, and
+  type supported keyword arguments ([#1108]) ([**@simon1hofmann**])
 - 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
   BMW copula benchmarks; combine size checks for Bell pairs and teleportation
   ([#1098]) ([#1106]) ([**@jyothikacodes**], [**@simon1hofmann**],
@@ -271,6 +273,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
 [#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
+[#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
 [#1095]: https://github.com/munich-quantum-toolkit/bench/pull/1095
