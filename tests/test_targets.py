@@ -323,6 +323,20 @@ def test_gateset_target_has_no_hardware_constraints(gateset_name: str) -> None:
     assert all(properties == {None: None} for properties in target.values())
 
 
+def test_gateset_targets_are_independent() -> None:
+    """Each requested width gets independent gate parameters and target metadata."""
+    first = get_target_for_gateset("ionq_forte", 3)
+    first.description = "Custom target"
+    first.operation_from_name("gpi").params[0] = 0.5
+    second = get_target_for_gateset("ionq_forte", 5)
+    assert first.num_qubits == 3
+    assert second.num_qubits == 5
+    assert second.description == "ionq_forte"
+    assert isinstance(second.operation_from_name("gpi").params[0], Parameter)
+    assert second.instruction_supported("rzz", (3, 4))
+    assert not second.instruction_supported("rzz", (4, 5))
+
+
 @pytest.mark.parametrize(
     ("gateset_name", "module_name"),
     [
@@ -491,7 +505,7 @@ def test_native_gate_names_do_not_override_capabilities(name: str, operation: Ga
     target.add_instruction(RZGate(Parameter("theta")))
     target.add_instruction(CZGate())
     target.add_instruction(operation, name=name)
-    prepared, lowering = prepare_target(target, native=True)
+    prepared, lowering = prepare_target(target, native_num_qubits=2)
     assert prepared.operation_from_name(name) == operation
     assert lowering is None
 

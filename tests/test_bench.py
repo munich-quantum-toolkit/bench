@@ -14,17 +14,20 @@ import datetime as dt
 import functools
 import io
 import json
+import random
 import re
 import warnings
 from enum import StrEnum
 from importlib import metadata
 from typing import TYPE_CHECKING, NoReturn, cast
 
+import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import Barrier, ClassicalRegister, ForLoopOp, IfElseOp, Parameter, QuantumRegister
-from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, TGate, XGate
+from qiskit.circuit import Barrier, CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, QuantumRegister
+from qiskit.circuit.classical import expr
+from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
@@ -219,6 +222,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("multiplier", 8, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
         ("rg_qft_multiplier", 8, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
         ("hrs_cumulative_multiplier", 9, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
+        ("hrs_cumulative_multiplier", 9, None, (4, 5, 6, 7), [0, 1, 2, 3], "1001"),  # 3 * 3 = 9
     ],
 )
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
@@ -247,8 +251,6 @@ def test_arithmetic_results(
     compiled = get_benchmark(qc, level, target=target)
     restored = qasm3.loads(qasm3.dumps(compiled))
     counts = StatevectorSampler(seed=10).run([restored], shots=16).result()[0].data["result"].get_counts()
-    if benchmark == "vbe_ripple_carry_adder" and kind == "fixed" and counts == {"00": 16}:
-        pytest.xfail("Qiskit fixed-width carry bug: https://github.com/Qiskit/qiskit/pull/16700")
     assert counts == {expected: 16}
 
 
@@ -409,9 +411,13 @@ def test_simon_output_distribution(num_qubits: int, hidden_string: str) -> None:
     assert qc.name == "simon"
 
     # probabilities()[k] is the probability of the input register reading k, with qubit q_i as bit i of k.
-    circuit = qc.remove_final_measurements(inplace=False)
-    assert circuit is not None
-    probabilities = Statevector(circuit).probabilities(qargs=list(range(n)))
+    assert [
+        (qc.find_bit(item.qubits[0]).index, qc.find_bit(item.clbits[0]).index)
+        for item in qc
+        if item.operation.name == "measure"
+    ] == list(zip(range(n), range(n), strict=True))
+    qc.remove_final_measurements()
+    probabilities = Statevector(qc).probabilities(qargs=list(range(n)))
     expected = np.zeros(2**n)
     for k in range(2**n):
         dot_product = sum(((k >> i) & 1) * int(hidden_string[i]) for i in range(n)) % 2
@@ -460,6 +466,8 @@ def test_bv() -> None:
     [
         ("bv", {"hidden_string": "x0"}, "binary string"),
         ("qwalk", {"depth": -1}, "nonnegative"),
+        ("graphstate", {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
         ("ae", {"probability": -0.1}, "between 0 and 1"),
         ("ae", {"probability": float("nan")}, "between 0 and 1"),
     ],
@@ -483,17 +491,71 @@ def test_for_loop_option(benchmark_name: str, num_qubits: int, expected_iteratio
     assert loop.params[0] == range(expected_iterations)
 
 
-def test_iqpe() -> None:
-    """Test the creation of the IQPE benchmark."""
-    qc = create_circuit("iqpe", 4, exact=True, rotation_threshold=1e-10, seed=42)
+@pytest.mark.parametrize("exact", [True, False])
+def test_iqpe(exact: bool) -> None:
+    """Iterative and ordinary QPE estimate the same phase in the same bit order."""
+    qc = create_circuit("iqpe", 4, exact=exact)
+    reference = create_circuit("qpeexact" if exact else "qpeinexact", 4)
+    reference.remove_final_measurements()
+    expected = Statevector(reference).probabilities(qargs=[0, 1, 2])
+    counts = np.zeros(8)
+    for seed in range(256):
+        counts[int(_run_with_control_flow(qc, seed=seed), 2)] += 1
+    np.testing.assert_allclose(counts / 256, expected, atol=0.08)
     assert qc.num_qubits == 2
-    assert qc.num_clbits == 3
-    assert "iqpe" in qc.name
 
-    qc = create_circuit("iqpe", 4, exact=False, rotation_threshold=1e-10, seed=42)
-    assert qc.num_qubits == 2
-    assert qc.num_clbits == 3
-    assert "iqpe" in qc.name
+
+@pytest.mark.parametrize("benchmark", ["qpeexact", "qpeinexact", "iqpe"])
+def test_phase_estimation_preserves_random_state(benchmark: str) -> None:
+    """Constructing a benchmark must leave the application's random stream alone."""
+    before = random.getstate()
+    create_circuit(benchmark, 4)
+    assert random.getstate() == before
+
+
+@pytest.mark.parametrize("num_qubits", [3, 5])
+@pytest.mark.parametrize("level", [BenchmarkLevel.ALG, BenchmarkLevel.INDEP])
+@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
+def test_hhl_solution(num_qubits: int, level: BenchmarkLevel, fmt: OutputFormat) -> None:
+    """HHL preserves the successful solution and measurement wiring through QASM export."""
+    qc = get_benchmark("hhl", level, num_qubits)
+    stream = io.StringIO()
+    write_circuit(qc, stream, level, fmt)
+    qc = (
+        qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+        if fmt is OutputFormat.QASM2
+        else qasm3.loads(stream.getvalue())
+    )
+    assert [
+        (qc.find_bit(item.qubits[0]).index, qc.find_bit(item.clbits[0]).index)
+        for item in qc
+        if item.operation.name == "measure"
+    ] == [(0, 0), (num_qubits - 1, 1)]
+    qc.remove_final_measurements()
+    state = Statevector(qc)
+    successful = state.data[2 ** (num_qubits - 1) :]
+    assert np.linalg.norm(successful) > 0
+    successful = Statevector(successful / np.linalg.norm(successful))
+    expected = np.zeros(2 ** (num_qubits - 1))
+    expected[:2] = np.linalg.solve([[1, 1], [1, 3]], [0, 1])
+    assert successful.equiv(Statevector(expected / np.linalg.norm(expected)))
+
+
+@pytest.mark.parametrize("width", [1, 2, 3])
+def test_fixed_vbe_arithmetic(width: int) -> None:
+    """Check every fixed-width sum, relative phase, and helper uncomputation."""
+    qc = create_circuit("vbe_ripple_carry_adder", 3 * width - 1, kind="fixed")
+    qc.remove_final_measurements()
+    rng = np.random.default_rng(10)
+    initial = np.zeros(2**qc.num_qubits, dtype=complex)
+    initial[: 4**width] = rng.normal(size=4**width) + 1j * rng.normal(size=4**width)
+    initial /= np.linalg.norm(initial)
+    expected = np.zeros_like(initial)
+    mask = (1 << width) - 1
+    for value in range(4**width):
+        a, b = value & mask, value >> width
+        expected[a | (((a + b) & mask) << width)] = initial[value]
+    assert Statevector(initial).evolve(qc).equiv(Statevector(expected))
 
 
 def test_teleportation() -> None:
@@ -538,20 +600,32 @@ def test_teleportation_state_preparation_rejects_classical_bits() -> None:
 
 
 def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
-    """Execute a circuit that contains ``if_else`` blocks, one clbit condition at a time.
+    """Sample a circuit with bit, register, and parity conditions.
 
-    ``StatevectorSampler`` cannot run circuits with ``ControlFlowOp`` instructions
-    (Qiskit 2.5.2 raises ``QiskitError: StatevectorSampler cannot handle ControlFlowOp``),
-    and no control-flow-capable simulator is installed in this project. This helper
-    plays each instruction against a :class:`~qiskit.quantum_info.Statevector`,
-    sampling ``measure`` outcomes and evaluating ``if_else`` conditions directly,
-    so the real circuit (including its classical corrections) is exercised.
+    Qiskit's statevector sampler does not support control flow. Execute these
+    small circuits instruction by instruction to test their classical feedback.
     """
     rng = np.random.default_rng(seed)
     bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
     clbits = [0] * qc.num_clbits
     state = Statevector.from_label("0" * qc.num_qubits)
     state.seed(rng)
+
+    def value(item: Clbit | ClassicalRegister | expr.Expr) -> bool | int:
+        if isinstance(item, expr.Value):
+            return item.value
+        if isinstance(item, expr.Var):
+            return value(item.var)
+        if isinstance(item, ClassicalRegister):
+            return sum(clbits[bit_index[bit]] << i for i, bit in enumerate(item))
+        if isinstance(item, expr.Binary):
+            left, right = value(item.left), value(item.right)
+            if item.op == expr.Binary.Op.EQUAL:
+                return left == right
+            assert item.op == expr.Binary.Op.BIT_XOR
+            return left ^ right
+        assert isinstance(item, Clbit)
+        return clbits[bit_index[item]]
 
     def run_block(instructions: QuantumCircuitData, qubit_map: dict, state: Statevector) -> Statevector:
         for instruction in instructions:
@@ -561,8 +635,9 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
                 outcome, state = state.measure(qubits)
                 clbits[bit_index[instruction.clbits[0]]] = int(outcome)
             elif isinstance(op, IfElseOp):
-                condition_bit, condition_value = op.condition
-                if clbits[bit_index[condition_bit]] == condition_value:
+                condition = op.condition
+                passed = value(condition[0]) == condition[1] if isinstance(condition, tuple) else value(condition)
+                if passed:
                     block = op.blocks[0]
                     inner_map = dict(zip(block.qubits, qubits, strict=True))
                     state = run_block(block.data, inner_map, state)
@@ -677,9 +752,23 @@ def test_teleportation_preserves_phase() -> None:
 
 
 def test_dj_constant_oracle() -> None:
-    """Test the creation of the DJ benchmark constant oracle."""
-    qc = create_circuit("dj", 5, False)
-    assert qc.depth() > 0
+    """The public balanced=False option produces the constant-oracle result."""
+    qc = get_benchmark_alg("dj", 5, balanced=False)
+    qc.remove_final_measurements()
+    assert Statevector(qc).probabilities([0, 1, 2, 3])[0] == pytest.approx(1)
+
+
+@pytest.mark.parametrize(("num_qubits", "degree", "seed"), [(1, 0, 42), (6, 2, 0), (6, 3, 42)])
+def test_graphstate_seeded_operator(num_qubits: int, degree: int, seed: int) -> None:
+    """Direct graph-state construction preserves the seeded adjacency-matrix operator."""
+    graph = nx.random_regular_graph(degree, num_qubits, seed=seed)
+    expected = GraphStateGate(nx.to_numpy_array(graph))
+    circuit = get_benchmark_alg("graphstate", num_qubits, degree=degree, seed=seed)
+
+    assert circuit.count_ops().get("cz", 0) == num_qubits * degree // 2
+    assert circuit.count_ops()["measure"] == num_qubits
+    circuit.remove_final_measurements()
+    assert Operator(circuit).equiv(Operator(expected))
 
 
 @pytest.mark.parametrize("benchmark", ["graphstate", "randomcircuit", "vqe_real_amp"])
@@ -694,146 +783,55 @@ def test_benchmark_seed(benchmark: str) -> None:
     assert qc_no_seed.name == benchmark
 
 
-# Test the dynamic GHZ circuit
-@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
-def test_dynamic_ghz_circuit_structure(num_qubits: int) -> None:
-    """Verify the structure of the dynamic GHZ circuit for various qubit counts."""
-    # Generate the circuit
+@pytest.mark.parametrize("num_qubits", [1, 2, 5, 6])
+def test_dynamic_ghz(num_qubits: int) -> None:
+    """All classical branches preserve the coherent GHZ state."""
     qc = create_circuit("ghz_dynamic", num_qubits)
-
-    # Check Quantum Registers
-    assert qc.qregs[0].size == num_qubits
-
-    # Check Classical Registers, mid measurement and final measurement
-
-    # Mid measurement registers
-    mid_meas_regs = [reg for reg in qc.cregs if reg.name == "mid_measurement"]
-    if num_qubits == 1:
-        assert len(mid_meas_regs) == 0
-    else:
-        assert len(mid_meas_regs) == 1
-        assert mid_meas_regs[0].size == num_qubits // 2
-
-    # Final measure_all registers
-    measure_all_regs = [reg for reg in qc.cregs if reg.name == "final_measurement"]
-    assert len(measure_all_regs) == 1
-    assert measure_all_regs[0].size == num_qubits
-
-    # Check Gate Counts
-    ops: OrderedDict[str, int] = qc.count_ops()
-
-    # Check H gates
-    expected_h = (num_qubits + 1) // 2
-    assert ops.get("h", 0) == expected_h
-
-    # Check CNOT gates
-    expected_cnot = 2 * max(0, ((num_qubits + 1) // 2) - 1) + (num_qubits // 2)
-    assert ops.get("cx", 0) == expected_cnot
-
-    # Check if_test
-    expected_if_test = max(0, ((num_qubits - 1) // 2) + (num_qubits // 2))
-    assert ops.get("if_else", 0) == expected_if_test
+    qc.remove_final_measurements()
+    if num_qubits > 1:
+        qc.cx(0, range(1, num_qubits))
+    qc.h(0)
+    qc.measure_all()
+    assert {_run_with_control_flow(qc, seed=seed) for seed in range(16)} == {"0" * num_qubits}
 
 
-@pytest.mark.parametrize("num_qubits", [1, 2, 3, 7, 10])
-def test_dynamic_qft_circuit_structure(num_qubits: int) -> None:
-    """Verify the structure of the dynamic QFT circuit for various qubit counts."""
-    qc = create_circuit("dynamic_qft", num_qubits)
-
-    # Check quantum and classical registers
-    assert [(qreg.name, qreg.size) for qreg in qc.qregs] == [("q", num_qubits)]
-    assert [(creg.name, creg.size) for creg in qc.cregs] == [("meas", num_qubits)]
-
-    ops: OrderedDict[str, int] = qc.count_ops()
-
-    # Check gate counts
-    expected_phase_gates = num_qubits * (num_qubits - 1) // 2
-    assert ops.get("h", 0) == num_qubits
-    assert ops.get("measure", 0) == num_qubits
-    assert ops.get("if_else", 0) == expected_phase_gates
-    assert (
-        sum(
-            inst.operation.name == "p"
-            for instruction in qc.data
-            if isinstance(instruction.operation, IfElseOp)
-            for inst in instruction.operation.blocks[0].data
-        )
-        == expected_phase_gates
-    )
+@pytest.mark.parametrize(("num_qubits", "number"), [(1, 1), (3, 3), (4, 5)])
+def test_dynamic_qft(num_qubits: int, number: int) -> None:
+    """Semiclassical QFT reads Fourier-basis inputs in ordinary QFT bit order."""
+    qc = QuantumCircuit(num_qubits)
+    qc.x([i for i in range(num_qubits) if number & (1 << i)])
+    qc.append(QFTGate(num_qubits).inverse(), range(num_qubits))
+    qc.compose(create_circuit("dynamic_qft", num_qubits), inplace=True)
+    assert _run_with_control_flow(qc, seed=10) == format(number, f"0{num_qubits}b")
 
 
-@pytest.mark.parametrize("num_qubits", [17, 34, 51, 68])
-def test_shors_nine_qubit_code_circuit_structure(num_qubits: int) -> None:
-    """Test that Shor's 9-qubit code circuits have the expected structure.
-
-    For n logical qubits (num_qubits = 17n):
-        - Quantum registers: n of size 9 (data), n of size 6 (bit-flip syndrome), n of size 2 (phase-flip syndrome)
-        - Classical registers: n of size 6 (bit-flip), n of size 2 (phase-flip), n of size 1 (measurement)
-        - 12n conditional operations (9 bit-flip + 3 phase-flip per logical qubit)
-    """
-    qc = create_circuit("shors_nine_qubit_code", num_qubits)
-    num_logical_qubits = num_qubits // 17
-
-    # Check total qubits
-    assert qc.num_qubits == num_qubits
-
-    # Check total classical bits: 9 per logical qubit (6 bit-flip + 2 phase-flip + 1 measurement)
-    expected_clbits = 9 * num_logical_qubits
-    assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
-
-    # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
-    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
-    expected_qreg_sizes = sorted([9] * num_logical_qubits + [6] * num_logical_qubits + [2] * num_logical_qubits)
-    assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes}"
-
-    # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1n (measurement)
-    creg_sizes = sorted(creg.size for creg in qc.cregs)
-    expected_creg_sizes = sorted([6] * num_logical_qubits + [2] * num_logical_qubits + [1] * num_logical_qubits)
-    assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes}"
-
-    # Check total if-else operations: 12 per logical qubit (9 bit-flip + 3 phase-flip)
-    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
-    expected_if_else = 12 * num_logical_qubits
-    assert if_else_count == expected_if_else, (
-        f"Expected {expected_if_else} conditional operations, found {if_else_count}"
-    )
-
-
-@pytest.mark.parametrize("num_qubits", [13, 26, 39, 52])
-def test_seven_qubit_steane_code_circuit_structure(num_qubits: int) -> None:
-    """Test that Steane 7-qubit code circuits have the expected structure.
-
-    For n logical qubits (num_qubits = 13n):
-        - Quantum registers: n of size 7 (data), n of size 3 (bit-flip syndrome), n of size 3 (phase-flip syndrome)
-        - Classical registers: n of size 3 (bit-flip), n of size 3 (phase-flip), n of size 1 (measurement)
-        - 14n conditional operations (7 bit-flip + 7 phase-flip per logical qubit)
-    """
-    qc = create_circuit("seven_qubit_steane_code", num_qubits)
-    num_logical_qubits = num_qubits // 13
-
-    # Check total qubits
-    assert qc.num_qubits == num_qubits
-
-    # Check total classical bits: 7 per logical qubit (3 bit-flip + 3 phase-flip + 1 measurement)
-    expected_clbits = 7 * num_logical_qubits
-    assert qc.num_clbits == expected_clbits, f"Expected {expected_clbits} classical bits, found {qc.num_clbits}"
-
-    # Check quantum register sizes: 7n (data) + 3n (bit-flip syndrome) + 3n (phase-flip syndrome)
-    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
-    expected_qreg_sizes = sorted([7] * num_logical_qubits + [3] * num_logical_qubits + [3] * num_logical_qubits)
-    assert qreg_sizes == expected_qreg_sizes, f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes}"
-
-    # Check classical register sizes: 3n (bit-flip) + 3n (phase-flip) + 1n (measurement)
-    creg_sizes = sorted(creg.size for creg in qc.cregs)
-    expected_creg_sizes = sorted([3] * num_logical_qubits + [3] * num_logical_qubits + [1] * num_logical_qubits)
-    assert creg_sizes == expected_creg_sizes, f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes}"
-
-    # Check total if-else operations: 14 per logical qubit (7 bit-flip + 7 phase-flip)
-    if_else_count = sum(1 for inst in qc.data if isinstance(inst.operation, IfElseOp))
-    expected_if_else = 14 * num_logical_qubits
-    assert if_else_count == expected_if_else, (
-        f"Expected {expected_if_else} conditional operations, found {if_else_count}"
-    )
+@pytest.mark.parametrize(
+    ("benchmark", "width"),
+    [
+        ("seven_qubit_steane_code", 13),
+        ("shors_nine_qubit_code", 17),
+    ],
+)
+@pytest.mark.parametrize(("error", "qubit"), [(XGate(), 0), (ZGate(), 0), (YGate(), -1)])
+def test_error_correction(benchmark: str, width: int, error: Gate, qubit: int) -> None:
+    """Recover a state with relative phase after bit, phase, and combined errors."""
+    code = create_circuit(benchmark, width)
+    encoded = next(i for i, item in enumerate(code.data) if item.operation.name == "barrier")
+    code.data.insert(encoded, CircuitInstruction(error, [code.qregs[0][qubit]], []))
+    qc = code.copy_empty_like()
+    qc.h(0)
+    qc.s(0)
+    qc.compose(code, inplace=True)
+    qc.remove_final_measurements()
+    qc.sdg(0)
+    qc.h(0)
+    result = ClassicalRegister(1, "check")
+    qc.add_register(result)
+    qc.measure(0, result)
+    assert _run_with_control_flow(qc, seed=10) == "0"
+    multiple = create_circuit(benchmark, 2 * width)
+    assert multiple.num_qubits == 2 * width
+    assert len({reg.name for reg in multiple.cregs}) == len(multiple.cregs)
 
 
 SHOR_BV = {
@@ -1570,20 +1568,29 @@ def test_clifford_t_preserves_measurements(opt_level: int, measurement_case: str
         assert BasicSimulator().run(compiled, shots=16).result().get_counts() == {expected_result: 16}
 
 
-@pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
+@pytest.mark.parametrize(
+    ("level", "gateset", "opt_level"),
+    [
+        *[(BenchmarkLevel.NATIVEGATES, "clifford+t", opt) for opt in range(4)],
+        (BenchmarkLevel.NATIVEGATES, "ibm_heron", 2),
+        (BenchmarkLevel.INDEP, None, 2),
+    ],
+)
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
-def test_clifford_t_preserves_permutations(opt_level: int, mirror: bool, fmt: OutputFormat) -> None:
-    """Preserve SWAP semantics through Clifford+T synthesis, mirrors, and QASM export."""
+def test_unmapped_compilation_preserves_permutations(
+    level: BenchmarkLevel, gateset: str | None, opt_level: int, mirror: bool, fmt: OutputFormat
+) -> None:
+    """Preserve logical SWAPs through compilation, mirrors, and QASM export."""
     qc = QuantumCircuit(4)
     qc.h(0)
     qc.t(1)
     qc.cx(1, 2)
     qc.swap(0, 1)
     qc.swap(1, 2)
-    target = get_target_for_gateset("clifford+t", 4)
+    target = get_target_for_gateset(gateset, 4) if gateset is not None else None
 
-    compiled = get_benchmark_native_gates(qc, None, target, opt_level, generate_mirror_circuit=mirror)
+    compiled = get_benchmark(qc, level, target=target, opt_level=opt_level, generate_mirror_circuit=mirror)
 
     expected = Operator(np.eye(16)) if mirror else Operator(qc)
     if mirror:
@@ -1595,7 +1602,7 @@ def test_clifford_t_preserves_permutations(opt_level: int, mirror: bool, fmt: Ou
     assert Operator(compiled).equiv(expected)
 
     stream = io.StringIO()
-    write_circuit(compiled, stream, BenchmarkLevel.NATIVEGATES, fmt, target)
+    write_circuit(compiled, stream, level, fmt, target)
     restored = (
         qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
         if fmt is OutputFormat.QASM2
@@ -1652,6 +1659,15 @@ def test_validate_input() -> None:
         (BenchmarkLevel.ALG, None, True, "ghz_alg_mirror_5"),
         (BenchmarkLevel.INDEP, None, False, "ghz_indep_opt2_5"),
         (BenchmarkLevel.INDEP, None, True, "ghz_indep_mirror_opt2_5"),
+        *[
+            (BenchmarkLevel.NATIVEGATES, Target(num_qubits=5, description=description), False, expected)
+            for description, expected in [
+                (None, "ghz_nativegates_custom_target_opt2_5"),
+                ("   ", "ghz_nativegates_custom_target_opt2_5"),
+                (r"Custom/native\target", "ghz_nativegates_Custom_native_target_opt2_5"),
+                ("clifford+t", "ghz_nativegates_clifford+t_opt2_5"),
+            ]
+        ],
         (
             BenchmarkLevel.NATIVEGATES,
             get_target_for_gateset("ibm_heron", 5),
@@ -1965,13 +1981,14 @@ def test_custom_target() -> None:
 @pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("description", ["custom_target", "clifford+t"])
-def test_native_gates_ignore_connectivity(opt_level: int, mirror: bool, description: str) -> None:
-    """Compile logical gates on disconnected target sites without mapping or ancillas."""
-    target = Target(num_qubits=5, description=description)
+@pytest.mark.parametrize("num_qubits", [2, 5])
+def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description: str, num_qubits: int) -> None:
+    """Ignore device capacity and gate placement during native compilation."""
+    target = Target(num_qubits=num_qubits, description=description)
     target.add_instruction(HGate(), {(0,): None})
     target.add_instruction(TGate(), {(0,): None})
-    target.add_instruction(XGate(), {(q,): None for q in range(5)})
-    target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
+    target.add_instruction(XGate(), {(q,): None for q in range(num_qubits)})
+    target.add_instruction(CXGate(), {(0, 1): None})
 
     qc = QuantumCircuit(3)
     qc.h(2)
@@ -1984,7 +2001,8 @@ def test_native_gates_ignore_connectivity(opt_level: int, mirror: bool, descript
     expected = Operator(np.eye(8)) if mirror else Operator(qc)
     compiled.remove_final_measurements()
     assert Operator(compiled).equiv(expected)
-    assert set(target["cx"]) == {(0, 1), (1, 2)}
+    assert target.num_qubits == num_qubits
+    assert set(target["cx"]) == {(0, 1)}
 
 
 @pytest.mark.parametrize("gateset_name", ["clifford+t", "ibm_heron"])
@@ -2200,6 +2218,26 @@ def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: 
         for instruction in qc_mirror.data:
             compact.append(instruction.operation, [active_qubits.index(q) for q in instruction.qubits])
         np.testing.assert_allclose(Operator(compact).data, np.eye(2 ** len(active_qubits)), atol=1e-12)
+
+
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
+def test_mirror_provenance_survives_recompilation(level: BenchmarkLevel) -> None:
+    """Compiling an existing mirror keeps its generation record and export header."""
+    circuit = get_benchmark_alg("ghz", 3, generate_mirror_circuit=True)
+    original = circuit.copy()
+    target = get_device("iqm_crystal_5")
+
+    compiled = get_benchmark(circuit, level, target=target)
+
+    assert circuit.metadata == original.metadata
+    assert compiled.metadata["mqt_bench_generation"]["mirror"] is True
+    stream = io.StringIO()
+    write_circuit(compiled, stream, level, target=target)
+    generation = json.loads(stream.getvalue().split("// Generation options: ")[1].splitlines()[0])
+    assert generation["mirror"] is True
+    assert generation["level"] == level.name.lower()
+    compiled.remove_final_measurements()
+    assert Statevector(compiled).probabilities()[0] == pytest.approx(1)
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
