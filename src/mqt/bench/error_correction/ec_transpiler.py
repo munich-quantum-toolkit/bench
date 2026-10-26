@@ -19,6 +19,7 @@ gadget (see :meth:`ECTranspiler._handle_unregistered_gate`).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
@@ -134,7 +135,7 @@ class ECTranspiler(ABC):
         differ between Qiskit versions.
 
         Returns:
-             The transpiled fault-tolerant circuit.
+             The transpiled fault-tolerant circuit. It keeps a copy of the original circuit's metadata.
         """
         # reset before each transpilation
         self.logical_qubits: list[LogicalQubit] = []
@@ -194,6 +195,8 @@ class ECTranspiler(ABC):
 
         self.transpiled_qc = QuantumCircuit(*all_registers)
         self.transpiled_qc.name = f"{self.original_qc.name}_{self.CODE_NAME}_encoded"
+        # Qiskit's transpile() shares nested metadata values with its input circuit.
+        self.transpiled_qc.metadata = deepcopy(self.original_qc.metadata)
 
         for logical_qubit in self.logical_qubits:
             self._apply_encoding(self.transpiled_qc, logical_qubit.data)

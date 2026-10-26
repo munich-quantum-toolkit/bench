@@ -118,6 +118,7 @@ def _record_generation(
     target: Target | None = None,
     opt_level: int | None = None,
     mirror: bool = False,
+    encoding: str = "",
 ) -> None:
     """Attach the compilation settings to the circuit's generation record."""
     generation.update({
@@ -125,6 +126,7 @@ def _record_generation(
         "opt_level": opt_level,
         "target": target.description if target is not None else None,
         "mirror": mirror or generation.get("mirror", False),
+        "encoding": encoding or generation.get("encoding"),
     })
     qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
@@ -296,13 +298,13 @@ def get_benchmark_alg(
     qc, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if qc is benchmark:
         qc = qc.copy()
-    _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit)
+    _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit, encoding=encoding)
     if generate_mirror_circuit:
         qc = _create_mirror_circuit(qc, inplace=True)
 
     if encoding:
-        transpiler = get_transpiler(encoding)(qc)
-        qc = transpiler.transpile()
+        # The encoded circuit keeps the metadata, including the generation record.
+        qc = get_transpiler(encoding)(qc).transpile()
 
     return qc
 
