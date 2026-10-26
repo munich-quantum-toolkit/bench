@@ -213,6 +213,20 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
             "not a supported device",
         ),
         (["--level", "alg", "--algorithm", "bv", "--num-qubits", "0"], "must be a positive integer"),
+        (["--level", "alg", "--algorithm", "graphstate", "--num-qubits", "2"], "degree must satisfy"),
+        (
+            [
+                "--level",
+                "alg",
+                "--algorithm",
+                "bmw_quark_cardinality",
+                "--num-qubits",
+                "3",
+                "--benchmark-options",
+                '{"depth": -1}',
+            ],
+            "depth must be nonnegative",
+        ),
         (["--benchmark-options", "{"], "--benchmark-options:"),
         (["--benchmark-options", "[]"], "must be a JSON object"),
         (

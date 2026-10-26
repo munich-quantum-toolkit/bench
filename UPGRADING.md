@@ -6,6 +6,15 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### HHL and IQPE results
+
+HHL now measures a `success` register. Read the system bit in `c` only for shots
+where `success[0]` is one. Its successful state solves the documented matrix.
+
+IQPE stores its phase estimate in the same bit order as ordinary QPE. Remove any
+reversal of its result strings. Inexact IQPE now selects the same phase as
+`qpeinexact` with the default seed, so previously generated instances differ.
+
 ### Seeded parameter values
 
 An explicit `seed` now controls random parameter binding as well as benchmark
@@ -15,9 +24,8 @@ parameters than before. Calls without a seed retain the previous binding seed of
 
 ### Clifford+T compilation
 
-Native Clifford+T compilation uses gridsynth on Qiskit 2.4.2 and newer, and
-Solovay-Kitaev on earlier supported versions. The synthesized gate sequences and
-gate counts can differ between Qiskit versions.
+Native Clifford+T compilation uses gridsynth. The synthesized gate sequences and
+gate counts can differ from earlier releases that used Solovay-Kitaev.
 
 The requested optimization level applies before synthesis. For nonzero levels,
 Qiskit's public `OptimizeCliffordT` pass also runs after synthesis, including
@@ -29,14 +37,18 @@ another approximate synthesis.
 Native Clifford+T circuits retain qubit permutations as gates, so QASM exports
 preserve their semantics without relying on Qiskit layout metadata.
 
-### Qiskit 2.2.3 minimum
+### Qiskit 2.5 minimum
 
-MQT Bench requires Qiskit 2.2.3 or newer, up from 2.1.2. Update lower dependency
+MQT Bench requires Qiskit 2.5 or newer, up from 2.1.2. Update lower dependency
 pins and upgrade Qiskit:
 
 ```console
-python -m pip install --upgrade "qiskit[qasm3-import]>=2.2.3,<3"
+python -m pip install --upgrade "qiskit>=2.5,<3"
 ```
+
+To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
+MQT Bench no longer installs the importer automatically. QASM 3 export is
+unchanged.
 
 ### Device models
 
@@ -55,9 +67,13 @@ python -m pip install --upgrade "qiskit[qasm3-import]>=2.2.3,<3"
 
 ### Native compilation
 
+Target-independent and native circuits retain qubit permutations as gates.
+Remove any manual permutation correction applied to their QASM exports.
+
 `get_target_for_gateset` no longer adds simulated calibration or connectivity.
-Native compilation ignores these constraints even when passed a device target,
-including for mirrors. Use the mapped level to apply device constraints.
+Native compilation ignores these constraints and device capacity even when
+passed a device target, including for mirrors. Use the mapped level to apply
+device constraints.
 
 Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
 `break` and `continue`.

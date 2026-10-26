@@ -21,7 +21,7 @@ from ._registry import register_benchmark
 
 @register_benchmark("iqpe", description="Iterative Quantum Phase Estimation (IQPE)")
 def create_circuit(
-    num_qubits: int, exact: bool = True, rotation_threshold: float = 1e-15, seed: int = 10
+    num_qubits: int, exact: bool = True, rotation_threshold: float = 1e-15, seed: int | None = 10
 ) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
 
@@ -34,7 +34,8 @@ def create_circuit(
         num_qubits: Controls the precision of the phase estimation algorithm. Must be at least 2.
         exact: Whether to use a target phase that is exactly representable with the chosen precision.
         rotation_threshold: Threshold for adding rotation gates in the feedback step. Rotation gates with smaller angles will be omitted to reduce circuit complexity.
-        seed: Seed for the random number generator.
+        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
+            None uses system randomness.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
@@ -51,15 +52,15 @@ def create_circuit(
 
     # get random n-bit string as target phase
     theta = 0
-    random.seed(seed)
+    rng = random.Random(seed)
     if exact:
         while theta == 0:
-            theta = random.getrandbits(num_iterations)
+            theta = rng.getrandbits(num_iterations)
         lam = Fraction(theta, 1 << num_iterations)  # phase to be estimated
 
     elif not exact:
         while theta == 0 or (theta & 1) == 0:  # Ensure an odd theta so phase cannot be exactly represented with n bits
-            theta = random.getrandbits(num_iterations)
+            theta = rng.getrandbits(num_iterations + 1)
         lam = Fraction(theta, 1 << (num_iterations + 1))  # phase to be estimated, with extra bit
 
     qc.x(psi)  # prepare |1> state
@@ -72,15 +73,15 @@ def create_circuit(
         qc.cp(angle, psi, ancilla[0])
 
         for meas_idx in range(i, num_iterations):  # bits already measured this run
-            with qc.if_test((c[meas_idx], 1)):
+            with qc.if_test((c[num_iterations - meas_idx - 1], 1)):
                 exponent = meas_idx - (i - 1) + 1
                 rotation_angle = -2 * np.pi * Fraction(1, 1 << exponent)
                 if abs(rotation_angle) > rotation_threshold:  # avoid adding negligible gates
                     qc.rz(rotation_angle, ancilla[0])
 
         qc.h(ancilla[0])
-        qc.measure(ancilla[0], c[i - 1])
-        with qc.if_test((c[i - 1], 1)):
+        qc.measure(ancilla[0], c[num_iterations - i])
+        with qc.if_test((c[num_iterations - i], 1)):
             qc.x(ancilla[0])  # reset ancilla for next iteration
 
     return qc

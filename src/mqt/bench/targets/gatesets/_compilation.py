@@ -23,12 +23,13 @@ from qiskit.transpiler.passes import BasisTranslator
 from .ionq import GPI2Gate, GPIGate
 
 
-def prepare_target(target: Target, *, native: bool) -> tuple[Target, PassManager | None]:
+def prepare_target(target: Target, *, native_num_qubits: int | None = None) -> tuple[Target, PassManager | None]:
     """Optimize standard gates, then lower to IonQ or Rigetti native names.
 
     Local equivalences preserve global phase without changing Qiskit's session
-    library. Native compilation ignores physical placement.
+    library. Set native_num_qubits to ignore hardware constraints and use that width.
     """
+    native = native_num_qubits is not None
     # Qiskit's preset passes can emit unsupported angles for fixed R/RX targets.
     candidates = {
         "gpi": (GPIGate, XGate(), 0.0, 0.0),
@@ -80,7 +81,7 @@ def prepare_target(target: Target, *, native: bool) -> tuple[Target, PassManager
             }
 
     if native:
-        compilation_target = Target(num_qubits=target.num_qubits, description=target.description)
+        compilation_target = Target(num_qubits=native_num_qubits, description=target.description)
     else:
         compilation_target = Target(
             num_qubits=target.num_qubits,
