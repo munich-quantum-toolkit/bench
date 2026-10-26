@@ -15,10 +15,10 @@ resolution-markers = [
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -419,10 +419,10 @@ version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -1527,7 +1527,7 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "packaging" },
-    { name = "qiskit", extra = ["qasm3-import"] },
+    { name = "qiskit" },
 ]
 
 [package.dev-dependencies]
@@ -1537,8 +1537,8 @@ dev = [
     { name = "pytest" },
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
-    { name = "pytest-sugar" },
     { name = "pytest-xdist" },
+    { name = "qiskit", extra = ["qasm3-import"] },
 ]
 docs = [
     { name = "furo" },
@@ -1559,8 +1559,8 @@ test = [
     { name = "pytest" },
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
-    { name = "pytest-sugar" },
     { name = "pytest-xdist" },
+    { name = "qiskit", extra = ["qasm3-import"] },
 ]
 
 [package.metadata]
@@ -1572,7 +1572,7 @@ requires-dist = [
     { name = "numpy", marker = "python_full_version >= '3.14'", specifier = ">=2.3.2" },
     { name = "numpy", marker = "python_full_version >= '3.15'", specifier = ">=2.5.2" },
     { name = "packaging", specifier = ">=25" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", specifier = ">=2.2.3,<3" },
 ]
 
 [package.metadata.requires-dev]
@@ -1582,8 +1582,8 @@ dev = [
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
-    { name = "pytest-sugar", specifier = ">=1.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
 ]
 docs = [
     { name = "furo", specifier = ">=2025.12.19" },
@@ -1602,8 +1602,8 @@ test = [
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
-    { name = "pytest-sugar", specifier = ">=1.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
 ]
 
 [[package]]
@@ -1693,10 +1693,10 @@ version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025, upload-time = "2025-12-08T17:02:39.908Z" }
@@ -1753,10 +1753,10 @@ version = "2.4.6"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d0/ad/fed0499ce6a338d2a03ebae59cd15093910c8875328855781952abf6c2fe/numpy-2.4.6.tar.gz", hash = "sha256:f3a3570c4a2a16746ac2c31a7c7c7b0c186b95ce902e33db6f28094ed7387dda", size = 20735807, upload-time = "2026-05-18T23:37:14.07Z" }
@@ -2348,19 +2348,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-sugar"
-version = "1.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest" },
-    { name = "termcolor" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/4e/60fed105549297ba1a700e1ea7b828044842ea27d72c898990510b79b0e2/pytest-sugar-1.1.1.tar.gz", hash = "sha256:73b8b65163ebf10f9f671efab9eed3d56f20d2ca68bda83fa64740a92c08f65d", size = 16533, upload-time = "2025-08-23T12:19:35.737Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/d5/81d38a91c1fdafb6711f053f5a9b92ff788013b19821257c2c38c1e132df/pytest_sugar-1.1.1-py3-none-any.whl", hash = "sha256:2f8319b907548d5b9d03a171515c1d43d2e38e32bd8182a1781eb20b43344cc8", size = 11440, upload-time = "2025-08-23T12:19:34.894Z" },
-]
-
-[[package]]
 name = "pytest-xdist"
 version = "3.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2777,10 +2764,10 @@ version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -3014,10 +3001,10 @@ version = "9.0.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -3416,15 +3403,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/46/58/8c37dea7bbf769b20d58e7ace7e5edfe65b849442b00ffcdd56be88697c6/tabulate-0.10.0.tar.gz", hash = "sha256:e2cfde8f79420f6deeffdeda9aaec3b6bc5abce947655d17ac662b126e48a60d", size = 91754, upload-time = "2026-03-04T18:55:34.402Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl", hash = "sha256:f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3", size = 39814, upload-time = "2026-03-04T18:55:31.284Z" },
-]
-
-[[package]]
-name = "termcolor"
-version = "3.3.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/46/79/cf31d7a93a8fdc6aa0fbb665be84426a8c5a557d9240b6239e9e11e35fc5/termcolor-3.3.0.tar.gz", hash = "sha256:348871ca648ec6a9a983a13ab626c0acce02f515b9e1983332b17af7979521c5", size = 14434, upload-time = "2025-12-29T12:55:21.882Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/d1/8bb87d21e9aeb323cc03034f5eaf2c8f69841e40e4853c2627edf8111ed3/termcolor-3.3.0-py3-none-any.whl", hash = "sha256:cf642efadaf0a8ebbbf4bc7a31cec2f9b5f21a9f726f4ccbb08192c9c26f43a5", size = 7734, upload-time = "2025-12-29T12:55:20.718Z" },
 ]
 
 [[package]]
