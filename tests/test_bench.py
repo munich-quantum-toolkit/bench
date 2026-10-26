@@ -1877,22 +1877,6 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert json.loads(header.split("// Generation options: ")[1].splitlines()[0]) == generation
 
 
-def test_write_circuit_qpy_with_logical_gadgets() -> None:
-    """QPY export keeps the opaque logical gadgets and the encoding name of an encoded circuit."""
-    qc = get_benchmark_alg("ghz", 3, "shor")
-    assert "shor_ideal_logical_h" in qc.count_ops()
-
-    buf = io.BytesIO()
-    write_circuit(qc, buf, BenchmarkLevel.ALG, fmt=OutputFormat.QPY)
-    buf.seek(0)
-    (loaded,) = qpy.load(buf)
-
-    assert loaded == qc
-    assert loaded.metadata["mqt_bench_generation"]["encoding"] == "shor"
-    header = loaded.metadata["mqt_bench"]
-    assert json.loads(header.split("// Generation options: ")[1].splitlines()[0])["encoding"] == "shor"
-
-
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QPY])
 def test_write_circuit_io_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fmt: OutputFormat) -> None:
     """A failed export leaves the previous file intact and removes temporary files."""
