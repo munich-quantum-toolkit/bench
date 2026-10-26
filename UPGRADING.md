@@ -100,11 +100,6 @@ Mirrors still measure all active qubits.
 QAOA now adds final measurements. Remove any extra `measure_all()` workaround.
 Use `qc.remove_final_measurements(inplace=True)` to omit measurements.
 
-### Qiskit 2.4 minimum
-
-The minimum Qiskit version increases from **2.1.0 to 2.4.0**, dropping support
-for Qiskit 2.1. Upgrade Qiskit to 2.4.0 or newer.
-
 ## [2.3.0]
 
 ### Qiskit 2.1 minimum
