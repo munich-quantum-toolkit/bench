@@ -33,7 +33,7 @@ that minor releases may include breaking changes.
 - ✨ Add quantum teleportation benchmark ([#1045]) ([**@AsharHusain**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
-- ✨ Add Steane's and Shor's encoding for benchmarks ([#930])
+- ✨ Add `encoding` option for Steane's and Shor's codes ([#930])
   ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ### Changed

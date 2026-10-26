@@ -6,15 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Shared base transpiler for converting standard circuits into fault-tolerant circuits.
-
-Concrete error-correcting codes (e.g. Shor's 9-qubit code, the 7-qubit Steane code) subclass
-:class:`ECTranspiler` and only need to declare their gate set and provide the code-specific
-encoding/decoding/syndrome circuits plus handlers for gates whose logical realization is not a
-plain transversal application of a single physical gate. Any gate that is part of a subclass's
-target gate set but has no dedicated handler is automatically realized as an opaque, ideal logical
-gadget (see :meth:`ECTranspiler._handle_unregistered_gate`).
-"""
+"""Base class for transpilers that encode circuits with a quantum error-correcting code."""
 
 from __future__ import annotations
 
@@ -87,14 +79,13 @@ class LogicalQubit:
 
 
 class ECTranspiler(ABC):
-    """A high-level transpiler that encodes a QuantumCircuit using a quantum error-correcting code.
+    """Encodes a QuantumCircuit with a quantum error-correcting code.
 
     Subclasses declare the code's parameters as class attributes and implement the abstract
-    methods below; :meth:`transpile`, :meth:`encode_qubits` and :meth:`replace_gates` are shared
-    by every code.
+    methods.
     """
 
-    #: Short name of the code, used e.g. to name the encoded circuit and opaque logical gadgets.
+    #: Short name of the code, used to name the encoded circuit and its placeholders.
     CODE_NAME: ClassVar[str]
     #: Number of physical qubits used to encode a single logical qubit.
     BLOCK_SIZE: ClassVar[int]
@@ -104,11 +95,9 @@ class ECTranspiler(ABC):
     PHASE_FLIP_SYNDROME_SIZE: ClassVar[int]
     #: Basis gate set the original circuit is transpiled to before logical replacement.
     TARGET_GATE_SET: ClassVar[list[str]]
-    #: Gates that are realized by applying a single physical gate transversally, i.e. once per
-    #: physical qubit position across all involved logical qubits' data registers. Gates that need
-    #: a different physical realization (e.g. because control/target are inverted, or because the
-    #: logical operator only acts on a subset of physical qubits) should instead be implemented as
-    #: a dedicated ``_logical_<gate_name>`` method on the subclass.
+    #: Transversal gates: each one is realized by applying one physical gate at every physical
+    #: qubit position of the involved data registers. Implement other gates as
+    #: ``_logical_<gate_name>`` methods on the subclass.
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {}
 
     def __init__(self, original_circuit: QuantumCircuit) -> None:
@@ -124,18 +113,14 @@ class ECTranspiler(ABC):
         self.encoded_qubits = [False for _ in range(self.num_logical_qubits)]
 
     def transpile(self) -> QuantumCircuit:
-        """Transpile the original circuit to a fault-tolerant circuit using the error-correcting code.
+        """Encode the original circuit with the error-correcting code.
 
-        High-level Qiskit instructions such as ``QFTGate`` are first decomposed into the code's
-        supported basis gates. On Qiskit 2.5.0 and newer, Qiskit's Clifford+T compilation
-        approximates rotations with ``approximation_degree=0.95``. Earlier Qiskit versions
-        replace each RZ rotation with the closest sequence of at most 12 H, T, and Tdg gates
-        (Solovay-Kitaev at recursion degree 0) and then reduce the T count of that sequence.
-        Encoded circuits are therefore approximate rather than exact, and their gate counts can
-        differ between Qiskit versions.
+        The original circuit is first decomposed into the code's gate set, and rotations are
+        approximated with Clifford+T sequences. The gate counts of the encoded circuit can
+        therefore differ between Qiskit versions.
 
         Returns:
-             The transpiled fault-tolerant circuit. It keeps a copy of the original circuit's metadata.
+            The encoded circuit. It keeps a copy of the original circuit's metadata.
         """
         # reset before each transpilation
         self.logical_qubits: list[LogicalQubit] = []
@@ -202,12 +187,10 @@ class ECTranspiler(ABC):
             self._apply_encoding(self.transpiled_qc, logical_qubit.data)
 
     def replace_gates(self) -> None:
-        """Scan the original circuit and dispatch each instruction to its logical equivalent.
+        """Replace each instruction of the original circuit with its logical equivalent.
 
-        For every instruction, the original circuit's qubits/clbits are resolved to logical
-        indices and handed off to :meth:`_apply_gate`, which owns the actual dispatch logic.
-
-        Control-Flow instructions conditions are unsupported.
+        Raises:
+            ValueError: If an instruction uses a qubit after the qubit's measurement.
         """
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
@@ -227,14 +210,10 @@ class ECTranspiler(ABC):
         """Apply a single named gate to the given logical qubit/classical-bit indices.
 
         Dispatch order:
-        1. ``barrier``/``measure`` are always handled generically.
-        2. A dedicated ``_logical_<gate_name>`` method on the subclass, if present, is used. This
-           covers gates whose physical realization is not a plain transversal application of a
-           single gate (e.g. a code-specific CX).
-        3. Otherwise, if the gate is listed in :attr:`TRANSVERSAL_GATES`, it is applied
-           transversally (see :meth:`_apply_transversal_gate`).
-        4. Otherwise, the gate is realized as an opaque, ideal logical gadget (see
-           :meth:`_handle_unregistered_gate`).
+        1. ``barrier`` and ``measure`` have generic handlers.
+        2. A ``_logical_<gate_name>`` method on the subclass, if present.
+        3. :attr:`TRANSVERSAL_GATES` (see :meth:`_apply_transversal_gate`).
+        4. A placeholder (see :meth:`_handle_unregistered_gate`).
         """
         if gate_name == "barrier":
             self._handle_barrier(logical_qubit_indices)
@@ -284,11 +263,9 @@ class ECTranspiler(ABC):
         self.transpiled_qc.measure(physical_data_register[0], physical_measurement_register[0])
 
     def _apply_transversal_gate(self, physical_gate: Gate, logical_qubit_indices: list[int]) -> None:
-        """Apply ``physical_gate`` once per physical qubit position across the involved blocks.
+        """Apply ``physical_gate`` at every physical qubit position of the involved data registers.
 
-        This is the shared building block behind :attr:`TRANSVERSAL_GATES` and can also be reused
-        by subclasses to implement gates that decompose into a sequence of transversal gates (e.g.
-        SWAP or DCX built from transversal CX applications).
+        A syndrome cycle then runs on each involved logical qubit.
         """
         physical_data_registers = [self.logical_qubits[idx].data for idx in logical_qubit_indices]
         for physical_qubit_index in range(self.BLOCK_SIZE):
@@ -299,14 +276,12 @@ class ECTranspiler(ABC):
             self.insert_syndromes(logical_qubit_index)
 
     def _handle_unregistered_gate(self, gate_name: str, logical_qubit_indices: list[int]) -> None:
-        """Realize a gate with no dedicated handler as an opaque, ideal logical gadget.
+        """Realize a gate without a handler as a placeholder.
 
-        Many logical gates (e.g. T, or a code's non-transversal Hadamard) require magic-state
-        injection or another resource-intensive fault-tolerant construction to implement exactly.
-        Since this benchmark suite is only concerned with the resulting circuit *structure*, such
-        gates are instead represented by a single opaque, ideal placeholder instruction spanning
-        the involved logical qubits' data registers, named
-        ``f"{self.CODE_NAME}_ideal_logical_{gate_name}"``.
+        An exact fault-tolerant realization of gates such as T needs magic-state injection or a
+        similar costly construction. MQT Bench is concerned with the circuit structure, so it uses
+        one opaque, ideal instruction on the involved data registers instead. The placeholder is
+        named ``<CODE_NAME>_ideal_logical_<gate_name>``.
         """
         if gate_name not in self.TARGET_GATE_SET:
             msg = f"Error-correction transpilation currently does not support arbitrary gates such as {gate_name}. Currently supported: {self.TARGET_GATE_SET}"
@@ -327,13 +302,12 @@ class ECTranspiler(ABC):
             self.insert_syndromes(logical_qubit_index)
 
     def insert_syndromes(self, logical_qubit_index: int) -> None:
-        """Run the code's syndrome extraction and correction cycle for one logical qubit's block.
+        """Run the code's syndrome extraction and correction cycle on one logical qubit.
 
-        This method is called automatically after every logical gate.
+        The transpiler calls this method after every logical gate.
 
         Args:
-            logical_qubit_index: Index of the logical qubit whose data block should undergo the
-                correction cycle.
+            logical_qubit_index: Index of the logical qubit.
         """
         self._run_syndrome_cycle(self.logical_qubits[logical_qubit_index])
 

@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Shor Transpiler for converting standard circuits into fault-tolerant circuits using the 9-qubit Shor code."""
+"""Transpiler that encodes circuits with Shor's 9-qubit code."""
 
 from __future__ import annotations
 
@@ -31,17 +31,13 @@ if TYPE_CHECKING:
 
 
 class ShorTranspiler(ECTranspiler):
-    """A high-level transpiler that encodes a QuantumCircuit using Shor's 9-qubit error correction code.
+    """Encodes a QuantumCircuit with Shor's 9-qubit code.
 
-    Only gates whose logical realization is not a plain transversal application of a single
-    physical gate need a dedicated handler here (``id`` is the only gate transversal in the
-    strict sense used by :class:`ECTranspiler`). Every other unhandled gate in
-    :attr:`TARGET_GATE_SET` -- notably ``t``, ``tdg``, and ``h`` (whose textbook realization via
-    physical Hadamards and block-transposing SWAPs is not fault-tolerant for the plain 9-qubit
-    Shor code) -- is automatically realized as an opaque, ideal logical gadget.
+    X, Y, Z, and CX have handlers. Shor's 9-qubit code has no transversal H, T, or Tdg, so these
+    gates become placeholders.
     """
 
-    # Constants for the Shor 9-qubit code structure
+    # Structure of Shor's 9-qubit code
     SHOR_BLOCK_SIZE = 3
     SHOR_NUM_BLOCKS = 3
     SHOR_PHASE_FLIP_TARGETS: ClassVar[list[int]] = [0, 3, 6]
@@ -54,7 +50,7 @@ class ShorTranspiler(ECTranspiler):
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {"id": IGate()}
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
-        """Apply Shor 9-qubit encoding to a physical data register."""
+        """Apply the encoding of Shor's 9-qubit code to a physical data register."""
         # Phase flip encoding on the first qubit of each block
         qc.compose(
             get_three_qubit_phase_flip_encoding_circuit(),
@@ -71,7 +67,7 @@ class ShorTranspiler(ECTranspiler):
             )
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
-        """Apply Shor 9-qubit decoding to a physical data register."""
+        """Apply the decoding of Shor's 9-qubit code to a physical data register."""
         for i in range(self.SHOR_NUM_BLOCKS):
             qc.compose(
                 get_three_qubit_bit_flip_encoding_decoding_circuit().inverse(),
@@ -85,11 +81,9 @@ class ShorTranspiler(ECTranspiler):
         )
 
     def _logical_x(self, logical_qubit_index: int) -> None:
-        """Apply Transversal logical X.
+        """Apply logical X as Z on the first qubit of each block (Z_0 Z_3 Z_6).
 
-        In Shor's code, a logical X acts like a global physical Z across the three
-        blocks. Since Z on one qubit of a block flips the entire block's phase,
-        applying one Z per block (Z_0 Z_3 Z_6) transversally achieves logical X.
+        Z on one qubit of a block flips the phase of the whole block.
         """
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         for q in (physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS):
@@ -97,13 +91,7 @@ class ShorTranspiler(ECTranspiler):
         self.insert_syndromes(logical_qubit_index)
 
     def _logical_y(self, logical_qubit_index: int) -> None:
-        """Apply transversal logical Y.
-
-        Since Y = iXZ (up to global phase), logical Y is realized by applying the
-        physical operations for logical Z and logical X. Logical Z acts as X on the
-        three qubits of the first block (X_0 X_1 X_2), and logical X acts as Z on the
-        first qubit of each block (Z_0 Z_3 Z_6). The global phase i is unobservable.
-        """
+        """Apply logical Y as logical Z followed by logical X, up to a global phase."""
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         for q in (physical_data_register[0], physical_data_register[1], physical_data_register[2]):
             self.transpiled_qc.x(q)
@@ -112,27 +100,21 @@ class ShorTranspiler(ECTranspiler):
         self.insert_syndromes(logical_qubit_index)
 
     def _logical_z(self, logical_qubit_index: int) -> None:
-        """Apply Transversal logical Z.
-
-        Applying X to the three qubits of a single block (e.g. X_0 X_1 X_2) maps
-        |000> to |111>, effectively giving diag(+1,-1) on the logical subspace.
-        """
+        """Apply logical Z as X on the three qubits of the first block (X_0 X_1 X_2)."""
         physical_data_register = self.logical_qubits[logical_qubit_index].data
         for q in (physical_data_register[0], physical_data_register[1], physical_data_register[2]):
             self.transpiled_qc.x(q)
         self.insert_syndromes(logical_qubit_index)
 
     def _logical_cx(self, control_logical_qubit_index: int, target_logical_qubit_index: int) -> None:
-        """Apply transversal logical CX.
+        """Apply logical CX as physical CX gates with control and target swapped.
 
-        Because the Shor logical operators X_L and Z_L have interchanged physical basis mapping
-        compared to typical codes, the physical CX role is inverted: control and target are
-        swapped at the physical level to construct a logical CX.
+        Logical X acts as physical Z in Shor's 9-qubit code, so the physical CX gates must point
+        from the target block to the control block.
         """
         control_physical_data_register = self.logical_qubits[control_logical_qubit_index].data
         target_physical_data_register = self.logical_qubits[target_logical_qubit_index].data
         for physical_qubit_index in range(self.BLOCK_SIZE):
-            # Physical control/target are swapped relative to logical
             control_qubit = control_physical_data_register[physical_qubit_index]
             target_qubit = target_physical_data_register[physical_qubit_index]
             self.transpiled_qc.cx(target_qubit, control_qubit)
@@ -141,21 +123,7 @@ class ShorTranspiler(ECTranspiler):
         self.insert_syndromes(target_logical_qubit_index)
 
     def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:
-        """Run the Shor code's bit-flip and phase-flip syndrome extraction and correction cycle.
-
-        Performs three stages of error correction on the Shor block belonging to ``qubit``:
-
-        1. **Bit-flip syndrome extraction**: Each of the three 3-qubit blocks is checked independently.
-        Per block, two ancillas record the stabilizer parities (Z_i Z_j checks),
-        localizing an X error to one of the block's three qubits.
-        2. **Phase-flip syndrome extraction**: The parities between the three blocks
-        (X-type stabilizers spanning six qubits each) are extracted,
-        localizing a single Z error to one of the three blocks.
-        3. **Correction**: The ancillas are measured into the corresponding classical syndrome registers,
-        and X and Z corrections are applied to the identified data qubit.
-
-        Ancilla registers are reset to |0> at the start of each cycle.
-        """
+        """Extract the bit-flip and phase-flip syndromes and apply the corrections."""
         self._extract_bit_flip_syndromes(qubit)
         self._extract_phase_flip_syndromes(qubit)
         self._apply_error_corrections(qubit)

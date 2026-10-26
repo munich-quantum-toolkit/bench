@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Steane Transpiler for converting standard circuits into fault-tolerant circuits using the 7-qubit Steane code."""
+"""Transpiler that encodes circuits with Steane's 7-qubit code."""
 
 from __future__ import annotations
 
@@ -39,12 +39,9 @@ if TYPE_CHECKING:
 
 
 class SteaneTranspiler(ECTranspiler):
-    """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code.
+    """Encodes a QuantumCircuit with Steane's 7-qubit code.
 
-    Every gate in :attr:`TARGET_GATE_SET` except T and Tdg is transversal in the strict sense used
-    by :class:`ECTranspiler`, i.e. realized by applying a single physical gate once per physical
-    qubit position. T and Tdg have no dedicated handler, so the base class realizes them as opaque,
-    ideal logical gadgets.
+    T and Tdg become placeholders. All other gates in :attr:`TARGET_GATE_SET` are transversal.
     """
 
     CODE_NAME = "steane"
@@ -64,7 +61,7 @@ class SteaneTranspiler(ECTranspiler):
         "t",
         "tdg",
     ]
-    # Our Steane convention: logical S = physical Sdg on every qubit, logical Sdg = physical S on every qubit.
+    # Logical S = physical Sdg on every qubit, logical Sdg = physical S on every qubit.
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {
         "id": IGate(),
         "x": XGate(),
@@ -78,7 +75,7 @@ class SteaneTranspiler(ECTranspiler):
     }
 
     def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
-        """Apply Steane 7-qubit encoding to a physical data register."""
+        """Apply the encoding of Steane's 7-qubit code to a physical data register."""
         qc.compose(
             get_seven_qubit_steane_code_encoding_circuit(),
             qubits=physical_data_register[:],
@@ -86,7 +83,7 @@ class SteaneTranspiler(ECTranspiler):
         )
 
     def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
-        """Apply Steane 7-qubit decoding to a physical data register."""
+        """Apply the decoding of Steane's 7-qubit code to a physical data register."""
         qc.compose(
             get_seven_qubit_steane_code_decoding_circuit(),
             qubits=physical_data_register[:],
@@ -94,14 +91,7 @@ class SteaneTranspiler(ECTranspiler):
         )
 
     def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:
-        """Run the Steane code's syndrome extraction and correction cycle.
-
-        1. **Ancilla preparation**: The syndrome ancilla registers are reset to |0>.
-        2. **Syndrome extraction**: The bit-flip ancillas measure the Z-type stabilizers
-        and the phase-flip ancillas measure the X-type stabilizers, mapping each error onto a 3-bit syndrome.
-        3. **Correction**: The ancillas are measured into the corresponding classical syndrome registers,
-        and X and Z corrections are applied to the identified data qubit.
-        """
+        """Reset the syndrome ancillas, extract the syndromes, and apply the corrections."""
         self.transpiled_qc.reset(qubit.bit_flip_syndrome)
         self.transpiled_qc.reset(qubit.phase_flip_syndrome)
 

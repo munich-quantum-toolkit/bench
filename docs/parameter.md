@@ -64,14 +64,12 @@ print(get_available_device_names())
   the mirror. Circuits that Qiskit cannot invert, for example those with
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
-- `encoding`: Error correction code applied to the output. Encoding of
-  non-transversal gates uses placeholders: opaque logical gadgets named
-  `<code>_ideal_logical_<gate>`, for example `shor_ideal_logical_h`. Steane's
-  code uses placeholders for T and Tdg. Shor's code also uses one for H.
-  OpenQASM 3 export fails for circuits that contain placeholders, so export
-  these circuits as QPY. Because the encoding approximates rotations, gate
-  counts can differ between Qiskit versions. The generation record stores the
-  code name under `encoding`.
+- `encoding`: Error-correcting code applied to the circuit. Only the ALG level
+  supports it; other levels ignore it with a warning. Gates without a
+  transversal realization become placeholders: opaque logical gadgets named
+  `<code>_ideal_logical_<gate>`, for example `steane_ideal_logical_t`. OpenQASM
+  3 export does not support placeholders, so save encoded circuits as QPY.
+  Rotations are approximated, so gate counts can differ between Qiskit versions.
 
 Possible values for `encoding`:
 

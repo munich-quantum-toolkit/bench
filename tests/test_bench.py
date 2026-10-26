@@ -908,12 +908,7 @@ EC_GATE_COUNTS: dict[tuple[str, str], dict[str, int] | set[str]] = {
 @pytest.mark.parametrize("code", ["shor", "steane"])
 @pytest.mark.parametrize("circuit", ["ghz", "bv", "graphstate", "qft", "z", "y"])
 def test_error_correction_transpiler_circuit_structure(code: str, circuit: str) -> None:
-    """Check the registers and gate counts of an encoded circuit.
-
-    The benchmarks have 3 logical qubits. The circuits ``z`` and ``y`` apply one gate to 1 logical
-    qubit. Each logical qubit becomes the registers in ``EC_REGISTER_SIZES``, and each measured
-    classical bit becomes a 1-bit register. A repeated call of ``transpile`` returns the same circuit.
-    """
+    """Check the registers and gate counts of an encoded circuit."""
     logical = QuantumCircuit(1)
     if circuit == "z":
         logical.z(0)
