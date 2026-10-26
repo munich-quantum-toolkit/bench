@@ -256,6 +256,19 @@ def test_arithmetic_mirror_measurements() -> None:
     assert result.data["meas"].get_counts() == {"000000": 16}
 
 
+def test_mirror_with_unused_classical_registers() -> None:
+    """Keep unused registers and measure only active qubits into a new register."""
+    circuit = QuantumCircuit(2)
+    circuit.add_register(ClassicalRegister(2, "meas"), ClassicalRegister(1, "meas_"))
+    circuit.h(1)
+    mirror = get_benchmark_alg(circuit, generate_mirror_circuit=True)
+    assert mirror.cregs[:-1] == circuit.cregs
+    measurements = [item for item in mirror.data if item.operation.name == "measure"]
+    assert [(item.qubits, item.clbits) for item in measurements] == [((mirror.qubits[1],), (mirror.cregs[-1][0],))]
+    mirror.remove_final_measurements()
+    assert Operator(mirror).equiv(Operator(np.eye(4)))
+
+
 @pytest.mark.parametrize(
     ("benchmark_name", "input_value", "kind", "msg"),
     [
@@ -775,6 +788,26 @@ def test_benchmark_seed(benchmark: str) -> None:
     qc_no_seed = get_benchmark_alg(benchmark, 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == benchmark
+
+
+@pytest.mark.parametrize("bound", [False, True])
+def test_generation_options_survive_recompilation(bound: bool) -> None:
+    """Retain the construction seed and record only parameter binding that occurs."""
+    circuit = get_benchmark_alg("qaoa", 4, seed=1, random_parameters=bound)
+    target = get_target_for_gateset("ibm_heron", 4)
+    compiled = get_benchmark_native_gates(circuit, None, target, seed=2, repetitions=3)
+    generation = compiled.metadata["mqt_bench_generation"]
+    assert generation["options"] == {"seed": 1}
+    assert generation["parameter_seed"] == (1 if bound else 2)
+    assert generation["random_parameters"] is True
+    expected = circuit.copy()
+    expected.remove_final_measurements()
+    if not bound:
+        expected.assign_parameters(
+            np.random.default_rng(2).uniform(0, 2 * np.pi, len(expected.parameters)), inplace=True
+        )
+    compiled.remove_final_measurements()
+    assert Operator(compiled).equiv(Operator(expected))
 
 
 @pytest.mark.parametrize("num_qubits", [1, 2, 5, 6])
@@ -1392,16 +1425,18 @@ def test_generate_header_pkg_not_installed(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
 def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
-    """Replace a QASM file while preserving its permissions."""
+    """Export multiline target descriptions and preserve existing file permissions."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
+    target = get_target_for_gateset("clifford+t+rotations", 2)
+    target.description = "Custom target\nCalibration from Monday\r\nRevision 2"
 
     out = tmp_path / "test.qasm"
     out.write_text("previous circuit")
     out.chmod(0o640)
     mode = out.stat().st_mode
-    write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
+    write_circuit(qc, out, BenchmarkLevel.NATIVEGATES, fmt=fmt, target=target)
     assert out.stat().st_mode == mode
 
     text = out.read_text().splitlines()
@@ -1411,6 +1446,8 @@ def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
     # QASM body present
     assert any(line.startswith("h ") for line in text), "H gate should appear"
     assert any(line.startswith("cx ") for line in text), "CX gate should appear"
+    restored = (qasm2 if fmt is OutputFormat.QASM2 else qasm3).loads(out.read_text())
+    assert Operator(restored).equiv(Operator(qc))
 
 
 def test_write_circuit_qpy(tmp_path: Path) -> None:

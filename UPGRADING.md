@@ -22,6 +22,10 @@ construction. Seeded variational circuits therefore have different numeric
 parameters than before. Calls without a seed retain the previous binding seed of
 10.
 
+In generation metadata, read `parameter_seed` for the seed used to bind random
+parameter values. Recompilation preserves the original factory arguments in
+`options`, including the construction seed.
+
 ### Clifford+T compilation
 
 Native Clifford+T compilation uses gridsynth on Qiskit 2.4.2 and newer, and
