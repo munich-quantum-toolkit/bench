@@ -51,6 +51,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve construction options on recompilation, avoid mirror register-name
+  collisions, and support multiline target descriptions in QASM headers
+  ([#1124]) ([**@simon1hofmann**])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
   addition; preserve caller random state and test benchmark semantics ([#1109])
   ([**@simon1hofmann**])
@@ -289,6 +292,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
 [#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118
