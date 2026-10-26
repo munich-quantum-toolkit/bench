@@ -41,10 +41,10 @@ if TYPE_CHECKING:
 class SteaneTranspiler(ECTranspiler):
     """A high-level transpiler that encodes a QuantumCircuit using Steane's 7-qubit error correction code.
 
-    Every gate in :attr:`TARGET_GATE_SET` except SWAP, DCX and CY is transversal in the strict
-    sense used by :class:`ECTranspiler`, i.e. realized by applying a single physical gate once per
-    physical qubit position. T and Tdg have no dedicated handler and are therefore automatically realized as opaque,
-    ideal logical gadgets by the base class.
+    Every gate in :attr:`TARGET_GATE_SET` except T and Tdg is transversal in the strict sense used
+    by :class:`ECTranspiler`, i.e. realized by applying a single physical gate once per physical
+    qubit position. T and Tdg have no dedicated handler, so the base class realizes them as opaque,
+    ideal logical gadgets.
     """
 
     CODE_NAME = "steane"
