@@ -1577,7 +1577,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "nox", specifier = ">=2025.11.12" },
+    { name = "nox", specifier = ">=2026.8.17" },
     { name = "prek", specifier = ">=0.2.27" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
