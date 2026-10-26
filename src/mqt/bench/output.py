@@ -134,10 +134,8 @@ def generate_header(
 
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert target is not None, "Target must be provided for nativegates or mapped level."
-        lines.extend((
-            f"// Target: {target.description}",
-            f"// Used gateset: {list(target.operation_names)}",
-        ))
+        lines.extend(f"// {line}" for line in f"Target: {target.description}".splitlines())
+        lines.append(f"// Used gateset: {list(target.operation_names)}")
         if level == BenchmarkLevel.MAPPED:
             c_map = target.build_coupling_map()
             edges = [list(edge) for edge in c_map.get_edges()] if c_map else "all-to-all"
