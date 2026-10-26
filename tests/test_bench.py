@@ -931,7 +931,7 @@ STEANE_Z = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7}
 STEANE_Y = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7}
 
 
-# Since Rotations (rz) are handled differently according to qiskit versions (>= vs. < 2.6),
+# Since Rotations (rz) are handled differently according to qiskit versions (>= vs. < 2.5),
 # their gate counts couldn't be compared by this test, version checks would be required as well
 @pytest.mark.parametrize(
     ("logical_qubits", "code", "alg", "expected_gates"),
@@ -1096,6 +1096,20 @@ def test_error_correction_no_additional_classical_registers(code: str) -> None:
     # Check that both measurements target the same classical bit
     assert len(measurement_registers) == 1
     assert measurement_registers[0].name == "meas_0"
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_transpiler_keeps_metadata(code: str) -> None:
+    """The encoded circuit holds a copy of the original circuit's metadata."""
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    qc.metadata = {"user": {"label": "input"}}
+
+    encoded = get_transpiler(code)(qc).transpile()
+    assert encoded.metadata == {"user": {"label": "input"}}
+
+    encoded.metadata["user"]["label"] = "encoded"
+    assert qc.metadata == {"user": {"label": "input"}}
 
 
 @pytest.mark.parametrize(("encoding", "expected_qubits"), [("steane", 26), ("shor", 34)])
@@ -1270,14 +1284,45 @@ def test_get_benchmark_alg_with_quantum_circuit() -> None:
     assert not qc.metadata
 
 
-def test_get_benchmark_alg_encoding_parameters() -> None:
+@pytest.mark.parametrize(("encoding", "expected_qubits"), [("steane", 26), ("shor", 34)])
+def test_get_benchmark_alg_encoding_parameters(encoding: str, expected_qubits: int) -> None:
     """Test get_benchmark method with different encoding values."""
     match = re.escape("Invalid `encoding` 'invalid encoding'. Must be one of ") + "[\\s\\S]*"
     with pytest.raises(ValueError, match=match):
-        get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="invalid encoding")
+        get_benchmark_alg(benchmark="bv", circuit_size=2, encoding="invalid encoding")
 
-    assert get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="shor")
-    assert get_benchmark_alg(benchmark="bv", circuit_size=1, encoding="steane")
+    qc = get_benchmark_alg(benchmark="bv", circuit_size=2, encoding=encoding)
+    assert qc.num_qubits == expected_qubits
+
+
+@pytest.mark.parametrize("encoding", ["shor", "steane"])
+@pytest.mark.parametrize("mirror", [False, True])
+def test_get_benchmark_alg_encoding_keeps_generation_record(encoding: str, mirror: bool) -> None:
+    """The encoded circuit keeps the generation settings and records the encoding name."""
+    plain = get_benchmark_alg("graphstate", 3, generate_mirror_circuit=mirror, seed=42)
+    encoded = get_benchmark_alg("graphstate", 3, encoding, generate_mirror_circuit=mirror, seed=42)
+
+    generation = encoded.metadata["mqt_bench_generation"]
+    assert generation == plain.metadata["mqt_bench_generation"] | {"encoding": encoding}
+    assert generation["options"]["seed"] == 42
+    assert generation["mirror"] is mirror
+    assert plain.metadata["mqt_bench_generation"]["encoding"] is None
+
+
+@pytest.mark.parametrize("encoding", ["shor", "steane"])
+def test_get_benchmark_alg_encoding_keeps_caller_metadata(encoding: str) -> None:
+    """The encoded circuit keeps the metadata of the input circuit."""
+    circuit = QuantumCircuit(2)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.measure_all()
+    circuit.metadata = {"user": {"label": "input"}}
+
+    encoded = get_benchmark_alg(circuit, encoding=encoding)
+
+    assert encoded.metadata["user"] == {"label": "input"}
+    assert encoded.metadata["mqt_bench_generation"]["encoding"] == encoding
+    assert circuit.metadata == {"user": {"label": "input"}}
 
 
 @pytest.mark.parametrize(
@@ -1830,6 +1875,22 @@ def test_write_circuit_qpy(tmp_path: Path) -> None:
     assert generation["options"] == {"seed": 42}
     assert generation["opt_level"] == 2
     assert json.loads(header.split("// Generation options: ")[1].splitlines()[0]) == generation
+
+
+def test_write_circuit_qpy_with_logical_gadgets() -> None:
+    """QPY export keeps the opaque logical gadgets and the encoding name of an encoded circuit."""
+    qc = get_benchmark_alg("ghz", 3, "shor")
+    assert "shor_ideal_logical_h" in qc.count_ops()
+
+    buf = io.BytesIO()
+    write_circuit(qc, buf, BenchmarkLevel.ALG, fmt=OutputFormat.QPY)
+    buf.seek(0)
+    (loaded,) = qpy.load(buf)
+
+    assert loaded == qc
+    assert loaded.metadata["mqt_bench_generation"]["encoding"] == "shor"
+    header = loaded.metadata["mqt_bench"]
+    assert json.loads(header.split("// Generation options: ")[1].splitlines()[0])["encoding"] == "shor"
 
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QPY])
