@@ -49,6 +49,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
+  `balanced` option, and handle custom target names in generated filenames
+  ([#1118]) ([**@simon1hofmann**])
 - 🐛 Retain mirror provenance when recompiling existing circuits ([#1117])
   ([**@simon1hofmann**])
 - 🐛 Preserve logical permutations in target-independent and native QASM
@@ -279,6 +282,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118
 [#1117]: https://github.com/munich-quantum-toolkit/bench/pull/1117
 [#1116]: https://github.com/munich-quantum-toolkit/bench/pull/1116
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
