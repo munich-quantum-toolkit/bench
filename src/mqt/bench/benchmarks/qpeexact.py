@@ -26,7 +26,8 @@ def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        seed: Random seed for the target phase.
+        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
+            None uses system randomness.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which can be exactly estimated.

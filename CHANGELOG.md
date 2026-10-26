@@ -49,10 +49,11 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Preserve existing files when export fails, create output directories, and
-  report CLI argument and export errors on stderr ([#1115])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
   addition; preserve caller random state and test benchmark semantics ([#1109])
+  ([**@simon1hofmann**])
+- 🐛 Preserve existing files when export fails, create output directories, and
+  report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])
 - 🐛 Select Clifford+T synthesis from target capabilities instead of
   descriptions ([#1110]) ([**@simon1hofmann**])

@@ -19,7 +19,12 @@ from ._registry import register_benchmark
 
 @register_benchmark("hhl", description="Harrow-Hassidim-Lloyd Algorithm (HHL)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    r"""Solve ``A x = |1>`` for ``A = [[1, 1], [1, 3]]`` using HHL.
+    r"""Solve a fixed two-dimensional linear system using HHL.
+
+    .. math::
+
+        A x = |1\rangle, \qquad
+        A = \begin{pmatrix} 1 & 1 \\ 1 & 3 \end{pmatrix}.
 
     The eigenvalues are :math:`2 \pm \sqrt{2}`. Shifted and scaled evolution
     maps their phases to zero and one half, so phase estimation is exact with

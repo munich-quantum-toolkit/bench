@@ -34,7 +34,8 @@ def create_circuit(
         num_qubits: Controls the precision of the phase estimation algorithm. Must be at least 2.
         exact: Whether to use a target phase that is exactly representable with the chosen precision.
         rotation_threshold: Threshold for adding rotation gates in the feedback step. Rotation gates with smaller angles will be omitted to reduce circuit complexity.
-        seed: Seed for the random number generator.
+        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
+            None uses system randomness.
 
     Returns:
         QuantumCircuit: A quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.

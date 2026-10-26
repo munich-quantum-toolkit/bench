@@ -14,6 +14,7 @@ import datetime as dt
 import functools
 import io
 import json
+import random
 import re
 from enum import StrEnum
 from importlib import metadata
@@ -497,8 +498,6 @@ def test_iqpe(exact: bool) -> None:
 @pytest.mark.parametrize("benchmark", ["qpeexact", "qpeinexact", "iqpe"])
 def test_phase_estimation_preserves_random_state(benchmark: str) -> None:
     """Constructing a benchmark must leave the application's random stream alone."""
-    import random  # ruff:ignore[import-outside-top-level]
-
     before = random.getstate()
     create_circuit(benchmark, 4)
     assert random.getstate() == before
