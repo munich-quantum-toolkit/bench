@@ -1830,6 +1830,26 @@ def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: 
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
+def test_mirror_provenance_survives_recompilation(level: BenchmarkLevel) -> None:
+    """Compiling an existing mirror keeps its generation record and export header."""
+    circuit = get_benchmark_alg("ghz", 3, generate_mirror_circuit=True)
+    original = circuit.copy()
+    target = get_device("iqm_crystal_5")
+
+    compiled = get_benchmark(circuit, level, target=target)
+
+    assert circuit.metadata == original.metadata
+    assert compiled.metadata["mqt_bench_generation"]["mirror"] is True
+    stream = io.StringIO()
+    write_circuit(compiled, stream, level, target=target)
+    generation = json.loads(stream.getvalue().split("// Generation options: ")[1].splitlines()[0])
+    assert generation["mirror"] is True
+    assert generation["level"] == level.name.lower()
+    compiled.remove_final_measurements()
+    assert Statevector(compiled).probabilities()[0] == pytest.approx(1)
+
+
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
 def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
     """Every level rejects a dynamic GHZ mirror without changing the input circuit."""
     circuit = get_benchmark_alg("ghz_dynamic", 5)
