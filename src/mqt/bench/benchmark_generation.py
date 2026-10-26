@@ -16,14 +16,11 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, Unpack, assert_never, overload
 
 import numpy as np
-from packaging.version import Version
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import CircuitError, ClassicalRegister, Gate, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 from qiskit.transpiler.passes import OptimizeCliffordT, RemoveFinalMeasurements
-from qiskit.version import VERSION as QISKIT_VERSION
 
 from .benchmarks import create_circuit
 from .targets.gatesets import get_target_for_gateset
@@ -168,7 +165,7 @@ def _create_mirror_circuit(
     target_qc.remove_final_measurements(inplace=True)
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
-    dag = circuit_to_dag(target_qc)
+    dag = target_qc.to_dag()
     active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
     target_qc.barrier(active_qubits)
 
@@ -429,7 +426,11 @@ def get_benchmark_native_gates(
 
     if {"h", "t"} <= target.operation_names <= get_target_for_gateset("clifford+t", circuit.num_qubits).operation_names:
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
-        from qiskit.transpiler.passes import BasisTranslator, HighLevelSynthesis  # ruff:ignore[import-outside-top-level]
+        from qiskit.transpiler.passes import (  # ruff:ignore[import-outside-top-level]
+            BasisTranslator,
+            HighLevelSynthesis,
+            SynthesizeRZRotations,
+        )
 
         target, _ = prepare_target(target, native_num_qubits=circuit.num_qubits)
         # Compile to Clifford+T and rotation gates
@@ -443,28 +444,25 @@ def get_benchmark_native_gates(
         )
         mirror_pm = PassManager(HighLevelSynthesis(target=target, equivalence_library=SessionEquivalenceLibrary))
         if opt_level:
-            mirror_pm.append(RecursiveOptimizeCliffordT())
+            basis_gates = [
+                name for name in sorted(target.operation_names) if isinstance(target.operation_from_name(name), Gate)
+            ]
+            mirror_pm.append(RecursiveOptimizeCliffordT(basis_gates=basis_gates))
         mirror_pm.append(BasisTranslator(SessionEquivalenceLibrary, sorted(target.operation_names), target))
-        if Version(QISKIT_VERSION) >= Version("2.4.2"):
-            from qiskit.transpiler.passes import SynthesizeRZRotations  # ruff:ignore[import-outside-top-level]
 
-            class RecursiveSynthesizeRZRotations(SynthesizeRZRotations):
-                """Also synthesize rotations in control-flow blocks, which Qiskit's pass skips."""
+        class RecursiveSynthesizeRZRotations(SynthesizeRZRotations):
+            """Also synthesize rotations in control-flow blocks, which Qiskit's pass skips."""
 
-                def run(self, dag: DAGCircuit) -> DAGCircuit:
-                    for node in dag.control_flow_op_nodes():
-                        op = node.op
-                        dag.substitute_node(node, op.replace_blocks([self(block) for block in op.blocks]))
-                    return super().run(dag)
+            def run(self, dag: DAGCircuit) -> DAGCircuit:
+                for node in dag.control_flow_op_nodes():
+                    op = node.op
+                    dag.substitute_node(node, op.replace_blocks([self(block) for block in op.blocks]))
+                return super().run(dag)
 
-            synthesis_pm = PassManager([
-                BasisTranslator(SessionEquivalenceLibrary, sorted(clifford_t_rotations.operation_names - {"rx", "ry"})),
-                RecursiveSynthesizeRZRotations(),
-            ])
-        else:
-            from qiskit.transpiler.passes.synthesis import SolovayKitaev  # ruff:ignore[import-outside-top-level]
-
-            synthesis_pm = PassManager(SolovayKitaev())
+        synthesis_pm = PassManager([
+            BasisTranslator(SessionEquivalenceLibrary, sorted(clifford_t_rotations.operation_names - {"rx", "ry"})),
+            RecursiveSynthesizeRZRotations(),
+        ])
         pm.post_optimization = synthesis_pm + mirror_pm
     else:
         pm = _get_qiskit_pass_manager(target, opt_level, native_num_qubits=circuit.num_qubits)
