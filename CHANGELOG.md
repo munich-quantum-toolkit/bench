@@ -51,6 +51,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
+  addition; preserve caller random state and test benchmark semantics ([#1109])
+  ([**@simon1hofmann**])
 - 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
   `balanced` option, and handle custom target names in generated filenames
   ([#1118]) ([**@simon1hofmann**])
@@ -295,6 +298,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
 [#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
+[#1109]: https://github.com/munich-quantum-toolkit/bench/pull/1109
 [#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098

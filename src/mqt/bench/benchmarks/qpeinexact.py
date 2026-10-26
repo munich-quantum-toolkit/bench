@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""QOE inexact benchmark definition."""
+"""QPE inexact benchmark definition."""
 
 from __future__ import annotations
 
@@ -21,11 +21,13 @@ from ._registry import register_benchmark
 
 
 @register_benchmark("qpeinexact", description="Quantum Phase Estimation (QPE) not exactly representable phase")
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which cannot be exactly estimated.
 
     Arguments:
         num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
+        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
+            None uses system randomness.
 
     Returns:
         QuantumCircuit: a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which cannot be exactly estimated
@@ -41,12 +43,11 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     qc = QuantumCircuit(q, psi, c, name="qpeinexact")
 
     # get random n+1-bit string as target phase
-    random.seed(10)
+    rng = random.Random(seed)
     theta = 0
     while theta == 0 or (theta & 1) == 0:
-        theta = random.getrandbits(num_qubits + 1)
+        theta = rng.getrandbits(num_qubits + 1)
     lam = Fraction(0, 1)
-    # print("theta : ", theta, "correspond to", theta / (1 << (n+1)), "bin: ")
     for i in range(num_qubits + 1):
         if theta & (1 << (num_qubits - i)):
             lam += Fraction(1, (1 << i))
