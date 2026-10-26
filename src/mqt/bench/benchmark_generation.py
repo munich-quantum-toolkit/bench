@@ -85,25 +85,29 @@ def _get_circuit(
             raise ValueError(msg)
         qc = create_circuit(benchmark, circuit_size, **kwargs)
 
-    if len(qc.parameters) > 0 and random_parameters:
-        rng = np.random.default_rng(kwargs.get("seed", 10))
-        param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
-        if qc is benchmark:
-            qc = qc.copy()
-        qc.assign_parameters(param_dict, inplace=True)
-        assert len(qc.parameters) == 0, "All parameters should be assigned."
     previous = (qc.metadata or {}).get("mqt_bench_generation", {})
     generation = deepcopy(previous) if isinstance(previous, dict) else {}
     generation.setdefault("benchmark", benchmark if isinstance(benchmark, str) else qc.name)
     generation.setdefault("circuit_size", circuit_size if circuit_size is not None else qc.num_qubits)
-    generation["random_parameters"] = random_parameters
+    generation.setdefault("random_parameters", random_parameters)
     options = dict(generation.get("options", {}))
-    for name, value in kwargs.items():
-        try:
-            options[name] = json.loads(json.dumps(value, allow_nan=False))
-        except (TypeError, ValueError):
-            continue
+    if isinstance(benchmark, str):
+        for name, value in kwargs.items():
+            try:
+                options[name] = json.loads(json.dumps(value, allow_nan=False))
+            except (TypeError, ValueError):
+                continue
     generation["options"] = options
+
+    if qc.parameters and random_parameters:
+        seed = kwargs.get("seed", 10)
+        rng = np.random.default_rng(seed)
+        param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
+        if qc is benchmark:
+            qc = qc.copy()
+        qc.assign_parameters(param_dict, inplace=True)
+        generation["random_parameters"] = True
+        generation["parameter_seed"] = seed
     return qc, generation
 
 
@@ -168,7 +172,8 @@ def _create_mirror_circuit(
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
     dag = target_qc.to_dag()
-    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
+    idle_qubits = set(dag.idle_wires())
+    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in idle_qubits]
     target_qc.barrier(active_qubits)
 
     # Form the mirror circuit by composing the original circuit with its inverse.
@@ -186,7 +191,11 @@ def _create_mirror_circuit(
 
     # Add final measurements to all active qubits
     target_qc.barrier(active_qubits)
-    new_creg = ClassicalRegister(len(active_qubits), "meas")
+    name = "meas"
+    existing_names = {register.name for register in target_qc.cregs}
+    while name in existing_names:
+        name += "_"
+    new_creg = ClassicalRegister(len(active_qubits), name)
     target_qc.add_register(new_creg)
     target_qc.measure(active_qubits, new_creg)
 

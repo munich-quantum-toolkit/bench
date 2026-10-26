@@ -248,12 +248,39 @@ def test_arithmetic_results(
     assert counts == {expected: 16}
 
 
+def test_qft_multiplier_large_inputs() -> None:
+    """The phase stage encodes 2**29 * 2**29 without inaccurate full rotations."""
+    circuit = create_circuit("rg_qft_multiplier", 120)
+    a, b, result = circuit.qregs
+    phases = np.ones(len(result), dtype=complex)
+    for instruction in circuit.data:
+        if instruction.operation.name == "mcphase" and instruction.qubits[:2] == (a[-1], b[-1]):
+            phases[result.index(instruction.qubits[-1])] *= Operator(instruction.operation).data[-1, -1]
+
+    expected = np.ones(len(result), dtype=complex)
+    expected[-2:] = [-1, 1j]
+    np.testing.assert_allclose(phases, expected, atol=1e-12)
+
+
 def test_arithmetic_mirror_measurements() -> None:
     """Mirror benchmarks still measure all active qubits to check the identity."""
     qc = get_benchmark("full_adder", BenchmarkLevel.ALG, 6, generate_mirror_circuit=True)
     assert qc.num_clbits == 6
     result = StatevectorSampler(seed=10).run([qc], shots=16).result()[0]
     assert result.data["meas"].get_counts() == {"000000": 16}
+
+
+def test_mirror_with_unused_classical_registers() -> None:
+    """Keep unused registers and measure only active qubits into a new register."""
+    circuit = QuantumCircuit(2)
+    circuit.add_register(ClassicalRegister(2, "meas"), ClassicalRegister(1, "meas_"))
+    circuit.h(1)
+    mirror = get_benchmark_alg(circuit, generate_mirror_circuit=True)
+    assert mirror.cregs[:-1] == circuit.cregs
+    measurements = [item for item in mirror.data if item.operation.name == "measure"]
+    assert [(item.qubits, item.clbits) for item in measurements] == [((mirror.qubits[1],), (mirror.cregs[-1][0],))]
+    mirror.remove_final_measurements()
+    assert Operator(mirror).equiv(Operator(np.eye(4)))
 
 
 @pytest.mark.parametrize(
@@ -456,20 +483,22 @@ def test_bv() -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "kwargs", "message"),
+    ("benchmark", "size", "kwargs", "message"),
     [
-        ("bv", {"hidden_string": "x0"}, "binary string"),
-        ("qwalk", {"depth": -1}, "nonnegative"),
-        ("graphstate", {"degree": 1}, "must be even"),
-        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
-        ("ae", {"probability": -0.1}, "between 0 and 1"),
-        ("ae", {"probability": float("nan")}, "between 0 and 1"),
+        ("bv", 3, {"hidden_string": "x0"}, "binary string"),
+        ("qwalk", 3, {"depth": -1}, "nonnegative"),
+        ("graphstate", 3, {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", 3, {"depth": -1}, "nonnegative"),
+        ("bmw_quark_copula", 4, {"depth": -1}, "nonnegative"),
+        ("qaoa", 3, {"repetitions": -1}, "nonnegative"),
+        ("ae", 3, {"probability": -0.1}, "between 0 and 1"),
+        ("ae", 3, {"probability": float("nan")}, "between 0 and 1"),
     ],
 )
-def test_invalid_benchmark_options(benchmark: str, kwargs: dict, message: str) -> None:
+def test_invalid_benchmark_options(benchmark: str, size: int, kwargs: dict, message: str) -> None:
     """Reject invalid problem parameters before constructing the circuit."""
     with pytest.raises(ValueError, match=message):
-        create_circuit(benchmark, 3, **kwargs)
+        create_circuit(benchmark, size, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -775,6 +804,26 @@ def test_benchmark_seed(benchmark: str) -> None:
     qc_no_seed = get_benchmark_alg(benchmark, 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == benchmark
+
+
+@pytest.mark.parametrize("bound", [False, True])
+def test_generation_options_survive_recompilation(bound: bool) -> None:
+    """Retain the construction seed and record only parameter binding that occurs."""
+    circuit = get_benchmark_alg("qaoa", 4, seed=1, random_parameters=bound)
+    target = get_target_for_gateset("ibm_heron", 4)
+    compiled = get_benchmark_native_gates(circuit, None, target, seed=2, repetitions=3)
+    generation = compiled.metadata["mqt_bench_generation"]
+    assert generation["options"] == {"seed": 1}
+    assert generation["parameter_seed"] == (1 if bound else 2)
+    assert generation["random_parameters"] is True
+    expected = circuit.copy()
+    expected.remove_final_measurements()
+    if not bound:
+        expected.assign_parameters(
+            np.random.default_rng(2).uniform(0, 2 * np.pi, len(expected.parameters)), inplace=True
+        )
+    compiled.remove_final_measurements()
+    assert Operator(compiled).equiv(Operator(expected))
 
 
 @pytest.mark.parametrize("num_qubits", [1, 2, 5, 6])
@@ -1393,16 +1442,18 @@ def test_generate_header_pkg_not_installed(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
 def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
-    """Replace a QASM file while preserving its permissions."""
+    """Export multiline target descriptions and preserve existing file permissions."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
+    target = get_target_for_gateset("clifford+t+rotations", 2)
+    target.description = "Custom target\nCalibration from Monday\r\nRevision 2"
 
     out = tmp_path / "test.qasm"
     out.write_text("previous circuit")
     out.chmod(0o640)
     mode = out.stat().st_mode
-    write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
+    write_circuit(qc, out, BenchmarkLevel.NATIVEGATES, fmt=fmt, target=target)
     assert out.stat().st_mode == mode
 
     text = out.read_text().splitlines()
@@ -1412,6 +1463,8 @@ def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
     # QASM body present
     assert any(line.startswith("h ") for line in text), "H gate should appear"
     assert any(line.startswith("cx ") for line in text), "CX gate should appear"
+    restored = (qasm2 if fmt is OutputFormat.QASM2 else qasm3).loads(out.read_text())
+    assert Operator(restored).equiv(Operator(qc))
 
 
 def test_write_circuit_qpy(tmp_path: Path) -> None:

@@ -12,7 +12,6 @@
 
 from __future__ import annotations
 
-import copy
 import importlib
 import importlib.resources as ir
 from functools import cache
@@ -115,14 +114,13 @@ def _lazy_custom_gates() -> dict[str, Callable[[], Gate]]:
     }
 
 
-@cache
-def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
+def get_target_for_gateset(name: str, num_qubits: int) -> Target:
     """Return a native gate-set target without hardware constraints."""
-    target = Target(description=gateset_name, num_qubits=num_qubits)
+    target = Target(description=name, num_qubits=num_qubits)
     standard_gates = get_standard_gate_name_mapping()
     custom_factory = _lazy_custom_gates()
-    for gate_name in dict.fromkeys([*get_gateset(gateset_name), "reset", "delay", "measure"]):
-        if gateset_name == "ibm_heron_fractional" and gate_name in {"rx", "rzz"}:
+    for gate_name in dict.fromkeys([*get_gateset(name), "reset", "delay", "measure"]):
+        if name == "ibm_heron_fractional" and gate_name in {"rx", "rzz"}:
             continue
         if gate_name in standard_gates:
             instruction = standard_gates[gate_name]
@@ -133,7 +131,7 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
             raise ValueError(msg)
         target.add_instruction(instruction, name=gate_name)
 
-    if gateset_name == "ibm_heron_fractional":
+    if name == "ibm_heron_fractional":
         from .ibm import add_fractional_gates  # ruff:ignore[import-outside-top-level]
 
         add_fractional_gates(target)
@@ -144,8 +142,3 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
     target.add_instruction(ContinueLoopOp, name="continue_loop")
 
     return target
-
-
-def get_target_for_gateset(name: str, num_qubits: int) -> Target:
-    """Return a copy of a native gate-set target with globally available instructions."""
-    return copy.deepcopy(_get_target_for_gateset(name, num_qubits))
