@@ -28,7 +28,6 @@ from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoop
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
-from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator, Statevector
@@ -246,6 +245,20 @@ def test_arithmetic_results(
     restored = qasm3.loads(qasm3.dumps(compiled))
     counts = StatevectorSampler(seed=10).run([restored], shots=16).result()[0].data["result"].get_counts()
     assert counts == {expected: 16}
+
+
+def test_qft_multiplier_large_inputs() -> None:
+    """The phase stage encodes 2**29 * 2**29 without inaccurate full rotations."""
+    circuit = create_circuit("rg_qft_multiplier", 120)
+    a, b, result = circuit.qregs
+    phases = np.ones(len(result), dtype=complex)
+    for instruction in circuit.data:
+        if instruction.operation.name == "mcphase" and instruction.qubits[:2] == (a[-1], b[-1]):
+            phases[result.index(instruction.qubits[-1])] *= Operator(instruction.operation).data[-1, -1]
+
+    expected = np.ones(len(result), dtype=complex)
+    expected[-2:] = [-1, 1j]
+    np.testing.assert_allclose(phases, expected, atol=1e-12)
 
 
 def test_arithmetic_mirror_measurements() -> None:
@@ -469,20 +482,22 @@ def test_bv() -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "kwargs", "message"),
+    ("benchmark", "size", "kwargs", "message"),
     [
-        ("bv", {"hidden_string": "x0"}, "binary string"),
-        ("qwalk", {"depth": -1}, "nonnegative"),
-        ("graphstate", {"degree": 1}, "must be even"),
-        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
-        ("ae", {"probability": -0.1}, "between 0 and 1"),
-        ("ae", {"probability": float("nan")}, "between 0 and 1"),
+        ("bv", 3, {"hidden_string": "x0"}, "binary string"),
+        ("qwalk", 3, {"depth": -1}, "nonnegative"),
+        ("graphstate", 3, {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", 3, {"depth": -1}, "nonnegative"),
+        ("bmw_quark_copula", 4, {"depth": -1}, "nonnegative"),
+        ("qaoa", 3, {"repetitions": -1}, "nonnegative"),
+        ("ae", 3, {"probability": -0.1}, "between 0 and 1"),
+        ("ae", 3, {"probability": float("nan")}, "between 0 and 1"),
     ],
 )
-def test_invalid_benchmark_options(benchmark: str, kwargs: dict, message: str) -> None:
+def test_invalid_benchmark_options(benchmark: str, size: int, kwargs: dict, message: str) -> None:
     """Reject invalid problem parameters before constructing the circuit."""
     with pytest.raises(ValueError, match=message):
-        create_circuit(benchmark, 3, **kwargs)
+        create_circuit(benchmark, size, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -1140,24 +1155,25 @@ def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
 
 
 @pytest.mark.parametrize("loop_depth", [0, 1, 2])
-def test_clifford_t_post_synthesis_optimization(loop_depth: int) -> None:
-    """Combine synthesized T pairs, including inside nested loops."""
+@pytest.mark.parametrize(("gates", "t_count"), [("t t", 0), ("s h t t t", 1)])
+def test_clifford_t_post_synthesis_optimization(loop_depth: int, gates: str, t_count: int) -> None:
+    """Reduce T counts without changing the unitary, including inside nested loops."""
     circuit = QuantumCircuit(1)
-    circuit.t(0)
-    circuit.t(0)
+    for gate in gates.split():
+        getattr(circuit, gate)(0)
     for _ in range(loop_depth):
         body = circuit
         circuit = QuantumCircuit(1)
         circuit.append(ForLoopOp(range(2), None, body), circuit.qubits)
     original = circuit.copy()
-    optimized = RecursiveOptimizeCliffordT()(circuit)
+    optimized = RecursiveOptimizeCliffordT(basis_gates=["h", "t", "tdg", "s", "sdg", "x", "y", "z"])(circuit)
 
     assert circuit == original
-    assert circuit_to_dag(optimized).count_ops(recurse=True).get("t", 0) == 0
-    expected = QuantumCircuit(1)
-    for _ in range(2**loop_depth):
-        expected.s(0)
-    assert Operator(UnrollForLoops()(optimized)).equiv(Operator(expected))
+    counts = optimized.to_dag().count_ops(recurse=True)
+    assert counts.get("t", 0) + counts.get("tdg", 0) == t_count
+    np.testing.assert_allclose(
+        Operator(UnrollForLoops()(optimized)).data, Operator(UnrollForLoops()(original)).data, atol=1e-12
+    )
 
 
 @pytest.mark.parametrize("mirror", [False, True])
@@ -1680,7 +1696,7 @@ def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_leve
     assert compiled.layout is None
     loop = compiled.data[0].operation
     assert isinstance(loop, ForLoopOp)
-    assert circuit_to_dag(loop.blocks[0]).count_ops(recurse=True)[jump] == 1
+    assert loop.blocks[0].to_dag().count_ops(recurse=True)[jump] == 1
 
 
 @pytest.mark.parametrize(("benchmark", "size"), [("qft", 4), ("bv", 6)])
@@ -1867,7 +1883,7 @@ def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: 
         qc_mirror.remove_final_measurements(inplace=True)
         qc_mirror = RemoveBarriers()(qc_mirror)
 
-        active_qubits = [q for q in qc_mirror.qubits if q not in circuit_to_dag(qc_mirror).idle_wires()]
+        active_qubits = [q for q in qc_mirror.qubits if q not in qc_mirror.to_dag().idle_wires()]
         compact = QuantumCircuit(len(active_qubits), global_phase=qc_mirror.global_phase)
         for instruction in qc_mirror.data:
             compact.append(instruction.operation, [active_qubits.index(q) for q in instruction.qubits])
