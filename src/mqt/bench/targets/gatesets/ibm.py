@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RXGate, RZZGate
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import WrapAngles
 
 from ._registry import register_gateset
@@ -72,7 +71,7 @@ def configure_fractional_angles(manager: PassManager, target: Target) -> None:
         if turns % 2:
             circuit.rz(pi, 0)
             circuit.rz(pi, 1)
-        return circuit_to_dag(circuit)
+        return circuit.to_dag()
 
     def configure(task: Task) -> None:
         if isinstance(task, WrapAngles):

@@ -39,7 +39,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
-- ⬆️ Raise the minimum Qiskit version to 2.5 ([#1027], [#1087])
+- ⬆️ Require Qiskit 2.5.2 and NumPy 2, remove older Qiskit fallbacks, and use
+  target-aware Clifford+T optimization ([#qiskit-upgrade], [#1087])
   ([**@simon1hofmann**])
 - ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
   directly from sparse edges ([#1119]) ([**@simon1hofmann**])
@@ -291,6 +292,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#qiskit-upgrade]: https://github.com/munich-quantum-toolkit/bench/pulls
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
 [#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118
