@@ -22,9 +22,14 @@ def create_circuit(num_qubits: int, degree: int = 2, seed: int | None = None) ->
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
-        degree: number of edges per node
+        degree: Number of edges per node. Must satisfy 0 <= degree < num_qubits,
+            with num_qubits * degree even.
         seed: seed for the random graph generator (None for random behavior, integer for deterministic)
     """
+    if not 0 <= degree < num_qubits or num_qubits * degree % 2:
+        msg = "degree must satisfy 0 <= degree < num_qubits, and num_qubits * degree must be even."
+        raise ValueError(msg)
+
     q = QuantumRegister(num_qubits, "q")
     qc = QuantumCircuit(q, name="graphstate")
 
