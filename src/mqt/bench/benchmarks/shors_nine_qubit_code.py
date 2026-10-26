@@ -128,17 +128,17 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     Syndrome Extraction:
         - Bit-flip syndrome: For each block, 2 ancilla qubits measure the parity of
-           qubit pairs to detect which qubit (if any) experienced a bit flip.
-           Syndrome 01 → qubit 0, syndrome 10 → qubit 1, syndrome 11 → qubit 2.
+          qubit pairs to detect which qubit (if any) experienced a bit flip.
+          Syndrome 01 → qubit 0, syndrome 10 → qubit 1, syndrome 11 → qubit 2.
         - Phase-flip syndrome: 2 ancilla qubits detect phase differences between
-           the three blocks. Syndrome 01 → block 1 (qubits 0-2), syndrome 10 → block 2
-           (qubits 3-5), syndrome 11 → block 3 (qubits 6-8).
+          the three blocks. Syndrome 01 → block 1 (qubits 0-2), syndrome 10 → block 2
+          (qubits 3-5), syndrome 11 → block 3 (qubits 6-8).
 
     Error Correction:
         - Bit-flip correction: Based on the 6-bit syndrome measurement, X gates are
-           conditionally applied to correct bit flips on any of the 9 data qubits.
+          conditionally applied to correct bit flips on any of the 9 data qubits.
         - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
-           conditionally applied to the first qubit of the affected block.
+          conditionally applied to the first qubit of the affected block.
 
     Circuit Structure (per logical qubit):
         - 17 qubits:

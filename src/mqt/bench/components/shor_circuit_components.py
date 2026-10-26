@@ -38,7 +38,7 @@ def get_three_qubit_phase_flip_decoding_circuit() -> QuantumCircuit:
 def get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
     """Create 3-qubit bit-flip encoding/decoding circuit.
 
-    Encodes |0> → |000> and |1> → |111>. Self-inverse, so used for both encoding and decoding.
+    Encodes ``|0>`` → ``|000>`` and ``|1>`` → ``|111>``. Self-inverse, so used for both encoding and decoding.
 
     Returns:
         QuantumCircuit: 3-qubit circuit (qubit 0 is the input/output qubit).
@@ -52,7 +52,7 @@ def get_three_qubit_bit_flip_encoding_decoding_circuit() -> QuantumCircuit:
 def get_three_qubit_phase_flip_encoding_circuit() -> QuantumCircuit:
     """Create 3-qubit phase-flip encoding circuit.
 
-    Encodes |0> → |+++> and |1> → |--->
+    Encodes ``|0>`` → ``|+++>`` and ``|1>`` → ``|--->``
 
     Returns:
         QuantumCircuit: 3-qubit encoding circuit (qubit 0 is the input qubit).
@@ -162,7 +162,7 @@ def apply_nine_qubit_shors_code_phase_flip_correction(
     Measures the 2 syndrome qubits and conditionally applies Z gates to correct
     phase-flip errors on the first qubit of the affected block.
 
-    Arguments:
+    Args:
         qc: The quantum circuit to modify.
         logical_qubit: Register containing the 9 data qubits.
         phase_flip_syndrome: Ancilla register containing the 2 syndrome qubits.
