@@ -124,7 +124,7 @@ def _record_generation(
         "level": level.name.lower(),
         "opt_level": opt_level,
         "target": target.description if target is not None else None,
-        "mirror": mirror,
+        "mirror": mirror or generation.get("mirror", False),
     })
     qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
@@ -234,13 +234,16 @@ def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
         circuit.metadata = circuit.metadata | {"mqt_bench_compiler": {"name": "qiskit", "version": version("qiskit")}}
 
 
-def _get_qiskit_pass_manager(target: Target, opt_level: int, *, native: bool) -> StagedPassManager:
+def _get_qiskit_pass_manager(
+    target: Target, opt_level: int, *, native_num_qubits: int | None = None
+) -> StagedPassManager:
     """Build the native or mapped pipeline, including final gate lowering."""
-    target, lowering = prepare_target(target, native=native)
+    target, lowering = prepare_target(target, native_num_qubits=native_num_qubits)
     pm = generate_preset_pass_manager(
         optimization_level=opt_level,
         target=target,
         seed_transpiler=10,
+        routing_method="none" if native_num_qubits is not None else None,
     )
     pm.post_scheduling = lowering
     configure_fractional_angles(pm, target)
@@ -408,7 +411,7 @@ def get_benchmark_indep(
         return _get_mqt_benchmark(
             circuit, generation, compiler_options=compiler_options, generate_mirror_circuit=generate_mirror_circuit
         )
-    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
+    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10, routing_method="none")
     _update_qiskit_provenance(qc_processed)
     _record_generation(
         qc_processed, BenchmarkLevel.INDEP, generation, opt_level=opt_level, mirror=generate_mirror_circuit
@@ -507,7 +510,7 @@ def get_benchmark_native_gates(
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes import BasisTranslator, HighLevelSynthesis  # ruff:ignore[import-outside-top-level]
 
-        target, _ = prepare_target(target, native=True)
+        target, _ = prepare_target(target, native_num_qubits=circuit.num_qubits)
         # Compile to Clifford+T and rotation gates
         clifford_t_rotations = get_target_for_gateset("clifford+t+rotations", num_qubits=circuit.num_qubits)
         pm = generate_preset_pass_manager(
@@ -543,7 +546,7 @@ def get_benchmark_native_gates(
             synthesis_pm = PassManager(SolovayKitaev())
         pm.post_optimization = synthesis_pm + mirror_pm
     else:
-        pm = _get_qiskit_pass_manager(target, opt_level, native=True)
+        pm = _get_qiskit_pass_manager(target, opt_level, native_num_qubits=circuit.num_qubits)
         mirror_pm = pm
 
     compiled_circuit = pm.run(circuit)
@@ -647,7 +650,7 @@ def get_benchmark_mapped(
             generate_mirror_circuit=generate_mirror_circuit,
         )
 
-    pm = _get_qiskit_pass_manager(target, opt_level, native=False)
+    pm = _get_qiskit_pass_manager(target, opt_level)
     mapped_circuit = pm.run(circuit)
     _update_qiskit_provenance(mapped_circuit)
     _record_generation(

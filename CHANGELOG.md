@@ -39,6 +39,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
+  directly from sparse edges ([#1119]) ([**@simon1hofmann**])
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
   ready pull requests. Keep the full matrix on main, merge queues, and manual
   runs ([#1112]) ([**@simon1hofmann**])
@@ -52,6 +54,17 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
+  addition; preserve caller random state and test benchmark semantics ([#1109])
+  ([**@simon1hofmann**])
+- 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
+  `balanced` option, and handle custom target names in generated filenames
+  ([#1118]) ([**@simon1hofmann**])
+- 🐛 Retain mirror provenance when recompiling existing circuits ([#1117])
+  ([**@simon1hofmann**])
+- 🐛 Preserve logical permutations in target-independent and native QASM
+  exports, and ignore device capacity during native compilation ([#1116])
+  ([**@simon1hofmann**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])
@@ -93,6 +106,8 @@ that minor releases may include breaking changes.
 
 ### Removed
 
+- 🔥 Move the QASM 3 importer to test dependencies and remove the pytest-sugar
+  test plugin ([#1120]) ([**@simon1hofmann**])
 - 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
   dependencies ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])
@@ -277,10 +292,16 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
+[#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
+[#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118
+[#1117]: https://github.com/munich-quantum-toolkit/bench/pull/1117
+[#1116]: https://github.com/munich-quantum-toolkit/bench/pull/1116
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
 [#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
 [#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
+[#1109]: https://github.com/munich-quantum-toolkit/bench/pull/1109
 [#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098

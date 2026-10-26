@@ -6,79 +6,66 @@
 #
 # Licensed under the MIT License
 
-"""HHL Benchmark Circuit Generation."""
+"""HHL benchmark for a fixed two-dimensional linear system."""
 
 from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFTGate
+from qiskit.circuit.library import QFTGate, UGate
 
 from ._registry import register_benchmark
 
 
 @register_benchmark("hhl", description="Harrow-Hassidim-Lloyd Algorithm (HHL)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """HHL algorithm for a fixed 2x2 Hermitian matrix A using scalable QPE precision.
+    r"""Solve a fixed two-dimensional linear system using HHL.
 
-    This implementation simulates a more accurate model of the HHL algorithm
-    for the matrix A = [[1, 1], [1, 3]] with known eigenvalues.
+    .. math::
+
+        A x = |1\rangle, \qquad
+        A = \begin{pmatrix} 1 & 1 \\ 1 & 3 \end{pmatrix}.
+
+    The eigenvalues are :math:`2 \pm \sqrt{2}`. Shifted and scaled evolution
+    maps their phases to zero and one half, so phase estimation is exact with
+    any supported register width. The reciprocal rotation uses the original
+    eigenvalues, with scale :math:`2 - \sqrt{2}`.
+
+    Condition the system result in ``c`` on ``success[0] == 1``. The successful
+    system state is :math:`(-|0\rangle + |1\rangle)/\sqrt{2}`.
 
     Args:
-        num_qubits: Total number of qubits (1 system + phase-estimation register + 1 ancilla). Must be at least 3.
+        num_qubits: Total width: one system qubit, ``num_qubits - 2`` phase
+            qubits, and one success ancilla. Must be at least 3.
 
     Returns:
-        QuantumCircuit: Qiskit circuit implementing HHL
+        The HHL circuit, including success and system measurements.
     """
     if num_qubits < 3:
         msg = "Number of qubits must be at least 3 for HHL."
         raise ValueError(msg)
 
-    num_qpe_qubits = num_qubits - 2
-    qr_sys = QuantumRegister(1, name="sys")  # System qubit (|b⟩)
-    qr_eig = QuantumRegister(num_qpe_qubits, name="phase")  # Eigenvalue estimation
-    qr_anc = QuantumRegister(1, name="ancilla")  # Ancilla for rotation
-    cr = ClassicalRegister(1, name="c")  # Classical for system measurement
-    qc = QuantumCircuit(qr_sys, qr_eig, qr_anc, cr)
+    system = QuantumRegister(1, "sys")
+    phase = QuantumRegister(num_qubits - 2, "phase")
+    ancilla = QuantumRegister(1, "ancilla")
+    result = ClassicalRegister(1, "c")
+    success = ClassicalRegister(1, "success")
+    qc = QuantumCircuit(system, phase, ancilla, result, success, name="hhl")
+    qc.x(system[0])
 
-    # Step 1: Prepare |b⟩ = |1⟩
-    qc.x(qr_sys[0])
+    # U = exp(i*pi*(A - lambda_min*I)/(lambda_max - lambda_min)). Its square is I.
+    evolution = UGate(np.pi / 2, np.pi, 0)
+    estimation = QuantumCircuit(len(phase) + 1)
+    estimation.h(range(len(phase)))
+    estimation.append(evolution.control(), [0, len(phase)])
+    estimation.append(QFTGate(len(phase)).inverse(), range(len(phase)))
+    estimation_qubits = [*phase, *system]
+    qc.compose(estimation, estimation_qubits, inplace=True)
 
-    # Step 2: Apply Hadamards to phase register (QPE start)
-    qc.h(qr_eig)
-
-    # Step 3: Controlled-unitary approximation simulating controlled-e^{iAt}
-    # A = [[1, 1], [1, 3]], eigenvalues: lam1 ≈ 0.382, lam2 ≈ 3.618
-    # We simulate one eigenvalue's evolution as approximation
-    t = 2 * np.pi
-    lam = 3.618  # simulate dominant eigenvalue for better realism
-
-    for j in range(num_qpe_qubits):
-        angle = t * lam / (2 ** (j + 1))
-        qc.cp(angle, qr_eig[j], qr_sys[0])
-
-    # Step 4: Apply inverse QFT
-    qc.append(QFTGate(num_qpe_qubits).inverse(), qr_eig)
-
-    # Step 5: Controlled Ry rotations on ancilla (based on actual eigenvalue)
-    for j in range(num_qpe_qubits):
-        # Approximate eigenvalue encoded in basis state |j⟩
-        # Use inverse λ (scaled appropriately)
-        estimated_lambda = lam / (2 ** (num_qpe_qubits - j))
-        if estimated_lambda > 0:
-            inv_lambda = 1.0 / estimated_lambda
-            inv_lambda = np.clip(inv_lambda, -1, 1)  # valid for arcsin
-            theta = 2 * np.arcsin(inv_lambda)
-            qc.cry(theta, qr_eig[j], qr_anc[0])
-
-    # Step 6: QPE uncomputation (apply QFT + reverse controlled unitary)
-    qc.append(QFTGate(num_qpe_qubits), qr_eig)
-    for j in reversed(range(num_qpe_qubits)):
-        angle = -t * lam / (2 ** (j + 1))
-        qc.cp(angle, qr_eig[j], qr_sys[0])
-
-    # Step 7: Final Hadamards and measurement
-    qc.h(qr_eig)
-    qc.measure(qr_sys[0], cr[0])
-    qc.name = "hhl"
+    qc.ry(np.pi, ancilla[0])
+    ratio = (2 - np.sqrt(2)) / (2 + np.sqrt(2))
+    qc.cry(2 * np.arcsin(ratio) - np.pi, phase[-1], ancilla[0])
+    qc.compose(estimation.inverse(), estimation_qubits, inplace=True)
+    qc.measure(system, result)
+    qc.measure(ancilla, success)
     return qc

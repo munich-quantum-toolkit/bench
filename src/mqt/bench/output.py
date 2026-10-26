@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import sys
 from enum import StrEnum
 from importlib import metadata
@@ -288,8 +289,8 @@ def generate_filename(
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
         assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
-        # sanitize the target.description to remove any special characters etc.
-        description = target.description.strip().split(" ")[0]
+        description = (target.description or "").strip().split(" ")[0]
+        description = re.sub(r"[^A-Za-z0-9_.+-]+", "_", description) or "custom_target"
         return f"{base}_{description}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"
