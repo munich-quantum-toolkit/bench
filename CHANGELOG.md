@@ -52,6 +52,10 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Avoid numerical errors from full rotations in large QFT multipliers
+  ([#1123]) ([**@simon1hofmann**])
+- 🐛 Reject negative copula depth and QAOA repetitions ([#1123])
+  ([**@simon1hofmann**])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
   addition; preserve caller random state and test benchmark semantics ([#1109])
   ([**@simon1hofmann**])
@@ -291,6 +295,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
+[#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123
 [#1122]: https://github.com/munich-quantum-toolkit/bench/pull/1122
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
