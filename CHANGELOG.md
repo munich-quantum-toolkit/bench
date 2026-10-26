@@ -36,6 +36,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Build fresh native gate-set targets without retaining every circuit width
+  in a cache ([#1125]) ([**@simon1hofmann**])
 - ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
   directly from sparse edges ([#1119]) ([**@simon1hofmann**])
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
@@ -51,9 +53,10 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Avoid inaccurate full rotations in QFT multipliers and reject negative
-  copula depth and QAOA repetitions; simplify benchmark construction and correct
-  QNN and Steane descriptions ([#1123]) ([**@simon1hofmann**])
+- 🐛 Avoid numerical errors from full rotations in large QFT multipliers
+  ([#1123]) ([**@simon1hofmann**])
+- 🐛 Reject negative copula depth and QAOA repetitions ([#1123])
+  ([**@simon1hofmann**])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
   addition; preserve caller random state and test benchmark semantics ([#1109])
   ([**@simon1hofmann**])
@@ -292,6 +295,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
