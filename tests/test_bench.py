@@ -19,11 +19,12 @@ from enum import StrEnum
 from importlib import metadata
 from typing import TYPE_CHECKING, NoReturn, cast
 
+import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import ClassicalRegister, ForLoopOp, IfElseOp, Parameter
-from qiskit.circuit.library import CXGate, HGate, RXGate, RZGate, TGate, XGate
+from qiskit.circuit.library import CXGate, GraphStateGate, HGate, RXGate, RZGate, TGate, XGate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
@@ -212,6 +213,7 @@ def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
         ("multiplier", 8, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
         ("rg_qft_multiplier", 8, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
         ("hrs_cumulative_multiplier", 9, None, (4, 5, 6, 7), [1, 3], "0100"),  # 2 * 2 = 4
+        ("hrs_cumulative_multiplier", 9, None, (4, 5, 6, 7), [0, 1, 2, 3], "1001"),  # 3 * 3 = 9
     ],
 )
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
@@ -676,6 +678,19 @@ def test_dj_constant_oracle() -> None:
     qc = get_benchmark_alg("dj", 5, balanced=False)
     qc.remove_final_measurements()
     assert Statevector(qc).probabilities([0, 1, 2, 3])[0] == pytest.approx(1)
+
+
+@pytest.mark.parametrize(("num_qubits", "degree", "seed"), [(1, 0, 42), (6, 2, 0), (6, 3, 42)])
+def test_graphstate_seeded_operator(num_qubits: int, degree: int, seed: int) -> None:
+    """Direct graph-state construction preserves the seeded adjacency-matrix operator."""
+    graph = nx.random_regular_graph(degree, num_qubits, seed=seed)
+    expected = GraphStateGate(nx.to_numpy_array(graph))
+    circuit = get_benchmark_alg("graphstate", num_qubits, degree=degree, seed=seed)
+
+    assert circuit.count_ops().get("cz", 0) == num_qubits * degree // 2
+    assert circuit.count_ops()["measure"] == num_qubits
+    circuit.remove_final_measurements()
+    assert Operator(circuit).equiv(Operator(expected))
 
 
 @pytest.mark.parametrize("benchmark", ["graphstate", "randomcircuit", "vqe_real_amp"])
