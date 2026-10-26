@@ -1186,20 +1186,29 @@ def test_clifford_t_preserves_measurements(opt_level: int, measurement_case: str
         assert BasicSimulator().run(compiled, shots=16).result().get_counts() == {expected_result: 16}
 
 
-@pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
+@pytest.mark.parametrize(
+    ("level", "gateset", "opt_level"),
+    [
+        *[(BenchmarkLevel.NATIVEGATES, "clifford+t", opt) for opt in range(4)],
+        (BenchmarkLevel.NATIVEGATES, "ibm_heron", 2),
+        (BenchmarkLevel.INDEP, None, 2),
+    ],
+)
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
-def test_clifford_t_preserves_permutations(opt_level: int, mirror: bool, fmt: OutputFormat) -> None:
-    """Preserve SWAP semantics through Clifford+T synthesis, mirrors, and QASM export."""
+def test_unmapped_compilation_preserves_permutations(
+    level: BenchmarkLevel, gateset: str | None, opt_level: int, mirror: bool, fmt: OutputFormat
+) -> None:
+    """Preserve logical SWAPs through compilation, mirrors, and QASM export."""
     qc = QuantumCircuit(4)
     qc.h(0)
     qc.t(1)
     qc.cx(1, 2)
     qc.swap(0, 1)
     qc.swap(1, 2)
-    target = get_target_for_gateset("clifford+t", 4)
+    target = get_target_for_gateset(gateset, 4) if gateset is not None else None
 
-    compiled = get_benchmark_native_gates(qc, None, target, opt_level, generate_mirror_circuit=mirror)
+    compiled = get_benchmark(qc, level, target=target, opt_level=opt_level, generate_mirror_circuit=mirror)
 
     expected = Operator(np.eye(16)) if mirror else Operator(qc)
     if mirror:
@@ -1211,7 +1220,7 @@ def test_clifford_t_preserves_permutations(opt_level: int, mirror: bool, fmt: Ou
     assert Operator(compiled).equiv(expected)
 
     stream = io.StringIO()
-    write_circuit(compiled, stream, BenchmarkLevel.NATIVEGATES, fmt, target)
+    write_circuit(compiled, stream, level, fmt, target)
     restored = (
         qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
         if fmt is OutputFormat.QASM2
@@ -1581,13 +1590,14 @@ def test_custom_target() -> None:
 @pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
 @pytest.mark.parametrize("mirror", [False, True])
 @pytest.mark.parametrize("description", ["custom_target", "clifford+t"])
-def test_native_gates_ignore_connectivity(opt_level: int, mirror: bool, description: str) -> None:
-    """Compile logical gates on disconnected target sites without mapping or ancillas."""
-    target = Target(num_qubits=5, description=description)
+@pytest.mark.parametrize("num_qubits", [2, 5])
+def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description: str, num_qubits: int) -> None:
+    """Ignore device capacity and gate placement during native compilation."""
+    target = Target(num_qubits=num_qubits, description=description)
     target.add_instruction(HGate(), {(0,): None})
     target.add_instruction(TGate(), {(0,): None})
-    target.add_instruction(XGate(), {(q,): None for q in range(5)})
-    target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
+    target.add_instruction(XGate(), {(q,): None for q in range(num_qubits)})
+    target.add_instruction(CXGate(), {(0, 1): None})
 
     qc = QuantumCircuit(3)
     qc.h(2)
@@ -1600,7 +1610,8 @@ def test_native_gates_ignore_connectivity(opt_level: int, mirror: bool, descript
     expected = Operator(np.eye(8)) if mirror else Operator(qc)
     compiled.remove_final_measurements()
     assert Operator(compiled).equiv(expected)
-    assert set(target["cx"]) == {(0, 1), (1, 2)}
+    assert target.num_qubits == num_qubits
+    assert set(target["cx"]) == {(0, 1)}
 
 
 @pytest.mark.parametrize("gateset_name", ["clifford+t", "ibm_heron"])
