@@ -248,6 +248,20 @@ def test_arithmetic_results(
     assert counts == {expected: 16}
 
 
+def test_qft_multiplier_large_inputs() -> None:
+    """The phase stage encodes 2**29 * 2**29 without inaccurate full rotations."""
+    circuit = create_circuit("rg_qft_multiplier", 120)
+    a, b, result = circuit.qregs
+    phases = np.ones(len(result), dtype=complex)
+    for instruction in circuit.data:
+        if instruction.operation.name == "mcphase" and instruction.qubits[:2] == (a[-1], b[-1]):
+            phases[result.index(instruction.qubits[-1])] *= Operator(instruction.operation).data[-1, -1]
+
+    expected = np.ones(len(result), dtype=complex)
+    expected[-2:] = [-1, 1j]
+    np.testing.assert_allclose(phases, expected, atol=1e-12)
+
+
 def test_arithmetic_mirror_measurements() -> None:
     """Mirror benchmarks still measure all active qubits to check the identity."""
     qc = get_benchmark("full_adder", BenchmarkLevel.ALG, 6, generate_mirror_circuit=True)
@@ -456,20 +470,22 @@ def test_bv() -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "kwargs", "message"),
+    ("benchmark", "size", "kwargs", "message"),
     [
-        ("bv", {"hidden_string": "x0"}, "binary string"),
-        ("qwalk", {"depth": -1}, "nonnegative"),
-        ("graphstate", {"degree": 1}, "must be even"),
-        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
-        ("ae", {"probability": -0.1}, "between 0 and 1"),
-        ("ae", {"probability": float("nan")}, "between 0 and 1"),
+        ("bv", 3, {"hidden_string": "x0"}, "binary string"),
+        ("qwalk", 3, {"depth": -1}, "nonnegative"),
+        ("graphstate", 3, {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", 3, {"depth": -1}, "nonnegative"),
+        ("bmw_quark_copula", 4, {"depth": -1}, "nonnegative"),
+        ("qaoa", 3, {"repetitions": -1}, "nonnegative"),
+        ("ae", 3, {"probability": -0.1}, "between 0 and 1"),
+        ("ae", 3, {"probability": float("nan")}, "between 0 and 1"),
     ],
 )
-def test_invalid_benchmark_options(benchmark: str, kwargs: dict, message: str) -> None:
+def test_invalid_benchmark_options(benchmark: str, size: int, kwargs: dict, message: str) -> None:
     """Reject invalid problem parameters before constructing the circuit."""
     with pytest.raises(ValueError, match=message):
-        create_circuit(benchmark, 3, **kwargs)
+        create_circuit(benchmark, size, **kwargs)
 
 
 @pytest.mark.parametrize(
