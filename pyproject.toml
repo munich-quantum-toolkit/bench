@@ -40,8 +40,7 @@ dependencies = [
   "numpy>=2.1; python_version>='3.13'",
   "numpy>=2.3.2; python_version>='3.14'",
   "numpy>=2.5.2; python_version>='3.15'",
-  "packaging>=25",
-  "qiskit>=2.2.3,<3",
+  "qiskit>=2.5,<3",
 ]
 
 [[project.authors]]
@@ -55,7 +54,7 @@ email = "burgholzer@me.com"
 [project.optional-dependencies]
 mqt = [
   "mqt-core==4.1.1",
-  "qiskit[qasm3-import]>=2.5,<2.6",
+  "qiskit>=2.5,<2.6",
 ]
 
 [project.urls]
@@ -80,13 +79,13 @@ test = [
   "pytest-console-scripts>=1.4.1",
   "pytest-cov>=7.1",
   "pytest-xdist>=3.8",
-  "qiskit[qasm3-import]>=2.2.3,<3",
+  "qiskit[qasm3-import]>=2.5,<3",
 ]
 docs = [
   "furo>=2025.12.19",
   "myst-nb>=1.4",
   "openqasm-pygments>=0.2",
-  "qiskit[visualization]>=2.2.3,<3",
+  "qiskit[visualization]>=2.5,<3",
   "sphinx>=9",
   "sphinx-autoapi>=3.6",
   "sphinx-copybutton>=0.5.2",
@@ -95,7 +94,6 @@ docs = [
   "sphinxcontrib-bibtex>=2.7",
   "sphinxext-opengraph>=0.13",
 ]
-minimums = [ "qiskit==2.2.3" ]
 
 
 [tool.hatch.version]
@@ -110,7 +108,6 @@ packages = [ "src/mqt" ]
 
 [tool.uv]
 required-version = ">=0.13.4"
-conflicts = [ [ { group = "minimums" }, { extra = "mqt" } ] ]
 
 [tool.uv.sources]
 mqt-bench = { workspace = true }

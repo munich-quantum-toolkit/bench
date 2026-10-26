@@ -39,15 +39,14 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⬆️ Raise the minimum Qiskit version to 2.5 ([#1027], [#1087])
+  ([**@simon1hofmann**])
 - ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
   directly from sparse edges ([#1119]) ([**@simon1hofmann**])
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
   ready pull requests. Keep the full matrix on main, merge queues, and manual
   runs ([#1112]) ([**@simon1hofmann**])
-- ⬆️ Raise the minimum Qiskit version to 2.2.3 ([#1087])
-  ([**@simon1hofmann**])
-- ✨ Use gridsynth for native Clifford+T compilation on Qiskit 2.4.2 and newer,
-  retaining Solovay-Kitaev on earlier supported versions ([#1081])
+- ✨ Use gridsynth for native Clifford+T compilation ([#1081])
   ([**@simon1hofmann**])
 - ✨ Measure arithmetic sums and products in a `result` register, excluding
   input and helper qubits ([#1065]) ([**@simon1hofmann**])

@@ -15,16 +15,12 @@ resolution-markers = [
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
-conflicts = [[
-    { package = "mqt-bench", extra = "mqt" },
-    { package = "mqt-bench", group = "minimums" },
-]]
 
 [[package]]
 name = "accessible-pygments"
@@ -423,10 +419,10 @@ version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -1530,16 +1526,13 @@ dependencies = [
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "packaging" },
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "qiskit", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "qiskit" },
 ]
 
 [package.optional-dependencies]
 mqt = [
     { name = "mqt-core" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "extra == 'extra-9-mqt-bench-mqt'" },
+    { name = "qiskit" },
 ]
 
 [package.dev-dependencies]
@@ -1550,17 +1543,13 @@ dev = [
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
     { name = "pytest-xdist" },
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "qiskit", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "qiskit", extra = ["qasm3-import"] },
 ]
 docs = [
     { name = "furo" },
     { name = "myst-nb" },
     { name = "openqasm-pygments" },
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, extra = ["visualization"], marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, extra = ["visualization"], marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "qiskit", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, extra = ["visualization"], marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "qiskit", extra = ["visualization"] },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
     { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
@@ -1571,17 +1560,12 @@ docs = [
     { name = "sphinxcontrib-bibtex" },
     { name = "sphinxext-opengraph" },
 ]
-minimums = [
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" } },
-]
 test = [
     { name = "pytest" },
     { name = "pytest-console-scripts" },
     { name = "pytest-cov" },
     { name = "pytest-xdist" },
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "qiskit", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, extra = ["qasm3-import"], marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "qiskit", extra = ["qasm3-import"] },
 ]
 
 [package.metadata]
@@ -1593,9 +1577,8 @@ requires-dist = [
     { name = "numpy", marker = "python_full_version >= '3.13'", specifier = ">=2.1" },
     { name = "numpy", marker = "python_full_version >= '3.14'", specifier = ">=2.3.2" },
     { name = "numpy", marker = "python_full_version >= '3.15'", specifier = ">=2.5.2" },
-    { name = "packaging", specifier = ">=25" },
-    { name = "qiskit", specifier = ">=2.2.3,<3" },
-    { name = "qiskit", extras = ["qasm3-import"], marker = "extra == 'mqt'", specifier = ">=2.5,<2.6" },
+    { name = "qiskit", specifier = ">=2.5,<3" },
+    { name = "qiskit", marker = "extra == 'mqt'", specifier = ">=2.5,<2.6" },
 ]
 provides-extras = ["mqt"]
 
@@ -1607,13 +1590,13 @@ dev = [
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.5,<3" },
 ]
 docs = [
     { name = "furo", specifier = ">=2025.12.19" },
     { name = "myst-nb", specifier = ">=1.4" },
     { name = "openqasm-pygments", specifier = ">=0.2" },
-    { name = "qiskit", extras = ["visualization"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["visualization"], specifier = ">=2.5,<3" },
     { name = "sphinx", specifier = ">=9" },
     { name = "sphinx-autoapi", specifier = ">=3.6" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
@@ -1622,13 +1605,12 @@ docs = [
     { name = "sphinxcontrib-bibtex", specifier = ">=2.7" },
     { name = "sphinxext-opengraph", specifier = ">=0.13" },
 ]
-minimums = [{ name = "qiskit", specifier = "==2.2.3" }]
 test = [
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.5,<3" },
 ]
 
 [[package]]
@@ -1788,10 +1770,10 @@ version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025, upload-time = "2025-12-08T17:02:39.908Z" }
@@ -1848,10 +1830,10 @@ version = "2.4.6"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d0/ad/fed0499ce6a338d2a03ebae59cd15093910c8875328855781952abf6c2fe/numpy-2.4.6.tar.gz", hash = "sha256:f3a3570c4a2a16746ac2c31a7c7c7b0c186b95ce902e33db6f28094ed7387dda", size = 20735807, upload-time = "2026-05-18T23:37:14.07Z" }
@@ -2601,95 +2583,17 @@ wheels = [
 
 [[package]]
 name = "qiskit"
-version = "2.2.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "dill", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "rustworkx", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "stevedore", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "typing-extensions", marker = "extra == 'group-9-mqt-bench-minimums'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/40/3e54963067210d45895cbce879d63a9523e0d696f2f8dfade0337cf3afd5/qiskit-2.2.3.tar.gz", hash = "sha256:ec597bf021fe5fa5e44600b142e6de00fc873207dfbd750d4e1cf19a1a905592", size = 3781196, upload-time = "2025-10-30T15:28:57.617Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/19/9faba59be62207d9868a01888ed9a10a181bbbdc67324b997871963af99d/qiskit-2.2.3-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:23c4b023f8b32152624fce5f980edb8af4817559495187ef71758f8bb75c531a", size = 7818702, upload-time = "2025-10-30T15:28:45.648Z" },
-    { url = "https://files.pythonhosted.org/packages/31/34/3361d3b7ec301c9d4156a61b2ff0d15ee42ecdb32f8dd8fb8e373a2a3e07/qiskit-2.2.3-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:46585ceacc4c8eab942c7d32a8a95263a8a1769c275d72d13c81fb1390c38d2c", size = 7346706, upload-time = "2025-10-30T15:28:48.277Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/02/f4bceea1366ea3efc9a0e33aabdbb793afac8e7c569eb4065bbdcb9877d0/qiskit-2.2.3-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3dc5071cd8c4e7a7b9685557dada82a125bcf9eb319e8c2b9d86ecd0b524baa9", size = 7721671, upload-time = "2025-10-30T15:28:50.694Z" },
-    { url = "https://files.pythonhosted.org/packages/57/0e/4b0cf8809ee0daa00a4bd3d1db8b9ded370ecae841b2f1a9293ef717097c/qiskit-2.2.3-cp39-abi3-manylinux2014_ppc64le.manylinux_2_17_ppc64le.whl", hash = "sha256:f6f20fc9b98564154e1021161fe71e3f61e60cbe3f41eb5b0cad8107c970e8af", size = 8264643, upload-time = "2025-10-30T17:41:13.287Z" },
-    { url = "https://files.pythonhosted.org/packages/50/fb/d8477e4bc92bff46548ab4eb3f54b73ca46a51aabc3f7cdf9f6e6a0db898/qiskit-2.2.3-cp39-abi3-manylinux2014_s390x.manylinux_2_17_s390x.whl", hash = "sha256:edfcc6fb3c0a28f5970b4272dc677bc7424ca1986eafd4d49452b09461833126", size = 8001806, upload-time = "2025-10-30T17:41:15.234Z" },
-    { url = "https://files.pythonhosted.org/packages/ed/f6/98b5bb8e7690d170b59ec666b3e85863d40ad66a1eba80fcedf9e2711b8f/qiskit-2.2.3-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:75acf702866a68be36870400d845d0775e7baa5397bf880bc56864ee105cbe93", size = 8007661, upload-time = "2025-10-30T15:28:53.134Z" },
-    { url = "https://files.pythonhosted.org/packages/ba/c9/4a35428070cfb6633d72afc077fdbe5adca08a462b401f99647e8a4a4925/qiskit-2.2.3-cp39-abi3-win_amd64.whl", hash = "sha256:80dbf57bc503c54dde91918fdece0e702def5b685892821eab0e584a071cedda", size = 7761574, upload-time = "2025-10-30T15:28:55.706Z" },
-]
-
-[package.optional-dependencies]
-qasm3-import = [
-    { name = "qiskit-qasm3-import", marker = "extra == 'group-9-mqt-bench-minimums'" },
-]
-visualization = [
-    { name = "matplotlib", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "pillow", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "pydot", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "pylatexenc", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "seaborn", marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "sympy", marker = "extra == 'group-9-mqt-bench-minimums'" },
-]
-
-[[package]]
-name = "qiskit"
 version = "2.5.2"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
 dependencies = [
-    { name = "dill", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'extra-9-mqt-bench-mqt') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-9-mqt-bench-mqt') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "rustworkx", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'extra-9-mqt-bench-mqt') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-9-mqt-bench-mqt') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "stevedore", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "typing-extensions", marker = "extra == 'extra-9-mqt-bench-mqt'" },
+    { name = "dill" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "rustworkx" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "stevedore" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c3/b3/9e080540cf1dedc6ce36d9c346f0d1e17772fb646c09049b609271acf5a0/qiskit-2.5.2.tar.gz", hash = "sha256:cf05388c717392cff5d01be4ea9b45652c2709a5c697c174428d8863089b6247", size = 4261177, upload-time = "2026-08-13T19:08:14.183Z" }
 wheels = [
@@ -2704,73 +2608,15 @@ wheels = [
 
 [package.optional-dependencies]
 qasm3-import = [
-    { name = "qiskit-qasm3-import", marker = "extra == 'extra-9-mqt-bench-mqt'" },
+    { name = "qiskit-qasm3-import" },
 ]
 visualization = [
-    { name = "matplotlib", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "pillow", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "pydot", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "pylatexenc", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "seaborn", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "sympy", marker = "extra == 'extra-9-mqt-bench-mqt'" },
-]
-
-[[package]]
-name = "qiskit"
-version = "2.6.1"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.15' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "dill", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "rustworkx", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "stevedore", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "typing-extensions", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/fd/35b9222a244fd76a9094db134a1363837ae52af218ff9bdb7bbd570703d9/qiskit-2.6.1.tar.gz", hash = "sha256:3e915793167541b4045665230421785485d4dfd845ce5050a41bc9aa4868a906", size = 4664392, upload-time = "2026-10-22T21:34:37.36Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/ae/d05f0a4fb9c06d805c03007e89c831c5b51ac856f451cae3474f4499e8a8/qiskit-2.6.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:11cb7dc819a4731da46f57379674797df43c598072ac9b0fa58e2fd340439fc1", size = 9644489, upload-time = "2026-10-22T21:47:19.839Z" },
-    { url = "https://files.pythonhosted.org/packages/93/0c/67174f35da5c7a46237f03db004049215d375ea3ee19591bc0a991649734/qiskit-2.6.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:1ba267eed0dde7c63f9af2278700e786a07b488286fd60eb87f40fffba0be513", size = 9055090, upload-time = "2026-10-22T21:34:28.19Z" },
-    { url = "https://files.pythonhosted.org/packages/71/14/503dce4dcddde350bb01f3f367467b15d626939d7cde8344522fe33a91e9/qiskit-2.6.1-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:1ede5ee12680b13ff923374ca46d4544054b8eb7f6c9c6ae31ddb56439b4c197", size = 9343817, upload-time = "2026-10-22T21:34:30.938Z" },
-    { url = "https://files.pythonhosted.org/packages/ac/fe/a98356e6e5d0d15a4c3fce4d209b401bbb86520612a20996a1b3949553d5/qiskit-2.6.1-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:9b782a5df1149f08144ccfa814df2d081b43307718cb45c4f05953d8bb33195a", size = 10262392, upload-time = "2026-10-22T21:47:22.284Z" },
-    { url = "https://files.pythonhosted.org/packages/4e/4f/86e3bba7b4f8254d24e412cc04347e33adb980f28003a0867833b165bc1f/qiskit-2.6.1-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:e9f312e6c6346bd7d3624223b638661eff91a87dffa57c757bb46be7635bbdb5", size = 11867024, upload-time = "2026-10-22T21:47:24.892Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/36/5a51bf5d5d0d7e112c1f74b8247696ffc36d450aa3287fb7e06981f25001/qiskit-2.6.1-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:c35f12552e689a8ca5216c133414cff84be6d41fe63f70494fbd31a8ccf06d34", size = 9558044, upload-time = "2026-10-22T21:34:32.9Z" },
-    { url = "https://files.pythonhosted.org/packages/37/63/fb62fadba092bd565352c23c01d7c4ec721b1d311e618ccb5cd000a1419d/qiskit-2.6.1-cp310-abi3-win_amd64.whl", hash = "sha256:00209531dd1d145cd12d0fdea53852c828b2c7c91b8d92bf240dc7a508f89137", size = 9250679, upload-time = "2026-10-22T21:34:35.146Z" },
-]
-
-[package.optional-dependencies]
-qasm3-import = [
-    { name = "qiskit-qasm3-import", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-]
-visualization = [
-    { name = "matplotlib", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "pillow", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "pydot", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "pylatexenc", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "seaborn", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
-    { name = "sympy", marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "matplotlib" },
+    { name = "pillow" },
+    { name = "pydot" },
+    { name = "pylatexenc" },
+    { name = "seaborn" },
+    { name = "sympy" },
 ]
 
 [[package]]
@@ -2779,9 +2625,7 @@ version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openqasm3", extra = ["parser"] },
-    { name = "qiskit", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-9-mqt-bench-minimums'" },
-    { name = "qiskit", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-9-mqt-bench-mqt'" },
-    { name = "qiskit", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra != 'extra-9-mqt-bench-mqt' and extra != 'group-9-mqt-bench-minimums') or (extra == 'extra-9-mqt-bench-mqt' and extra == 'group-9-mqt-bench-minimums')" },
+    { name = "qiskit" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ea/e4/0229893ae295763a9273e47a7b1a8f10599ee49c2963750440d56a4b0023/qiskit_qasm3_import-0.6.0.tar.gz", hash = "sha256:6b763ee58538b33eaf5aaa8126b687f3c03f26c4d28e6a4f04f9be24a6b184ff", size = 37141, upload-time = "2025-06-10T16:34:11.287Z" }
 wheels = [
@@ -2997,10 +2841,10 @@ version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -3234,10 +3078,10 @@ version = "9.0.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.11.5' and sys_platform == 'win32'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version < '3.11.5' and sys_platform == 'emscripten'",
     "python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
