@@ -41,8 +41,12 @@ def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
-        depth: depth of the returned quantum circuit
+        depth: Depth of the returned quantum circuit. Must be nonnegative.
     """
+    if depth < 0:
+        msg = "depth must be nonnegative."
+        raise ValueError(msg)
+
     qc = QuantumCircuit(num_qubits)
 
     # === Precompute parameter count ===

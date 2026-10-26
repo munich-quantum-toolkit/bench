@@ -44,8 +44,12 @@ MQT Bench requires Qiskit 2.2.3 or newer, up from 2.1.2. Update lower dependency
 pins and upgrade Qiskit:
 
 ```console
-python -m pip install --upgrade "qiskit[qasm3-import]>=2.2.3,<3"
+python -m pip install --upgrade "qiskit>=2.2.3,<3"
 ```
+
+To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
+MQT Bench no longer installs the importer automatically. QASM 3 export is
+unchanged.
 
 ### Device models
 
@@ -64,9 +68,13 @@ python -m pip install --upgrade "qiskit[qasm3-import]>=2.2.3,<3"
 
 ### Native compilation
 
+Target-independent and native circuits retain qubit permutations as gates.
+Remove any manual permutation correction applied to their QASM exports.
+
 `get_target_for_gateset` no longer adds simulated calibration or connectivity.
-Native compilation ignores these constraints even when passed a device target,
-including for mirrors. Use the mapped level to apply device constraints.
+Native compilation ignores these constraints and device capacity even when
+passed a device target, including for mirrors. Use the mapped level to apply
+device constraints.
 
 Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
 `break` and `continue`.
