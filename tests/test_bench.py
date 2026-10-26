@@ -16,7 +16,6 @@ import io
 import json
 import random
 import re
-import warnings
 from enum import StrEnum
 from importlib import metadata
 from typing import TYPE_CHECKING, NoReturn, cast
@@ -25,16 +24,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import (
-    Barrier,
-    CircuitInstruction,
-    ClassicalRegister,
-    Clbit,
-    ForLoopOp,
-    IfElseOp,
-    Parameter,
-    QuantumRegister,
-)
+from qiskit.circuit import Barrier, CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
@@ -51,7 +41,6 @@ from qiskit.transpiler import (
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
 
-from mqt.bench import benchmark_generation
 from mqt.bench.error_correction import get_available_encoding_names, get_transpiler
 from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
 from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
@@ -843,217 +832,113 @@ def test_error_correction(benchmark: str, width: int, error: Gate, qubit: int) -
     assert len({reg.name for reg in multiple.cregs}) == len(multiple.cregs)
 
 
-SHOR_BV = {
-    "cx": 265,
-    "if_else": 108,
-    "measure": 74,
-    "reset": 72,
-    "h": 51,
-    "shor_ideal_logical_h": 6,
-    "z": 3,
+# Register sizes of one encoded logical qubit: data qubits, bit-flip syndrome ancillas, and
+# phase-flip syndrome ancillas. Each syndrome ancilla has one classical bit.
+EC_REGISTER_SIZES: dict[str, tuple[int, int, int]] = {"shor": (9, 6, 2), "steane": (7, 3, 3)}
+
+# Gate counts of the encoded circuits. The approximation of rotations differs between Qiskit
+# versions, so the QFT entries list only the gates that the encoded circuit must contain.
+EC_GATE_COUNTS: dict[tuple[str, str], dict[str, int] | set[str]] = {
+    ("shor", "ghz"): {
+        "cx": 186,
+        "if_else": 60,
+        "h": 38,
+        "measure": 43,
+        "reset": 40,
+        "shor_ideal_logical_h": 1,
+        "barrier": 1,
+    },
+    ("shor", "bv"): {
+        "cx": 265,
+        "if_else": 108,
+        "measure": 74,
+        "reset": 72,
+        "h": 51,
+        "shor_ideal_logical_h": 6,
+        "z": 3,
+    },
+    ("shor", "graphstate"): {
+        "cx": 435,
+        "if_else": 180,
+        "h": 78,
+        "measure": 123,
+        "reset": 120,
+        "shor_ideal_logical_h": 9,
+        "barrier": 1,
+    },
+    ("shor", "qft"): {
+        "cx",
+        "if_else",
+        "measure",
+        "reset",
+        "h",
+        "shor_ideal_logical_t",
+        "shor_ideal_logical_h",
+        "shor_ideal_logical_tdg",
+        "barrier",
+    },
+    ("shor", "z"): {"cx": 32, "if_else": 12, "measure": 8, "reset": 8, "h": 7, "x": 3},
+    ("shor", "y"): {"cx": 32, "if_else": 12, "h": 7, "measure": 8, "reset": 8, "x": 3, "z": 3},
+    ("steane", "ghz"): {"cx": 200, "if_else": 70, "h": 55, "measure": 33, "reset": 30, "barrier": 1},
+    ("steane", "bv"): {"cx": 223, "if_else": 98, "h": 85, "measure": 44, "reset": 42, "x": 7, "cz": 7},
+    ("steane", "graphstate"): {
+        "cx": 282,
+        "if_else": 126,
+        "h": 93,
+        "measure": 57,
+        "reset": 54,
+        "cz": 21,
+        "barrier": 1,
+    },
+    ("steane", "qft"): {
+        "cx",
+        "if_else",
+        "h",
+        "measure",
+        "reset",
+        "steane_ideal_logical_t",
+        "steane_ideal_logical_tdg",
+        "barrier",
+    },
+    ("steane", "z"): {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7},
+    ("steane", "y"): {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7},
 }
-SHOR_GHZ = {
-    "cx": 186,
-    "if_else": 60,
-    "h": 38,
-    "measure": 43,
-    "reset": 40,
-    "shor_ideal_logical_h": 1,
-    "barrier": 1,
-}
-SHOR_GRAPHSTATE = {
-    "cx": 435,
-    "if_else": 180,
-    "h": 78,
-    "measure": 123,
-    "reset": 120,
-    "shor_ideal_logical_h": 9,
-    "barrier": 1,
-}
-SHOR_QFT = {
-    "cx": 849,
-    "if_else": 360,
-    "measure": 243,
-    "reset": 240,
-    "h": 138,
-    "shor_ideal_logical_t": 6,
-    "shor_ideal_logical_h": 3,
-    "shor_ideal_logical_tdg": 3,
-    "barrier": 1,
-}
-SHOR_Z = {"cx": 32, "if_else": 12, "measure": 8, "reset": 8, "h": 7, "x": 3}
-SHOR_Y = {
-    "cx": 32,
-    "if_else": 12,
-    "h": 7,
-    "measure": 8,
-    "reset": 8,
-    "x": 3,
-    "z": 3,
-}
-STEANE_BV = {
-    "cx": 223,
-    "if_else": 98,
-    "h": 85,
-    "measure": 44,
-    "reset": 42,
-    "x": 7,
-    "cz": 7,
-}
-STEANE_GHZ = {
-    "cx": 200,
-    "if_else": 70,
-    "h": 55,
-    "measure": 33,
-    "reset": 30,
-    "barrier": 1,
-}
-STEANE_GRAPHSTATE = {
-    "cx": 282,
-    "if_else": 126,
-    "h": 93,
-    "measure": 57,
-    "reset": 54,
-    "cz": 21,
-    "barrier": 1,
-}
-STEANE_QFT = {
-    "cx": 849,
-    "if_else": 420,
-    "h": 219,
-    "measure": 183,
-    "reset": 180,
-    "steane_ideal_logical_t": 6,
-    "steane_ideal_logical_tdg": 3,
-    "barrier": 1,
-}
-STEANE_Z = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7}
-STEANE_Y = {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7}
 
 
-# Since Rotations (rz) are handled differently according to qiskit versions (>= vs. < 2.5),
-# their gate counts couldn't be compared by this test, version checks would be required as well
-@pytest.mark.parametrize(
-    ("logical_qubits", "code", "alg", "expected_gates"),
-    [
-        (3, "shor", "ghz", SHOR_GHZ),
-        (3, "shor", "bv", SHOR_BV),
-        (3, "shor", "graphstate", SHOR_GRAPHSTATE),
-        (3, "shor", "qft", SHOR_QFT),
-        (3, "steane", "ghz", STEANE_GHZ),
-        (3, "steane", "bv", STEANE_BV),
-        (3, "steane", "graphstate", STEANE_GRAPHSTATE),
-        (3, "steane", "qft", STEANE_QFT),
-        (1, "shor", "Z", SHOR_Z),
-        (1, "shor", "Y", SHOR_Y),
-        (1, "steane", "Z", STEANE_Z),
-        (1, "steane", "Y", STEANE_Y),
-    ],
-)
-def test_error_correction_transpiler_circuit_structure(
-    logical_qubits: int, code: str, alg: str, expected_gates: dict
-) -> None:
-    """Verify the physical circuit structure produced by the error-correction encoder.
+@pytest.mark.parametrize("code", ["shor", "steane"])
+@pytest.mark.parametrize("circuit", ["ghz", "bv", "graphstate", "qft", "z", "y"])
+def test_error_correction_transpiler_circuit_structure(code: str, circuit: str) -> None:
+    """Check the registers and gate counts of an encoded circuit.
 
-    Checks that the encoded circuit has the correct number of physical qubits,
-    classical bits, and register sizes for the given code and algorithm. Exact
-    gate counts are checked for all algorithms except QFT, whose decomposition
-    can differ between supported Qiskit versions.
-
-    The expected qubit and classical-bit counts are code-dependent:
-
-    * **Steane code**: 13 physical qubits per logical qubit (7 data + 3 bit-flip
-      ancilla + 3 phase-flip ancilla) and 6 classical bits per logical qubit (3
-      bit-flip syndrome + 3 phase-flip syndrome), plus one bit per original clbit.
-    * **Shor code**: 17 physical qubits per logical qubit (9 data + 6 Z-stabiliser
-      ancilla + 2 X-stabiliser ancilla) and 8 classical bits per logical qubit (6
-      bit-flip syndrome + 2 phase-flip syndrome), plus one bit per original clbit.
-
-    Args:
-        logical_qubits: Number of logical qubits in the benchmark circuit.
-        code: The error-correction code to use; either ``"steane"`` or ``"shor"``.
-        alg: Name of the benchmark algorithm (e.g. ``"ghz"``, ``"bv"``,
-            ``"graphstate"``, ``"qft"``).
-        expected_gates: Expected occurrences of gates in the benchmark circuit (based on qc.count_ops()).
+    The benchmarks have 3 logical qubits. The circuits ``z`` and ``y`` apply one gate to 1 logical
+    qubit. Each logical qubit becomes the registers in ``EC_REGISTER_SIZES``, and each measured
+    classical bit becomes a 1-bit register. A repeated call of ``transpile`` returns the same circuit.
     """
-    test_id = f"{logical_qubits} qubit {alg} on {code}"
-
-    log_qc = QuantumCircuit(1)
-    if alg == "Z":
-        log_qc.z(0)
-    elif alg == "Y":
-        log_qc.y(0)
+    logical = QuantumCircuit(1)
+    if circuit == "z":
+        logical.z(0)
+    elif circuit == "y":
+        logical.y(0)
     else:
-        log_qc = benchmark_generation.get_benchmark(
-            benchmark=alg, level=benchmark_generation.BenchmarkLevel.ALG, circuit_size=logical_qubits, encoding=""
-        )
+        logical = get_benchmark_alg(circuit, 3)
 
-    # add error correction to the logical circuit
-    transpiler = get_transpiler(code)(log_qc.copy())
-    qc = transpiler.transpile()
-    qc = transpiler.transpiled_qc.copy()
+    transpiler = get_transpiler(code)(logical)
+    encoded = transpiler.transpile()
+    assert transpiler.transpile() == encoded, "A repeated transpile call should return the same circuit"
 
-    # make structural regression test for repeated call
-    qc_double_transpiled = transpiler.transpile()
-    qc_double_transpiled = transpiler.transpiled_qc.copy()
-    assert qc_double_transpiled == qc
-
-    qubit_code_factor = -1
-    classical_code_factor = -1
-    expected_qreg_sizes = []
-    expected_creg_sizes = []
-
-    if code == "steane":
-        # Each logical qubit is split in 7 physical qubits
-        # Additionally, 6 ancillary registers are added
-        qubit_code_factor = 13
-        classical_code_factor = 6
-
-        # Check quantum register sizes: 7n (data) + 3n (bit-flip syndrome) + 3n (phase-flip syndrome)
-        expected_qreg_sizes = sorted([7] * logical_qubits + [3] * logical_qubits + [3] * logical_qubits)
-        # Check classical register sizes: 3n (bit-flip) + 3n (phase-flip) + 1 for each original clbit
-        expected_creg_sizes = sorted([3] * logical_qubits + [3] * logical_qubits + [1] * log_qc.num_clbits)
-    elif code == "shor":
-        # Each logical qubit is split in 9 physical qubits
-        # Additionally, 8 ancilla qubits are added as stabilisers (6Z + 2X)
-        # => 1 logical qubit = 17 physical qubits
-        qubit_code_factor = 17
-        # Each ancilla requires 1 clbit for syndrome extraction => 6*2 = 8
-        classical_code_factor = 8
-
-        # Check quantum register sizes: 9n (data) + 6n (bit-flip syndrome) + 2n (phase-flip syndrome)
-        expected_qreg_sizes = sorted([9] * logical_qubits + [6] * logical_qubits + [2] * logical_qubits)
-        # Check classical register sizes: 6n (bit-flip) + 2n (phase-flip) + 1 for each original clbit
-        expected_creg_sizes = sorted([6] * logical_qubits + [2] * logical_qubits + [1] * log_qc.num_clbits)
-
-    expected_qubits = qubit_code_factor * log_qc.num_qubits
-    found_qubits = qc.num_qubits
-    assert found_qubits == expected_qubits, f"Expected {expected_qubits} qubits, found {found_qubits} for {test_id}"
-
-    expected_clbits = classical_code_factor * log_qc.num_qubits + log_qc.num_clbits
-    found_clbits = qc.num_clbits
-    assert found_clbits == expected_clbits, (
-        f"Expected {expected_clbits} classical bits, found {found_clbits} for {test_id}"
+    data, bit_flip, phase_flip = EC_REGISTER_SIZES[code]
+    assert sorted(reg.size for reg in encoded.qregs) == sorted([data, bit_flip, phase_flip] * logical.num_qubits), (
+        "Each logical qubit should have a data register and two syndrome ancilla registers"
     )
+    assert sorted(reg.size for reg in encoded.cregs) == sorted(
+        [bit_flip, phase_flip] * logical.num_qubits + [1] * logical.num_clbits
+    ), "Each logical qubit should have two syndrome measurement registers, plus one register per classical bit"
 
-    qreg_sizes = sorted(qreg.size for qreg in qc.qregs)
-    assert qreg_sizes == expected_qreg_sizes, (
-        f"Expected qreg sizes {expected_qreg_sizes}, found {qreg_sizes} for {test_id}"
-    )
-
-    creg_sizes = sorted(creg.size for creg in qc.cregs)
-    assert creg_sizes == expected_creg_sizes, (
-        f"Expected creg sizes {expected_creg_sizes}, found {creg_sizes} for {test_id}"
-    )
-
-    # Counts the occurrence of every gate in the created circuit
-    created_gates = qc.count_ops()
-    if alg == "qft":
-        # Checks only correct gate existence due to different synthesis in different qiskit versions
-        missing_gates = expected_gates.keys() - created_gates.keys()
-        assert not missing_gates, f"Created circuit is missing expected gates {missing_gates} for {test_id}"
+    expected_gates = EC_GATE_COUNTS[code, circuit]
+    if isinstance(expected_gates, set):
+        assert expected_gates <= encoded.count_ops().keys(), "Encoded circuit should contain all expected gates"
     else:
-        assert expected_gates == created_gates, f"Created circuit does not contain the expected gates for {test_id}"
+        assert encoded.count_ops() == expected_gates, "Encoded circuit should have the expected gate counts"
 
 
 @pytest.mark.parametrize("code", ["shor", "steane"])
@@ -1071,130 +956,91 @@ def test_error_correction_approximates_rotations(code: str, gate: Gate) -> None:
     transpiler.transpile()
 
     logical_qc = transpiler.original_qc
-    assert logical_qc.size() <= 50
-    assert process_fidelity(Operator(logical_qc), Operator(qc)) >= 0.95
-
-
-@pytest.mark.parametrize(
-    ("code"),
-    [
-        ("shor"),
-        ("steane"),
-    ],
-)
-def test_error_correction_no_additional_classical_registers(code: str) -> None:
-    """This Test is supposed to check that measurements on the same classical register will not change behavior of a circuit."""
-    qc = QuantumCircuit(2, 1)
-    qc.measure(0, 0)
-    qc.measure(1, 0)
-    transpiler = get_transpiler(code)(qc)
-    transpiled_qc = transpiler.transpile()
-
-    # added classical registers
-    measurement_registers = [reg for reg in transpiled_qc.cregs if reg.name.startswith("meas_")]
-
-    # Check that both measurements target the same classical bit
-    assert len(measurement_registers) == 1
-    assert measurement_registers[0].name == "meas_0"
+    assert logical_qc.size() <= 50, "Rotation approximation should have at most 50 gates"
+    assert process_fidelity(Operator(logical_qc), Operator(qc)) >= 0.95, (
+        "Rotation approximation should have a process fidelity of at least 0.95"
+    )
 
 
 @pytest.mark.parametrize("code", ["shor", "steane"])
-def test_error_correction_transpiler_keeps_metadata(code: str) -> None:
-    """The encoded circuit holds a copy of the original circuit's metadata."""
+def test_error_correction_transpiler_barrier_and_measure(code: str) -> None:
+    """Check the encoding of barriers and measurements.
+
+    A barrier without qubits stays in the encoded circuit. Measurements into the same classical bit
+    share one measurement register.
+    """
+    qc = QuantumCircuit(2, 1)
+    qc.append(Barrier(0), [])
+    qc.measure(0, 0)
+    qc.measure(1, 0)
+    encoded = get_transpiler(code)(qc).transpile()
+
+    assert "barrier" in encoded.count_ops(), "A barrier without qubits should stay in the encoded circuit"
+    assert [reg.name for reg in encoded.cregs if reg.name.startswith("meas_")] == ["meas_0"], (
+        "Measurements into the same classical bit should share one measurement register"
+    )
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_keeps_metadata(code: str) -> None:
+    """The transpiler and `get_benchmark_alg` keep a copy of the input circuit's metadata."""
     qc = QuantumCircuit(1)
     qc.x(0)
     qc.metadata = {"user": {"label": "input"}}
 
     encoded = get_transpiler(code)(qc).transpile()
-    assert encoded.metadata == {"user": {"label": "input"}}
+    benchmark = get_benchmark_alg(qc, encoding=code)
+    assert encoded.metadata == {"user": {"label": "input"}}, "The transpiler should copy the input metadata"
+    assert benchmark.metadata["user"] == {"label": "input"}, "get_benchmark_alg should keep the input metadata"
 
     encoded.metadata["user"]["label"] = "encoded"
-    assert qc.metadata == {"user": {"label": "input"}}
+    benchmark.metadata["user"]["label"] = "encoded"
+    assert qc.metadata == {"user": {"label": "input"}}, (
+        "A change to the encoded circuit's metadata should not change the input circuit"
+    )
 
 
-@pytest.mark.parametrize(("encoding", "expected_qubits"), [("steane", 26), ("shor", 34)])
-def test_get_benchmark_alg_mirror_circuit_with_encoding(encoding: str, expected_qubits: int) -> None:
-    """This Test is supposed to check that `generate_mirror_circuit=True` does not skip the `encoding` step."""
-    qc = get_benchmark_alg("ghz", 2, encoding, generate_mirror_circuit=True)
-    assert qc.num_qubits == expected_qubits
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_transpiler_rejects_unsupported_circuits(code: str) -> None:
+    """The transpiler raises an error for circuits that the encoding does not support."""
+    unsupported_gate = r"^Error-correction transpilation currently does not support arbitrary gates such as \w+\. Currently supported: .+$"
 
-    # The result is the encoded mirror circuit, not the encoded original circuit.
-    mirror = get_benchmark_alg("ghz", 2, generate_mirror_circuit=True)
-    assert qc == get_transpiler(encoding)(mirror).transpile()
-    assert qc != get_benchmark_alg("ghz", 2, encoding)
-
-
-def test_error_correction_error_on_unsupported_operation() -> None:
-    """This Test is supposed to check that unsupported gates in a circuit would be handled correctly.
-
-    Generally, this means the right error message is raised
-    """
-    qc = QuantumCircuit(1, 1)
-    qc.delay(0)
-    for transpiler in [get_transpiler(name)(qc.copy()) for name in get_available_encoding_names()]:
-        with pytest.raises(
-            ValueError,
-            match=r"^Error-correction transpilation currently does not support arbitrary gates such as \w+\. Currently supported: .+$",
-        ):
-            transpiler.transpile()
-
-    qc = QuantumCircuit(1, 1)
-    qc.x(0)
-    qc.reset(0)
-    qc.measure(0, 0)
-    for transpiler in [get_transpiler(name)(qc.copy()) for name in get_available_encoding_names()]:
-        with pytest.raises(
-            ValueError,
-            match=r"^Error-correction transpilation currently does not support arbitrary gates such as \w+\. Currently supported: .+$",
-        ):
-            transpiler.transpile()
-
-
-def test_error_correction_transpiler_edge_cases() -> None:
-    """This Test is supposed to check that various incorrect edge cases are handled correctly.
-
-    Generally, this means the right error message is raised
-    """
-    # decoded qubits must not be accessed again
-    qc = QuantumCircuit(1, 1)
-    qc.x(0)
-    qc.measure(0, 0)
-    qc.x(0)
-    for transpiler in [get_transpiler(name)(qc.copy()) for name in get_available_encoding_names()]:
-        with pytest.raises(ValueError, match=r"accesses qubits \[[\d, ]+\] after decoding"):
-            transpiler.transpile()
-
-    qr = QuantumRegister(2, "q")
-    cr = ClassicalRegister(2, "c")
-    qc = QuantumCircuit(qr, cr)
-    qc.h(qr[0])
-    qc.measure(qr[0], cr[0])
-    with qc.if_test((cr[0], 1)):
-        qc.x(qr[1])
-
-    for transpiler in [get_transpiler(name)(qc.copy()) for name in get_available_encoding_names()]:
-        with pytest.raises(ValueError, match=r"does not support control-flow operations such as .*"):
-            transpiler.transpile()
-
-    # barrier on single qubit
     qc = QuantumCircuit(1)
+    qc.delay(0)
+    with pytest.raises(ValueError, match=unsupported_gate):
+        get_transpiler(code)(qc).transpile()
+
+    qc = QuantumCircuit(1)
+    qc.reset(0)
+    with pytest.raises(ValueError, match=unsupported_gate):
+        get_transpiler(code)(qc).transpile()
+
+    # A measurement decodes the logical qubit.
+    qc = QuantumCircuit(1, 1)
+    qc.measure(0, 0)
     qc.x(0)
-    qc.append(Barrier(0), [])
-    for transpiler in [get_transpiler(name)(qc.copy()) for name in get_available_encoding_names()]:
-        qc = transpiler.transpile()
-        assert "barrier" in qc.count_ops()
+    with pytest.raises(ValueError, match=r"accesses qubits \[0\] after decoding"):
+        get_transpiler(code)(qc).transpile()
+
+    qc = QuantumCircuit(1, 1)
+    with qc.if_test((0, 1)):
+        qc.x(0)
+    with pytest.raises(ValueError, match="does not support control-flow operations such as if_else"):
+        get_transpiler(code)(qc).transpile()
 
 
 def test_available_encodings() -> None:
     """The available encoding names should map to their transpilers and be safe to mutate."""
     names = get_available_encoding_names()
-    assert set(names) == {"shor", "steane"}
+    assert set(names) == {"shor", "steane"}, "The available encodings should be 'shor' and 'steane'"
 
     names.append("dummy_encoding")
-    assert "dummy_encoding" not in get_available_encoding_names()
+    assert "dummy_encoding" not in get_available_encoding_names(), (
+        "A change to the returned list should not change the available encodings"
+    )
 
-    assert get_transpiler("shor") is ShorTranspiler
-    assert get_transpiler("steane") is SteaneTranspiler
+    assert get_transpiler("shor") is ShorTranspiler, "'shor' should map to ShorTranspiler"
+    assert get_transpiler("steane") is SteaneTranspiler, "'steane' should map to SteaneTranspiler"
     with pytest.raises(ValueError, match="not a supported error-correcting code"):
         get_transpiler("dummy_encoding")
 
@@ -1284,45 +1130,27 @@ def test_get_benchmark_alg_with_quantum_circuit() -> None:
     assert not qc.metadata
 
 
-@pytest.mark.parametrize(("encoding", "expected_qubits"), [("steane", 26), ("shor", 34)])
-def test_get_benchmark_alg_encoding_parameters(encoding: str, expected_qubits: int) -> None:
-    """Test get_benchmark method with different encoding values."""
-    match = re.escape("Invalid `encoding` 'invalid encoding'. Must be one of ") + "[\\s\\S]*"
-    with pytest.raises(ValueError, match=match):
-        get_benchmark_alg(benchmark="bv", circuit_size=2, encoding="invalid encoding")
-
-    qc = get_benchmark_alg(benchmark="bv", circuit_size=2, encoding=encoding)
-    assert qc.num_qubits == expected_qubits
-
-
 @pytest.mark.parametrize("encoding", ["shor", "steane"])
 @pytest.mark.parametrize("mirror", [False, True])
-def test_get_benchmark_alg_encoding_keeps_generation_record(encoding: str, mirror: bool) -> None:
-    """The encoded circuit keeps the generation settings and records the encoding name."""
-    plain = get_benchmark_alg("graphstate", 3, generate_mirror_circuit=mirror, seed=42)
-    encoded = get_benchmark_alg("graphstate", 3, encoding, generate_mirror_circuit=mirror, seed=42)
+def test_get_benchmark_encoding(encoding: str, mirror: bool) -> None:
+    """At the ALG level, `get_benchmark` encodes the benchmark and records the encoding.
 
+    The encoding applies to the mirror circuit if one is generated. The pytest configuration turns
+    warnings into errors, so this test also checks that `encoding` does not warn at the ALG level.
+    """
+    plain = get_benchmark("graphstate", BenchmarkLevel.ALG, 3, generate_mirror_circuit=mirror, seed=42)
+    encoded = get_benchmark(
+        "graphstate", BenchmarkLevel.ALG, 3, encoding=encoding, generate_mirror_circuit=mirror, seed=42
+    )
+
+    assert encoded == get_transpiler(encoding)(plain).transpile(), (
+        "get_benchmark should return the encoded plain or mirror benchmark"
+    )
     generation = encoded.metadata["mqt_bench_generation"]
-    assert generation == plain.metadata["mqt_bench_generation"] | {"encoding": encoding}
-    assert generation["options"]["seed"] == 42
-    assert generation["mirror"] is mirror
-    assert plain.metadata["mqt_bench_generation"]["encoding"] is None
-
-
-@pytest.mark.parametrize("encoding", ["shor", "steane"])
-def test_get_benchmark_alg_encoding_keeps_caller_metadata(encoding: str) -> None:
-    """The encoded circuit keeps the metadata of the input circuit."""
-    circuit = QuantumCircuit(2)
-    circuit.h(0)
-    circuit.cx(0, 1)
-    circuit.measure_all()
-    circuit.metadata = {"user": {"label": "input"}}
-
-    encoded = get_benchmark_alg(circuit, encoding=encoding)
-
-    assert encoded.metadata["user"] == {"label": "input"}
-    assert encoded.metadata["mqt_bench_generation"]["encoding"] == encoding
-    assert circuit.metadata == {"user": {"label": "input"}}
+    assert generation == plain.metadata["mqt_bench_generation"] | {"encoding": encoding}, (
+        "The generation record should match the plain benchmark and add the encoding"
+    )
+    assert plain.metadata["mqt_bench_generation"]["encoding"] is None, "The plain benchmark should record no encoding"
 
 
 @pytest.mark.parametrize(
@@ -1340,14 +1168,7 @@ def test_get_benchmark_encoding_ignored_for_non_alg_level(level: BenchmarkLevel,
     )
     with pytest.warns(UserWarning, match=match):
         qc = get_benchmark(benchmark="bv", level=level, circuit_size=3, target=target, encoding="shor")
-    assert qc.depth() > 0
-
-
-def test_get_benchmark_encoding_no_warning_for_alg_level() -> None:
-    """Test that `encoding` does not trigger a warning for the ALG level."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        assert get_benchmark(benchmark="bv", level=BenchmarkLevel.ALG, circuit_size=3, encoding="shor")
+    assert qc.depth() > 0, "get_benchmark should still return a benchmark when it ignores `encoding`"
 
 
 def test_get_benchmark_faulty_parameters() -> None:
@@ -1393,6 +1214,9 @@ def test_get_benchmark_faulty_parameters() -> None:
             get_device("rigetti_cepheus_108"),
             4,
         )
+    match = re.escape("Invalid `encoding` 'wrong_encoding'. Must be one of ")
+    with pytest.raises(ValueError, match=match):
+        get_benchmark("bv", BenchmarkLevel.ALG, 3, encoding="wrong_encoding")
     match = re.escape(
         "'wrong_gateset' is not a supported gateset. Known modules: ['aqt', 'clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
     )
