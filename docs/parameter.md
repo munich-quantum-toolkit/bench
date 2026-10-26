@@ -65,8 +65,13 @@ print(get_available_device_names())
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
 - `encoding`: Error correction code applied to the output. Encoding of
-  non-transversal gates uses placeholders. Because the encoding approximates
-  rotations, gate counts can differ between Qiskit versions.
+  non-transversal gates uses placeholders: opaque logical gadgets named
+  `<code>_ideal_logical_<gate>`, for example `shor_ideal_logical_h`. Steane's
+  code uses placeholders for T and Tdg. Shor's code also uses one for H.
+  OpenQASM 3 export fails for circuits that contain placeholders, so export
+  these circuits as QPY. Because the encoding approximates rotations, gate
+  counts can differ between Qiskit versions. The generation record stores the
+  code name under `encoding`.
 
 Possible values for `encoding`:
 
