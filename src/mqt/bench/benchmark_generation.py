@@ -201,13 +201,16 @@ def _create_mirror_circuit(
     return target_qc
 
 
-def _get_qiskit_pass_manager(target: Target, opt_level: int, *, native: bool) -> StagedPassManager:
+def _get_qiskit_pass_manager(
+    target: Target, opt_level: int, *, native_num_qubits: int | None = None
+) -> StagedPassManager:
     """Build the native or mapped pipeline, including final gate lowering."""
-    target, lowering = prepare_target(target, native=native)
+    target, lowering = prepare_target(target, native_num_qubits=native_num_qubits)
     pm = generate_preset_pass_manager(
         optimization_level=opt_level,
         target=target,
         seed_transpiler=10,
+        routing_method="none" if native_num_qubits is not None else None,
     )
     pm.post_scheduling = lowering
     configure_fractional_angles(pm, target)
@@ -348,7 +351,7 @@ def get_benchmark_indep(
     _validate_opt_level(opt_level)
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
-    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
+    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10, routing_method="none")
     _record_generation(
         qc_processed, BenchmarkLevel.INDEP, generation, opt_level=opt_level, mirror=generate_mirror_circuit
     )
@@ -428,7 +431,7 @@ def get_benchmark_native_gates(
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes import BasisTranslator, HighLevelSynthesis  # ruff:ignore[import-outside-top-level]
 
-        target, _ = prepare_target(target, native=True)
+        target, _ = prepare_target(target, native_num_qubits=circuit.num_qubits)
         # Compile to Clifford+T and rotation gates
         clifford_t_rotations = get_target_for_gateset("clifford+t+rotations", num_qubits=circuit.num_qubits)
         pm = generate_preset_pass_manager(
@@ -464,7 +467,7 @@ def get_benchmark_native_gates(
             synthesis_pm = PassManager(SolovayKitaev())
         pm.post_optimization = synthesis_pm + mirror_pm
     else:
-        pm = _get_qiskit_pass_manager(target, opt_level, native=True)
+        pm = _get_qiskit_pass_manager(target, opt_level, native_num_qubits=circuit.num_qubits)
         mirror_pm = pm
 
     compiled_circuit = pm.run(circuit)
@@ -548,7 +551,7 @@ def get_benchmark_mapped(
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
-    pm = _get_qiskit_pass_manager(target, opt_level, native=False)
+    pm = _get_qiskit_pass_manager(target, opt_level)
     mapped_circuit = pm.run(circuit)
     _record_generation(
         mapped_circuit,
