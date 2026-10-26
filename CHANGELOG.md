@@ -52,6 +52,9 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve construction options on recompilation, avoid mirror register-name
+  collisions, and support multiline target descriptions in QASM headers
+  ([#1124]) ([**@simon1hofmann**])
 - 🐛 Avoid numerical errors from full rotations in large QFT multipliers
   ([#1123]) ([**@simon1hofmann**])
 - 🐛 Reject negative copula depth and QAOA repetitions ([#1123])
@@ -295,6 +298,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
+[#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
 [#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123
 [#1122]: https://github.com/munich-quantum-toolkit/bench/pull/1122
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
