@@ -59,9 +59,13 @@ unchanged.
 
 ### Native compilation
 
+Target-independent and native circuits retain qubit permutations as gates.
+Remove any manual permutation correction applied to their QASM exports.
+
 `get_target_for_gateset` no longer adds simulated calibration or connectivity.
-Native compilation ignores these constraints even when passed a device target,
-including for mirrors. Use the mapped level to apply device constraints.
+Native compilation ignores these constraints and device capacity even when
+passed a device target, including for mirrors. Use the mapped level to apply
+device constraints.
 
 Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
 `break` and `continue`.
