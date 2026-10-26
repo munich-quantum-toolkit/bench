@@ -1583,13 +1583,13 @@ dev = [
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["qasm3-import"] },
 ]
 docs = [
     { name = "furo", specifier = ">=2025.12.19" },
     { name = "myst-nb", specifier = ">=1.4" },
     { name = "openqasm-pygments", specifier = ">=0.2" },
-    { name = "qiskit", extras = ["visualization"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["visualization"] },
     { name = "sphinx", specifier = ">=9" },
     { name = "sphinx-autoapi", specifier = ">=3.6" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
@@ -1603,7 +1603,7 @@ test = [
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.2.3,<3" },
+    { name = "qiskit", extras = ["qasm3-import"] },
 ]
 
 [[package]]

@@ -74,13 +74,13 @@ test = [
   "pytest-console-scripts>=1.4.1",
   "pytest-cov>=7.1",
   "pytest-xdist>=3.8",
-  "qiskit[qasm3-import]>=2.2.3,<3",
+  "qiskit[qasm3-import]",
 ]
 docs = [
   "furo>=2025.12.19",
   "myst-nb>=1.4",
   "openqasm-pygments>=0.2",
-  "qiskit[visualization]>=2.2.3,<3",
+  "qiskit[visualization]",
   "sphinx>=9",
   "sphinx-autoapi>=3.6",
   "sphinx-copybutton>=0.5.2",

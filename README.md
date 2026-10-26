@@ -118,8 +118,12 @@ To support this endeavor, please consider:
 `mqt.bench` is available via [PyPI](https://pypi.org/project/mqt.bench/).
 
 ```console
+uv venv
 uv pip install mqt.bench
 ```
+
+Activate the environment with `source .venv/bin/activate` on Linux or macOS, or
+`.venv\Scripts\Activate.ps1` in Windows PowerShell, before running Python.
 
 The following code gives an example on the usage:
 
