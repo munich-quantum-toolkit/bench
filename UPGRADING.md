@@ -24,8 +24,9 @@ parameters than before. Calls without a seed retain the previous binding seed of
 
 ### Clifford+T compilation
 
-Native Clifford+T compilation uses gridsynth. The synthesized gate sequences and
-gate counts can differ from earlier releases that used Solovay-Kitaev.
+Native Clifford+T compilation always uses gridsynth. The Solovay-Kitaev fallback
+is removed. The synthesized gate sequences and gate counts can differ between
+Qiskit versions.
 
 The requested optimization level applies before synthesis. For nonzero levels,
 Qiskit's public `OptimizeCliffordT` pass also runs after synthesis, including
@@ -37,14 +38,17 @@ another approximate synthesis.
 Native Clifford+T circuits retain qubit permutations as gates, so QASM exports
 preserve their semantics without relying on Qiskit layout metadata.
 
-### Qiskit 2.5 minimum
+### Qiskit 2.5.2 and NumPy 2 minimums
 
-MQT Bench requires Qiskit 2.5 or newer, up from 2.1.2. Update lower dependency
-pins and upgrade Qiskit:
+MQT Bench requires Qiskit 2.5.2 or newer and NumPy 2 or newer. Update lower
+dependency pins and upgrade Qiskit:
 
 ```console
-python -m pip install --upgrade "qiskit>=2.5,<3"
+python -m pip install --upgrade "qiskit>=2.5.2,<3"
 ```
+
+Qiskit 2.5.2 fixes incorrect Clifford+T optimization for targets without SX
+gates. Qiskit's Linux wheels now require glibc 2.28 or newer.
 
 To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
 MQT Bench no longer installs the importer automatically. QASM 3 export is

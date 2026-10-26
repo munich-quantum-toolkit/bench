@@ -18,9 +18,8 @@ from typing import TYPE_CHECKING, Literal, Unpack, assert_never, overload
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
-from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit.circuit import CircuitError, ClassicalRegister, Gate, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
 from qiskit.transpiler.passes import OptimizeCliffordT, RemoveFinalMeasurements
 
@@ -168,7 +167,7 @@ def _create_mirror_circuit(
     target_qc.remove_final_measurements(inplace=True)
 
     # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
-    dag = circuit_to_dag(target_qc)
+    dag = target_qc.to_dag()
     active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
     target_qc.barrier(active_qubits)
 
@@ -524,7 +523,10 @@ def get_benchmark_native_gates(
         )
         mirror_pm = PassManager(HighLevelSynthesis(target=target, equivalence_library=SessionEquivalenceLibrary))
         if opt_level:
-            mirror_pm.append(RecursiveOptimizeCliffordT())
+            basis_gates = [
+                name for name in sorted(target.operation_names) if isinstance(target.operation_from_name(name), Gate)
+            ]
+            mirror_pm.append(RecursiveOptimizeCliffordT(basis_gates=basis_gates))
         mirror_pm.append(BasisTranslator(SessionEquivalenceLibrary, sorted(target.operation_names), target))
 
         class RecursiveSynthesizeRZRotations(SynthesizeRZRotations):

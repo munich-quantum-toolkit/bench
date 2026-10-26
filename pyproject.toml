@@ -35,12 +35,11 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [
   "networkx>=2.8.8",
-  "numpy>=1.24",
-  "numpy>=1.26; python_version>='3.12'",
+  "numpy>=2",
   "numpy>=2.1; python_version>='3.13'",
   "numpy>=2.3.2; python_version>='3.14'",
   "numpy>=2.5.2; python_version>='3.15'",
-  "qiskit>=2.5,<3",
+  "qiskit>=2.5.2,<3",
 ]
 
 [[project.authors]]
@@ -54,7 +53,7 @@ email = "burgholzer@me.com"
 [project.optional-dependencies]
 mqt = [
   "mqt-core==4.1.1",
-  "qiskit>=2.5,<2.6",
+  "qiskit>=2.5.2,<2.6",
 ]
 
 [project.urls]
@@ -79,13 +78,13 @@ test = [
   "pytest-console-scripts>=1.4.1",
   "pytest-cov>=7.1",
   "pytest-xdist>=3.8",
-  "qiskit[qasm3-import]>=2.5,<3",
+  "qiskit[qasm3-import]>=2.5.2,<3",
 ]
 docs = [
   "furo>=2025.12.19",
   "myst-nb>=1.4",
   "openqasm-pygments>=0.2",
-  "qiskit[visualization]>=2.5,<3",
+  "qiskit[visualization]>=2.5.2,<3",
   "sphinx>=9",
   "sphinx-autoapi>=3.6",
   "sphinx-copybutton>=0.5.2",
@@ -242,10 +241,6 @@ addopts = [
 ]
 filterwarnings = [
   "error",
-  # Qiskit-internal warning
-  "ignore:.*Trying to add QuantumRegister to a QuantumCircuit having a layout.*:UserWarning:qiskit.*",
-  # Qiskit 2.3 deprecations
-  "ignore:.*argument ``annotated`` is deprecated as of Qiskit 2.3.*:DeprecationWarning:",
 ]
 log_level = "INFO"
 minversion = "9.0"
