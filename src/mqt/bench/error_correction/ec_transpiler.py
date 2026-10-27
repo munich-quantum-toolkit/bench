@@ -19,7 +19,6 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister, Gate, Instruction
 
 
-
 @dataclass
 class LogicalQubit:
     """Encapsulates the physical registers representing a single encoded logical qubit."""
