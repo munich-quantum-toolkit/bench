@@ -21,7 +21,6 @@ from qiskit.synthesis import SolovayKitaevDecomposition
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes import OptimizeCliffordT
 
-
 if TYPE_CHECKING:
     from qiskit.dagcircuit import DAGCircuit
 
