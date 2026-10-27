@@ -38,6 +38,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⬆️ Require Qiskit 2.5.2 and NumPy 2, remove older Qiskit fallbacks, and use
+  target-aware Clifford+T optimization ([#1122], [#1087]) ([**@simon1hofmann**])
 - ⚡ Build fresh native gate-set targets without retaining every circuit width
   in a cache ([#1125]) ([**@simon1hofmann**])
 - ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
@@ -45,16 +47,20 @@ that minor releases may include breaking changes.
 - ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
   ready pull requests. Keep the full matrix on main, merge queues, and manual
   runs ([#1112]) ([**@simon1hofmann**])
-- ⬆️ Raise the minimum Qiskit version to 2.2.3 ([#1087])
-  ([**@simon1hofmann**])
-- ✨ Use gridsynth for native Clifford+T compilation on Qiskit 2.4.2 and newer,
-  retaining Solovay-Kitaev on earlier supported versions ([#1081])
+- ✨ Use gridsynth for native Clifford+T compilation ([#1081])
   ([**@simon1hofmann**])
 - ✨ Measure arithmetic sums and products in a `result` register, excluding
   input and helper qubits ([#1065]) ([**@simon1hofmann**])
 
 ### Fixed
 
+- 🐛 Preserve construction options on recompilation, avoid mirror register-name
+  collisions, and support multiline target descriptions in QASM headers
+  ([#1124]) ([**@simon1hofmann**])
+- 🐛 Avoid numerical errors from full rotations in large QFT multipliers
+  ([#1123]) ([**@simon1hofmann**])
+- 🐛 Reject negative copula depth and QAOA repetitions ([#1123])
+  ([**@simon1hofmann**])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
   addition; preserve caller random state and test benchmark semantics ([#1109])
   ([**@simon1hofmann**])
@@ -294,6 +300,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
+[#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
+[#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123
+[#1122]: https://github.com/munich-quantum-toolkit/bench/pull/1122
 [#1120]: https://github.com/munich-quantum-toolkit/bench/pull/1120
 [#1119]: https://github.com/munich-quantum-toolkit/bench/pull/1119
 [#1118]: https://github.com/munich-quantum-toolkit/bench/pull/1118

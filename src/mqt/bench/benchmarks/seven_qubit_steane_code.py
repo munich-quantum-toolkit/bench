@@ -101,10 +101,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
           + \|1110000> + \|0100101> + \|1000011> + \|0010110>) / sqrt(8)
 
     Syndrome Extraction:
-        - Bit-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
+        - Bit-flip syndrome: 3 ancilla qubits measure Z-type stabilizers to detect
           which qubit (if any) experienced a bit flip. The syndrome value (1-7)
           directly identifies the affected qubit.
-        - Phase-flip syndrome: 3 ancilla qubits measure Z-type stabilizers to detect
+        - Phase-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
           which qubit (if any) experienced a phase flip. The syndrome value (1-7)
           directly identifies the affected qubit.
 
