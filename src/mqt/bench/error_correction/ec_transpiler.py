@@ -13,40 +13,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import AncillaRegister, Gate, Instruction
-from qiskit.synthesis import SolovayKitaevDecomposition
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes import OptimizeCliffordT
 
-
-if TYPE_CHECKING:
-    from qiskit.dagcircuit import DAGCircuit
-
-
-class _SolovayKitaevRZ(TransformationPass):
-    """Approximate each RZ rotation with Solovay-Kitaev at recursion degree 0.
-
-    Recursion degree 0 picks the closest precomputed sequence of at most 12 H, T, and Tdg gates.
-    ``OptimizeCliffordT`` then reduces the T count of this sequence, for example by merging T
-    pairs into S gates. Unlike Qiskit's ``SolovayKitaev`` pass, this pass changes only RZ
-    rotations, so Clifford gates such as Z do not become T gates.
-    """
-
-    def __init__(self) -> None:
-        """Precompute the Solovay-Kitaev basic approximations."""
-        super().__init__()
-        self._decomposition = SolovayKitaevDecomposition()
-        self._optimization = OptimizeCliffordT()
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Replace each RZ rotation in ``dag`` with its approximation."""
-        for node in dag.named_nodes("rz"):
-            approximation = self._decomposition.run(node.op, recursion_degree=0, return_dag=True)
-            dag.substitute_node_with_dag(node, self._optimization.run(approximation))
-        return dag
 
 
 @dataclass
