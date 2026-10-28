@@ -24,7 +24,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, WhileLoopOp
+from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, WhileLoopOp, ControlFlowOp, ControlledGate
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import (
     CXGate,
@@ -634,12 +634,11 @@ def test_teleportation_state_preparation_rejects_classical_bits() -> None:
         create_circuit("teleportation", 3, state_preparation=prep)
 
 
-def _simulate_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[Clbit, int]:
-    """Sample one shot of a circuit with bit, register, and parity conditions.
+def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
+    """Sample a circuit with bit, register, and parity conditions.
 
     Qiskit's statevector sampler does not support control flow. Execute these
     small circuits instruction by instruction to test their classical feedback.
-    The simulation supports ``if_else`` with both branches, ``while_loop``, and ``reset``.
     """
     rng = np.random.default_rng(seed)
     bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
@@ -663,12 +662,6 @@ def _simulate_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[Clbit, int]
         assert isinstance(item, Clbit)
         return clbits[bit_index[item]]
 
-    def passed(condition: tuple[Clbit | ClassicalRegister, int] | expr.Expr) -> bool:
-        return value(condition[0]) == condition[1] if isinstance(condition, tuple) else bool(value(condition))
-
-    def run_inner(block: QuantumCircuit, qubits: list[int], state: Statevector) -> Statevector:
-        return run_block(block.data, dict(zip(block.qubits, qubits, strict=True)), state)
-
     def run_block(instructions: QuantumCircuitData, qubit_map: dict, state: Statevector) -> Statevector:
         for instruction in instructions:
             op = instruction.operation
@@ -676,34 +669,20 @@ def _simulate_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[Clbit, int]
             if op.name == "measure":
                 outcome, state = state.measure(qubits)
                 clbits[bit_index[instruction.clbits[0]]] = int(outcome)
-            elif op.name == "reset":
-                state = state.reset(qubits)
             elif isinstance(op, IfElseOp):
-                if passed(op.condition):
-                    state = run_inner(op.blocks[0], qubits, state)
-                elif len(op.blocks) > 1:
-                    state = run_inner(op.blocks[1], qubits, state)
-            elif isinstance(op, WhileLoopOp):
-                while passed(op.condition):
-                    state = run_inner(op.blocks[0], qubits, state)
+                condition = op.condition
+                passed = value(condition[0]) == condition[1] if isinstance(condition, tuple) else value(condition)
+                if passed:
+                    block = op.blocks[0]
+                    inner_map = dict(zip(block.qubits, qubits, strict=True))
+                    state = run_block(block.data, inner_map, state)
             else:
                 state = state.evolve(op, qubits)
         return state
 
-    run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
-    return {bit: clbits[i] for bit, i in bit_index.items()}
-
-
-def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
-    """Sample one shot and return the bits of the last classical register, most significant bit first."""
-    clbits = _simulate_control_flow(qc, seed=seed)
-    return "".join(str(clbits[bit]) for bit in reversed(qc.cregs[-1]))
-
-
-def _sample_registers(qc: QuantumCircuit, *, seed: int) -> dict[str, int]:
-    """Sample one shot and return the integer value of every classical register by name."""
-    clbits = _simulate_control_flow(qc, seed=seed)
-    return {reg.name: sum(clbits[bit] << i for i, bit in enumerate(reg)) for reg in qc.cregs}
+    state = run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
+    final_bits = [clbits[bit_index[bit]] for bit in qc.cregs[-1]]
+    return "".join(str(bit) for bit in reversed(final_bits))
 
 
 @pytest.mark.parametrize("num_qubits", [3, 6, 9])
@@ -793,44 +772,369 @@ def test_mlqae_invalid_parameters() -> None:
         create_circuit("mlqae", 3, b_max=float("nan"))
 
 
-def _metropolis_shots(shots: int, **options: float | None) -> list[dict[str, int]]:
-    """Sample the target-independent Quantum Metropolis circuit with two spins and return its registers."""
-    num_qubits = 3 + 2 * cast("int", options.get("num_evaluation_qubits", 1))
-    qc = get_benchmark_indep(create_circuit("quantum_metropolis", num_qubits, **options))
-    return [_sample_registers(qc, seed=seed) for seed in range(shots)]
+# The test simulations fail a rejection loop that runs longer than this. In the tested circuits, a correct loop ends
+# after far fewer rounds; for two spins, the loop body never runs.
+_METROPOLIS_MAX_LOOP_ROUNDS = 12
 
 
-@pytest.mark.parametrize(("num_evaluation_qubits", "max_reject_iterations"), [(1, None), (1, 2), (2, None)])
-def test_quantum_metropolis_rejection_restores_energy(
-    num_evaluation_qubits: int, max_reject_iterations: int | None
-) -> None:
-    """A rejected update returns to the initial energy of |00⟩, bin 0; an accepted update may change it."""
-    shots = _metropolis_shots(
-        60, num_evaluation_qubits=num_evaluation_qubits, beta=3.0, max_reject_iterations=max_reject_iterations
-    )
-    rejected = [shot for shot in shots if shot["accepted"] == 0]
-    accepted = [shot for shot in shots if shot["accepted"] == 1]
-    assert rejected
-    assert accepted
-    assert all(shot["energy"] == 0 for shot in rejected)
+def _sample_metropolis(qc: QuantumCircuit, *, seed: int) -> dict[str, int]:
+    """Sample one shot of a Quantum Metropolis circuit and return every classical register value by name.
 
-
-@pytest.mark.parametrize(("num_evaluation_qubits", "beta"), [(1, 0.0), (1, 1.0), (2, 0.5), (3, 0.5)])
-def test_quantum_metropolis_one_step_statistics(num_evaluation_qubits: int, beta: float) -> None:
-    """One step from |00⟩ reaches the singlet with probability e^(-2 beta) / 4 (Eqs. 2 and 3).
-
-    The X updates send |00⟩ to |01⟩ or |10⟩, which overlap the singlet with weight 1/2. The Z updates keep |00⟩.
-    The singlet has energy 2 and lies in bin 2^(r - 1) for r evaluation qubits.
+    Qiskit's statevector sampler does not support control flow. This simulation executes the circuit instruction
+    by instruction and supports ``if_else`` with both branches, ``while_loop``, and ``reset``.
     """
-    shots = _metropolis_shots(400, num_evaluation_qubits=num_evaluation_qubits, beta=beta)
+    rng = np.random.default_rng(seed)
+    bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
+    clbits = [0] * qc.num_clbits
+    state = Statevector.from_label("0" * qc.num_qubits)
+    state.seed(rng)
+
+    def passed(condition: tuple[Clbit | ClassicalRegister, int]) -> bool:
+        target, expected = condition
+        if isinstance(target, ClassicalRegister):
+            return sum(clbits[bit_index[bit]] << i for i, bit in enumerate(target)) == expected
+        return clbits[bit_index[target]] == expected
+
+    def run(circuit: QuantumCircuit, qubit_map: dict, state: Statevector) -> Statevector:
+        for instruction in circuit.data:
+            op = instruction.operation
+            qubits = [qubit_map[q] for q in instruction.qubits]
+            if op.name == "measure":
+                outcome, state = state.measure(qubits)
+                clbits[bit_index[instruction.clbits[0]]] = int(outcome)
+            elif op.name == "reset":
+                state = state.reset(qubits)
+            elif isinstance(op, IfElseOp):
+                branch = 0 if passed(op.condition) else 1
+                if branch < len(op.blocks):
+                    block = op.blocks[branch]
+                    state = run(block, dict(zip(block.qubits, qubits, strict=True)), state)
+            elif isinstance(op, WhileLoopOp):
+                block = op.blocks[0]
+                for _ in range(_METROPOLIS_MAX_LOOP_ROUNDS):
+                    if not passed(op.condition):
+                        break
+                    state = run(block, dict(zip(block.qubits, qubits, strict=True)), state)
+                else:
+                    pytest.fail("The rejection loop did not end.")
+            else:
+                state = state.evolve(op, qubits)
+        return state
+
+    run(qc, {q: i for i, q in enumerate(qc.qubits)}, state)
+    return {reg.name: sum(clbits[bit_index[bit]] << i for i, bit in enumerate(reg)) for reg in qc.cregs}
+
+
+def _metropolis_distribution(qc: QuantumCircuit, *, cutoff: float = 1e-14) -> dict[tuple[int, ...], float]:
+    """Return the exact probability of every combination of classical register values.
+
+    The simulation follows each measurement and reset outcome as a separate branch with an unnormalized state, so
+    the squared norm of a branch is its probability. Branches below ``cutoff`` are dropped, which ends the
+    ``while_loop``. The keys list the register values in the order of ``qc.cregs``.
+    """
+    num_qubits = qc.num_qubits
+    bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
+    indices = np.arange(2**num_qubits)
+    operators: dict[int, Operator] = {}
+    start = np.zeros(2**num_qubits, dtype=complex)
+    start[0] = 1
+
+    def passed(condition: tuple[Clbit | ClassicalRegister, int], clbits: tuple[int, ...]) -> bool:
+        target, expected = condition
+        if isinstance(target, ClassicalRegister):
+            return sum(clbits[bit_index[bit]] << i for i, bit in enumerate(target)) == expected
+        return clbits[bit_index[target]] == expected
+
+    def outcomes(vector: np.ndarray, qubit: int) -> list[tuple[int, np.ndarray]]:
+        bits = (indices >> qubit) & 1
+        parts = [(outcome, np.where(bits == outcome, vector, 0)) for outcome in (0, 1)]
+        return [(outcome, part) for outcome, part in parts if np.vdot(part, part).real > cutoff]
+
+    def run(
+        circuit: QuantumCircuit, qubit_map: dict, branches: list[tuple[np.ndarray, tuple[int, ...]]]
+    ) -> list[tuple[np.ndarray, tuple[int, ...]]]:
+        for instruction in circuit.data:
+            op = instruction.operation
+            qubits = [qubit_map[q] for q in instruction.qubits]
+            if op.name == "measure":
+                index = bit_index[instruction.clbits[0]]
+                branches = [
+                    (part, (*clbits[:index], outcome, *clbits[index + 1 :]))
+                    for vector, clbits in branches
+                    for outcome, part in outcomes(vector, qubits[0])
+                ]
+            elif op.name == "reset":
+                for qubit in qubits:
+                    branches = [
+                        (part[indices ^ (1 << qubit)] if outcome else part, clbits)
+                        for vector, clbits in branches
+                        for outcome, part in outcomes(vector, qubit)
+                    ]
+            elif isinstance(op, IfElseOp):
+                blocks = [*op.blocks, None][:2]
+                selected = [
+                    [branch for branch in branches if passed(op.condition, branch[1])],
+                    [branch for branch in branches if not passed(op.condition, branch[1])],
+                ]
+                branches = []
+                for block, part in zip(blocks, selected, strict=True):
+                    branches += (
+                        part if block is None else run(block, dict(zip(block.qubits, qubits, strict=True)), part)
+                    )
+            elif isinstance(op, WhileLoopOp):
+                block = op.blocks[0]
+                active, branches = branches, []
+                for _ in range(_METROPOLIS_MAX_LOOP_ROUNDS):
+                    branches += [branch for branch in active if not passed(op.condition, branch[1])]
+                    active = [branch for branch in active if passed(op.condition, branch[1])]
+                    if not active:
+                        break
+                    active = run(block, dict(zip(block.qubits, qubits, strict=True)), active)
+                else:
+                    pytest.fail("The rejection loop did not end.")
+            else:
+                operator = operators.setdefault(id(op), Operator(op))
+                branches = [(Statevector(vector).evolve(operator, qubits).data, clbits) for vector, clbits in branches]
+        return branches
+
+    final = run(qc, {q: i for i, q in enumerate(qc.qubits)}, [(start, (0,) * qc.num_clbits)])
+    distribution: dict[tuple[int, ...], float] = {}
+    for vector, clbits in final:
+        key = tuple(sum(clbits[bit_index[bit]] << i for i, bit in enumerate(reg)) for reg in qc.cregs)
+        distribution[key] = distribution.get(key, 0.0) + float(np.vdot(vector, vector).real)
+    return distribution
+
+
+def _metropolis_probabilities(num_evaluation_qubits: int = 1, **options: float | None) -> dict[str, list[float]]:
+    """Return the exact distribution of each classical register of the two-spin Quantum Metropolis circuit."""
+    r = num_evaluation_qubits
+    qc = get_benchmark_indep(create_circuit("quantum_metropolis", 2 * r + 3, num_evaluation_qubits=r, **options))
+    names = [reg.name for reg in qc.cregs]
+    marginals = {reg.name: [0.0] * 2 ** len(reg) for reg in qc.cregs}
+    joint_rejected_energy = [0.0] * 2**r
+    for key, probability in _metropolis_distribution(qc).items():
+        values = dict(zip(names, key, strict=True))
+        for name, value in values.items():
+            marginals[name][value] += probability
+        if values["accepted"] == 0:
+            joint_rejected_energy[values["energy"]] += probability
+    marginals["energy_after_reject"] = joint_rejected_energy
+    return marginals
+
+
+def _paper_singlet_probabilities(beta: float, num_steps: int) -> list[float]:
+    """Return the singlet probability after each step of the ideal Quantum Metropolis map for two spins.
+
+    The model follows Sec. 3 with exact energy projectors instead of circuits: it draws one of the four Pauli
+    updates, applies U = W C with the Metropolis amplitudes of Eq. 2, keeps accepted moves, and returns rejected
+    moves to the initial energy with alternating Q and P measurements (Fig. 2). The model starts in |00⟩.
+    """
+    x = np.array([[0, 1], [1, 0]])
+    y = np.array([[0, -1j], [1j, 0]])
+    z = np.diag([1, -1])
+    identity = np.eye(2)
+    hamiltonian = -0.5 * (np.kron(x, x) + np.kron(y, y) + np.kron(z, z)) + 0.5 * np.eye(4)
+    energies, states = np.linalg.eigh(hamiltonian)
+    projectors = {
+        level: sum(np.outer(states[:, k], states[:, k].conj()) for k in range(4) if abs(energies[k] - level) < 1e-9)
+        for level in (0.0, 2.0)
+    }
+    updates = [np.kron(identity, x), np.kron(x, identity), np.kron(identity, z), np.kron(z, identity)]
+    reject, accept = np.kron(np.diag([1, 0]), np.eye(4)), np.kron(np.diag([0, 1]), np.eye(4))
+
+    def trace_accept(matrix: np.ndarray) -> np.ndarray:
+        return np.einsum("aiaj->ij", matrix.reshape(2, 4, 2, 4))
+
+    rho = np.zeros((4, 4), dtype=complex)
+    rho[0, 0] = 1
+    singlet = []
+    for _ in range(num_steps):
+        new = np.zeros((4, 4), dtype=complex)
+        for update in updates:
+            for old, old_projector in projectors.items():
+                unitary = np.zeros((8, 8), dtype=complex)
+                for level, projector in projectors.items():
+                    f = min(1.0, np.exp(-beta * (level - old)))
+                    rotation = np.array([[np.sqrt(1 - f), -np.sqrt(f)], [np.sqrt(f), np.sqrt(1 - f)]])
+                    unitary += np.kron(rotation, projector @ update)
+                start = np.kron(np.diag([1, 0]), old_projector @ rho @ old_projector)
+                state = unitary @ start @ unitary.conj().T
+                accepted = accept @ state @ accept
+                for projector in projectors.values():
+                    measured = np.kron(identity, projector)
+                    new += trace_accept(measured @ accepted @ measured) / 4
+                rejected = unitary.conj().T @ (reject @ state @ reject) @ unitary
+                same = np.kron(identity, old_projector)
+                for _ in range(100):
+                    new += trace_accept(same @ rejected @ same) / 4
+                    rejected = (np.eye(8) - same) @ rejected @ (np.eye(8) - same)
+                    turned = unitary @ rejected @ unitary.conj().T
+                    rejected = unitary.conj().T @ (reject @ turned @ reject + accept @ turned @ accept) @ unitary
+        rho = new
+        singlet.append(float(np.trace(projectors[2.0] @ rho).real))
+    return singlet
+
+
+def _flatten_instructions(qc: QuantumCircuit) -> list[CircuitInstruction]:
+    """Return all instructions, including those inside control-flow blocks, on the outer qubits and bits."""
+    flat: list[CircuitInstruction] = []
+
+    def walk(circuit: QuantumCircuit, qubit_map: dict, clbit_map: dict) -> None:
+        for instruction in circuit.data:
+            qubits = tuple(qubit_map[q] for q in instruction.qubits)
+            clbits = tuple(clbit_map[c] for c in instruction.clbits)
+            flat.append(instruction.replace(qubits=qubits, clbits=clbits))
+            for block in getattr(instruction.operation, "blocks", ()):
+                walk(
+                    block,
+                    dict(zip(block.qubits, qubits, strict=True)),
+                    dict(zip(block.clbits, clbits, strict=True)),
+                )
+
+    walk(qc, {q: q for q in qc.qubits}, {c: c for c in qc.clbits})
+    return flat
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "max_reject_iterations"), [(1, None), (2, None), (2, 3)])
+def test_quantum_metropolis_register_roles(num_evaluation_qubits: int, max_reject_iterations: int | None) -> None:
+    """Each register takes part only in the operations that the algorithm assigns to it (Fig. 1).
+
+    The system interacts only with the pointer (phase estimation) and with the update. The accept qubit interacts
+    only with the energy register and the pointer (Metropolis gate W). No operation measures or resets the system.
+    """
+    r = num_evaluation_qubits
+    qc = create_circuit(
+        "quantum_metropolis", 2 * r + 5, num_evaluation_qubits=r, max_reject_iterations=max_reject_iterations
+    )
+    system, energy_register, pointer, accept = qc.qregs
+    c_update, c_energy, c_accept, c_p = qc.cregs
+    for instruction in _flatten_instructions(qc):
+        op = instruction.operation
+        if isinstance(op, ControlFlowOp) or op.name == "barrier":
+            continue
+        qubits = set(instruction.qubits)
+        if op.name == "measure":
+            ((qubit,), (clbit,)) = instruction.qubits, instruction.clbits
+            if qubit in accept:
+                assert clbit in (*c_update, *c_accept, *c_p)
+            elif qubit in energy_register:
+                index = energy_register.index(qubit)
+                assert clbit == c_energy[index] or (index == 0 and clbit == c_p[0])
+            else:
+                assert qubit in pointer
+                assert clbit == c_energy[pointer.index(qubit)]
+            continue
+        if op.name == "reset":
+            assert not qubits & set(system)
+            continue
+        if qubits & set(system):
+            assert qubits <= set(system) | set(pointer)
+        if qubits & set(accept) and len(qubits) > 1:
+            assert qubits <= set(energy_register) | set(pointer) | set(accept)
+
+
+@pytest.mark.parametrize("num_evaluation_qubits", [1, 2])
+def test_quantum_metropolis_update_selection(num_evaluation_qubits: int) -> None:
+    """The two random bits select X or Z on the first or second spin: bit 0 picks the spin, bit 1 the Pauli."""
+    r = num_evaluation_qubits
+    qc = create_circuit("quantum_metropolis", 2 * r + 5, num_evaluation_qubits=r)
+    system, c_update = qc.qregs[0], qc.cregs[0]
+    expected = {0: ("x", system[0]), 1: ("x", system[1]), 2: ("z", system[0]), 3: ("z", system[1])}
+    updates = [
+        inst
+        for inst in _flatten_instructions(qc)
+        if isinstance(inst.operation, IfElseOp) and inst.operation.condition[0] == c_update
+    ]
+    assert updates
+    for inst in updates:
+        (block,) = inst.operation.blocks
+        ((gate,),) = [block.data]
+        outer = dict(zip(block.qubits, inst.qubits, strict=True))
+        assert (gate.operation.name, outer[gate.qubits[0]]) == expected[inst.operation.condition[1]]
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "beta"), [(1, 1.0), (2, 0.7)])
+def test_quantum_metropolis_gate_angles(num_evaluation_qubits: int, beta: float) -> None:
+    """Every Metropolis rotation targets the accept qubit with the angle 2 arcsin(sqrt(min(1, e^(-beta dE)))).
+
+    The controls are the energy register (old bin) and the pointer (new bin). Each application of U contains one
+    rotation for each pair of bins, and U^dagger contains the inverse rotations.
+    """
+    r = num_evaluation_qubits
+    qc = create_circuit("quantum_metropolis", 2 * r + 3, num_evaluation_qubits=r, beta=beta)
+    _, energy_register, pointer, accept = qc.qregs
+    bin_width = 4 / 2**r  # two spins: the pointer covers energies 0 to 4 in 2^r bins
+    rotations = [
+        inst
+        for inst in _flatten_instructions(qc)
+        if isinstance(inst.operation, ControlledGate) and inst.operation.base_gate.name == "ry"
+    ]
+    assert rotations
+    assert len(rotations) % 4**r == 0
+    for inst in rotations:
+        assert list(inst.qubits) == [*energy_register, *pointer, *accept]
+        state = int(inst.operation.ctrl_state)
+        k_old, k_new = state % 2**r, state >> r
+        energy_change = bin_width * (k_new - k_old)
+        f = 1.0 if energy_change <= 0 else float(np.exp(-beta * energy_change))
+        assert abs(float(inst.operation.base_gate.params[0])) == pytest.approx(2 * np.arcsin(np.sqrt(f)))
+
+
+@pytest.mark.parametrize(
+    ("num_evaluation_qubits", "beta", "max_reject_iterations"),
+    [(1, 0.0, None), (1, 0.5, None), (1, 1.0, None), (1, 3.0, 2), (2, 0.5, None), (2, 3.0, None)],
+)
+def test_quantum_metropolis_one_step_exact(
+    num_evaluation_qubits: int, beta: float, max_reject_iterations: int | None
+) -> None:
+    """One step from |00⟩ gives the exact Metropolis probabilities (Eqs. 2 and 3).
+
+    Each of the four updates has probability 1/4. The Z updates keep |00⟩. The X updates give |01⟩ or |10⟩, which
+    overlap the singlet (energy 2) with weight 1/2. The singlet is accepted with probability e^(-2 beta), so it is
+    reached with probability e^(-2 beta) / 4, and a move is accepted with probability 3/4 + e^(-2 beta) / 4. A
+    rejected move returns to energy 0. The singlet lies in bin 2^(r - 1) for r evaluation qubits.
+    """
+    probabilities = _metropolis_probabilities(
+        num_evaluation_qubits, beta=beta, max_reject_iterations=max_reject_iterations
+    )
     singlet_bin = 2 ** (num_evaluation_qubits - 1)
-    assert all(shot["energy"] in {0, singlet_bin} for shot in shots)
-    if beta == 0:
-        assert all(shot["accepted"] == 1 for shot in shots)
-    singlet_rate = sum(shot["energy"] == singlet_bin for shot in shots) / len(shots)
-    assert singlet_rate == pytest.approx(np.exp(-2 * beta) / 4, abs=0.06)
-    update_counts = [sum(shot["update"] == value for shot in shots) for value in range(4)]
-    assert min(update_counts) > 60
+    reached = np.exp(-2 * beta) / 4
+    expected_energy = [0.0] * 2**num_evaluation_qubits
+    expected_energy[0], expected_energy[singlet_bin] = 1 - reached, reached
+    assert sum(probabilities["energy"]) == pytest.approx(1, abs=1e-9)
+    assert probabilities["update"] == pytest.approx([0.25] * 4, abs=1e-9)
+    assert probabilities["energy"] == pytest.approx(expected_energy, abs=1e-9)
+    assert probabilities["accepted"] == pytest.approx([1 / 4 - reached, 3 / 4 + reached], abs=1e-9)
+    assert probabilities["energy_after_reject"][1:] == pytest.approx([0.0] * (2**num_evaluation_qubits - 1), abs=1e-9)
+
+
+@pytest.mark.parametrize(("beta", "num_steps"), [(0.5, 2), (0.5, 3), (1.0, 3)])
+def test_quantum_metropolis_matches_paper_map(beta: float, num_steps: int) -> None:
+    """Several steps match an independent density-matrix model of the Quantum Metropolis map of Sec. 3."""
+    probabilities = _metropolis_probabilities(beta=beta, num_steps=num_steps)
+    assert probabilities["energy"][1] == pytest.approx(_paper_singlet_probabilities(beta, num_steps)[-1], abs=1e-9)
+
+
+def test_quantum_metropolis_reads_energy_bins() -> None:
+    """Energies of three spins are read as little-endian bins and never increase at a very low temperature.
+
+    The shifted chain of Eq. 79 has the energies 0, 1, and 3. With three evaluation qubits, the bin width is 1.
+    The circuit starts in an eigenstate with energy 1. Updates to higher energy are rejected, so every shot ends in
+    bin 0 or bin 1.
+    """
+    terms = [(pauli * 2, [i, i + 1], -0.5) for i in range(2) for pauli in "XYZ"]
+    hamiltonian = SparsePauliOp.from_sparse_list(terms, num_qubits=3).to_matrix() + np.eye(8)
+    energies, states = np.linalg.eigh(hamiltonian)
+    state = states[:, int(np.argmin(np.abs(energies - 1)))]
+
+    benchmark = create_circuit("quantum_metropolis", 10, num_evaluation_qubits=3, beta=1e6, num_trotter_steps=8)
+    qc = benchmark.copy_empty_like()
+    qc.append(StatePreparation(Statevector(state)), benchmark.qubits[:3])
+    qc.compose(benchmark, inplace=True)
+    qc = get_benchmark_indep(qc)
+    shots = [_sample_metropolis(qc, seed=seed) for seed in range(6)]
+    assert all(shot["energy"] in {0, 1} for shot in shots)
+    assert any(shot["energy"] == 1 for shot in shots)
 
 
 @pytest.mark.parametrize(("num_steps", "max_reject_iterations"), [(1, None), (3, None), (2, 4)])
@@ -860,10 +1164,10 @@ def test_quantum_metropolis_circuit_structure(num_steps: int, max_reject_iterati
         inst.operation for inst in qc.data if isinstance(inst.operation, IfElseOp) and len(inst.operation.blocks) == 2
     ]
     assert len(steps) == num_steps
+    p_bit = qc.cregs[3][0]
     for step in steps:
         reject = step.blocks[1]
         loops = [inst for inst in reject.data if isinstance(inst.operation, WhileLoopOp)]
-        p_bit = qc.cregs[[reg.name for reg in qc.cregs].index("p_outcome")][0]
         rounds = [
             inst
             for inst in reject.data
@@ -871,31 +1175,88 @@ def test_quantum_metropolis_circuit_structure(num_steps: int, max_reject_iterati
         ]
         if max_reject_iterations is None:
             assert len(loops) == 1
+            assert loops[0].operation.condition == (p_bit, 0)
         else:
             assert not loops
             assert len(rounds) == max_reject_iterations
 
 
-def test_quantum_metropolis_reads_energy_bins() -> None:
-    """Energies of three spins are read as little-endian bins and never increase at a very low temperature.
+@pytest.mark.parametrize(("num_evaluation_qubits", "max_reject_iterations"), [(1, None), (2, None), (2, 3), (3, None)])
+def test_quantum_metropolis_p_comparison(num_evaluation_qubits: int, max_reject_iterations: int | None) -> None:
+    """The measurement P sets its flag exactly when the pointer bin equals the measured energy E_i (Fig. 1c).
 
-    The shifted chain of Eq. 79 has the energies 0, 1, and 3. With three evaluation qubits, the bin width is 1.
-    The circuit starts in an eigenstate with energy 1. Updates to higher energy are rejected, so every shot ends in
-    bin 0 or bin 1.
+    Before each flag measurement, the circuit flips pointer bits that depend on the classical energy bits and then
+    applies a multi-controlled X from the pointer to the flag. The check evaluates this logic for every E_i and every
+    pointer bin. With two spins a rejection always succeeds at the first P, so the exact tests cannot see this logic.
     """
-    terms = [(pauli * 2, [i, i + 1], -0.5) for i in range(2) for pauli in "XYZ"]
-    hamiltonian = SparsePauliOp.from_sparse_list(terms, num_qubits=3).to_matrix() + np.eye(8)
-    energies, states = np.linalg.eigh(hamiltonian)
-    state = states[:, int(np.argmin(np.abs(energies - 1)))]
+    r = num_evaluation_qubits
+    qc = create_circuit(
+        "quantum_metropolis", 2 * r + 3, num_evaluation_qubits=r, max_reject_iterations=max_reject_iterations
+    )
+    _, energy_register, pointer, _ = qc.qregs
+    _, c_energy, _, c_p = qc.cregs
+    flag = energy_register[0]
+    instructions = _flatten_instructions(qc)
+    flips: list[tuple[int, int, int]] = []  # (energy bit, value that triggers the flip, pointer bit)
+    checked = 0
+    for position, inst in enumerate(instructions):
+        op = inst.operation
+        if isinstance(op, IfElseOp) and len(op.blocks) == 1 and [g.operation.name for g in op.blocks[0].data] == ["x"]:
+            target = inst.qubits[op.blocks[0].find_bit(op.blocks[0].data[0].qubits[0]).index]
+            condition_bit, condition_value = op.condition
+            if target in pointer and condition_bit in c_energy:
+                flips.append((c_energy.index(condition_bit), int(condition_value), pointer.index(target)))
+            continue
+        if position > 0 and isinstance(instructions[position - 1].operation, IfElseOp):
+            continue  # the X inside the conditional block that was just recorded
+        is_compare = (
+            isinstance(op, ControlledGate)
+            and op.base_gate.name == "x"
+            and inst.qubits[-1] == flag
+            and set(inst.qubits[:-1]) == set(pointer)
+        )
+        followed_by_flag_measure = (
+            position + 1 < len(instructions)
+            and instructions[position + 1].operation.name == "measure"
+            and instructions[position + 1].qubits == (flag,)
+            and instructions[position + 1].clbits == (c_p[0],)
+        )
+        if is_compare and followed_by_flag_measure:
+            for energy in range(2**r):
+                for bin_value in range(2**r):
+                    flipped = bin_value
+                    for energy_bit, trigger, pointer_bit in flips:
+                        if (energy >> energy_bit) & 1 == trigger:
+                            flipped ^= 1 << pointer_bit
+                    assert (flipped == 2**r - 1) == (bin_value == energy), (energy, bin_value)
+            checked += 1
+        flips = []
+    assert checked > 0
 
-    benchmark = create_circuit("quantum_metropolis", 10, num_evaluation_qubits=3, beta=1e6, num_trotter_steps=8)
-    qc = benchmark.copy_empty_like()
-    qc.append(StatePreparation(Statevector(state)), benchmark.qubits[:3])
-    qc.compose(benchmark, inplace=True)
-    qc = get_benchmark_indep(qc)
-    shots = [_sample_registers(qc, seed=seed) for seed in range(6)]
-    assert all(shot["energy"] in {0, 1} for shot in shots)
-    assert any(shot["energy"] == 1 for shot in shots)
+
+@pytest.mark.parametrize("max_reject_iterations", [None, 2])
+def test_quantum_metropolis_rejection_rounds(max_reject_iterations: int | None) -> None:
+    """Each rejection round measures Q on the accept qubit and then P on the flag, both into the P outcome bit."""
+    qc = create_circuit("quantum_metropolis", 7, num_evaluation_qubits=2, max_reject_iterations=max_reject_iterations)
+    _, energy_register, _, accept = qc.qregs
+    p_bit = qc.cregs[3][0]
+    rounds = [
+        inst
+        for inst in qc.data
+        if isinstance(inst.operation, IfElseOp)
+        for branch in inst.operation.blocks[1:]
+        for inner in branch.data
+        if isinstance(inner.operation, (WhileLoopOp, IfElseOp)) and inner.operation.condition == (p_bit, 0)
+        for inst in [inner]
+    ]
+    assert len(rounds) == (1 if max_reject_iterations is None else max_reject_iterations)
+    for round_instruction in rounds:
+        body = QuantumCircuit(qc.qubits, qc.clbits)
+        body.append(round_instruction)
+        measured = [
+            (inst.qubits, inst.clbits) for inst in _flatten_instructions(body) if inst.operation.name == "measure"
+        ]
+        assert measured == [((accept[0],), (p_bit,)), ((energy_register[0],), (p_bit,))]
 
 
 def test_quantum_metropolis_invalid_parameters() -> None:
