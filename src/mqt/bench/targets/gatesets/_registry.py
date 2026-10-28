@@ -20,7 +20,7 @@ def register_gateset(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetF
     """Decorator to register a gateset factory under a unique gateset_name.
 
     Arguments:
-        gateset_name: unique identifier for the gateset (e.g., ``"ibm_falcon"``).
+        gateset_name: unique identifier for the gateset (e.g., ``"ibm_heron"``).
 
     Returns:
         The original factory function, unmodified.

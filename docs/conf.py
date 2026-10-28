@@ -78,8 +78,13 @@ myst_enable_extensions = [
     "dollarmath",
 ]
 
+myst_heading_anchors = 3
+
 nb_execution_mode = "cache"
 nb_execution_raise_on_error = True
+
+# Reuse executed notebooks instead of running file-writing examples concurrently.
+llms_txt_build_parallel = False
 
 autosectionlabel_prefix_document = True
 
@@ -123,9 +128,6 @@ autoapi_dirs = ["../src/mqt"]
 autoapi_python_use_implicit_namespaces = True
 autoapi_root = "api"
 autoapi_add_toctree_entry = False
-autoapi_ignore = [
-    "*/**/_version.py",
-]
 autoapi_options = [
     "members",
     "imported-members",
@@ -141,6 +143,13 @@ typehints_use_rtype = False
 napoleon_use_rtype = False
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+
+# Private callable aliases remain useful in signatures but have no public API pages.
+nitpick_ignore = [
+    ("py:class", "_BenchmarkFactory"),
+    ("py:class", "_DeviceFactory"),
+    ("py:class", "_GatesetFactory"),
+]
 
 # -- Options for HTML output -------------------------------------------------
 

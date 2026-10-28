@@ -6,40 +6,106 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
-### Native gate-set targets
+### HHL and IQPE results
 
-`get_target_for_gateset` returns globally available instructions without
-simulated error rates, durations, or a coupling map. Native compilation also
-ignores connectivity and calibration in caller-supplied targets, including when
-generating mirror circuits. Use `get_device` and the mapped level when device
-constraints are required.
+HHL now measures a `success` register. Read the system bit in `c` only for shots
+where `success[0]` is one. Its successful state solves the documented matrix.
 
-Native targets register loop jumps under Qiskit's instruction names `break_loop`
-and `continue_loop` instead of `break` and `continue`.
+IQPE stores its phase estimate in the same bit order as ordinary QPE. Remove any
+reversal of its result strings. Inexact IQPE now selects the same phase as
+`qpeinexact` with the default seed, so previously generated instances differ.
+
+### Seeded parameter values
+
+An explicit `seed` now controls random parameter binding as well as benchmark
+construction. Seeded variational circuits therefore have different numeric
+parameters than before. Calls without a seed retain the previous binding seed of
+10.
+
+In generation metadata, read `parameter_seed` for the seed used to bind random
+parameter values. Recompilation preserves the original factory arguments in
+`options`, including the construction seed.
+
+### Clifford+T compilation
+
+Native Clifford+T compilation always uses gridsynth. The Solovay-Kitaev fallback
+is removed. The synthesized gate sequences and gate counts can differ between
+Qiskit versions.
+
+The requested optimization level applies before synthesis. For nonzero levels,
+Qiskit's public `OptimizeCliffordT` pass also runs after synthesis, including
+inside control-flow blocks. A final basis translation enforces the target gate
+set. Structured loops and loop jumps remain supported. Mirrors use the exact
+inverse of the synthesized circuit and receive the same optimization without
+another approximate synthesis.
+
+Native Clifford+T circuits retain qubit permutations as gates, so QASM exports
+preserve their semantics without relying on Qiskit layout metadata.
+
+### Qiskit 2.5.2 and NumPy 2 minimums
+
+MQT Bench requires Qiskit 2.5.2 or newer and NumPy 2 or newer. Update lower
+dependency pins and upgrade Qiskit:
+
+```console
+python -m pip install --upgrade "qiskit>=2.5.2,<3"
+```
+
+Qiskit 2.5.2 fixes incorrect Clifford+T optimization for targets without SX
+gates. Qiskit's Linux wheels now require glibc 2.28 or newer.
+
+To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
+MQT Bench no longer installs the importer automatically. QASM 3 export is
+unchanged.
+
+### Device models
+
+- Replace `rigetti_ankaa_84` with `rigetti_cepheus_108`.
+- The `ibm_falcon` and `ibm_eagle` gate sets and `ibm_falcon_27`,
+  `ibm_falcon_127`, `ibm_eagle_127`, and `ibm_heron_133` devices are removed.
+  Use `ibm_heron` and `ibm_heron_156`, or a custom Qiskit target for older
+  hardware.
+- Replace the IonQ Aria model with `ionq_forte_36`.
+
+### Native gates
+
+- IonQ GPI/GPI2 phases now use radians. The custom MS/ZZ classes are removed;
+  Forte uses Qiskit's standard `RZZGate`.
+- Rigetti uses standard RX gates named `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg`.
+
+### Native compilation
+
+Target-independent and native circuits retain qubit permutations as gates.
+Remove any manual permutation correction applied to their QASM exports.
+
+`get_target_for_gateset` no longer adds simulated calibration or connectivity.
+Native compilation ignores these constraints and device capacity even when
+passed a device target, including for mirrors. Use the mapped level to apply
+device constraints.
+
+Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
+`break` and `continue`.
 
 ### Arithmetic result measurements
 
-The nine adder and multiplier benchmarks now measure only their sum or product
-into a classical register named `result`, replacing `meas`. Carry-out is the
-most-significant result bit when present. Input and helper qubits are no longer
-measured, so output bitstrings are shorter. With Qiskit's sampler, read
-`pub_result.data.result` instead of `pub_result.data.meas`.
+Adder and multiplier benchmarks now measure only the sum or product into
+`result`. Read `pub_result.data.result` instead of `pub_result.data.meas`. Input
+and helper qubits are no longer measured. Carry-out, when present, is the
+most-significant result bit.
 
-To restore measurements of all qubits, apply this before compilation:
+To measure all qubits, apply this before compilation:
 
 ```python
 qc.remove_final_measurements()
 qc.measure_all()
 ```
 
-Mirror benchmarks retain their existing measurements of all active qubits.
+Mirrors still measure all active qubits.
 
 ### QAOA final measurements
 
-QAOA benchmarks now measure all qubits at the end of the circuit. Remove any
-extra `measure_all()` call added as a workaround to avoid duplicate
-measurements. If you need a circuit without measurements, call
-`qc.remove_final_measurements(inplace=True)`.
+QAOA now adds final measurements. Remove any extra `measure_all()` workaround.
+Use `qc.remove_final_measurements(inplace=True)` to omit measurements.
 
 ## [2.3.0]
 

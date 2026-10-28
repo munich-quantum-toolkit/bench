@@ -30,11 +30,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     Returns:
         QuantumCircuit: A quantum circuit preparing ``num_qubits // 2`` Bell pairs.
     """
-    if num_qubits < 2:
-        msg = "num_qubits must be at least 2."
-        raise ValueError(msg)
-    if num_qubits % 2:
-        msg = "num_qubits must be divisible by 2."
+    if num_qubits < 2 or num_qubits % 2:
+        msg = "num_qubits must be a positive multiple of 2."
         raise ValueError(msg)
 
     q = QuantumRegister(num_qubits, "q")

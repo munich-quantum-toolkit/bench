@@ -67,8 +67,6 @@ print(get_available_device_names())
 
 ## Native Gate-Set Support
 
-So far, MQT Bench supports the following native gatesets:
-
 ```{code-cell} ipython3
 :tags: [hide-input]
 from mqt.bench.targets import get_gateset, get_available_gateset_names
@@ -77,18 +75,28 @@ for num, gateset_name in enumerate(get_available_gateset_names()):
     print(f"{num+1}: {gateset_name} → {get_gateset(gateset_name)}")
 ```
 
+Gate angles use radians. Rigetti's `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg` fix
+RX angles to pi, -pi, pi/2, and -pi/2. Fractional Heron targets accept RZZ
+angles in `[0, pi/2]`; bind symbolic parameters before compilation so Qiskit can
+fold angles into this interval.
+
 ## Device Support
 
-So far, MQT Bench supports the following devices:
+| Device                     | Architecture                  |
+| -------------------------- | ----------------------------- |
+| `aqt_ibex_12`              | IBEX Q1, all-to-all           |
+| `ibm_heron_156`            | Heron, heavy-hex              |
+| `ibm_heron_156_fractional` | Heron with [fractional gates] |
+| `ibm_nighthawk_120`        | Nighthawk, 12-by-10 grid      |
+| `ionq_forte_36`            | Forte, all-to-all             |
+| `iqm_crystal_5`            | IQM Spark                     |
+| `iqm_crystal_20`           | Garnet                        |
+| `iqm_crystal_54`           | Emerald                       |
+| `quantinuum_h2_56`         | H2, all-to-all                |
+| `rigetti_cepheus_108`      | [Cepheus], 12-by-9 grid       |
 
-```{code-cell} ipython3
-:tags: [hide-input]
-from mqt.bench.targets import get_device, get_available_device_names
+See the {doc}`Quickstart <quickstart>` for examples at all four abstraction
+levels.
 
-for num, device_name in enumerate(get_available_device_names()):
-    print(f"{num+1}: {device_name} with {get_device(device_name).num_qubits} qubits")
-```
-
-Examples how to use the {func}`~.mqt.bench.get_benchmark` method for all four
-abstraction levels can be found on the
-{doc}`Quickstart jupyter notebook <quickstart>`.
+[Cepheus]: https://aws.amazon.com/blogs/quantum-computing/amazon-braket-launches-rigetti-cepheus-1-108q-superconducting-device/
+[fractional gates]: https://quantum.cloud.ibm.com/docs/en/guides/fractional-gates

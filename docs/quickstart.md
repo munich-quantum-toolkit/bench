@@ -39,7 +39,7 @@ qc_native_gates_level = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.NATIVEGATES,
     circuit_size=5,
-    target=get_target_for_gateset("ibm_falcon", 5),
+    target=get_target_for_gateset("ibm_heron", 5),
     opt_level=2,
 )
 qc_native_gates_level.draw(output="mpl")
@@ -54,7 +54,7 @@ qc_mapped_level = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.MAPPED,
     circuit_size=5,
-    target=get_device("ibm_falcon_27"),
+    target=get_device("ibm_heron_156"),
     opt_level=2,
 )
 qc_mapped_level.draw(output="mpl")
@@ -73,7 +73,7 @@ qc_mirrored = get_benchmark(
     benchmark="dj",
     level=BenchmarkLevel.MAPPED,
     circuit_size=5,
-    target=get_device("ibm_falcon_27"),
+    target=get_device("ibm_heron_156"),
     opt_level=2,
     generate_mirror_circuit=True,
 )
@@ -93,7 +93,7 @@ qc = QuantumCircuit(2)
 qc.h(0)
 qc.cx(0, 1)
 
-qc_circuit = get_benchmark(benchmark=qc, level=BenchmarkLevel.NATIVEGATES, target=get_target_for_gateset("ibm_falcon", 2))
+qc_circuit = get_benchmark(benchmark=qc, level=BenchmarkLevel.NATIVEGATES, target=get_target_for_gateset("ibm_heron", 2))
 qc_circuit.draw(output="mpl")
 ```
 
@@ -150,6 +150,17 @@ qc_symbolic.draw(output="mpl")
 
 The `save_circuit` function lets you export circuits in several
 industry‑standard formats so that they can be run or analyzed by other tools.
+
+Circuits returned by `get_benchmark` store their benchmark name, size, level,
+compilation settings, and explicitly supplied options in
+`qc.metadata["mqt_bench_generation"]`. Export headers include this record; QPY
+also retains it as metadata. Only JSON-serializable options are recorded, so
+custom gates and state-preparation circuits must be stored separately.
+Recompiling a circuit preserves its construction options. When random parameter
+values are assigned, `parameter_seed` records the seed used for that binding.
+
+File exports replace the destination only after serialization succeeds.
+`save_circuit` creates missing output directories and reports errors on stderr.
 
 ### OpenQASM2
 

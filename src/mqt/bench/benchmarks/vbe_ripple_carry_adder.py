@@ -10,15 +10,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import AncillaRegister, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.synthesis import adder_ripple_v95
 
 from ._registry import register_benchmark
-
-if TYPE_CHECKING:
-    from qiskit.circuit import QuantumCircuit
 
 
 @register_benchmark("vbe_ripple_carry_adder", description="Vedral-Barenco-Eker (VBE) Ripple-Carry Adder")
@@ -63,7 +58,7 @@ def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
         msg = "kind must be 'full', 'half', or 'fixed'."
         raise ValueError(msg)
 
-    qc = adder_ripple_v95(num_state_qubits, kind)
+    qc = _fixed_adder(num_state_qubits) if kind == "fixed" else adder_ripple_v95(num_state_qubits, kind)
     result = ClassicalRegister(num_state_qubits + (kind != "fixed"), "result")
     qc.add_register(result)
     start = num_state_qubits + (kind == "full")
@@ -72,3 +67,37 @@ def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
     qc.name = "vbe_ripple_carry_adder"
 
     return qc
+
+
+def _fixed_adder(width: int) -> QuantumCircuit:
+    """Construct fixed-width VBE addition with the carry entering the last bit.
+
+    Qiskit's fixed-width implementation uses the preceding carry instead:
+    https://github.com/Qiskit/qiskit/pull/16700.
+    """
+    a, b = QuantumRegister(width, "a"), QuantumRegister(width, "b")
+    circuit = QuantumCircuit(a, b)
+    if width == 1:
+        circuit.cx(a[0], b[0])
+        return circuit
+
+    carry = AncillaRegister(width - 1, "helper")
+    circuit.add_register(carry)
+    circuit.ccx(a[0], b[0], carry[0])
+    for i in range(1, width - 1):
+        circuit.ccx(a[i], b[i], carry[i])
+        circuit.cx(a[i], b[i])
+        circuit.ccx(carry[i - 1], b[i], carry[i])
+
+    circuit.cx(a[-1], b[-1])
+    circuit.cx(carry[-1], b[-1])
+
+    for i in reversed(range(1, width - 1)):
+        circuit.ccx(carry[i - 1], b[i], carry[i])
+        circuit.cx(a[i], b[i])
+        circuit.ccx(a[i], b[i], carry[i])
+        circuit.cx(a[i], b[i])
+        circuit.cx(carry[i - 1], b[i])
+    circuit.ccx(a[0], b[0], carry[0])
+    circuit.cx(a[0], b[0])
+    return circuit

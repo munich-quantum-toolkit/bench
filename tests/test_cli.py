@@ -17,6 +17,7 @@ import pytest
 from qiskit.qasm3 import dumps
 
 from mqt.bench.benchmark_generation import BenchmarkLevel, get_benchmark
+from mqt.bench.benchmarks import create_circuit
 from mqt.bench.targets import get_device, get_target_for_gateset
 
 if TYPE_CHECKING:
@@ -91,14 +92,14 @@ if TYPE_CHECKING:
                 "--optimization-level",
                 "2",
                 "--target",
-                "ibm_falcon",
+                "ibm_heron",
             ],
             dumps(
                 get_benchmark(
                     level=BenchmarkLevel.NATIVEGATES,
                     benchmark="ghz",
                     circuit_size=20,
-                    target=get_target_for_gateset("ibm_falcon", 20),
+                    target=get_target_for_gateset("ibm_heron", 20),
                     opt_level=2,
                 )
             ),
@@ -114,7 +115,7 @@ if TYPE_CHECKING:
                 "--optimization-level",
                 "2",
                 "--target",
-                "ibm_falcon_27",
+                "ibm_heron_156",
             ],
             dumps(
                 get_benchmark(
@@ -122,7 +123,7 @@ if TYPE_CHECKING:
                     benchmark="ghz",
                     circuit_size=20,
                     opt_level=2,
-                    target=get_device("ibm_falcon_27"),
+                    target=get_device("ibm_heron_156"),
                 )
             ),
         ),
@@ -148,7 +149,7 @@ if TYPE_CHECKING:
                 "--optimization-level",
                 "0",
                 "--target",
-                "ibm_falcon_27",
+                "ibm_heron_156",
                 "--mirror",
             ],
             dumps(
@@ -157,10 +158,20 @@ if TYPE_CHECKING:
                     benchmark="ghz",
                     circuit_size=3,
                     opt_level=0,
-                    target=get_device("ibm_falcon_27"),
+                    target=get_device("ibm_heron_156"),
                     generate_mirror_circuit=True,
                 )
             ),
+        ),
+        (["--list-benchmarks"], "qwalk: Quantum Walk"),
+        (["--list-targets"], "ibm_heron_156"),
+        (
+            ["--level", "alg", "--algorithm", "vqe_real_amp", "--num-qubits", "2", "--seed", "42"],
+            dumps(get_benchmark("vqe_real_amp", BenchmarkLevel.ALG, 2, seed=42)),
+        ),
+        (
+            ["--level", "alg", "--algorithm", "qwalk", "--num-qubits", "3", "--benchmark-options", '{"depth": 0}'],
+            dumps(create_circuit("qwalk", 3, depth=0)),
         ),
         (["--help"], "usage:"),
     ],
@@ -170,6 +181,9 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
     ret = script_runner.run(["mqt-bench", *args])
     assert ret.success
     assert expected_output in ret.stdout
+    if args == ["--help"]:
+        assert "MQT Bench version:" in ret.stdout
+        assert "Qiskit version:" in ret.stdout
 
 
 @pytest.mark.parametrize(
@@ -178,14 +192,13 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
         ([], "usage:"),
         (["asd"], "usage:"),
         (["--benchmark", "ae"], "usage:"),
-        # Note: We don't care about the actual error messages in most cases
         (
             ["--level", "not-a-valid-level", "--algorithm", "ae", "--num-qubits", "20"],
             "invalid choice: 'not-a-valid-level' ",
         ),
         (
             ["--level", "alg", "--algorithm", "not-a-valid-benchmark", "--num-qubits", "20"],
-            "",
+            "invalid choice: 'not-a-valid-benchmark'",
         ),
         (
             ["--level", "nativegates", "--algorithm", "ghz", "--num-qubits", "20"],
@@ -195,6 +208,46 @@ def test_cli(args: list[str], expected_output: str, script_runner: ScriptRunner)
             ["--level", "mapped", "--algorithm", "ghz", "--num-qubits", "20"],
             "--target is required when --level is 'mapped'",
         ),
+        (
+            ["--level", "mapped", "--algorithm", "ghz", "--num-qubits", "3", "--target", "unknown"],
+            "not a supported device",
+        ),
+        (["--level", "alg", "--algorithm", "bv", "--num-qubits", "0"], "must be a positive integer"),
+        (["--level", "alg", "--algorithm", "graphstate", "--num-qubits", "2"], "degree must satisfy"),
+        (
+            [
+                "--level",
+                "alg",
+                "--algorithm",
+                "bmw_quark_cardinality",
+                "--num-qubits",
+                "3",
+                "--benchmark-options",
+                '{"depth": -1}',
+            ],
+            "depth must be nonnegative",
+        ),
+        (["--benchmark-options", "{"], "--benchmark-options:"),
+        (["--benchmark-options", "[]"], "must be a JSON object"),
+        (
+            ["--level", "alg", "--algorithm", "ghz", "--num-qubits", "3", "--benchmark-options", '{"unknown": 1}'],
+            "unexpected keyword argument",
+        ),
+        (
+            [
+                "--level",
+                "alg",
+                "--algorithm",
+                "ghz",
+                "--num-qubits",
+                "3",
+                "--seed",
+                "42",
+                "--benchmark-options",
+                '{"seed": 43}',
+            ],
+            "Specify the seed only once",
+        ),
     ],
 )
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
@@ -202,6 +255,8 @@ def test_cli_errors(args: list[str], expected_output: str, script_runner: Script
     ret = script_runner.run(["mqt-bench", *args])
     assert not ret.success
     assert expected_output in ret.stderr
+    assert "Traceback" not in ret.stderr
+    assert not ret.stdout
 
 
 def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> RunResult:
@@ -210,10 +265,15 @@ def _run_cli(script_runner: ScriptRunner, extra_args: list[str]) -> RunResult:
     return script_runner.run(cmd)
 
 
-@pytest.mark.parametrize("fmt", ["qasm3", "qasm2"])
-def test_cli_qasm_stdout(fmt: str, script_runner: ScriptRunner) -> None:
-    """QASM2/3 should stream directly to stdout when *--save* is omitted."""
-    ret = _run_cli(script_runner, ["--output-format", fmt])
+@pytest.mark.parametrize(("algorithm", "fmt"), [("ghz", "qasm3"), ("ghz", "qasm2"), ("iqpe", "qasm2")])
+def test_cli_qasm_stdout(algorithm: str, fmt: str, script_runner: ScriptRunner) -> None:
+    """Stream QASM to stdout and report unsupported exports on stderr."""
+    ret = _run_cli(script_runner, ["--algorithm", algorithm, "--output-format", fmt])
+    if algorithm == "iqpe":
+        assert ret.returncode == 1
+        assert "Failed to write QASM stream" in ret.stderr
+        assert "Traceback" not in ret.stderr
+        return
     assert ret.success
     assert "// MQT Bench version:" in ret.stdout  # header present
     assert "OPENQASM" in ret.stdout  # body starts with keyword
@@ -222,7 +282,7 @@ def test_cli_qasm_stdout(fmt: str, script_runner: ScriptRunner) -> None:
 
 def test_cli_qpy_save(tmp_path: Path, script_runner: ScriptRunner) -> None:
     """When *--save* is given, QPY file is persisted and path is echoed."""
-    target_dir = str(tmp_path)
+    target_dir = str(tmp_path / "new" / "circuits")
     ret = _run_cli(
         script_runner,
         [
@@ -253,7 +313,7 @@ def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner)
         "--num-qubits",
         "5",
         "--target",
-        "ibm_falcon",
+        "ibm_heron",
         "--optimization-level",
         "1",
         "--output-format",
@@ -263,7 +323,7 @@ def test_cli_nativegates_qasm2_save(tmp_path: Path, script_runner: ScriptRunner)
         target_dir,
     ])
     assert ret.success
-    expected_path = Path(target_dir) / "ghz_nativegates_ibm_falcon_opt1_5.qasm"
+    expected_path = Path(target_dir) / "ghz_nativegates_ibm_heron_opt1_5.qasm"
     assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
     assert expected_path.is_file()
 
@@ -280,7 +340,7 @@ def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> N
         "--num-qubits",
         "5",
         "--target",
-        "ibm_falcon_27",
+        "ibm_heron_156",
         "--optimization-level",
         "1",
         "--output-format",
@@ -290,6 +350,6 @@ def test_cli_mapped_qasm2_save(tmp_path: Path, script_runner: ScriptRunner) -> N
         target_dir,
     ])
     assert ret.success
-    expected_path = Path(target_dir) / "ghz_mapped_ibm_falcon_27_opt1_5.qasm"
+    expected_path = Path(target_dir) / "ghz_mapped_ibm_heron_156_opt1_5.qasm"
     assert str(expected_path) in ret.stdout.strip().splitlines()[-1]
     assert expected_path.is_file()

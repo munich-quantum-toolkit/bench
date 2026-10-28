@@ -42,7 +42,7 @@ def _module_from_device_name(device_name: str) -> str:
     """Return the module filename that should contain device_name.
 
     The rule is the same as for gatesets: take everything before the first
-    underscore (``ibm_falcon_27`` → ``ibm``).  If no underscore is present, the
+    underscore (``ibm_heron_156`` → ``ibm``).  If no underscore is present, the
     whole name is assumed to be the module.
     """
     return device_name.split("_", 1)[0]

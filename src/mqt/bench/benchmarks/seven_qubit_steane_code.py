@@ -67,7 +67,7 @@ def _get_seven_qubit_steane_code_syndrome_extraction_circuit() -> QuantumCircuit
 
     Bit-flip syndrome extraction:
         Syndrome bits measure the parity of specific qubit subsets corresponding to
-        the X-stabilizer generators.
+        the Z-stabilizer generators.
 
     Phase-flip syndrome extraction:
         Uses Hadamard gates to convert from Z to X basis, and control/target swapped
@@ -214,10 +214,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
           + \|1110000> + \|0100101> + \|1000011> + \|0010110>) / sqrt(8)
 
     Syndrome Extraction:
-        - Bit-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
+        - Bit-flip syndrome: 3 ancilla qubits measure Z-type stabilizers to detect
           which qubit (if any) experienced a bit flip. The syndrome value (1-7)
           directly identifies the affected qubit.
-        - Phase-flip syndrome: 3 ancilla qubits measure Z-type stabilizers to detect
+        - Phase-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
           which qubit (if any) experienced a phase flip. The syndrome value (1-7)
           directly identifies the affected qubit.
 
@@ -238,13 +238,13 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
             - 1 logical qubit measurement bit (m)
 
     Arguments:
-        num_qubits: number of qubits of the returned quantum circuit (must be divisible by 13)
+        num_qubits: number of qubits of the returned quantum circuit (must be a positive multiple of 13)
 
     Returns:
         QuantumCircuit: a quantum circuit implementing the 7 Qubit Steane Code
     """
-    if num_qubits % 13:
-        msg = "num_qubits must be divisible by 13."
+    if num_qubits < 13 or num_qubits % 13:
+        msg = "num_qubits must be a positive multiple of 13."
         raise ValueError(msg)
 
     num_logical_qubits = num_qubits // 13
