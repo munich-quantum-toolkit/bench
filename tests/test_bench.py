@@ -24,7 +24,17 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, WhileLoopOp, ControlFlowOp, ControlledGate
+from qiskit.circuit import (
+    CircuitInstruction,
+    ClassicalRegister,
+    Clbit,
+    ControlFlowOp,
+    ControlledGate,
+    ForLoopOp,
+    IfElseOp,
+    Parameter,
+    WhileLoopOp,
+)
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import (
     CXGate,
