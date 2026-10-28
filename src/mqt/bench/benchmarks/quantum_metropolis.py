@@ -35,13 +35,14 @@ def _phase_estimation(
     """
     # Qiskit's phase estimation reads the phase phi of U = e^(2 pi i phi). With U = e^(+i (H + shift) t),
     # phi = E t / (2 pi), so the result grows with the energy E.
-    evolution = QuantumCircuit(num_spins, name="U_H")
+    # Synthesize the Trotter product into gates first. The inverse of a circuit reverses its gate order exactly.
+    # The inverse of an unsynthesized PauliEvolutionGate negates the time but keeps the term order, so it does not
+    # undo the Trotter product when the terms do not commute (three or more spins).
     hamiltonian = _heisenberg_hamiltonian(num_spins)
-    evolution.append(
-        PauliEvolutionGate(hamiltonian, time=-time, synthesis=LieTrotter(reps=num_trotter_steps)), range(num_spins)
-    )
+    evolution = LieTrotter(reps=num_trotter_steps).synthesize(PauliEvolutionGate(hamiltonian, time=-time))
+    evolution.name = "U_H"
     # Adding the shift to H multiplies U by a phase. Phase estimation controls U, so this phase is measured.
-    evolution.global_phase = shift * time
+    evolution.global_phase += shift * time
 
     # Qiskit's phase estimation writes the most significant bit to the first pointer qubit. Reverse the pointer
     # qubits so that pointer qubit j holds bit j.
@@ -85,7 +86,6 @@ def create_circuit(
     beta: float = 1.0,
     num_steps: int = 1,
     num_trotter_steps: int = 1,
-    max_reject_iterations: int | None = None,
 ) -> QuantumCircuit:
     r"""Returns a dynamic quantum circuit implementing Quantum Metropolis Sampling.
 
@@ -128,9 +128,6 @@ def create_circuit(
         num_steps: Number of Metropolis steps. Must be at least 1.
         num_trotter_steps: Number of Lie-Trotter steps for the shortest time evolution in the phase estimation.
             The evolution is exact for two spins. For more spins, the error decreases as ``1 / num_trotter_steps``.
-        max_reject_iterations: If ``None``, a ``while_loop`` repeats the rejection until it succeeds.
-            Otherwise, the circuit contains at most this many conditional ``Q`` and ``P`` rounds, the cutoff
-            :math:`n^*` of Sec. 3.2.
 
     Returns:
         The constructed Quantum Metropolis Sampling circuit.
@@ -150,9 +147,6 @@ def create_circuit(
         raise ValueError(msg)
     if num_trotter_steps < 1:
         msg = "num_trotter_steps must be at least 1."
-        raise ValueError(msg)
-    if max_reject_iterations is not None and max_reject_iterations < 1:
-        msg = "max_reject_iterations must be at least 1 or None."
         raise ValueError(msg)
 
     r = num_evaluation_qubits
@@ -250,15 +244,9 @@ def create_circuit(
         with else_:
             apply_u_inverse()
             measure_p()
-            if max_reject_iterations is None:
-                with qc.while_loop((c_p[0], 0)):
-                    measure_q()
-                    measure_p()
-            else:
-                for _ in range(max_reject_iterations):
-                    with qc.if_test((c_p[0], 0)):
-                        measure_q()
-                        measure_p()
+            with qc.while_loop((c_p[0], 0)):
+                measure_q()
+                measure_p()
 
         # Step 4: reset the ancilla registers for the next step.
         qc.reset([*e_old, *e_new, *accept])
