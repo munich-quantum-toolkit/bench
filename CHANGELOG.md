@@ -14,6 +14,8 @@ that minor releases may include breaking changes.
 
 ### Added
 
++ ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
++  rejection loop ([#1053]) ([**@algovista-collab**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
   generation settings in circuit metadata and export headers ([#1115])
   ([**@simon1hofmann**])
@@ -297,6 +299,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1053]: https://github.com/munich-quantum-toolkit/bench/pull/1053
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
 [#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123

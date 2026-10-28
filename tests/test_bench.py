@@ -24,13 +24,25 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, WhileLoopOp
 from qiskit.circuit.classical import expr
-from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
+from qiskit.circuit.library import (
+    CXGate,
+    GraphStateGate,
+    HGate,
+    QFTGate,
+    RXGate,
+    RZGate,
+    StatePreparation,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
+)
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.quantum_info import Operator, Statevector
+from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -102,6 +114,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "teleportation": 3,
     "simon": 4,
     "bell": 4,
+    "quantum_metropolis": 5,
 }
 
 
@@ -621,11 +634,12 @@ def test_teleportation_state_preparation_rejects_classical_bits() -> None:
         create_circuit("teleportation", 3, state_preparation=prep)
 
 
-def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
-    """Sample a circuit with bit, register, and parity conditions.
+def _simulate_control_flow(qc: QuantumCircuit, *, seed: int) -> dict[Clbit, int]:
+    """Sample one shot of a circuit with bit, register, and parity conditions.
 
     Qiskit's statevector sampler does not support control flow. Execute these
     small circuits instruction by instruction to test their classical feedback.
+    The simulation supports ``if_else`` with both branches, ``while_loop``, and ``reset``.
     """
     rng = np.random.default_rng(seed)
     bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
@@ -649,6 +663,12 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
         assert isinstance(item, Clbit)
         return clbits[bit_index[item]]
 
+    def passed(condition: tuple[Clbit | ClassicalRegister, int] | expr.Expr) -> bool:
+        return value(condition[0]) == condition[1] if isinstance(condition, tuple) else bool(value(condition))
+
+    def run_inner(block: QuantumCircuit, qubits: list[int], state: Statevector) -> Statevector:
+        return run_block(block.data, dict(zip(block.qubits, qubits, strict=True)), state)
+
     def run_block(instructions: QuantumCircuitData, qubit_map: dict, state: Statevector) -> Statevector:
         for instruction in instructions:
             op = instruction.operation
@@ -656,20 +676,34 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
             if op.name == "measure":
                 outcome, state = state.measure(qubits)
                 clbits[bit_index[instruction.clbits[0]]] = int(outcome)
+            elif op.name == "reset":
+                state = state.reset(qubits)
             elif isinstance(op, IfElseOp):
-                condition = op.condition
-                passed = value(condition[0]) == condition[1] if isinstance(condition, tuple) else value(condition)
-                if passed:
-                    block = op.blocks[0]
-                    inner_map = dict(zip(block.qubits, qubits, strict=True))
-                    state = run_block(block.data, inner_map, state)
+                if passed(op.condition):
+                    state = run_inner(op.blocks[0], qubits, state)
+                elif len(op.blocks) > 1:
+                    state = run_inner(op.blocks[1], qubits, state)
+            elif isinstance(op, WhileLoopOp):
+                while passed(op.condition):
+                    state = run_inner(op.blocks[0], qubits, state)
             else:
                 state = state.evolve(op, qubits)
         return state
 
-    state = run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
-    final_bits = [clbits[bit_index[bit]] for bit in qc.cregs[-1]]
-    return "".join(str(bit) for bit in reversed(final_bits))
+    run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
+    return {bit: clbits[i] for bit, i in bit_index.items()}
+
+
+def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
+    """Sample one shot and return the bits of the last classical register, most significant bit first."""
+    clbits = _simulate_control_flow(qc, seed=seed)
+    return "".join(str(clbits[bit]) for bit in reversed(qc.cregs[-1]))
+
+
+def _sample_registers(qc: QuantumCircuit, *, seed: int) -> dict[str, int]:
+    """Sample one shot and return the integer value of every classical register by name."""
+    clbits = _simulate_control_flow(qc, seed=seed)
+    return {reg.name: sum(clbits[bit] << i for i, bit in enumerate(reg)) for reg in qc.cregs}
 
 
 @pytest.mark.parametrize("num_qubits", [3, 6, 9])
@@ -757,6 +791,134 @@ def test_mlqae_invalid_parameters() -> None:
 
     with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
         create_circuit("mlqae", 3, b_max=float("nan"))
+
+
+def _metropolis_shots(shots: int, **options: float | None) -> list[dict[str, int]]:
+    """Sample the target-independent Quantum Metropolis circuit with two spins and return its registers."""
+    num_qubits = 3 + 2 * cast("int", options.get("num_evaluation_qubits", 1))
+    qc = get_benchmark_indep(create_circuit("quantum_metropolis", num_qubits, **options))
+    return [_sample_registers(qc, seed=seed) for seed in range(shots)]
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "max_reject_iterations"), [(1, None), (1, 2), (2, None)])
+def test_quantum_metropolis_rejection_restores_energy(
+    num_evaluation_qubits: int, max_reject_iterations: int | None
+) -> None:
+    """A rejected update returns to the initial energy of |00⟩, bin 0; an accepted update may change it."""
+    shots = _metropolis_shots(
+        60, num_evaluation_qubits=num_evaluation_qubits, beta=3.0, max_reject_iterations=max_reject_iterations
+    )
+    rejected = [shot for shot in shots if shot["accepted"] == 0]
+    accepted = [shot for shot in shots if shot["accepted"] == 1]
+    assert rejected
+    assert accepted
+    assert all(shot["energy"] == 0 for shot in rejected)
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "beta"), [(1, 0.0), (1, 1.0), (2, 0.5), (3, 0.5)])
+def test_quantum_metropolis_one_step_statistics(num_evaluation_qubits: int, beta: float) -> None:
+    """One step from |00⟩ reaches the singlet with probability e^(-2 beta) / 4 (Eqs. 2 and 3).
+
+    The X updates send |00⟩ to |01⟩ or |10⟩, which overlap the singlet with weight 1/2. The Z updates keep |00⟩.
+    The singlet has energy 2 and lies in bin 2^(r - 1) for r evaluation qubits.
+    """
+    shots = _metropolis_shots(400, num_evaluation_qubits=num_evaluation_qubits, beta=beta)
+    singlet_bin = 2 ** (num_evaluation_qubits - 1)
+    assert all(shot["energy"] in {0, singlet_bin} for shot in shots)
+    if beta == 0:
+        assert all(shot["accepted"] == 1 for shot in shots)
+    singlet_rate = sum(shot["energy"] == singlet_bin for shot in shots) / len(shots)
+    assert singlet_rate == pytest.approx(np.exp(-2 * beta) / 4, abs=0.06)
+    update_counts = [sum(shot["update"] == value for shot in shots) for value in range(4)]
+    assert min(update_counts) > 60
+
+
+@pytest.mark.parametrize(("num_steps", "max_reject_iterations"), [(1, None), (3, None), (2, 4)])
+def test_quantum_metropolis_circuit_structure(num_steps: int, max_reject_iterations: int | None) -> None:
+    """Every step has one rejection branch with a while loop or a bounded number of conditional rounds."""
+    qc = create_circuit(
+        "quantum_metropolis",
+        9,
+        num_evaluation_qubits=2,
+        num_steps=num_steps,
+        max_reject_iterations=max_reject_iterations,
+    )
+    assert qc.num_qubits == 9
+    assert [(reg.name, len(reg)) for reg in qc.qregs] == [
+        ("system", 4),
+        ("energy_register", 2),
+        ("pointer", 2),
+        ("accept", 1),
+    ]
+    assert [(reg.name, len(reg)) for reg in qc.cregs] == [
+        ("update", 2),
+        ("energy", 2),
+        ("accepted", 1),
+        ("p_outcome", 1),
+    ]
+    steps = [
+        inst.operation for inst in qc.data if isinstance(inst.operation, IfElseOp) and len(inst.operation.blocks) == 2
+    ]
+    assert len(steps) == num_steps
+    for step in steps:
+        reject = step.blocks[1]
+        loops = [inst for inst in reject.data if isinstance(inst.operation, WhileLoopOp)]
+        p_bit = qc.cregs[[reg.name for reg in qc.cregs].index("p_outcome")][0]
+        rounds = [
+            inst
+            for inst in reject.data
+            if isinstance(inst.operation, IfElseOp) and inst.operation.condition == (p_bit, 0)
+        ]
+        if max_reject_iterations is None:
+            assert len(loops) == 1
+        else:
+            assert not loops
+            assert len(rounds) == max_reject_iterations
+
+
+def test_quantum_metropolis_reads_energy_bins() -> None:
+    """Energies of three spins are read as little-endian bins and never increase at a very low temperature.
+
+    The shifted chain of Eq. 79 has the energies 0, 1, and 3. With three evaluation qubits, the bin width is 1.
+    The circuit starts in an eigenstate with energy 1. Updates to higher energy are rejected, so every shot ends in
+    bin 0 or bin 1.
+    """
+    terms = [(pauli * 2, [i, i + 1], -0.5) for i in range(2) for pauli in "XYZ"]
+    hamiltonian = SparsePauliOp.from_sparse_list(terms, num_qubits=3).to_matrix() + np.eye(8)
+    energies, states = np.linalg.eigh(hamiltonian)
+    state = states[:, int(np.argmin(np.abs(energies - 1)))]
+
+    benchmark = create_circuit("quantum_metropolis", 10, num_evaluation_qubits=3, beta=1e6, num_trotter_steps=8)
+    qc = benchmark.copy_empty_like()
+    qc.append(StatePreparation(Statevector(state)), benchmark.qubits[:3])
+    qc.compose(benchmark, inplace=True)
+    qc = get_benchmark_indep(qc)
+    shots = [_sample_registers(qc, seed=seed) for seed in range(6)]
+    assert all(shot["energy"] in {0, 1} for shot in shots)
+    assert any(shot["energy"] == 1 for shot in shots)
+
+
+def test_quantum_metropolis_invalid_parameters() -> None:
+    """Invalid sizes and options raise errors."""
+    with pytest.raises(ValueError, match=r"num_evaluation_qubits must be at least 1."):
+        create_circuit("quantum_metropolis", 5, num_evaluation_qubits=0)
+    with pytest.raises(ValueError, match=r"num_qubits must be at least 2 \* num_evaluation_qubits \+ 3."):
+        create_circuit("quantum_metropolis", 6, num_evaluation_qubits=2)
+    for beta in (-1.0, float("inf"), float("nan")):
+        with pytest.raises(ValueError, match=r"beta must be non-negative and finite."):
+            create_circuit("quantum_metropolis", 5, beta=beta)
+    with pytest.raises(ValueError, match=r"num_steps must be at least 1."):
+        create_circuit("quantum_metropolis", 5, num_steps=0)
+    with pytest.raises(ValueError, match=r"num_trotter_steps must be at least 1."):
+        create_circuit("quantum_metropolis", 5, num_trotter_steps=0)
+    with pytest.raises(ValueError, match=r"max_reject_iterations must be at least 1 or None."):
+        create_circuit("quantum_metropolis", 5, max_reject_iterations=0)
+
+
+def test_quantum_metropolis_large_beta() -> None:
+    """A very low temperature builds a circuit; energy decreases still have acceptance probability one."""
+    qc = create_circuit("quantum_metropolis", 5, beta=1e6)
+    assert qc.num_qubits == 5
 
 
 def test_teleportation_preserves_phase() -> None:
