@@ -56,7 +56,12 @@ print(get_available_device_names())
 
 (required for "mapped" level)
 
-- `opt_level`: Optimization level for `"qiskit"` (`0`-`3`).
+- `compiler`: `"qiskit"` (default) or `"mqt"`. The algorithm level does not
+  compile.
+- `opt_level`: Optimization level for `"qiskit"` (`0`-`3`, default `2`). For
+  `"mqt"`, leave this at `2`; Core uses its own default pipeline.
+- `compiler_options`: Core `CompilationOptions` for `compiler="mqt"` at a
+  compilation level. Defaults to seed `10` and four mapping trials.
 - `random_parameters`: Assign random parameters to the circuit's parameters if
   they exist.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
@@ -64,6 +69,81 @@ print(get_available_device_names())
   the mirror. Circuits that Qiskit cannot invert, for example those with
   mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
+
+## MQT Core compiler
+
+Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
+installs MQT Core 4.1.1 and Qiskit 2.5.x. Core wheels include the compiler
+runtime. Qiskit remains the default compiler, and both compilers return
+`QuantumCircuit`.
+
+```python
+from mqt.bench import BenchmarkLevel, get_benchmark
+from mqt.bench.targets import get_device
+from mqt.core.mlir import CompilationOptions, MappingOptions
+
+circuit = get_benchmark(
+    "ghz",
+    BenchmarkLevel.MAPPED,
+    3,
+    target=get_device("iqm_crystal_5"),
+    compiler="mqt",
+    compiler_options=CompilationOptions(seed=17, mapping=MappingOptions(trials=8)),
+)
+```
+
+The level-specific functions also accept `compiler="mqt"`:
+
+- `INDEP` decomposes multi-controlled operations and runs Core's default
+  target-independent optimization pipeline.
+- `NATIVEGATES` uses the target's gate set with all-to-all connectivity and the
+  input circuit's width. Operations wider than the circuit are omitted; physical
+  gate placements are ignored. The result retains layout metadata needed to
+  interpret its logical wire order; use `Operator.from_circuit` for its unitary.
+- `MAPPED` uses the device's width, connectivity, and ordered gate placements.
+  The result uses physical wires without layout metadata; measurements retain
+  their classical destinations. Recompilation treats the current wires as
+  inputs.
+
+Core supports the bundled IBM, IQM, Quantinuum, IonQ, AQT, Rigetti, and
+Clifford+T+rotations gate sets. The target must supply a synthesis basis that
+Core supports, including an entangling gate for multi-qubit compilation, even
+for already-native inputs. Unsupported target constraints raise an error. Core
+does not provide Qiskit's approximate Clifford+T synthesis or fall back to
+Qiskit transpilation. See Core's [target compilation guide] for synthesis and
+control-flow support.
+
+All MQT Bench gate parameters use radians. IonQ targets include GPI, GPI2, RZZ,
+and arbitrary virtual RZ. Virtual RZ represents a phase-frame update; a provider
+submission layer must absorb it into GPI/GPI2 gate phases when required by the
+provider. MQT Bench returns compiler-level circuits and does not submit them to
+hardware.
+
+Mirrors are formed from the compiled circuit and compiled again with Core when a
+target is supplied. The barrier between both halves prevents cancellation. Core
+uses its own fixed pipeline; `opt_level=0`, `1`, or `3` raises an error.
+
+MQT Bench sets seed `10` and four mapping trials so defaults do not depend on
+the CPU count. Python `compiler_options` replace these defaults and also apply
+to mirror recompilation. A bare `CompilationOptions()` uses Core's defaults,
+including a CPU-dependent trial count. These options require the MQT compiler at
+a compilation level. The benchmark-generation seed is separate from the
+compilation seed. Fixed options do not guarantee identical results across Core
+versions or platforms.
+
+The CLI exposes `--compiler-seed` and `--mapping-trials`. Omitted values retain
+MQT Bench's defaults:
+
+```bash
+mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
+  --level mapped --target iqm_crystal_5 --compiler-seed 17 --mapping-trials 8 --save
+```
+
+Core filenames contain `_mqt_` and omit Qiskit's optimization level. QASM
+headers and QPY metadata record the compiler version. Existing Qiskit filenames
+remain unchanged.
+
+[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/v4.1.1/docs/mlir/target_compilation.md
 
 ## Native Gate-Set Support
 

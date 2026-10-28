@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import builtins
 import datetime as dt
 import functools
 import io
@@ -18,7 +19,7 @@ import random
 import re
 from enum import StrEnum
 from importlib import metadata
-from typing import TYPE_CHECKING, NoReturn, cast
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
 import networkx as nx
 import numpy as np
@@ -1139,7 +1140,7 @@ def test_clifford_t_mirror_inverse_gates(opt_level: int, gate_name: str) -> None
 def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
     """Synthesize rotations inside structured loops without unrolling the loop."""
     qc = QuantumCircuit(1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.rx(0.3, 0)
     target = get_target_for_gateset("clifford+t", 1)
 
@@ -1682,7 +1683,7 @@ def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description:
 def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_level: int, conditional: bool) -> None:
     """Compile loop exits using Qiskit's instruction names."""
     qc = QuantumCircuit(2, 1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.x(0)
         if conditional:
             with qc.if_test((qc.clbits[0], 0)):
@@ -2051,6 +2052,52 @@ def test_version() -> None:
     """Test that the package version is accessible."""
     assert isinstance(mqt.bench.__version__, str)
     assert isinstance(mqt.bench.__version_tuple__, tuple)
+
+
+@pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
+def test_invalid_compiler(compiler: str) -> None:
+    """Reject unknown compilers before circuit generation."""
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=cast('Literal["qiskit", "mqt"]', compiler))
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=compiler)
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 3])
+def test_mqt_optimization_level(opt_level: int) -> None:
+    """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
+    with pytest.raises(ValueError, match="MQT Core uses its default optimization pipeline"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level)
+
+
+def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A base installation works and gives an installation hint when Core is selected."""
+    import sys  # ruff:ignore[import-outside-top-level]
+
+    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
+    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
+    assert get_benchmark_indep("ghz", 3)
+    with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
+        get_benchmark_indep("ghz", 3, compiler="mqt")
+
+
+def test_broken_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Preserve dependency import failures instead of reporting Core as uninstalled."""
+    import sys  # ruff:ignore[import-outside-top-level]
+
+    original_import = cast("Callable[..., object]", builtins.__import__)
+
+    def fail_core_import(name: str, *args: object, **kwargs: object) -> object:
+        if name == "mqt.core.mlir":
+            msg = "Missing native dependency"
+            raise ModuleNotFoundError(msg, name="core_native_dependency")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
+    monkeypatch.setattr(builtins, "__import__", fail_core_import)
+    with pytest.raises(ModuleNotFoundError, match="Missing native dependency") as exc:
+        get_benchmark_indep("ghz", 3, compiler="mqt")
+    assert exc.value.name == "core_native_dependency"
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))

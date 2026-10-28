@@ -50,6 +50,12 @@ email = "nils.quetschlich@tum.de"
 name = "Lukas Burgholzer"
 email = "burgholzer@me.com"
 
+[project.optional-dependencies]
+mqt = [
+  "mqt-core==4.1.1",
+  "qiskit>=2.5.2,<2.6",
+]
+
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
 "Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"

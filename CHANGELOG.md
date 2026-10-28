@@ -14,6 +14,9 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- ✨ Add optional MQT Core compilation for target-independent, native-gate, and
+  mapped circuits via `compiler="mqt"` or `--compiler mqt` ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
   generation settings in circuit metadata and export headers ([#1115])
   ([**@simon1hofmann**])
@@ -339,6 +342,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
+[#1027]: https://github.com/munich-quantum-toolkit/bench/pull/1027
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
