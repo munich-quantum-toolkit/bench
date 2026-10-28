@@ -19,7 +19,7 @@ from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 from qiskit.qasm2 import dump as dump2
 from qiskit.qasm3 import dump as dump3
@@ -41,10 +41,17 @@ class OutputFormat(StrEnum):
     QASM2 = "qasm2"
     QASM3 = "qasm3"
     QPY = "qpy"
+    QIR = "qir"
+    LLVM = "llvm"
+    QIR_BITCODE = "qir-bitcode"
 
     def extension(self) -> str:
         """Return the canonical filename extension for this format."""
-        return "qasm" if self in (OutputFormat.QASM2, OutputFormat.QASM3) else self.value
+        if self in (OutputFormat.QASM2, OutputFormat.QASM3):
+            return "qasm"
+        if self in (OutputFormat.QIR, OutputFormat.LLVM):
+            return "ll"
+        return "bc" if self is OutputFormat.QIR_BITCODE else self.value
 
 
 class MQTBenchExporterError(Exception):
@@ -56,6 +63,30 @@ def _attach_metadata(qc: QuantumCircuit, header: str) -> QuantumCircuit:
     clone = qc.copy()
     clone.metadata = (clone.metadata or {}) | {"mqt_bench": header}
     return clone
+
+
+def _write_qir(
+    qc: QuantumCircuit,
+    destination: TextIOBase | BinaryIO,
+    header: str,
+    *,
+    binary: bool,
+    profile: Literal["base", "adaptive"],
+) -> None:
+    """Lower to QIR and write LLVM text or bitcode to the stream."""
+    from ._mqt_compiler import circuit_to_qir  # ruff:ignore[import-outside-top-level]
+
+    program = circuit_to_qir(qc, profile=profile)
+    if binary:
+        data = program.to_bitcode()
+        assert not isinstance(destination, TextIOBase)
+        destination.write(data)
+    else:
+        header += f"// QIR exporter: MQT Core {metadata.version('mqt-core')}\n// QIR profile: {profile}\n\n"
+        text = "\n".join(";" + line[2:] if line.startswith("//") else line for line in header.split("\n"))
+        text += program.llvm_ir
+        assert isinstance(destination, TextIOBase)
+        destination.write(text)
 
 
 def generate_header(
@@ -114,13 +145,19 @@ def generate_header(
 
 
 def _write_file_atomically(
-    qc: QuantumCircuit, destination: Path, level: BenchmarkLevel, fmt: OutputFormat, target: Target | None
+    qc: QuantumCircuit,
+    destination: Path,
+    level: BenchmarkLevel,
+    fmt: OutputFormat,
+    target: Target | None,
+    qir_profile: Literal["base", "adaptive"],
 ) -> None:
     """Serialize beside the destination, then replace it after a successful write."""
     with TemporaryDirectory(dir=destination.parent) as directory:
         temporary = Path(directory) / destination.name
-        with temporary.open("wb") if fmt is OutputFormat.QPY else temporary.open("w", encoding="utf-8") as stream:
-            write_circuit(qc, stream, level, fmt, target)
+        binary = fmt in (OutputFormat.QPY, OutputFormat.QIR_BITCODE)
+        with temporary.open("wb") if binary else temporary.open("w", encoding="utf-8") as stream:
+            write_circuit(qc, stream, level, fmt, target, qir_profile=qir_profile)
         if destination.exists():
             temporary.chmod(destination.stat().st_mode)
         temporary.replace(destination)
@@ -133,6 +170,8 @@ def write_circuit(
     level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
+    *,
+    qir_profile: Literal["base", "adaptive"] = "base",
 ) -> None:  # pragma: no cover - typing overload only
     ...
 
@@ -144,6 +183,8 @@ def write_circuit(
     level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
+    *,
+    qir_profile: Literal["base", "adaptive"] = "base",
 ) -> None:  # pragma: no cover - typing overload only
     ...
 
@@ -154,6 +195,8 @@ def write_circuit(
     level: BenchmarkLevel,
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
+    *,
+    qir_profile: Literal["base", "adaptive"] = "base",
 ) -> None:
     """Write the given quantum circuit to disk in the specified format, preceded by an MQT Bench header.
 
@@ -163,13 +206,15 @@ def write_circuit(
         level: The level of the circuit (e.g., BenchmarkLevel.MAPPED)
         fmt: Desired output format
         target: The target circuit to be transpiled, if any.
+        qir_profile: QIR profile for QIR/LLVM exports. Requires the ``mqt`` extra
+            and bound parameters. Text uses LLVM comments; bitcode has no Bench header.
 
     Raises:
-        MQTBenchExporterError: On unsupported format or I/O errors.
+        MQTBenchExporterError: On missing dependencies, unsupported export, or I/O errors.
     """
     if isinstance(destination, Path):
         try:
-            _write_file_atomically(qc, destination, level, fmt, target)
+            _write_file_atomically(qc, destination, level, fmt, target, qir_profile)
         except Exception as exc:
             msg = f"Failed to write {fmt.value.upper()} file to {destination}. (Original error: {exc})"
             raise MQTBenchExporterError(msg) from exc
@@ -183,6 +228,18 @@ def write_circuit(
     compiler_info = (qc.metadata or {}).get("mqt_bench_compiler")
     if compiler_info is not None:
         header += f"// Compiler: {compiler_info['name']} {compiler_info['version']}\n\n"
+
+    if fmt in (OutputFormat.QIR, OutputFormat.LLVM, OutputFormat.QIR_BITCODE):
+        binary = fmt is OutputFormat.QIR_BITCODE
+        if isinstance(destination, TextIOBase) == binary:
+            msg = f"{fmt.value.upper()} output requires a *{'binary' if binary else 'text'}* stream."
+            raise MQTBenchExporterError(msg)
+        try:
+            _write_qir(qc, destination, header, binary=binary, profile=qir_profile)
+        except Exception as exc:
+            msg = f"Failed to write {fmt.value.upper()} output ({qir_profile} profile). (Original error: {exc})"
+            raise MQTBenchExporterError(msg) from exc
+        return
 
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
         if not isinstance(destination, TextIOBase):
@@ -218,6 +275,8 @@ def save_circuit(
     output_format: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
     target_directory: str = "",
+    *,
+    qir_profile: Literal["base", "adaptive"] = "base",
 ) -> bool:
     """Public API to save a quantum circuit in various formats with MQT Bench header.
 
@@ -228,6 +287,7 @@ def save_circuit(
         output_format: One of the supported format values, as defined in `OutputFormat`
         target: Target circuit to be transpiled, if any
         target_directory: Directory to place the output file
+        qir_profile: QIR profile for QIR/LLVM exports (default: ``base``).
 
     Returns:
         True on success, False otherwise.
@@ -235,7 +295,7 @@ def save_circuit(
     path = Path(target_directory) / f"{filename}.{output_format.extension()}"
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        write_circuit(qc, path, level, output_format, target)
+        write_circuit(qc, path, level, output_format, target, qir_profile=qir_profile)
     except (MQTBenchExporterError, OSError) as e:
         print(e, file=sys.stderr)
         return False

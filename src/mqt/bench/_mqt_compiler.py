@@ -25,13 +25,15 @@ try:
         PayloadSpecification,
         ProgramCapability,
         QCProgram,
+        QIRProfile,
+        QIRProgram,
         TargetEnvironment,
         compile_program,
     )
 except ModuleNotFoundError as exc:
     if exc.name not in {"mqt.core", "mqt.core.mlir"}:
         raise
-    msg = 'MQT compilation requires MQT Core. Install it with: pip install "mqt-bench[mqt]"'
+    msg = 'MQT compilation and QIR export require MQT Core. Install it with: pip install "mqt-bench[mqt]"'
     raise ImportError(msg) from exc
 
 if TYPE_CHECKING:
@@ -117,6 +119,18 @@ def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
         if isinstance(operation, ControlFlowOp):
             for block in operation.blocks:
                 _validate_target(block, target, mapped=mapped, sites=list(qubits))
+
+
+def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProgram:
+    """Lower a circuit to QIR without running target compilation or optimization."""
+    if profile not in {"base", "adaptive"}:
+        msg = f"Unknown QIR profile '{profile}'. Choose 'base' or 'adaptive'."
+        raise ValueError(msg)
+    if circuit.parameters:
+        msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
+        raise ValueError(msg)
+    program = QCProgram.from_qiskit(_physical_circuit(circuit))
+    return program.to_qir(QIRProfile.BASE if profile == "base" else QIRProfile.ADAPTIVE)
 
 
 def compile_circuit(
