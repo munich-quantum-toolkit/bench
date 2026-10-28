@@ -17,7 +17,7 @@ that minor releases may include breaking changes.
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
   generation settings in circuit metadata and export headers ([#1115])
   ([**@simon1hofmann**])
-- ✨ Add Simon's algorithm benchmark ([#1079]) ([**gautham0104-neitizen**])
+- ✨ Add Simon's algorithm benchmark ([#1079]) ([**@gautham0104-neitizen**])
 - ✨ Add the full 108-qubit Rigetti Cepheus architecture and document target
   models ([#1095]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add fractional IBM Heron targets with bounded RZZ angles ([#1087])
@@ -408,6 +408,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@AthulKampiyil**]: https://github.com/AthulKampiyil
 [**@jyothikacodes**]: https://github.com/jyothikacodes
 [**@NiranjanRSoorej06**]: https://github.com/NiranjanRSoorej06
+[**@gautham0104-neitizen**]: https://github.com/gautham0104-neitizen
 
 <!-- General links -->
 
