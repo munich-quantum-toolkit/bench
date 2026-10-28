@@ -55,4 +55,3 @@ class ConfigurationOptions(TypedDict, total=False):
     beta: float
     num_steps: int
     num_trotter_steps: int
-    max_reject_iterations: int | None
