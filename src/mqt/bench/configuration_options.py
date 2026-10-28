@@ -51,3 +51,8 @@ class ConfigurationOptions(TypedDict, total=False):
     entanglement_blocks: str | Gate | Iterable[str | Gate]
     state_preparation: QuantumCircuit | None
     coin_state_preparation: QuantumCircuit | None
+    num_evaluation_qubits: int
+    beta: float
+    num_steps: int
+    num_trotter_steps: int
+    max_reject_iterations: int | None
