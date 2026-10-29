@@ -1,0 +1,111 @@
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
+"""Transpiler that encodes circuits with Steane's 7-qubit code."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
+
+from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    HGate,
+    IGate,
+    SdgGate,
+    SGate,
+    XGate,
+    YGate,
+    ZGate,
+)
+
+from mqt.bench.components.steane_circuit_components import (
+    apply_seven_qubit_steane_code_correction,
+    get_seven_qubit_steane_code_decoding_circuit,
+    get_seven_qubit_steane_code_encoding_circuit,
+    get_seven_qubit_steane_code_syndrome_extraction_circuit,
+)
+
+from .ec_transpiler import ECTranspiler, LogicalQubit
+
+if TYPE_CHECKING:
+    from qiskit import QuantumCircuit, QuantumRegister
+    from qiskit.circuit import Gate
+
+
+class SteaneTranspiler(ECTranspiler):
+    """Encodes a QuantumCircuit with Steane's 7-qubit code.
+
+    T and Tdg become placeholders. All other gates in :attr:`TARGET_GATE_SET` are transversal.
+    """
+
+    CODE_NAME = "steane"
+    BLOCK_SIZE = 7
+    BIT_FLIP_SYNDROME_SIZE = 3
+    PHASE_FLIP_SYNDROME_SIZE = 3
+    TARGET_GATE_SET: ClassVar[list[str]] = [
+        "id",
+        "x",
+        "y",
+        "z",
+        "h",
+        "s",
+        "sdg",
+        "cx",
+        "cz",
+        "t",
+        "tdg",
+    ]
+    # Logical S = physical Sdg on every qubit, logical Sdg = physical S on every qubit.
+    TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {
+        "id": IGate(),
+        "x": XGate(),
+        "y": YGate(),
+        "z": ZGate(),
+        "h": HGate(),
+        "s": SdgGate(),
+        "sdg": SGate(),
+        "cx": CXGate(),
+        "cz": CZGate(),
+    }
+
+    def _apply_encoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
+        """Apply the encoding of Steane's 7-qubit code to a physical data register."""
+        qc.compose(
+            get_seven_qubit_steane_code_encoding_circuit(),
+            qubits=physical_data_register[:],
+            inplace=True,
+        )
+
+    def _apply_decoding(self, qc: QuantumCircuit, physical_data_register: QuantumRegister) -> None:
+        """Apply the decoding of Steane's 7-qubit code to a physical data register."""
+        qc.compose(
+            get_seven_qubit_steane_code_decoding_circuit(),
+            qubits=physical_data_register[:],
+            inplace=True,
+        )
+
+    def _run_syndrome_cycle(self, qubit: LogicalQubit) -> None:
+        """Reset the syndrome ancillas, extract the syndromes, and apply the corrections."""
+        self.transpiled_qc.reset(qubit.bit_flip_syndrome)
+        self.transpiled_qc.reset(qubit.phase_flip_syndrome)
+
+        self.transpiled_qc.compose(
+            get_seven_qubit_steane_code_syndrome_extraction_circuit(),
+            qubits=qubit.data[:] + qubit.bit_flip_syndrome[:] + qubit.phase_flip_syndrome[:],
+            inplace=True,
+        )
+
+        apply_seven_qubit_steane_code_correction(
+            self.transpiled_qc,
+            qubit.data,
+            qubit.bit_flip_syndrome,
+            qubit.phase_flip_syndrome,
+            qubit.bit_flip_measure,
+            qubit.phase_flip_measure,
+        )

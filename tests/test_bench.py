@@ -24,13 +24,13 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import Barrier, CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.quantum_info import Operator, Statevector
+from qiskit.quantum_info import Operator, Statevector, process_fidelity
 from qiskit.transpiler import (
     InstructionProperties,
     Layout,
@@ -39,6 +39,10 @@ from qiskit.transpiler import (
 )
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
+
+from mqt.bench.error_correction import get_available_encoding_names, get_transpiler
+from mqt.bench.error_correction.shor_transpiler import ShorTranspiler
+from mqt.bench.error_correction.steane_transpiler import SteaneTranspiler
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections import OrderedDict
@@ -876,6 +880,214 @@ def test_error_correction(benchmark: str, width: int, error: Gate, qubit: int) -
     assert len({reg.name for reg in multiple.cregs}) == len(multiple.cregs)
 
 
+# Register sizes of one encoded logical qubit: data qubits, bit-flip syndrome ancillas, and
+# phase-flip syndrome ancillas. Each syndrome ancilla has one classical bit.
+EC_REGISTER_SIZES: dict[str, tuple[int, int, int]] = {"shor": (9, 6, 2), "steane": (7, 3, 3)}
+
+# Gate counts of the encoded circuits. The approximation of rotations differs between Qiskit
+# versions, so the QFT entries list only the gates that the encoded circuit must contain.
+EC_GATE_COUNTS: dict[tuple[str, str], dict[str, int] | set[str]] = {
+    ("shor", "ghz"): {
+        "cx": 186,
+        "if_else": 60,
+        "h": 38,
+        "measure": 43,
+        "reset": 40,
+        "shor_ideal_logical_h": 1,
+        "barrier": 1,
+    },
+    ("shor", "bv"): {
+        "cx": 265,
+        "if_else": 108,
+        "measure": 74,
+        "reset": 72,
+        "h": 51,
+        "shor_ideal_logical_h": 6,
+        "z": 3,
+    },
+    ("shor", "graphstate"): {
+        "cx": 435,
+        "if_else": 180,
+        "h": 78,
+        "measure": 123,
+        "reset": 120,
+        "shor_ideal_logical_h": 9,
+        "barrier": 1,
+    },
+    ("shor", "qft"): {
+        "cx",
+        "if_else",
+        "measure",
+        "reset",
+        "h",
+        "shor_ideal_logical_t",
+        "shor_ideal_logical_h",
+        "shor_ideal_logical_tdg",
+        "barrier",
+    },
+    ("shor", "z"): {"cx": 32, "if_else": 12, "measure": 8, "reset": 8, "h": 7, "x": 3},
+    ("shor", "y"): {"cx": 32, "if_else": 12, "h": 7, "measure": 8, "reset": 8, "x": 3, "z": 3},
+    ("steane", "ghz"): {"cx": 200, "if_else": 70, "h": 55, "measure": 33, "reset": 30, "barrier": 1},
+    ("steane", "bv"): {"cx": 223, "if_else": 98, "h": 85, "measure": 44, "reset": 42, "x": 7, "cz": 7},
+    ("steane", "graphstate"): {
+        "cx": 282,
+        "if_else": 126,
+        "h": 93,
+        "measure": 57,
+        "reset": 54,
+        "cz": 21,
+        "barrier": 1,
+    },
+    ("steane", "qft"): {
+        "cx",
+        "if_else",
+        "h",
+        "measure",
+        "reset",
+        "steane_ideal_logical_t",
+        "steane_ideal_logical_tdg",
+        "barrier",
+    },
+    ("steane", "z"): {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "z": 7},
+    ("steane", "y"): {"cx": 35, "if_else": 14, "h": 9, "measure": 6, "reset": 6, "y": 7},
+}
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+@pytest.mark.parametrize("circuit", ["ghz", "bv", "graphstate", "qft", "z", "y"])
+def test_error_correction_transpiler_circuit_structure(code: str, circuit: str) -> None:
+    """Check the registers and gate counts of an encoded circuit."""
+    logical = QuantumCircuit(1)
+    if circuit == "z":
+        logical.z(0)
+    elif circuit == "y":
+        logical.y(0)
+    else:
+        logical = get_benchmark_alg(circuit, 3)
+
+    transpiler = get_transpiler(code)(logical)
+    encoded = transpiler.transpile()
+    assert transpiler.transpile() == encoded, "A repeated transpile call should return the same circuit"
+
+    data, bit_flip, phase_flip = EC_REGISTER_SIZES[code]
+    assert sorted(reg.size for reg in encoded.qregs) == sorted([data, bit_flip, phase_flip] * logical.num_qubits), (
+        "Each logical qubit should have a data register and two syndrome ancilla registers"
+    )
+    assert sorted(reg.size for reg in encoded.cregs) == sorted(
+        [bit_flip, phase_flip] * logical.num_qubits + [1] * logical.num_clbits
+    ), "Each logical qubit should have two syndrome measurement registers, plus one register per classical bit"
+
+    expected_gates = EC_GATE_COUNTS[code, circuit]
+    if isinstance(expected_gates, set):
+        assert expected_gates <= encoded.count_ops().keys(), "Encoded circuit should contain all expected gates"
+    else:
+        assert encoded.count_ops() == expected_gates, "Encoded circuit should have the expected gate counts"
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+@pytest.mark.parametrize("gate", [RZGate(0.3), RXGate(1.1)])
+def test_error_correction_approximates_rotations(code: str, gate: Gate) -> None:
+    """Check that the encoding replaces a rotation with a short Clifford+T approximation.
+
+    The encoding adds a syndrome cycle after every logical gate, so each rotation must stay a short
+    gate sequence on every supported Qiskit version. The approximation must keep a process fidelity
+    of at least the approximation degree of 0.95.
+    """
+    qc = QuantumCircuit(1)
+    qc.append(gate, [0])
+    transpiler = get_transpiler(code)(qc)
+    transpiler.transpile()
+
+    logical_qc = transpiler.original_qc
+    assert logical_qc.size() <= 50, "Rotation approximation should have at most 50 gates"
+    assert process_fidelity(Operator(logical_qc), Operator(qc)) >= 0.95, (
+        "Rotation approximation should have a process fidelity of at least 0.95"
+    )
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_transpiler_barrier_and_measure(code: str) -> None:
+    """Check the encoding of barriers and measurements.
+
+    A barrier without qubits stays in the encoded circuit. Measurements into the same classical bit
+    share one measurement register.
+    """
+    qc = QuantumCircuit(2, 1)
+    qc.append(Barrier(0), [])
+    qc.measure(0, 0)
+    qc.measure(1, 0)
+    encoded = get_transpiler(code)(qc).transpile()
+
+    assert "barrier" in encoded.count_ops(), "A barrier without qubits should stay in the encoded circuit"
+    assert [reg.name for reg in encoded.cregs if reg.name.startswith("meas_")] == ["meas_0"], (
+        "Measurements into the same classical bit should share one measurement register"
+    )
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_keeps_metadata(code: str) -> None:
+    """The transpiler and `get_benchmark_alg` keep a copy of the input circuit's metadata."""
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    qc.metadata = {"user": {"label": "input"}}
+
+    encoded = get_transpiler(code)(qc).transpile()
+    benchmark = get_benchmark_alg(qc, encoding=code)
+    assert encoded.metadata == {"user": {"label": "input"}}, "The transpiler should copy the input metadata"
+    assert benchmark.metadata["user"] == {"label": "input"}, "get_benchmark_alg should keep the input metadata"
+
+    encoded.metadata["user"]["label"] = "encoded"
+    benchmark.metadata["user"]["label"] = "encoded"
+    assert qc.metadata == {"user": {"label": "input"}}, (
+        "A change to the encoded circuit's metadata should not change the input circuit"
+    )
+
+
+@pytest.mark.parametrize("code", ["shor", "steane"])
+def test_error_correction_transpiler_rejects_unsupported_circuits(code: str) -> None:
+    """The transpiler raises an error for circuits that the encoding does not support."""
+    unsupported_gate = r"^Error-correction transpilation currently does not support arbitrary gates such as \w+\. Currently supported: .+$"
+
+    qc = QuantumCircuit(1)
+    qc.delay(0)
+    with pytest.raises(ValueError, match=unsupported_gate):
+        get_transpiler(code)(qc).transpile()
+
+    qc = QuantumCircuit(1)
+    qc.reset(0)
+    with pytest.raises(ValueError, match=unsupported_gate):
+        get_transpiler(code)(qc).transpile()
+
+    # A measurement decodes the logical qubit.
+    qc = QuantumCircuit(1, 1)
+    qc.measure(0, 0)
+    qc.x(0)
+    with pytest.raises(ValueError, match=r"accesses qubits \[0\] after decoding"):
+        get_transpiler(code)(qc).transpile()
+
+    qc = QuantumCircuit(1, 1)
+    with qc.if_test((0, 1)):
+        qc.x(0)
+    with pytest.raises(ValueError, match="does not support control-flow operations such as if_else"):
+        get_transpiler(code)(qc).transpile()
+
+
+def test_available_encodings() -> None:
+    """The available encoding names should map to their transpilers and be safe to mutate."""
+    names = get_available_encoding_names()
+    assert set(names) == {"shor", "steane"}, "The available encodings should be 'shor' and 'steane'"
+
+    names.append("dummy_encoding")
+    assert "dummy_encoding" not in get_available_encoding_names(), (
+        "A change to the returned list should not change the available encodings"
+    )
+
+    assert get_transpiler("shor") is ShorTranspiler, "'shor' should map to ShorTranspiler"
+    assert get_transpiler("steane") is SteaneTranspiler, "'steane' should map to SteaneTranspiler"
+    with pytest.raises(ValueError, match="not a supported error-correcting code"):
+        get_transpiler("dummy_encoding")
+
+
 @pytest.mark.parametrize(
     (
         "benchmark_name",
@@ -961,6 +1173,47 @@ def test_get_benchmark_alg_with_quantum_circuit() -> None:
     assert not qc.metadata
 
 
+@pytest.mark.parametrize("encoding", ["shor", "steane"])
+@pytest.mark.parametrize("mirror", [False, True])
+def test_get_benchmark_encoding(encoding: str, mirror: bool) -> None:
+    """At the ALG level, `get_benchmark` encodes the benchmark and records the encoding.
+
+    The encoding applies to the mirror circuit if one is generated. The pytest configuration turns
+    warnings into errors, so this test also checks that `encoding` does not warn at the ALG level.
+    """
+    plain = get_benchmark("graphstate", BenchmarkLevel.ALG, 3, generate_mirror_circuit=mirror, seed=42)
+    encoded = get_benchmark(
+        "graphstate", BenchmarkLevel.ALG, 3, encoding=encoding, generate_mirror_circuit=mirror, seed=42
+    )
+
+    assert encoded == get_transpiler(encoding)(plain).transpile(), (
+        "get_benchmark should return the encoded plain or mirror benchmark"
+    )
+    generation = encoded.metadata["mqt_bench_generation"]
+    assert generation == plain.metadata["mqt_bench_generation"] | {"encoding": encoding}, (
+        "The generation record should match the plain benchmark and add the encoding"
+    )
+    assert plain.metadata["mqt_bench_generation"]["encoding"] is None, "The plain benchmark should record no encoding"
+
+
+@pytest.mark.parametrize(
+    ("level", "target"),
+    [
+        (BenchmarkLevel.INDEP, None),
+        (BenchmarkLevel.NATIVEGATES, get_device("rigetti_cepheus_108")),
+        (BenchmarkLevel.MAPPED, get_device("rigetti_cepheus_108")),
+    ],
+)
+def test_get_benchmark_encoding_ignored_for_non_alg_level(level: BenchmarkLevel, target: Target | None) -> None:
+    """Test that `encoding` is ignored (with a warning) for non-ALG levels."""
+    match = re.escape(
+        f"`encoding` is only supported for BenchmarkLevel.ALG and will be ignored for level={level.name}."
+    )
+    with pytest.warns(UserWarning, match=match):
+        qc = get_benchmark(benchmark="bv", level=level, circuit_size=3, target=target, encoding="shor")
+    assert qc.depth() > 0, "get_benchmark should still return a benchmark when it ignores `encoding`"
+
+
 def test_get_benchmark_faulty_parameters() -> None:
     """Test the get_benchmark method with faulty parameters."""
     match = re.escape(
@@ -1004,6 +1257,9 @@ def test_get_benchmark_faulty_parameters() -> None:
             get_device("rigetti_cepheus_108"),
             4,
         )
+    match = re.escape("Invalid `encoding` 'wrong_encoding'. Must be one of ")
+    with pytest.raises(ValueError, match=match):
+        get_benchmark("bv", BenchmarkLevel.ALG, 3, encoding="wrong_encoding")
     match = re.escape(
         "'wrong_gateset' is not a supported gateset. Known modules: ['aqt', 'clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
     )

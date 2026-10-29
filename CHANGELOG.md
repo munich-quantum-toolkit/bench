@@ -33,6 +33,8 @@ that minor releases may include breaking changes.
 - ✨ Add quantum teleportation benchmark ([#1045]) ([**@AsharHusain**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
+- ✨ Add `encoding` option for Steane's and Shor's codes ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ### Changed
 
@@ -345,6 +347,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#997]: https://github.com/munich-quantum-toolkit/bench/pull/997
 [#952]: https://github.com/munich-quantum-toolkit/bench/pull/952
 [#946]: https://github.com/munich-quantum-toolkit/bench/pull/946
+[#930]: https://github.com/munich-quantum-toolkit/bench/pull/930
 [#925]: https://github.com/munich-quantum-toolkit/bench/pull/925
 [#914]: https://github.com/munich-quantum-toolkit/bench/pull/914
 [#895]: https://github.com/munich-quantum-toolkit/bench/pull/895
@@ -401,6 +404,9 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@TomasVF**]: https://github.com/TomasVF
 [**@flowerthrower**]: https://github.com/flowerthrower
 [**@johanneswittmann9**]: https://github.com/johanneswittmann9
+[**@Felix-Gundlach**]: https://github.com/Felix-Gundlach
+[**@emilkanic0909**]: https://github.com/emilkanic0909
+[**@SalehAlsherif**]: https://github.com/SalehAlsherif
 [**@cnYui**]: https://github.com/cnYui
 [**@algovista-collab**]: https://github.com/algovista-collab
 [**@Anshu666666**]: https://github.com/Anshu666666
