@@ -125,7 +125,7 @@ def create_circuit(
     Arguments:
         num_qubits: Total number of qubits, that is, system spins + ``2 * num_evaluation_qubits`` + 1.
             The chain needs at least two spins.
-        num_evaluation_qubits: Bits of precision ``r`` of the energy register and the pointer. Must be at least 1.
+        num_evaluation_qubits: Bits of precision :math:`r` of the energy register and the pointer. Must be at least 1.
             The Metropolis gate :math:`W` uses :math:`4^r` multi-controlled rotations.
         beta: Inverse temperature. Must be non-negative and finite.
         num_steps: Number of Metropolis steps. Must be at least 1.
