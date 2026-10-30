@@ -24,7 +24,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter, WhileLoopOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
@@ -102,6 +102,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "teleportation": 3,
     "simon": 4,
     "bell": 4,
+    "quantum_metropolis": 5,
 }
 
 
@@ -757,6 +758,145 @@ def test_mlqae_invalid_parameters() -> None:
 
     with pytest.raises(ValueError, match=r"b_max must be positive and finite."):
         create_circuit("mlqae", 3, b_max=float("nan"))
+
+
+def _metropolis_one_step(num_evaluation_qubits: int, beta: float) -> dict[str, list[float]]:
+    """Return the exact probability of each value of each classical register after one step for two spins.
+
+    Qiskit's statevector sampler does not support control flow. This simulation follows every measurement and reset
+    outcome as a separate branch with an unnormalized state, so the squared norm of a branch is its probability. For
+    two spins, every rejection returns at the first measurement P, so the loop body never runs. The key
+    ``energy_after_reject`` holds the energy probabilities of rejected moves.
+    """
+    r = num_evaluation_qubits
+    qc = get_benchmark_indep(create_circuit("quantum_metropolis", 2 * r + 3, num_evaluation_qubits=r, beta=beta))
+    bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
+    indices = np.arange(2**qc.num_qubits)
+    start = np.zeros(2**qc.num_qubits, dtype=complex)
+    start[0] = 1
+
+    def passed(condition: tuple[Clbit | ClassicalRegister, int], bits: tuple[int, ...]) -> bool:
+        target, expected = condition
+        targets = list(target) if isinstance(target, ClassicalRegister) else [target]
+        return sum(bits[bit_index[bit]] << i for i, bit in enumerate(targets)) == expected
+
+    def split(vector: np.ndarray, qubit: int) -> list[tuple[int, np.ndarray]]:
+        parts = [(value, np.where((indices >> qubit) & 1 == value, vector, 0)) for value in (0, 1)]
+        return [(value, part) for value, part in parts if np.vdot(part, part).real > 1e-14]
+
+    def run(circuit: QuantumCircuit, qubit_map: dict, branches: list) -> list:
+        for instruction in circuit.data:
+            op, qubits = instruction.operation, [qubit_map[q] for q in instruction.qubits]
+            if op.name == "measure":
+                index = bit_index[instruction.clbits[0]]
+                branches = [
+                    (part, (*bits[:index], value, *bits[index + 1 :]))
+                    for vector, bits in branches
+                    for value, part in split(vector, qubits[0])
+                ]
+            elif op.name == "reset":
+                for qubit in qubits:
+                    branches = [
+                        (part[indices ^ (1 << qubit)] if value else part, bits)
+                        for vector, bits in branches
+                        for value, part in split(vector, qubit)
+                    ]
+            elif isinstance(op, IfElseOp):
+                inner = [dict(zip(block.qubits, qubits, strict=True)) for block in op.blocks]
+                true = run(op.blocks[0], inner[0], [b for b in branches if passed(op.condition, b[1])])
+                false = [b for b in branches if not passed(op.condition, b[1])]
+                branches = true + (run(op.blocks[1], inner[1], false) if len(op.blocks) > 1 else false)
+            elif isinstance(op, WhileLoopOp):
+                assert not any(passed(op.condition, b[1]) for b in branches), "two spins never repeat P"
+            else:
+                operator = Operator(op)
+                branches = [(Statevector(vector).evolve(operator, qubits).data, bits) for vector, bits in branches]
+        return branches
+
+    probabilities = {reg.name: [0.0] * 2 ** len(reg) for reg in qc.cregs}
+    probabilities["energy_after_reject"] = [0.0] * 2**r
+    for vector, bits in run(qc, {q: i for i, q in enumerate(qc.qubits)}, [(start, (0,) * qc.num_clbits)]):
+        values = {reg.name: sum(bits[bit_index[bit]] << i for i, bit in enumerate(reg)) for reg in qc.cregs}
+        weight = float(np.vdot(vector, vector).real)
+        for name, value in values.items():
+            probabilities[name][value] += weight
+        if values["accepted"] == 0:
+            probabilities["energy_after_reject"][values["energy"]] += weight
+    return probabilities
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "beta"), [(1, 0.0), (1, 1.0), (2, 0.5)])
+def test_quantum_metropolis_two_spin_step(num_evaluation_qubits: int, beta: float) -> None:
+    """One step from |00⟩ gives the exact Metropolis probabilities (Eqs. 2 and 3).
+
+    Each of the four updates has probability 1/4. The Z updates keep |00⟩. The X updates give |01⟩ or |10⟩, which
+    overlap the singlet (energy 2) with weight 1/2. The singlet is accepted with probability e^(-2 beta), so it is
+    reached with probability e^(-2 beta) / 4, and a move is accepted with probability 3/4 + e^(-2 beta) / 4. A
+    rejected move returns to energy 0. The singlet lies in bin 2^(r - 1) for r evaluation qubits.
+    """
+    probabilities = _metropolis_one_step(num_evaluation_qubits, beta)
+    reached = np.exp(-2 * beta) / 4
+    expected_energy = [0.0] * 2**num_evaluation_qubits
+    expected_energy[0], expected_energy[2 ** (num_evaluation_qubits - 1)] = 1 - reached, reached
+    assert probabilities["update"] == pytest.approx([0.25] * 4, abs=1e-9)
+    assert probabilities["energy"] == pytest.approx(expected_energy, abs=1e-9)
+    assert probabilities["accepted"] == pytest.approx([1 / 4 - reached, 3 / 4 + reached], abs=1e-9)
+    assert probabilities["energy_after_reject"][1:] == pytest.approx([0.0] * (2**num_evaluation_qubits - 1), abs=1e-9)
+
+
+def test_quantum_metropolis_readout_undoes_phase_estimation() -> None:
+    """The first energy readout applies phase estimation and its exact inverse around the copy to the energy register.
+
+    With three spins the Trotter terms do not commute. After compilation, the readout without the copy must still be
+    the identity on the pointer and the system.
+    """
+    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2)
+    system, _, pointer, _ = qc.qregs
+    first_measure = next(i for i, inst in enumerate(qc.data) if inst.clbits and inst.clbits[0] in qc.cregs[1])
+    readout = QuantumCircuit(qc.qubits)
+    for inst in qc.data[:first_measure]:
+        if set(inst.qubits) <= set(system) | set(pointer):
+            readout.append(inst)
+    compiled = transpile(readout, basis_gates=["u", "cx"])
+    assert Operator(compiled).equiv(Operator(np.eye(2**qc.num_qubits)))
+
+
+@pytest.mark.parametrize("num_steps", [1, 3])
+def test_quantum_metropolis_rejection_loop(num_steps: int) -> None:
+    """Each step rejects with a loop that repeats Q and P while P reports a different energy (Fig. 2)."""
+    qc = create_circuit("quantum_metropolis", 7, num_evaluation_qubits=2, num_steps=num_steps)
+    _, energy_register, _, accept = qc.qregs
+    p_bit = qc.cregs[3][0]
+    steps = [inst for inst in qc.data if isinstance(inst.operation, IfElseOp) and len(inst.operation.blocks) == 2]
+    assert len(steps) == num_steps
+    for step in steps:
+        reject = step.operation.blocks[1]
+        (loop,) = [inst for inst in reject.data if isinstance(inst.operation, WhileLoopOp)]
+        assert loop.operation.condition == (p_bit, 0)
+        body = loop.operation.blocks[0]
+        outer_qubits = dict(zip(body.qubits, loop.qubits, strict=True))
+        outer_clbits = dict(zip(body.clbits, loop.clbits, strict=True))
+        measured = [
+            (outer_qubits[inst.qubits[0]], outer_clbits[inst.clbits[0]])
+            for inst in body.data
+            if inst.operation.name == "measure"
+        ]
+        assert measured == [(accept[0], p_bit), (energy_register[0], p_bit)]
+
+
+def test_quantum_metropolis_inputs() -> None:
+    """Invalid sizes and options raise errors, and a very low temperature builds without overflow."""
+    for num_qubits, options, message in [
+        (5, {"num_evaluation_qubits": 0}, r"num_evaluation_qubits must be at least 1."),
+        (6, {"num_evaluation_qubits": 2}, r"num_qubits must be at least 2 \* num_evaluation_qubits \+ 3."),
+        (5, {"beta": -1.0}, r"beta must be non-negative and finite."),
+        (5, {"beta": float("nan")}, r"beta must be non-negative and finite."),
+        (5, {"num_steps": 0}, r"num_steps must be at least 1."),
+        (5, {"num_trotter_steps": 0}, r"num_trotter_steps must be at least 1."),
+    ]:
+        with pytest.raises(ValueError, match=message):
+            create_circuit("quantum_metropolis", num_qubits, **options)
+    assert create_circuit("quantum_metropolis", 5, beta=1e6).num_qubits == 5
 
 
 def test_teleportation_preserves_phase() -> None:
