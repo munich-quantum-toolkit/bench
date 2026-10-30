@@ -195,12 +195,12 @@ def create_circuit(
         qc.compose(estimate_and_rotate.inverse(), u_qubits, inplace=True)
         apply_update()  # Pauli updates are their own inverse
 
-    def read_energy(target: ClassicalRegister) -> None:
+    def read_energy() -> None:
         """Step 1 (Fig. 1a): project onto an eigenstate and measure its energy bin."""
         qc.compose(phase_estimation, pe_qubits, inplace=True)
         qc.cx(e_new, e_old)
         qc.compose(phase_estimation.inverse(), pe_qubits, inplace=True)
-        qc.measure(e_old, target)
+        qc.measure(e_old, c_energy)
 
     def measure_p() -> None:
         """Measurement P (Fig. 1c): check whether the current energy bin equals E_i."""
