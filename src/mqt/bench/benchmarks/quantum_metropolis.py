@@ -254,5 +254,5 @@ def create_circuit(
         # Step 4: reset the ancilla registers for the next step.
         qc.reset([*e_old, *e_new, *accept])
 
-    read_energy(c_energy)
+    read_energy()
     return qc
