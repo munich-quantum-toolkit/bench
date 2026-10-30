@@ -234,7 +234,7 @@ def create_circuit(
             qc.reset(accept[0])
 
         # Step 1: eigenstate with known energy E_i.
-        read_energy(c_energy)
+        read_energy()
 
         # Step 2: propose C, estimate E_k, and rotate the accept qubit with W.
         apply_u()
