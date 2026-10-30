@@ -116,10 +116,10 @@ def create_circuit(
     therefore uses the first qubit of the energy register as a flag and prepares :math:`|E_i\rangle` again from
     the classical result (Sec. 8 notes that the circuit can condition on this classical result).
 
-    The circuit adds :math:`(n - 1) / 2` to the Hamiltonian of Eq. 79 for ``n`` spins, so that all energies are
-    non-negative. Bin ``k`` of an ``r``-qubit register holds the shifted energy :math:`4 (n - 1) k / 2^r`, which is the
+    The circuit adds :math:`(n - 1) / 2` to the Hamiltonian of Eq. 79 for :math:`n` spins, so that all energies are
+    non-negative. Bin :math:`k` of an :math:`r`-qubit register holds the shifted energy :math:`4 (n - 1) k / 2^r`, which is the
     energy :math:`E = 4 (n - 1) k / 2^r - (n - 1) / 2` of Eq. 79. For two spins and one evaluation qubit, bin 0 is
-    :math:`E = -1/2` and bin 1 is :math:`E = 3/2`. Rounding the energies to ``r`` bits gives an error of order
+    :math:`E = -1/2` and bin 1 is :math:`E = 3/2`. Rounding the energies to :math:`r` bits gives an error of order
     :math:`\beta 2^{-r}` (Sec. 4).
 
     Arguments:
