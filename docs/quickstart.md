@@ -156,6 +156,8 @@ compilation settings, and explicitly supplied options in
 `qc.metadata["mqt_bench_generation"]`. Export headers include this record; QPY
 also retains it as metadata. Only JSON-serializable options are recorded, so
 custom gates and state-preparation circuits must be stored separately.
+Recompiling a circuit preserves its construction options. When random parameter
+values are assigned, `parameter_seed` records the seed used for that binding.
 
 File exports replace the destination only after serialization succeeds.
 `save_circuit` creates missing output directories and reports errors on stderr.

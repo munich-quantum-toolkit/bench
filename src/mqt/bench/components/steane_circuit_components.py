@@ -69,7 +69,7 @@ def get_seven_qubit_steane_code_syndrome_extraction_circuit() -> QuantumCircuit:
 
     Bit-flip syndrome extraction:
         Syndrome bits measure the parity of specific qubit subsets corresponding to
-        the X-stabilizer generators.
+        the Z-stabilizer generators.
 
     Phase-flip syndrome extraction:
         Uses Hadamard gates to convert from Z to X basis, and control/target swapped

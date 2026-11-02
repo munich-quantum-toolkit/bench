@@ -43,15 +43,11 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     operator = grover_operator(oracle)
     iterations = int(np.pi / 4 * np.sqrt(2**num_qubits))
 
-    num_qubits = operator.num_qubits - 1  # -1 because last qubit is "flag" qubit and already taken care of
-
-    # num_qubits may differ now depending on the mcx_mode
-    q2 = QuantumRegister(num_qubits, "q")
-    qc = QuantumCircuit(q2, flag, name="grover")
+    qc = QuantumCircuit(q, flag, name="grover")
     qc.compose(state_preparation, inplace=True)
 
     if for_loop:
-        body = QuantumCircuit(q2, flag)
+        body = QuantumCircuit(q, flag)
         body.append(operator.to_gate(), body.qubits)
         qc.append(ForLoopOp(range(iterations), None, body), qc.qubits)
     else:

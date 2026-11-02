@@ -24,11 +24,19 @@ import networkx as nx
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
-from qiskit.circuit import Barrier, CircuitInstruction, ClassicalRegister, Clbit, ForLoopOp, IfElseOp, Parameter
+from qiskit.circuit import (
+    Barrier,
+    CircuitInstruction,
+    ClassicalRegister,
+    Clbit,
+    ForLoopOp,
+    IfElseOp,
+    Parameter,
+    WhileLoopOp,
+)
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
 from qiskit.compiler import transpile
-from qiskit.converters import circuit_to_dag
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator, Statevector, process_fidelity
@@ -107,6 +115,7 @@ SPECIAL_QUBIT_COUNTS: dict[str, int] = {
     "teleportation": 3,
     "simon": 4,
     "bell": 4,
+    "quantum_metropolis": 5,
 }
 
 
@@ -252,12 +261,39 @@ def test_arithmetic_results(
     assert counts == {expected: 16}
 
 
+def test_qft_multiplier_large_inputs() -> None:
+    """The phase stage encodes 2**29 * 2**29 without inaccurate full rotations."""
+    circuit = create_circuit("rg_qft_multiplier", 120)
+    a, b, result = circuit.qregs
+    phases = np.ones(len(result), dtype=complex)
+    for instruction in circuit.data:
+        if instruction.operation.name == "mcphase" and instruction.qubits[:2] == (a[-1], b[-1]):
+            phases[result.index(instruction.qubits[-1])] *= Operator(instruction.operation).data[-1, -1]
+
+    expected = np.ones(len(result), dtype=complex)
+    expected[-2:] = [-1, 1j]
+    np.testing.assert_allclose(phases, expected, atol=1e-12)
+
+
 def test_arithmetic_mirror_measurements() -> None:
     """Mirror benchmarks still measure all active qubits to check the identity."""
     qc = get_benchmark("full_adder", BenchmarkLevel.ALG, 6, generate_mirror_circuit=True)
     assert qc.num_clbits == 6
     result = StatevectorSampler(seed=10).run([qc], shots=16).result()[0]
     assert result.data["meas"].get_counts() == {"000000": 16}
+
+
+def test_mirror_with_unused_classical_registers() -> None:
+    """Keep unused registers and measure only active qubits into a new register."""
+    circuit = QuantumCircuit(2)
+    circuit.add_register(ClassicalRegister(2, "meas"), ClassicalRegister(1, "meas_"))
+    circuit.h(1)
+    mirror = get_benchmark_alg(circuit, generate_mirror_circuit=True)
+    assert mirror.cregs[:-1] == circuit.cregs
+    measurements = [item for item in mirror.data if item.operation.name == "measure"]
+    assert [(item.qubits, item.clbits) for item in measurements] == [((mirror.qubits[1],), (mirror.cregs[-1][0],))]
+    mirror.remove_final_measurements()
+    assert Operator(mirror).equiv(Operator(np.eye(4)))
 
 
 @pytest.mark.parametrize(
@@ -460,20 +496,22 @@ def test_bv() -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "kwargs", "message"),
+    ("benchmark", "size", "kwargs", "message"),
     [
-        ("bv", {"hidden_string": "x0"}, "binary string"),
-        ("qwalk", {"depth": -1}, "nonnegative"),
-        ("graphstate", {"degree": 1}, "must be even"),
-        ("bmw_quark_cardinality", {"depth": -1}, "nonnegative"),
-        ("ae", {"probability": -0.1}, "between 0 and 1"),
-        ("ae", {"probability": float("nan")}, "between 0 and 1"),
+        ("bv", 3, {"hidden_string": "x0"}, "binary string"),
+        ("qwalk", 3, {"depth": -1}, "nonnegative"),
+        ("graphstate", 3, {"degree": 1}, "must be even"),
+        ("bmw_quark_cardinality", 3, {"depth": -1}, "nonnegative"),
+        ("bmw_quark_copula", 4, {"depth": -1}, "nonnegative"),
+        ("qaoa", 3, {"repetitions": -1}, "nonnegative"),
+        ("ae", 3, {"probability": -0.1}, "between 0 and 1"),
+        ("ae", 3, {"probability": float("nan")}, "between 0 and 1"),
     ],
 )
-def test_invalid_benchmark_options(benchmark: str, kwargs: dict, message: str) -> None:
+def test_invalid_benchmark_options(benchmark: str, size: int, kwargs: dict, message: str) -> None:
     """Reject invalid problem parameters before constructing the circuit."""
     with pytest.raises(ValueError, match=message):
-        create_circuit(benchmark, 3, **kwargs)
+        create_circuit(benchmark, size, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -735,6 +773,145 @@ def test_mlqae_invalid_parameters() -> None:
         create_circuit("mlqae", 3, b_max=float("nan"))
 
 
+def _metropolis_one_step(num_evaluation_qubits: int, beta: float) -> dict[str, list[float]]:
+    """Return the exact probability of each value of each classical register after one step for two spins.
+
+    Qiskit's statevector sampler does not support control flow. This simulation follows every measurement and reset
+    outcome as a separate branch with an unnormalized state, so the squared norm of a branch is its probability. For
+    two spins, every rejection returns at the first measurement P, so the loop body never runs. The key
+    ``energy_after_reject`` holds the energy probabilities of rejected moves.
+    """
+    r = num_evaluation_qubits
+    qc = get_benchmark_indep(create_circuit("quantum_metropolis", 2 * r + 3, num_evaluation_qubits=r, beta=beta))
+    bit_index = {bit: i for i, bit in enumerate(qc.clbits)}
+    indices = np.arange(2**qc.num_qubits)
+    start = np.zeros(2**qc.num_qubits, dtype=complex)
+    start[0] = 1
+
+    def passed(condition: tuple[Clbit | ClassicalRegister, int], bits: tuple[int, ...]) -> bool:
+        target, expected = condition
+        targets = list(target) if isinstance(target, ClassicalRegister) else [target]
+        return sum(bits[bit_index[bit]] << i for i, bit in enumerate(targets)) == expected
+
+    def split(vector: np.ndarray, qubit: int) -> list[tuple[int, np.ndarray]]:
+        parts = [(value, np.where((indices >> qubit) & 1 == value, vector, 0)) for value in (0, 1)]
+        return [(value, part) for value, part in parts if np.vdot(part, part).real > 1e-14]
+
+    def run(circuit: QuantumCircuit, qubit_map: dict, branches: list) -> list:
+        for instruction in circuit.data:
+            op, qubits = instruction.operation, [qubit_map[q] for q in instruction.qubits]
+            if op.name == "measure":
+                index = bit_index[instruction.clbits[0]]
+                branches = [
+                    (part, (*bits[:index], value, *bits[index + 1 :]))
+                    for vector, bits in branches
+                    for value, part in split(vector, qubits[0])
+                ]
+            elif op.name == "reset":
+                for qubit in qubits:
+                    branches = [
+                        (part[indices ^ (1 << qubit)] if value else part, bits)
+                        for vector, bits in branches
+                        for value, part in split(vector, qubit)
+                    ]
+            elif isinstance(op, IfElseOp):
+                inner = [dict(zip(block.qubits, qubits, strict=True)) for block in op.blocks]
+                true = run(op.blocks[0], inner[0], [b for b in branches if passed(op.condition, b[1])])
+                false = [b for b in branches if not passed(op.condition, b[1])]
+                branches = true + (run(op.blocks[1], inner[1], false) if len(op.blocks) > 1 else false)
+            elif isinstance(op, WhileLoopOp):
+                assert not any(passed(op.condition, b[1]) for b in branches), "two spins never repeat P"
+            else:
+                operator = Operator(op)
+                branches = [(Statevector(vector).evolve(operator, qubits).data, bits) for vector, bits in branches]
+        return branches
+
+    probabilities = {reg.name: [0.0] * 2 ** len(reg) for reg in qc.cregs}
+    probabilities["energy_after_reject"] = [0.0] * 2**r
+    for vector, bits in run(qc, {q: i for i, q in enumerate(qc.qubits)}, [(start, (0,) * qc.num_clbits)]):
+        values = {reg.name: sum(bits[bit_index[bit]] << i for i, bit in enumerate(reg)) for reg in qc.cregs}
+        weight = float(np.vdot(vector, vector).real)
+        for name, value in values.items():
+            probabilities[name][value] += weight
+        if values["accepted"] == 0:
+            probabilities["energy_after_reject"][values["energy"]] += weight
+    return probabilities
+
+
+@pytest.mark.parametrize(("num_evaluation_qubits", "beta"), [(1, 0.0), (1, 1.0), (2, 0.5)])
+def test_quantum_metropolis_two_spin_step(num_evaluation_qubits: int, beta: float) -> None:
+    """One step from |00⟩ gives the exact Metropolis probabilities (Eqs. 2 and 3).
+
+    Each of the four updates has probability 1/4. The Z updates keep |00⟩. The X updates give |01⟩ or |10⟩, which
+    overlap the singlet (energy 2) with weight 1/2. The singlet is accepted with probability e^(-2 beta), so it is
+    reached with probability e^(-2 beta) / 4, and a move is accepted with probability 3/4 + e^(-2 beta) / 4. A
+    rejected move returns to energy 0. The singlet lies in bin 2^(r - 1) for r evaluation qubits.
+    """
+    probabilities = _metropolis_one_step(num_evaluation_qubits, beta)
+    reached = np.exp(-2 * beta) / 4
+    expected_energy = [0.0] * 2**num_evaluation_qubits
+    expected_energy[0], expected_energy[2 ** (num_evaluation_qubits - 1)] = 1 - reached, reached
+    assert probabilities["update"] == pytest.approx([0.25] * 4, abs=1e-9)
+    assert probabilities["energy"] == pytest.approx(expected_energy, abs=1e-9)
+    assert probabilities["accepted"] == pytest.approx([1 / 4 - reached, 3 / 4 + reached], abs=1e-9)
+    assert probabilities["energy_after_reject"][1:] == pytest.approx([0.0] * (2**num_evaluation_qubits - 1), abs=1e-9)
+
+
+def test_quantum_metropolis_readout_undoes_phase_estimation() -> None:
+    """The first energy readout applies phase estimation and its exact inverse around the copy to the energy register.
+
+    With three spins the Trotter terms do not commute. After compilation, the readout without the copy must still be
+    the identity on the pointer and the system.
+    """
+    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2)
+    system, _, pointer, _ = qc.qregs
+    first_measure = next(i for i, inst in enumerate(qc.data) if inst.clbits and inst.clbits[0] in qc.cregs[1])
+    readout = QuantumCircuit(qc.qubits)
+    for inst in qc.data[:first_measure]:
+        if set(inst.qubits) <= set(system) | set(pointer):
+            readout.append(inst)
+    compiled = transpile(readout, basis_gates=["u", "cx"])
+    assert Operator(compiled).equiv(Operator(np.eye(2**qc.num_qubits)))
+
+
+@pytest.mark.parametrize("num_steps", [1, 3])
+def test_quantum_metropolis_rejection_loop(num_steps: int) -> None:
+    """Each step rejects with a loop that repeats Q and P while P reports a different energy (Fig. 2)."""
+    qc = create_circuit("quantum_metropolis", 7, num_evaluation_qubits=2, num_steps=num_steps)
+    _, energy_register, _, accept = qc.qregs
+    p_bit = qc.cregs[3][0]
+    steps = [inst for inst in qc.data if isinstance(inst.operation, IfElseOp) and len(inst.operation.blocks) == 2]
+    assert len(steps) == num_steps
+    for step in steps:
+        reject = step.operation.blocks[1]
+        (loop,) = [inst for inst in reject.data if isinstance(inst.operation, WhileLoopOp)]
+        assert loop.operation.condition == (p_bit, 0)
+        body = loop.operation.blocks[0]
+        outer_qubits = dict(zip(body.qubits, loop.qubits, strict=True))
+        outer_clbits = dict(zip(body.clbits, loop.clbits, strict=True))
+        measured = [
+            (outer_qubits[inst.qubits[0]], outer_clbits[inst.clbits[0]])
+            for inst in body.data
+            if inst.operation.name == "measure"
+        ]
+        assert measured == [(accept[0], p_bit), (energy_register[0], p_bit)]
+
+
+def test_quantum_metropolis_inputs() -> None:
+    """Invalid sizes and options raise errors, and a very low temperature builds without overflow."""
+    for num_qubits, options, message in [
+        (5, {"num_evaluation_qubits": 0}, r"num_evaluation_qubits must be at least 1."),
+        (6, {"num_evaluation_qubits": 2}, r"num_qubits must be at least 2 \* num_evaluation_qubits \+ 3."),
+        (5, {"beta": -1.0}, r"beta must be non-negative and finite."),
+        (5, {"beta": float("nan")}, r"beta must be non-negative and finite."),
+        (5, {"num_steps": 0}, r"num_steps must be at least 1."),
+        (5, {"num_trotter_steps": 0}, r"num_trotter_steps must be at least 1."),
+    ]:
+        with pytest.raises(ValueError, match=message):
+            create_circuit("quantum_metropolis", num_qubits, **options)
+    assert create_circuit("quantum_metropolis", 5, beta=1e6).num_qubits == 5
+
+
 def test_teleportation_preserves_phase() -> None:
     """Teleporting |+⟩ must yield 0 when Bob measures in the X basis."""
     prep = QuantumCircuit(1)
@@ -779,6 +956,26 @@ def test_benchmark_seed(benchmark: str) -> None:
     qc_no_seed = get_benchmark_alg(benchmark, 5)
     assert qc_no_seed.num_qubits == 5
     assert qc_no_seed.name == benchmark
+
+
+@pytest.mark.parametrize("bound", [False, True])
+def test_generation_options_survive_recompilation(bound: bool) -> None:
+    """Retain the construction seed and record only parameter binding that occurs."""
+    circuit = get_benchmark_alg("qaoa", 4, seed=1, random_parameters=bound)
+    target = get_target_for_gateset("ibm_heron", 4)
+    compiled = get_benchmark_native_gates(circuit, None, target, seed=2, repetitions=3)
+    generation = compiled.metadata["mqt_bench_generation"]
+    assert generation["options"] == {"seed": 1}
+    assert generation["parameter_seed"] == (1 if bound else 2)
+    assert generation["random_parameters"] is True
+    expected = circuit.copy()
+    expected.remove_final_measurements()
+    if not bound:
+        expected.assign_parameters(
+            np.random.default_rng(2).uniform(0, 2 * np.pi, len(expected.parameters)), inplace=True
+        )
+    compiled.remove_final_measurements()
+    assert Operator(compiled).equiv(Operator(expected))
 
 
 @pytest.mark.parametrize("num_qubits", [1, 2, 5, 6])
@@ -1363,24 +1560,25 @@ def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
 
 
 @pytest.mark.parametrize("loop_depth", [0, 1, 2])
-def test_clifford_t_post_synthesis_optimization(loop_depth: int) -> None:
-    """Combine synthesized T pairs, including inside nested loops."""
+@pytest.mark.parametrize(("gates", "t_count"), [("t t", 0), ("s h t t t", 1)])
+def test_clifford_t_post_synthesis_optimization(loop_depth: int, gates: str, t_count: int) -> None:
+    """Reduce T counts without changing the unitary, including inside nested loops."""
     circuit = QuantumCircuit(1)
-    circuit.t(0)
-    circuit.t(0)
+    for gate in gates.split():
+        getattr(circuit, gate)(0)
     for _ in range(loop_depth):
         body = circuit
         circuit = QuantumCircuit(1)
         circuit.append(ForLoopOp(range(2), None, body), circuit.qubits)
     original = circuit.copy()
-    optimized = RecursiveOptimizeCliffordT()(circuit)
+    optimized = RecursiveOptimizeCliffordT(basis_gates=["h", "t", "tdg", "s", "sdg", "x", "y", "z"])(circuit)
 
     assert circuit == original
-    assert circuit_to_dag(optimized).count_ops(recurse=True).get("t", 0) == 0
-    expected = QuantumCircuit(1)
-    for _ in range(2**loop_depth):
-        expected.s(0)
-    assert Operator(UnrollForLoops()(optimized)).equiv(Operator(expected))
+    counts = optimized.to_dag().count_ops(recurse=True)
+    assert counts.get("t", 0) + counts.get("tdg", 0) == t_count
+    np.testing.assert_allclose(
+        Operator(UnrollForLoops()(optimized)).data, Operator(UnrollForLoops()(original)).data, atol=1e-12
+    )
 
 
 @pytest.mark.parametrize("mirror", [False, True])
@@ -1648,16 +1846,18 @@ def test_generate_header_pkg_not_installed(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
 def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
-    """Replace a QASM file while preserving its permissions."""
+    """Export multiline target descriptions and preserve existing file permissions."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
+    target = get_target_for_gateset("clifford+t+rotations", 2)
+    target.description = "Custom target\nCalibration from Monday\r\nRevision 2"
 
     out = tmp_path / "test.qasm"
     out.write_text("previous circuit")
     out.chmod(0o640)
     mode = out.stat().st_mode
-    write_circuit(qc, out, BenchmarkLevel.INDEP, fmt=fmt)
+    write_circuit(qc, out, BenchmarkLevel.NATIVEGATES, fmt=fmt, target=target)
     assert out.stat().st_mode == mode
 
     text = out.read_text().splitlines()
@@ -1667,6 +1867,8 @@ def test_write_circuit_qasm(tmp_path: Path, fmt: OutputFormat) -> None:
     # QASM body present
     assert any(line.startswith("h ") for line in text), "H gate should appear"
     assert any(line.startswith("cx ") for line in text), "CX gate should appear"
+    restored = (qasm2 if fmt is OutputFormat.QASM2 else qasm3).loads(out.read_text())
+    assert Operator(restored).equiv(Operator(qc))
 
 
 def test_write_circuit_qpy(tmp_path: Path) -> None:
@@ -1899,7 +2101,7 @@ def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_leve
     assert compiled.layout is None
     loop = compiled.data[0].operation
     assert isinstance(loop, ForLoopOp)
-    assert circuit_to_dag(loop.blocks[0]).count_ops(recurse=True)[jump] == 1
+    assert loop.blocks[0].to_dag().count_ops(recurse=True)[jump] == 1
 
 
 @pytest.mark.parametrize(("benchmark", "size"), [("qft", 4), ("bv", 6)])
@@ -2086,7 +2288,7 @@ def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: 
         qc_mirror.remove_final_measurements(inplace=True)
         qc_mirror = RemoveBarriers()(qc_mirror)
 
-        active_qubits = [q for q in qc_mirror.qubits if q not in circuit_to_dag(qc_mirror).idle_wires()]
+        active_qubits = [q for q in qc_mirror.qubits if q not in qc_mirror.to_dag().idle_wires()]
         compact = QuantumCircuit(len(active_qubits), global_phase=qc_mirror.global_phase)
         for instruction in qc_mirror.data:
             compact.append(instruction.operation, [active_qubits.index(q) for q in instruction.qubits])

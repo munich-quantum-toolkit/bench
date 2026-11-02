@@ -22,12 +22,16 @@ def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> Qua
 
     Arguments:
         num_qubits: Number of qubits in the circuit (equal to the number of graph nodes).
-        repetitions: Number of QAOA layers (repetitions of the ansatz).
+        repetitions: Number of QAOA layers (repetitions of the ansatz). Must be nonnegative.
         seed: Seed for reproducibility.
 
     Returns:
         QuantumCircuit: Quantum circuit implementing QAOA.
     """
+    if repetitions < 0:
+        msg = "repetitions must be nonnegative."
+        raise ValueError(msg)
+
     rng = np.random.default_rng(seed)
     adjacency_matrix = rng.integers(0, 2, size=(num_qubits, num_qubits))
     adjacency_matrix = np.triu(adjacency_matrix, 1)  # Upper triangular part for undirected graph

@@ -47,10 +47,7 @@ def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
     theta = 0
     while theta == 0 or (theta & 1) == 0:
         theta = rng.getrandbits(num_qubits + 1)
-    lam = Fraction(0, 1)
-    for i in range(num_qubits + 1):
-        if theta & (1 << (num_qubits - i)):
-            lam += Fraction(1, (1 << i))
+    lam = Fraction(theta, 1 << num_qubits)
 
     qc.x(psi)
     qc.h(q)
