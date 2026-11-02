@@ -64,17 +64,15 @@ class LogicalQubit:
     def get_all_registers(self) -> list[QuantumRegister | ClassicalRegister]:
         """Return all active registers for this logical qubit."""
         regs: list[QuantumRegister | ClassicalRegister] = [self.data]
-        if self.bit_flip_syndrome is not None:
-            regs.extend(
-                reg
-                for reg in [
-                    self.bit_flip_syndrome,
-                    self.phase_flip_syndrome,
-                    self.bit_flip_measure,
-                    self.phase_flip_measure,
-                ]
-                if reg is not None
-            )
+        regs.extend(
+            reg
+            for reg in [
+                self.bit_flip_syndrome,
+                self.phase_flip_syndrome,
+                self.bit_flip_measure,
+                self.phase_flip_measure,
+            ]
+        )
         return regs
 
 
