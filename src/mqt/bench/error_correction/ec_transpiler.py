@@ -51,20 +51,24 @@ class ECTranspiler(ABC):
     methods.
     """
 
-    #: Short name of the code, used to name the encoded circuit and its placeholders.
     CODE_NAME: ClassVar[str]
-    #: Number of physical qubits used to encode a single logical qubit.
+    """Short name of the code, used to name the encoded circuit and its placeholders."""
     BLOCK_SIZE: ClassVar[int]
-    #: Number of ancilla qubits (and classical bits) used per bit-flip syndrome extraction.
+    """Number of physical qubits used to encode a single logical qubit."""
     BIT_FLIP_SYNDROME_SIZE: ClassVar[int]
-    #: Number of ancilla qubits (and classical bits) used per phase-flip syndrome extraction.
+    """Number of ancilla qubits (and classical bits) used per bit-flip syndrome extraction."""
     PHASE_FLIP_SYNDROME_SIZE: ClassVar[int]
-    #: Basis gate set the original circuit is transpiled to before logical replacement.
+    """Number of ancilla qubits (and classical bits) used per phase-flip syndrome extraction."""
     TARGET_GATE_SET: ClassVar[list[str]]
-    #: Transversal gates: each one is realized by applying one physical gate at every physical
-    #: qubit position of the involved data registers. Implement other gates as
-    #: ``_logical_<gate_name>`` methods on the subclass.
+    """Basis gate set the original circuit is transpiled to before logical replacement."""
     TRANSVERSAL_GATES: ClassVar[dict[str, Gate]] = {}
+    """Transversal gates:
+
+    Each gate is realized by applying one physical gate at every physical qubit position
+    of the involved data registers.
+
+    Implement non-transversal gates as ``_logical_<gate_name>`` methods on the subclass.
+    """
 
     def __init__(self, original_circuit: QuantumCircuit) -> None:
         """Initialize the transpiler with the original QuantumCircuit.
