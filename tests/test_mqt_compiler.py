@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, NoReturn, cast
 
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit, qpy
+from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
     Gate,
     IfElseOp,
@@ -194,6 +194,12 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
     assert options.mapping.trials == 2
     assert options.mapping.iterations == 2
     assert options.mapping.lookahead == 0
+    assert result.metadata["mqt_bench_compiler"]["options"] == {
+        "seed": 17,
+        "enable_statistics": False,
+        "enable_timing": False,
+        "mapping": {"trials": 2, "iterations": 2, "lookahead": 0, "search_memory_limit": 268435456},
+    }
     if mirror:
         assert _measurement_probabilities(result) == pytest.approx({"000": 1.0})
     else:
@@ -214,6 +220,9 @@ def test_default_mapping_reproducibility(monkeypatch: pytest.MonkeyPatch) -> Non
     results = [get_benchmark_mapped("ghz", 3, target, compiler="mqt") for _ in range(2)]
     assert seeds_and_trials == [(10, 4), (10, 4)]
     assert results[0] == results[1]
+    defaults = results[0].metadata["mqt_bench_compiler"]["options"]
+    assert defaults["seed"] == 10
+    assert defaults["mapping"]["trials"] == 4
 
 
 def test_compiler_options_require_core_compilation() -> None:
@@ -661,10 +670,19 @@ def test_target_capacity() -> None:
 
 def test_compiler_provenance() -> None:
     """Text and binary exports identify Core and keep user metadata."""
-    result = get_benchmark_indep("ghz", 3, compiler="mqt")
+    result = get_benchmark_indep(
+        "ghz",
+        3,
+        compiler="mqt",
+        compiler_options=core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=8)),
+    )
     text = io.StringIO()
     write_circuit(result, text, BenchmarkLevel.INDEP)
     assert "// Compiler: mqt " in text.getvalue()
+    compiler_options = result.metadata["mqt_bench_compiler"]["options"]
+    assert compiler_options["seed"] == 17
+    assert compiler_options["mapping"]["trials"] == 8
+    assert json.loads(text.getvalue().split("// Compiler options: ")[1].splitlines()[0]) == compiler_options
     generation = result.metadata["mqt_bench_generation"]
     assert json.loads(text.getvalue().split("// Generation options: ")[1].splitlines()[0]) == generation
     binary = io.BytesIO()
@@ -733,6 +751,9 @@ def test_mqt_cli(
     exported = (tmp_path / "graphstate_nativegates_ibm_heron_mqt_3.qasm").read_text()
     generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
     assert generation["options"] == {"seed": 42, "degree": 2}
+    compiler_options = json.loads(exported.split("// Compiler options: ")[1].splitlines()[0])
+    assert compiler_options["seed"] == seed
+    assert compiler_options["mapping"]["trials"] == trials
     assert "// Compiler: mqt " in exported
 
 
@@ -841,14 +862,39 @@ def test_fixed_rx_gate_validation_rejects_unavailable_angle(monkeypatch: pytest.
         get_benchmark_native_gates(QuantumCircuit(2), None, target, compiler="mqt")
 
 
-def test_native_compilation_preserves_logical_wire_layout() -> None:
-    """Native output retains the permutation needed to interpret its unitary."""
-    source = QuantumCircuit(3)
-    source.h(2)
+@pytest.mark.parametrize("ending", ["none", "swap", "barrier"])
+@pytest.mark.parametrize("idle_qubit", [False, True])
+def test_native_compilation_preserves_logical_wires(ending: str, *, idle_qubit: bool) -> None:
+    """Native circuits and QASM exports preserve logical wires, including idle ones."""
+    source = QuantumCircuit(4 if idle_qubit else 3, global_phase=0.37)
+    source.x(2)
+    source.h(0)
     source.cx(2, 1)
-    source.cx(1, 0)
-    result = get_benchmark_native_gates(source, None, get_target_for_gateset("rigetti", 3), compiler="mqt")
-    np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(source).data, atol=1e-12)
+    if ending != "none":
+        source.swap(0, 2)
+    if ending == "barrier":
+        source.barrier(2, label="output")
+    original = source.copy()
+    target = get_target_for_gateset("rigetti", source.num_qubits)
+    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
+    assert source == original
+    assert result.layout is None
+    barriers = [item for item in result.data if item.operation.name == "barrier"]
+    assert len(barriers) == int(ending == "barrier")
+    if ending == "barrier":
+        assert barriers[0].operation.label == "output"
+        assert [result.find_bit(qubit).index for qubit in barriers[0].qubits] == [2]
+    np.testing.assert_allclose(Operator(result).data, Operator(source).data, atol=1e-12)
+    for fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
+        stream = io.StringIO()
+        write_circuit(result, stream, BenchmarkLevel.NATIVEGATES, fmt, target)
+        restored = (
+            qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+            if fmt is OutputFormat.QASM2
+            else qasm3.loads(stream.getvalue())
+        )
+        assert restored.num_qubits == source.num_qubits
+        assert Operator(restored).equiv(Operator(source))
 
 
 @pytest.mark.parametrize("mapped", [False, True])
@@ -858,20 +904,19 @@ def test_fractional_heron_mqt(*, mapped: bool, symbolic: bool) -> None:
     target = get_target_for_gateset("ibm_heron_fractional", 2)
     compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
     theta = Parameter("theta")
-    for angle in (-100.0, -0.37, 0.37, 2.4, 100.0):
+    angles = (-100.0, -0.37, 0.37, 2.4, 100.0)
+    for parameter in (theta,) if symbolic else angles:
         circuit = QuantumCircuit(2)
-        circuit.rzz(theta if symbolic else angle, 0, 1)
+        circuit.rzz(parameter, 0, 1)
         result = compile_circuit(circuit, None, target, compiler="mqt", random_parameters=False)
         assert all(
             target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
         )
-        if symbolic:
-            assert result.count_ops()["rzz"] == 2
-            circuit = circuit.assign_parameters({theta: angle})
-            result = result.assign_parameters({theta: angle})
-        else:
-            assert result.count_ops()["rzz"] == 1
-        assert np.allclose(Operator.from_circuit(result).data, Operator(circuit).data)
+        assert result.count_ops()["rzz"] == (2 if symbolic else 1)
+        for angle in angles if symbolic else (parameter,):
+            bound_circuit = circuit.assign_parameters({theta: angle}) if symbolic else circuit
+            bound_result = result.assign_parameters({theta: angle}) if symbolic else result
+            assert np.allclose(Operator.from_circuit(bound_result).data, Operator(bound_circuit).data)
 
 
 @pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.LLVM, OutputFormat.QIR_BITCODE])

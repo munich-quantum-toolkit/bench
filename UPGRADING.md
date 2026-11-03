@@ -76,7 +76,9 @@ unchanged.
 ### Native compilation
 
 Target-independent and native circuits retain qubit permutations as gates.
-Remove any manual permutation correction applied to their QASM exports.
+Remove any manual permutation correction applied to their QASM exports. MQT Core
+native results use logical wire order without layout metadata. Mapped results
+use physical wires; their measurement destinations remain unchanged.
 
 `get_target_for_gateset` no longer adds simulated calibration or connectivity.
 Native compilation ignores these constraints and device capacity even when

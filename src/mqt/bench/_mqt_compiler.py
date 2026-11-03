@@ -58,6 +58,22 @@ def _physical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
     return result
 
 
+def _logical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
+    """Relabel a native circuit whose output permutation is already materialized."""
+    if circuit.layout is None:
+        return circuit
+    initial = circuit.layout.initial_index_layout()
+    if circuit.layout.final_index_layout() != initial:
+        msg = "MQT Core left an output permutation behind the native compilation boundary."
+        raise ValueError(msg)
+    result = circuit.copy_empty_like(vars_mode="drop")
+    result.global_phase = 0
+    result._layout = None  # ruff:ignore[private-member-access]
+    # Copying operations through Qiskit drops Core's fixed-angle gate names.
+    result.compose(circuit, qubits=sorted(range(len(initial)), key=initial.__getitem__), inplace=True, copy=False)
+    return result
+
+
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> TargetEnvironment:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
@@ -122,7 +138,7 @@ def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
 
 
 def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProgram:
-    """Lower a circuit to QIR without running target compilation or optimization."""
+    """Lower a circuit to QIR without running target compilation."""
     if profile not in {"base", "adaptive"}:
         msg = f"Unknown QIR profile '{profile}'. Choose 'base' or 'adaptive'."
         raise ValueError(msg)
@@ -159,12 +175,42 @@ def compile_circuit(
         ).to_qiskit()
     else:
         environment = _target_environment(target, circuit.num_qubits, mapped=mapped)
-        program = QCProgram.from_qiskit(_physical_circuit(circuit)).to_qco()
+        source = _physical_circuit(circuit)
+        trailing_barriers = []
+        if not mapped:
+            source = source.copy()
+            while source.data and source.data[-1].operation.name == "barrier":
+                trailing_barriers.append(source.data.pop())
+            # Keep terminal permutations in native gates instead of layout metadata.
+            source.barrier()
+        program = QCProgram.from_qiskit(source).to_qco()
         program.compile_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
+        if not mapped:
+            if result.data and result.data[-1].operation.name == "barrier":
+                result.data.pop()
+            result = _logical_circuit(result)
+            for barrier in reversed(trailing_barriers):
+                result.append(barrier.operation, [source.find_bit(qubit).index for qubit in barrier.qubits])
         _validate_target(result, target, mapped=mapped)
     if mapped:
         result._layout = None  # ruff:ignore[private-member-access]
     result.name = circuit.name
-    result.metadata = (circuit.metadata or {}) | {"mqt_bench_compiler": {"name": "mqt", "version": version("mqt-core")}}
+    result.metadata = (circuit.metadata or {}) | {
+        "mqt_bench_compiler": {
+            "name": "mqt",
+            "version": version("mqt-core"),
+            "options": {
+                "seed": options.seed,
+                "enable_statistics": options.enable_statistics,
+                "enable_timing": options.enable_timing,
+                "mapping": {
+                    "trials": options.mapping.trials,
+                    "iterations": options.mapping.iterations,
+                    "lookahead": options.mapping.lookahead,
+                    "search_memory_limit": options.mapping.search_memory_limit,
+                },
+            },
+        }
+    }
     return result
