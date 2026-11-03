@@ -182,7 +182,10 @@ def write_circuit(
 
     compiler_info = (qc.metadata or {}).get("mqt_bench_compiler")
     if compiler_info is not None:
-        header += f"// Compiler: {compiler_info['name']} {compiler_info['version']}\n\n"
+        header += f"// Compiler: {compiler_info['name']} {compiler_info['version']}\n"
+        if "options" in compiler_info:
+            header += f"// Compiler options: {json.dumps(compiler_info['options'], sort_keys=True)}\n"
+        header += "\n"
 
     if fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
         if not isinstance(destination, TextIOBase):
@@ -274,21 +277,17 @@ def generate_filename(
     if compiler not in {"qiskit", "mqt"}:
         msg = f"Unknown compiler '{compiler}'. Choose 'qiskit' or 'mqt'."
         raise ValueError(msg)
-    if compiler == "mqt" and level != BenchmarkLevel.ALG:
-        if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-            assert target is not None, "target is required for native or mapped filenames."
-            base += f"_{target.description.strip().split(' ')[0]}"
-        return f"{base}_mqt_{num_qubits}"
-
-    if level == BenchmarkLevel.INDEP:
-        assert opt_level is not None, "opt_level is required for 'indep' level filenames."
-        return f"{base}_opt{opt_level}_{num_qubits}"
-
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
         assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
         description = (target.description or "").strip().split(" ")[0]
         description = re.sub(r"[^A-Za-z0-9_.+-]+", "_", description) or "custom_target"
-        return f"{base}_{description}_opt{opt_level}_{num_qubits}"
+        base += f"_{description}"
+
+    if compiler == "mqt" and level != BenchmarkLevel.ALG:
+        return f"{base}_mqt_{num_qubits}"
+
+    if level in {BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
+        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
+        return f"{base}_opt{opt_level}_{num_qubits}"
 
     return f"{base}_{num_qubits}"

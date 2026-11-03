@@ -98,8 +98,8 @@ The level-specific functions also accept `compiler="mqt"`:
   target-independent optimization pipeline.
 - `NATIVEGATES` uses the target's gate set with all-to-all connectivity and the
   input circuit's width. Operations wider than the circuit are omitted; physical
-  gate placements are ignored. The result retains layout metadata needed to
-  interpret its logical wire order; use `Operator.from_circuit` for its unitary.
+  gate placements are ignored. The result uses logical wire order without layout
+  metadata, so QASM exports preserve the circuit's wire order and width.
 - `MAPPED` uses the device's width, connectivity, and ordered gate placements.
   The result uses physical wires without layout metadata; measurements retain
   their classical destinations. Recompilation treats the current wires as
@@ -139,9 +139,11 @@ mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
   --level mapped --target iqm_crystal_5 --compiler-seed 17 --mapping-trials 8 --save
 ```
 
-Core filenames contain `_mqt_` and omit Qiskit's optimization level. QASM
-headers and QPY metadata record the compiler version. Existing Qiskit filenames
-remain unchanged.
+Core filenames contain `_mqt_` and omit Qiskit's optimization level. The
+`mqt_bench_compiler` circuit metadata records the compiler version and effective
+`CompilationOptions`, including the compilation seed and mapping controls. QASM
+headers and QPY metadata retain this record separately from benchmark generation
+options. Existing Qiskit filenames remain unchanged.
 
 [target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/v4.1.1/docs/mlir/target_compilation.md
 

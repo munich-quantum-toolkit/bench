@@ -15,12 +15,15 @@ that minor releases may include breaking changes.
 ### Added
 
 - ✨ Add optional MQT Core compilation for target-independent, native-gate, and
-  mapped circuits via `compiler="mqt"` or `--compiler mqt` ([#1027])
-  ([**@simon1hofmann**], [**@burgholzer**])
+  mapped circuits via `compiler="mqt"` or `--compiler mqt`, with logical native
+  QASM exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
+  [**@burgholzer**])
+- ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
+  rejection loop ([#1053]) ([**@algovista-collab**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
   generation settings in circuit metadata and export headers ([#1115])
   ([**@simon1hofmann**])
-- ✨ Add Simon's algorithm benchmark ([#1079]) ([**gautham0104-neitizen**])
+- ✨ Add Simon's algorithm benchmark ([#1079]) ([**@gautham0104-neitizen**])
 - ✨ Add the full 108-qubit Rigetti Cepheus architecture and document target
   models ([#1095]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add fractional IBM Heron targets with bounded RZZ angles ([#1087])
@@ -336,6 +339,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1065]: https://github.com/munich-quantum-toolkit/bench/pull/1065
 [#1059]: https://github.com/munich-quantum-toolkit/bench/pull/1059
 [#1054]: https://github.com/munich-quantum-toolkit/bench/pull/1054
+[#1053]: https://github.com/munich-quantum-toolkit/bench/pull/1053
 [#1052]: https://github.com/munich-quantum-toolkit/bench/pull/1052
 [#1047]: https://github.com/munich-quantum-toolkit/bench/pull/1047
 [#1045]: https://github.com/munich-quantum-toolkit/bench/pull/1045
@@ -412,6 +416,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@AthulKampiyil**]: https://github.com/AthulKampiyil
 [**@jyothikacodes**]: https://github.com/jyothikacodes
 [**@NiranjanRSoorej06**]: https://github.com/NiranjanRSoorej06
+[**@gautham0104-neitizen**]: https://github.com/gautham0104-neitizen
 
 <!-- General links -->
 
