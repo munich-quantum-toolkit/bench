@@ -38,6 +38,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Bind random parameters in batches, omit empty IQPE feedback conditions, and
+  reuse Quantum Metropolis inverse circuits ([#1131]) ([**@simon1hofmann**])
 - ⬆️ Require Qiskit 2.5.2 and NumPy 2, remove older Qiskit fallbacks, and use
   target-aware Clifford+T optimization ([#1122], [#1087]) ([**@simon1hofmann**])
 - ⚡ Build fresh native gate-set targets without retaining every circuit width
@@ -299,6 +301,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
 [#1123]: https://github.com/munich-quantum-toolkit/bench/pull/1123

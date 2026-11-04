@@ -489,6 +489,15 @@ def test_iqpe(exact: bool) -> None:
     assert qc.num_qubits == 2
 
 
+def test_iqpe_feedback_threshold() -> None:
+    """At a cutoff of π/4 only the π/2 feedback rotations need a condition."""
+    qc = create_circuit("iqpe", 5, rotation_threshold=np.pi / 4)
+    branches = [inst.operation.blocks[0] for inst in qc if isinstance(inst.operation, IfElseOp)]
+    assert all(len(block) > 0 for block in branches)
+    angles = [inst.operation.params[0] for block in branches for inst in block if inst.operation.name == "rz"]
+    assert angles == [-np.pi / 2] * 3
+
+
 @pytest.mark.parametrize("benchmark", ["qpeexact", "qpeinexact", "iqpe"])
 def test_phase_estimation_preserves_random_state(benchmark: str) -> None:
     """Constructing a benchmark must leave the application's random stream alone."""
@@ -791,7 +800,7 @@ def test_quantum_metropolis_readout_undoes_phase_estimation() -> None:
     With three spins the Trotter terms do not commute. After compilation, the readout without the copy must still be
     the identity on the pointer and the system.
     """
-    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2)
+    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2, num_trotter_steps=2)
     system, _, pointer, _ = qc.qregs
     first_measure = next(i for i, inst in enumerate(qc.data) if inst.clbits and inst.clbits[0] in qc.cregs[1])
     readout = QuantumCircuit(qc.qubits)
@@ -899,8 +908,9 @@ def test_generation_options_survive_recompilation(bound: bool) -> None:
     expected = circuit.copy()
     expected.remove_final_measurements()
     if not bound:
+        rng = np.random.default_rng(2)
         expected.assign_parameters(
-            np.random.default_rng(2).uniform(0, 2 * np.pi, len(expected.parameters)), inplace=True
+            {parameter: rng.uniform(0, 2 * np.pi) for parameter in expected.parameters}, inplace=True
         )
     compiled.remove_final_measurements()
     assert Operator(compiled).equiv(Operator(expected))
