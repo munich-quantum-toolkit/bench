@@ -112,6 +112,9 @@ def create_circuit(benchmark_name: str, circuit_size: int, /, *args: Any, **kwar
         *args: Additional positional arguments for the factory.
         **kwargs: Factory options. Factories that do not accept a seed ignore it.
 
+    Returns:
+        The circuit produced by the selected benchmark factory.
+
     Raises:
         ValueError: If the specified benchmark name is not available.
     """
