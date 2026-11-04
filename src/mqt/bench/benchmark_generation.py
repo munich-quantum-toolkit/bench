@@ -246,7 +246,7 @@ def get_benchmark_alg(
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Benchmark size, required for a name. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -276,7 +276,7 @@ def get_benchmark_indep(
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Benchmark size, required for a name. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
         opt_level: Optimization level to be used by the transpiler.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
@@ -311,7 +311,7 @@ def get_benchmark_native_gates(
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Benchmark size, required for a name. Pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
         opt_level: Optimization level to be used by the transpiler.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
@@ -397,7 +397,7 @@ def get_benchmark_mapped(
 
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Benchmark size, required for a name. Pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
         opt_level: Optimization level to be used by the transpiler.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
@@ -442,7 +442,7 @@ def get_benchmark(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         level: Choice of level
-        circuit_size: Benchmark size, required for a name. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
         opt_level: Optimization level to be used by the transpiler.
