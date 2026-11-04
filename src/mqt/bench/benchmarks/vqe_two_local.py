@@ -36,7 +36,8 @@ def create_circuit(
         num_qubits: number of qubits of the returned quantum circuit
         rotation_blocks: type of rotation gates to use (default: "ry", other options can be arbitrary single-qubit gates)
         entanglement_blocks: type of entanglement gates to use (default: "cx", other options can be arbitrary multi-qubit gates)
-        entanglement: type of entanglement to use (default: "full", other options: "reverse_linear", "linear", "full", "pairwise", "circular", "sca")
+        entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,
+            ``reverse_linear``, ``pairwise``, ``circular``, and ``sca``.
         reps: number of repetitions (layers) in the ansatz
 
     Returns:

@@ -1,29 +1,22 @@
 # Welcome to MQT Bench's documentation
 
-MQT Bench is a tool for benchmarking quantum software tools. It is part of the
-_{doc}`Munich Quantum Toolkit (MQT) <mqt:index>`_.
+MQT Bench generates quantum circuits for benchmarking quantum software tools.
+Choose an algorithm and a size, then generate the circuit at one of four
+{doc}`abstraction levels <abstraction_levels>`. MQT Bench is part of the
+{doc}`Munich Quantum Toolkit (MQT) <mqt:index>`.
 
-This documentation provides a comprehensive guide to the MQT Bench library,
-including {doc}`installation instructions <installation>`, a
-{doc}`quickstart guide <quickstart>`, and detailed
-{doc}`API documentation <api/mqt/bench/index>`. The source code of MQT Bench is
-publicly available on GitHub at
-[munich-quantum-toolkit/bench](https://github.com/munich-quantum-toolkit/bench),
-while pre-built binaries are available via
-[PyPI](https://pypi.org/project/mqt.bench/) for all major operating systems and
-all modern Python versions. MQT Bench is fully compatible with Qiskit 1.2 and
-above.
+Start with {doc}`installation` and {doc}`quickstart` to generate your first
+circuit. The {doc}`benchmark catalogue <benchmark_selection>` lists the
+algorithms and their parameters. See {doc}`usage` for the web interface, Python
+API, and command line, or browse the {doc}`API reference <api/mqt/bench/index>`.
 
-If you are interested in the theory behind MQT Bench, have a look at the
-publication {cite:p}`quetschlich2023mqtbench`. Furthermore, MQT Bench is also
-available as a
+For the design of MQT Bench, see {cite:p}`quetschlich2023mqtbench`. Circuits are
+also available as a
 [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
-We appreciate any feedback and contributions to the project. If you want to
-contribute, you can find more information in the
-{doc}`contribution guide <contributing>`. If you are having trouble with the
-installation or the usage of MQT Bench, please let us know on our
-{doc}`support page <support>`.
+The [source code](https://github.com/munich-quantum-toolkit/bench) is on GitHub
+and the [Python package](https://pypi.org/project/mqt.bench/) is on PyPI. See
+{doc}`contributing` to contribute or {doc}`support` to get help.
 
 ---
 

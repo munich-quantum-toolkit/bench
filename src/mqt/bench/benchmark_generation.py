@@ -65,7 +65,7 @@ def _get_circuit(
     Arguments:
         benchmark: Name of the benchmark for which the circuit is to be created.
         circuit_size: Size of the circuit to be created, required when the benchmark is a name.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
@@ -131,17 +131,10 @@ def _record_generation(
 def _create_mirror_circuit(
     qc_original: QuantumCircuit, *, inplace: bool = False, pass_manager: PassManager | None = None
 ) -> QuantumCircuit:
-    """Generates the mirror version (qc @ qc.inverse()) of a given quantum circuit.
+    """Append the inverse after removing final measurements, then measure the active qubits.
 
-    For circuits with an initial layout (e.g., mapped circuits), this function ensures
-    that the final layout of the mirrored circuit matches the initial layout of the
-    original circuit. While Qiskit's `inverse()` and `compose()` methods correctly track
-    the permutation of qubits, this benchmark requires that the final qubit permutation
-    is identical to the initial one, requiring the explicit layout handling herein.
-    Also ensures that the mirrored circuit respects the native gate set of the target device
-    if a pass manager is provided.
-
-    All qubits are measured at the end of the mirror circuit.
+    For a mapped circuit, route the mirror back to the input layout and use
+    the resulting physical qubit positions for its measurements.
 
     Args:
         qc_original: The quantum circuit to mirror.
@@ -278,14 +271,14 @@ def get_benchmark_alg(
     """Return an algorithm-level benchmark circuit.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
+        The algorithmic circuit before hardware compilation.
     """
     qc, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if qc is benchmark:
@@ -344,15 +337,15 @@ def get_benchmark_indep(
     """Return a target-independent benchmark circuit.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
         opt_level: Optimization level to be used by the transpiler.
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
+        The circuit optimized without a device target or routing.
     """
     _validate_opt_level(opt_level)
 
@@ -418,16 +411,16 @@ def get_benchmark_native_gates(
     """Return a benchmark compiled to the target's native gate set.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
+        target: Target whose native instructions are used across the circuit's qubits.
         opt_level: Optimization level to be used by the transpiler.
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
+        The circuit expressed in native gates on its logical qubits.
     """
     _validate_opt_level(opt_level)
 
@@ -543,16 +536,16 @@ def get_benchmark_mapped(
     """Return a benchmark fully compiled and qubit-mapped to a device.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
+        target: Device target that supplies the instructions and physical connectivity.
         opt_level: Optimization level to be used by the transpiler.
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
+        The circuit expressed in native gates and routed onto the device.
     """
     _validate_opt_level(opt_level)
 
@@ -626,21 +619,20 @@ def get_benchmark(
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
 ) -> QuantumCircuit:
-    """Returns one benchmark as a qiskit.QuantumCircuit object.
+    """Generate a benchmark at the requested abstraction level.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        level: Choice of level
-        circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
-                (only used for "nativegates" and "mapped" level)
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        level: Benchmark abstraction level.
+        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
+        target: Compilation target. Required at the native and mapped levels.
         opt_level: Optimization level to be used by the transpiler.
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit object representing the benchmark with the selected options
+        The generated circuit.
     """
     if level is BenchmarkLevel.ALG:
         return get_benchmark_alg(

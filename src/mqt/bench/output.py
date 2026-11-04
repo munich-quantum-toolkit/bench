@@ -155,14 +155,17 @@ def write_circuit(
     fmt: OutputFormat = OutputFormat.QASM3,
     target: Target | None = None,
 ) -> None:
-    """Write the given quantum circuit to disk in the specified format, preceded by an MQT Bench header.
+    """Write a circuit to a file or stream.
+
+    OpenQASM includes the MQT Bench header as comments. QPY stores the header
+    in the circuit metadata under ``mqt_bench``.
 
     Arguments:
         qc: The QuantumCircuit to export
-        destination: Destination file path or stream (including extension)
+        destination: File path including the extension, a text stream for OpenQASM, or a binary stream for QPY.
         level: The level of the circuit (e.g., BenchmarkLevel.MAPPED)
         fmt: Desired output format
-        target: The target circuit to be transpiled, if any.
+        target: Compilation target recorded in the header. Required for native and mapped circuits.
 
     Raises:
         MQTBenchExporterError: On unsupported format or I/O errors.
@@ -215,18 +218,18 @@ def save_circuit(
     target: Target | None = None,
     target_directory: str = "",
 ) -> bool:
-    """Public API to save a quantum circuit in various formats with MQT Bench header.
+    """Save a circuit using the filename extension for the selected format.
 
     Arguments:
         qc: Circuit to export
         filename: Base filename without extension
         level: Level of the circuit (e.g., BenchmarkLevel.MAPPED)
         output_format: One of the supported format values, as defined in `OutputFormat`
-        target: Target circuit to be transpiled, if any
-        target_directory: Directory to place the output file
+        target: Compilation target recorded in the header. Required for native and mapped circuits.
+        target_directory: Output directory, created if needed.
 
     Returns:
-        True on success, False otherwise.
+        True on success, or False if export fails and an error is printed to stderr.
     """
     path = Path(target_directory) / f"{filename}.{output_format.extension()}"
     try:
@@ -254,7 +257,7 @@ def generate_filename(
         level: abstraction level
         num_qubits: number of qubits in the benchmark circuit
         target: target device (e.g., BenchmarkLevel.MAPPED)
-        opt_level: optional optimization level (used for 'nativegates' and 'mapped')
+        opt_level: optimization level for target-independent, native, and mapped circuits
         generate_mirror_circuit: whether this is a mirror circuit
 
     Returns:

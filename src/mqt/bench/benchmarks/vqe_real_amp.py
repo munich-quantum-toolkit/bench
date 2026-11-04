@@ -26,7 +26,8 @@ def create_circuit(num_qubits: int, entanglement: str = "reverse_linear", reps: 
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
-        entanglement: type of entanglement to use (default: "reverse_linear", other options: "full", "linear", "full", "pairwise", "circular", "sca")
+        entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,
+            ``reverse_linear``, ``pairwise``, ``circular``, and ``sca``.
         reps: number of repetitions (layers) in the ansatz
 
     Returns:
