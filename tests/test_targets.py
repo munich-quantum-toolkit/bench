@@ -11,6 +11,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from math import pi
 from typing import TYPE_CHECKING
@@ -25,13 +27,11 @@ from qiskit.transpiler import Target
 
 from mqt.bench import BenchmarkLevel, get_benchmark
 from mqt.bench.targets.devices import (
-    _module_from_device_name,  # ruff:ignore[import-private-name]
     get_available_device_names,
     get_device,
     register_device,
 )
 from mqt.bench.targets.gatesets import (
-    _module_from_gateset_name,  # ruff:ignore[import-private-name]
     get_available_gateset_names,
     get_gateset,
     get_target_for_gateset,
@@ -41,7 +41,7 @@ from mqt.bench.targets.gatesets._compilation import prepare_target  # ruff:ignor
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -63,56 +63,6 @@ class DeviceSpec:
             object.__setattr__(
                 self, "symmetric_connectivity", {**self.symmetric_connectivity, **dict.fromkeys(missing, False)}
             )
-
-
-def _assert_single_qubit_gate_properties(target: Target, gate_name: str, *, vendor: str) -> None:
-    if gate_name not in target.operation_names:
-        pytest.fail(f"{vendor}: expected single-qubit gate '{gate_name}' not found in target.operations")
-
-    for (qubit,) in target[gate_name]:
-        props = target[gate_name][qubit,]
-        assert props is not None, f"{vendor}: props for '{gate_name}' on qubit {qubit} missing"
-        dur = getattr(props, "duration", None)
-        if dur is not None:
-            assert dur >= 0, f"{vendor}: negative duration for '{gate_name}' on qubit {qubit}"
-        err = getattr(props, "error", None)
-        if err is not None:
-            assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on qubit {qubit}"
-
-
-def _assert_two_qubit_gate_properties(target: Target, gate_name: str, *, symmetric: bool, vendor: str) -> None:
-    if gate_name not in target.operation_names:
-        pytest.fail(f"{vendor}: expected two-qubit gate '{gate_name}' not found in target.operations")
-
-    for (q0, q1), props in target[gate_name].items():
-        assert q0 != q1, f"{vendor}: identical qubits for '{gate_name}' connection ({q0}, {q1})"
-        assert props is not None, f"{vendor}: props for '{gate_name}' on ({q0}, {q1}) missing"
-        dur = getattr(props, "duration", None)
-        if dur is not None:
-            assert dur > 0, f"{vendor}: non-positive duration for '{gate_name}' on ({q0}, {q1})"
-        err = getattr(props, "error", None)
-        if err is not None:
-            assert 0 <= err < 1, f"{vendor}: error outside [0,1) for '{gate_name}' on ({q0}, {q1})"
-        if symmetric:
-            assert (
-                q1,
-                q0,
-            ) in target[gate_name], f"{vendor}: missing symmetric connection ({q1}, {q0}) for '{gate_name}'"
-
-
-def _assert_measure_properties(target: Target, *, vendor: str) -> None:
-    if "measure" not in target.operation_names:
-        pytest.fail(f"{vendor}: missing mandatory 'measure' operation")
-
-    for (qubit,) in target["measure"]:
-        props = target["measure"][qubit,]
-        assert props is not None, f"{vendor}: measure props missing for qubit {qubit}"
-        dur = getattr(props, "duration", None)
-        if dur is not None:
-            assert dur > 0, f"{vendor}: non-positive measure duration on qubit {qubit}"
-        err = getattr(props, "error", None)
-        if err is not None:
-            assert 0 <= err < 1, f"{vendor}: measure error outside [0,1) on qubit {qubit}"
 
 
 DEVICE_SPECS: Sequence[DeviceSpec] = [
@@ -174,40 +124,35 @@ DEVICE_SPECS: Sequence[DeviceSpec] = [
 
 @pytest.mark.parametrize("spec", DEVICE_SPECS, ids=[d.name for d in DEVICE_SPECS])
 def test_device_spec(spec: DeviceSpec) -> None:
-    """Validate *all* devices according to their :class:`DeviceSpec`."""
+    """Check the advertised native operations, connections and calibration ranges."""
     target = get_device(spec.name)
-
-    # ── Basic identity checks ───────────────────────────────────────────────
-    assert isinstance(target, Target)
     assert target.description == spec.name
     assert target.num_qubits == spec.num_qubits
+    for gate in spec.single_qubit_gates | spec.two_qubit_gates | {"measure"}:
+        assert gate in target.operation_names
+        two_qubit = gate in spec.two_qubit_gates
+        for qubits, properties in target[gate].items():
+            assert qubits is not None
+            assert len(qubits) == (2 if two_qubit else 1)
+            if two_qubit:
+                assert qubits[0] != qubits[1]
+                if spec.symmetric_connectivity.get(gate, False):
+                    assert qubits[::-1] in target[gate]
+            assert properties is not None
+            if properties.duration is not None:
+                if two_qubit or gate == "measure":
+                    assert properties.duration > 0
+                else:
+                    assert properties.duration >= 0
+            if properties.error is not None:
+                assert 0 <= properties.error < 1
 
-    # ── Single-qubit operations ──────────────────────────────────────────────
-    for gate in spec.single_qubit_gates:
-        _assert_single_qubit_gate_properties(target, gate, vendor=spec.name)
 
-    # ── Two-qubit operations ────────────────────────────────────────────────
-    for gate in spec.two_qubit_gates:
-        _assert_two_qubit_gate_properties(
-            target,
-            gate,
-            symmetric=spec.symmetric_connectivity.get(gate, False),
-            vendor=spec.name,
-        )
-
-    # ── Measurement ─────────────────────────────────────────────────────────
-    _assert_measure_properties(target, vendor=spec.name)
-
-
-def test_get_unknown_device() -> None:
-    """Requesting an unavailable device must raise *ValueError*."""
-    unknown_name = "unknown_device"
-    pattern = re.escape(
-        f"'{unknown_name}' is not a supported device. Known modules: ['aqt', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
-    )
-
-    with pytest.raises(ValueError, match=pattern):
-        get_device(unknown_name)
+@pytest.mark.parametrize(("lookup", "kind"), [(get_device, "device"), (get_gateset, "gateset")])
+def test_unknown_target(lookup: Callable[[str], object], kind: str) -> None:
+    """Report unsupported target families from their public lookups."""
+    with pytest.raises(ValueError, match=f"'unknown_name' is not a supported {kind}. Known modules:"):
+        lookup("unknown_name")
 
 
 def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -337,26 +282,23 @@ def test_gateset_targets_are_independent() -> None:
     assert not second.instruction_supported("rzz", (4, 5))
 
 
-@pytest.mark.parametrize(
-    ("gateset_name", "module_name"),
-    [
-        ("rigetti", "rigetti"),
-        ("ionq_forte", "ionq"),
-        ("clifford+t", "clifford_t"),
-        ("clifford+t+rotations", "clifford_t"),
-    ],
-)
-def test_module_from_gateset_name(gateset_name: str, module_name: str) -> None:
-    """Test module name extraction from gateset name."""
-    assert _module_from_gateset_name(gateset_name) == module_name
+@pytest.mark.parametrize("alias", ["clifford+t", "clifford+t+rotations"])
+def test_target_lookup_before_listing(alias: str) -> None:
+    """Resolve both Clifford aliases and vendor names before loading the catalogue."""
+    # Other tests enumerate the catalogue during collection, which imports all vendors.
+    script = """
+import sys
+from mqt.bench.targets import get_device, get_gateset
 
-
-@pytest.mark.parametrize(
-    ("device_name", "module_name"), [("rigetti_cepheus_108", "rigetti"), ("ionq_forte_36", "ionq")]
-)
-def test_module_from_device_name(device_name: str, module_name: str) -> None:
-    """Test module name extraction from device name."""
-    assert _module_from_device_name(device_name) == module_name
+alias = sys.argv[1]
+gates = get_gateset(alias)
+assert "t" in gates and ("rx" in gates) == (alias == "clifford+t+rotations")
+assert "rxpi" in get_gateset("rigetti")
+assert "gpi" in get_gateset("ionq_forte")
+assert get_device("rigetti_cepheus_108").num_qubits == 108
+assert get_device("ionq_forte_36").num_qubits == 36
+"""
+    subprocess.run([sys.executable, "-c", script, alias], check=True)
 
 
 @pytest.mark.parametrize("gateset", ["ionq_forte", "rigetti"])
