@@ -33,7 +33,7 @@ def create_circuit(
     Arguments:
         num_qubits: Controls the precision of the phase estimation algorithm. Must be at least 2.
         exact: Whether to use a target phase that is exactly representable with the chosen precision.
-        rotation_threshold: Threshold for adding rotation gates in the feedback step. Rotation gates with smaller angles will be omitted to reduce circuit complexity.
+        rotation_threshold: Emit conditional feedback rotations only when their angle magnitude exceeds this value in radians.
         seed: Random seed for the target phase. Defaults to 10 for reproducibility;
             None uses system randomness.
 
@@ -73,11 +73,13 @@ def create_circuit(
         qc.cp(angle, psi, ancilla[0])
 
         for meas_idx in range(i, num_iterations):  # bits already measured this run
-            with qc.if_test((c[num_iterations - meas_idx - 1], 1)):
-                exponent = meas_idx - (i - 1) + 1
-                rotation_angle = -2 * np.pi * Fraction(1, 1 << exponent)
-                if abs(rotation_angle) > rotation_threshold:  # avoid adding negligible gates
+            exponent = meas_idx - i + 2
+            rotation_angle = -2 * np.pi * Fraction(1, 1 << exponent)
+            if abs(rotation_angle) > rotation_threshold:
+                with qc.if_test((c[num_iterations - meas_idx - 1], 1)):
                     qc.rz(rotation_angle, ancilla[0])
+            else:
+                break  # Each subsequent rotation has half the angle.
 
         qc.h(ancilla[0])
         qc.measure(ancilla[0], c[num_iterations - i])
