@@ -30,18 +30,18 @@ def create_circuit(
     entanglement: str = "full",
     reps: int = 3,
 ) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the TwoLocal ansatz.
+    """Build a variational ansatz with configurable rotation and entanglement layers.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
-        rotation_blocks: type of rotation gates to use (default: "ry", other options can be arbitrary single-qubit gates)
-        entanglement_blocks: type of entanglement gates to use (default: "cx", other options can be arbitrary multi-qubit gates)
+    Args:
+        num_qubits: Number of qubits in the ansatz.
+        rotation_blocks: Gate names or gates to use in the rotation layers.
+        entanglement_blocks: Gate names or gates to use in the entanglement layers.
         entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,
             ``reverse_linear``, ``pairwise``, ``circular``, and ``sca``.
-        reps: number of repetitions (layers) in the ansatz
+        reps: Number of repetitions of the ansatz layers.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the TwoLocal ansatz
+        A circuit with the requested gate blocks and final measurements on all qubits.
     """
     qc = n_local(
         num_qubits,

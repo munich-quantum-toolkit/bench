@@ -18,12 +18,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("ghz_dynamic", description="Dynamic GHZ State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a dynamic quantum circuit implementing the GHZ state. Going from a circuit depth dependent on the number of qubits to a constant depth by using intermediate measurements.
+    """Prepare a GHZ state using intermediate measurements and classical feedback.
 
-    A clear example on how to transform the classical GHZ circuit to the dynamic version can be seen in https://arxiv.org/pdf/2308.13065 Fig 5.
+    See Fig. 5 of https://arxiv.org/abs/2308.13065 for the dynamic construction.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the state. Must be at least 1.
+
+    Returns:
+        A circuit with the final readout in ``final_measurement``. For widths above one,
+        ``mid_measurement`` holds the intermediate outcomes.
     """
     q = QuantumRegister(num_qubits, "q")
     final_measure = ClassicalRegister(num_qubits, "final_measurement")

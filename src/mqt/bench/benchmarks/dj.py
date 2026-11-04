@@ -78,11 +78,14 @@ def dj_algorithm(oracle: Gate, n: int) -> QuantumCircuit:
 
 @register_benchmark("dj", description="Deutsch-Jozsa")
 def create_circuit(num_qubits: int, balanced: bool = True) -> QuantumCircuit:
-    """Build a Deutsch-Jozsa circuit and measure its input register.
+    """Build a Deutsch-Jozsa circuit with a balanced or constant oracle.
 
-    Arguments:
+    Args:
         num_qubits: Total width, including the oracle's output qubit. Must be at least 2.
-        balanced: Choose a balanced oracle when True or a constant oracle when False.
+        balanced: Choose a balanced oracle when true or a constant oracle when false.
+
+    Returns:
+        A circuit that measures only the input register. An all-zero outcome identifies a constant oracle.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for Deutsch-Jozsa."

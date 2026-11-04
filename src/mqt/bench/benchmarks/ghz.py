@@ -17,10 +17,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("ghz", description="GHZ State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the GHZ state.
+    """Prepare a Greenberger-Horne-Zeilinger (GHZ) state.
 
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 1.
+    Args:
+        num_qubits: Number of qubits in the state. Must be at least 1.
+
+    Returns:
+        A circuit that measures all qubits. Ideally, the result is all zeros or all ones.
     """
     if num_qubits < 1:
         msg = "num_qubits must be at least 1."

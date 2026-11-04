@@ -26,16 +26,16 @@ def create_circuit(
     entanglement: str = "reverse_linear",
     reps: int = 3,
 ) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the EfficientSU2 ansatz.
+    """Build an efficient SU(2) ansatz.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the ansatz.
         entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,
             ``reverse_linear``, ``pairwise``, ``circular``, and ``sca``.
-        reps: number of repetitions (layers) in the ansatz
+        reps: Number of repetitions of the ansatz layers.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the EfficientSU2 ansatz
+        A circuit with parameterized single-qubit rotations and final measurements on all qubits.
     """
     qc = efficient_su2(num_qubits, entanglement=entanglement, reps=reps)
 

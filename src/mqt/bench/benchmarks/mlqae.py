@@ -23,20 +23,22 @@ from ._registry import register_benchmark
 def create_circuit(
     num_qubits: int, num_rounds: int = 3, b_max: float = np.pi / 4, *, for_loop: bool = False
 ) -> QuantumCircuit:
-    r"""Returns a quantum circuit implementing the quantum part of Maximum Likelihood Quantum Amplitude Estimation (ML-QAE).
+    r"""Build the measurement circuit for maximum-likelihood amplitude estimation.
 
-    The circuit is based on Section 4.2 of Suzuki et al. (2020), "Amplitude Estimation without Phase Estimation" (https://arxiv.org/abs/1904.10246).
-    The circuit follows the fixed exponentially increasing schedule: round 0 applies :math:`A` only, round :math:`k = 1,\ldots,\text{num\_rounds}` applies :math:`Q^{2^{k-1}}` after :math:`A`.
-    Each round's result is stored in its own classical bit and all qubits are reset between rounds. The classical maximum-likelihood post-processing is not part of the circuit.
+    The schedule in Sec. 4.2 of Suzuki et al. (https://arxiv.org/abs/1904.10246)
+    starts with state preparation alone. Round :math:`k \geq 1` applies
+    :math:`2^{k-1}` Grover iterations after state preparation. The circuit resets
+    all qubits between rounds.
 
-    Arguments:
-        num_qubits: Total number of qubits (state qubits + 1 objective qubit). Must be at least 1.
-        num_rounds: Number of Grover-amplified rounds (in addition to the m = 0 round). Must be at least 1.
-        b_max: Upper limit of the integral.
-        for_loop: Whether to use a structured for-loop for the Grover iterations within each round.
+    Args:
+        num_qubits: Total width, including one objective qubit. Must be at least 1.
+        num_rounds: Number of amplified rounds after the unamplified round. Must be at least 1.
+        b_max: Upper integration limit. Must be positive and finite.
+        for_loop: Use a structured loop for the Grover iterations within each round.
 
     Returns:
-        The constructed ML-QAE circuit.
+        A circuit that records the objective qubit for round ``k`` in classical bit ``k``.
+        The maximum-likelihood fit is a separate classical step.
     """
     if num_rounds < 1:
         msg = "num_rounds must be at least 1."

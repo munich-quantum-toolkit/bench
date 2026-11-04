@@ -18,13 +18,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("qft", description="Quantum Fourier Transformation (QFT)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm.
+    """Build the quantum Fourier transform on the input register.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the transform.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the Quantum Fourier Transform algorithm
+        A circuit with a computational-basis measurement on each output qubit.
     """
     q = QuantumRegister(num_qubits, "q")
     qc = QuantumCircuit(q, name="qft")

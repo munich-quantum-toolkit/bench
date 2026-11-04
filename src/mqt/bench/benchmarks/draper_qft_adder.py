@@ -33,20 +33,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("draper_qft_adder", description="Draper QFT Adder")
 def create_circuit(num_qubits: int, kind: str = "fixed") -> QuantumCircuit:
-    """Create a draper QFT adder circuit.
+    """Build a Draper adder using the quantum Fourier transform.
 
-    Measure only the sum into ``result``, least-significant bit first.
-    Carry-out, when present, is the most-significant result bit.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be odd and ≥ 3 for half adders, and even and ≥ 2 for fixed adders.
-            kind: The kind of adder, can be ``"half"`` for a half adder or
-               ``"fixed"`` for a fixed-sized adder. A half adder contains a carry-out to represent
-               the most-significant bit, but the fixed-sized adder doesn't and hence performs
-               addition modulo ``2 ** num_state_qubits``.
+    Args:
+        num_qubits: Total width. A half adder requires an odd width of at least 3.
+            A fixed-width adder requires an even width of at least 2.
+        kind: ``"half"`` includes carry-out. ``"fixed"`` retains only the low bits that fit in one operand.
 
     Returns:
-           QuantumCircuit: The constructed draper QFT adder circuit.
+        A circuit that measures only the sum into ``result``, least-significant bit first.
+        For half addition, the highest result bit is the carry-out.
 
     See Also:
         :class:`qiskit.circuit.library.DraperQFTAdder`

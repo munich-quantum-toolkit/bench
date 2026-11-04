@@ -22,16 +22,16 @@ if TYPE_CHECKING:  # pragma: no cover
 
 @register_benchmark("vqe_real_amp", description="Real Amplitudes ansatz")
 def create_circuit(num_qubits: int, entanglement: str = "reverse_linear", reps: int = 3) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the RealAmplitudes ansatz.
+    """Build a real-amplitudes ansatz.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the ansatz.
         entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,
             ``reverse_linear``, ``pairwise``, ``circular``, and ``sca``.
-        reps: number of repetitions (layers) in the ansatz
+        reps: Number of repetitions of the ansatz layers.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the RealAmplitudes ansatz
+        A circuit with parameterized Y rotations and final measurements on all qubits.
     """
     qc = real_amplitudes(num_qubits, entanglement=entanglement, reps=reps)
     qc.name = "vqe_real_amp"

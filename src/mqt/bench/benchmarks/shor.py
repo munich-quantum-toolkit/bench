@@ -45,13 +45,14 @@ _SIZE_TO_PARAMS = {
 
 @register_benchmark("shor", description="Shor's Algorithm")
 def create_circuit(circuit_size: int) -> QuantumCircuit:
-    """Construct Shor's circuit based on total qubit count.
+    """Build Shor's order-finding circuit for a benchmark instance.
 
-    Arguments:
-        circuit_size: Must be one of 18, 42, 58, 74.
+    Args:
+        circuit_size: Total width. Sizes 18, 42, 58, and 74 select the moduli 15, 821,
+            11777, and 201209, respectively, all with base 4.
 
     Returns:
-        QuantumCircuit implementing Shor's algorithm for the chosen size.
+        A circuit for the selected instance with final measurements on all qubits.
 
     Raises:
         ValueError: if the size is not available.
@@ -67,11 +68,14 @@ def create_circuit(circuit_size: int) -> QuantumCircuit:
 
 
 def create_circuit_from_num_and_coprime(num_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Shor's algorithm.
+    """Build Shor's order-finding circuit for a given modulus and base.
 
-    Arguments:
-        num_to_be_factorized: number which shall be factorized
-        a: any integer that satisfies 1 < a < num_to_be_factorized and gcd(a, num_to_be_factorized) = 1
+    Args:
+        num_to_be_factorized: Odd integer of at least 3 to factor.
+        a: Base greater than 1, smaller than the modulus, and coprime to it.
+
+    Returns:
+        An order-finding circuit with final measurements on all qubits.
     """
     qc = Shor().construct_circuit(num_to_be_factorized, a)
     qc.measure_all()

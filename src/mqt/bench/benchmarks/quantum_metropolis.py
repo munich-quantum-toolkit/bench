@@ -87,42 +87,23 @@ def create_circuit(
     num_steps: int = 1,
     num_trotter_steps: int = 1,
 ) -> QuantumCircuit:
-    r"""Returns a dynamic quantum circuit implementing Quantum Metropolis Sampling.
+    r"""Build a quantum Metropolis sampler for an open Heisenberg chain.
 
-    The circuit follows Temme et al. (2011), "Quantum Metropolis Sampling" (https://arxiv.org/abs/0911.3635),
-    Sec. 3 and Figs. 1 to 3, for the open Heisenberg chain of Eq. 79. The qubits form the four registers of
-    Step 0: ``num_qubits - 2 * num_evaluation_qubits - 1`` system spins, the energy register :math:`|E_i\rangle`,
-    the phase estimation pointer :math:`|E_k\rangle`, and the accept qubit. The energy register and the pointer
-    have ``num_evaluation_qubits`` qubits each. With ``num_qubits = 5`` and one evaluation qubit, the circuit is
-    the five-qubit experiment of Sec. 8.
+    The circuit follows Sec. 3 of Temme et al., "Quantum Metropolis Sampling"
+    (https://arxiv.org/abs/0911.3635). Each step measures the current energy,
+    proposes an X or Z update on one of the first two spins, and measures the
+    accept qubit. On rejection it undoes the update and alternates the P and Q
+    measurements until it recovers the original energy bin (Fig. 2). The energy
+    register, phase estimation pointer, and accept qubit are reset between steps.
 
-    Each Metropolis step:
+    For the Hamiltonian of Eq. 79, bin :math:`k` represents energy
+    :math:`4 (n - 1) k / 2^r - (n - 1) / 2`, where :math:`n` is the number
+    of spins and :math:`r` the number of evaluation qubits. For two spins and
+    one evaluation qubit (the five-qubit example in Sec. 8), bins 0 and 1
+    correspond to energies -1/2 and 3/2. The error from rounding the energies
+    to :math:`r` bits is of order :math:`\beta 2^{-r}` (Sec. 4).
 
-    0. Measure the reset accept qubit in the :math:`X` basis twice. The two random bits select the update
-       :math:`C \in \{X, Z\}` on the first or second spin (Sec. 8, Step 2). Pauli updates are Hermitian, so the
-       update measure is symmetric, as detailed balance requires (Eq. 31).
-    1. Apply phase estimation, copy the result into the energy register, undo the phase estimation, and measure
-       the energy register (Fig. 1a). This step prepares an eigenstate with known energy :math:`E_i`.
-    2. Apply :math:`U = W \Phi C` (Fig. 1b) and measure the accept qubit.
-    3. Accept: measure the pointer to read :math:`E_k` and undo the phase estimation.
-       Reject: apply :math:`U^\dagger`, then repeat the binary measurements :math:`P` (Fig. 1c) and
-       :math:`Q = U^\dagger (|s\rangle\langle s|) U` until :math:`P` returns the energy :math:`E_i` (Fig. 2).
-    4. Reset the energy register, the pointer, and the accept qubit (Step 4).
-
-    The classical register ``energy`` holds the energy bin of the current state: :math:`E_i` during a step,
-    :math:`E_k` after an accepted update, and the sampled energy after a final step 1 at the end.
-
-    The measurement in step 1 leaves the energy register in a known basis state. The measurement :math:`P`
-    therefore uses the first qubit of the energy register as a flag and prepares :math:`|E_i\rangle` again from
-    the classical result (Sec. 8 notes that the circuit can condition on this classical result).
-
-    The circuit adds :math:`(n - 1) / 2` to the Hamiltonian of Eq. 79 for :math:`n` spins, so that all energies are
-    non-negative. Bin :math:`k` of an :math:`r`-qubit register holds the shifted energy :math:`4 (n - 1) k / 2^r`, which is the
-    energy :math:`E = 4 (n - 1) k / 2^r - (n - 1) / 2` of Eq. 79. For two spins and one evaluation qubit, bin 0 is
-    :math:`E = -1/2` and bin 1 is :math:`E = 3/2`. Rounding the energies to :math:`r` bits gives an error of order
-    :math:`\beta 2^{-r}` (Sec. 4).
-
-    Arguments:
+    Args:
         num_qubits: Total number of qubits, that is, system spins + ``2 * num_evaluation_qubits`` + 1.
             The chain needs at least two spins.
         num_evaluation_qubits: Bits of precision :math:`r` of the energy register and the pointer. Must be at least 1.
@@ -133,7 +114,7 @@ def create_circuit(
             The evolution is exact for two spins. For more spins, the error decreases as ``1 / num_trotter_steps``.
 
     Returns:
-        The constructed Quantum Metropolis Sampling circuit.
+        A dynamic circuit whose final energy-bin measurement is stored in ``energy``.
     """
     if num_evaluation_qubits < 1:
         msg = "num_evaluation_qubits must be at least 1."
