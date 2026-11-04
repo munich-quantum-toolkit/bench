@@ -55,15 +55,6 @@ class DeviceSpec:
     # If *symmetric_connectivity* is *True*, require (q1, q0) whenever (q0, q1)
     symmetric_connectivity: Mapping[str, bool] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:  # pragma: no cover
-        """Ensures that all declared two-qubit gates have an associated symmetry flag."""
-        # Ensure symmetry flags are defined for all declared 2-qubit gates
-        missing = self.two_qubit_gates.difference(self.symmetric_connectivity)
-        if missing:
-            object.__setattr__(
-                self, "symmetric_connectivity", {**self.symmetric_connectivity, **dict.fromkeys(missing, False)}
-            )
-
 
 def _assert_single_qubit_gate_properties(target: Target, gate_name: str, *, vendor: str) -> None:
     if gate_name not in target.operation_names:

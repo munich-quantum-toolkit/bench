@@ -85,7 +85,7 @@ def get_available_gateset_names() -> list[str]:
         importlib.import_module(f"{__package__}.{module}")
         _IMPORTED_MODULES.add(module)
 
-    return sorted(gateset_names()).copy()
+    return sorted(gateset_names())
 
 
 @cache

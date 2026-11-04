@@ -78,7 +78,7 @@ def _ensure_loaded(benchmark_name: str) -> None:
 
 def get_available_benchmark_names() -> list[str]:
     """Return a list of available benchmark names."""
-    return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names())).copy()
+    return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names()))
 
 
 @cache

@@ -19,7 +19,7 @@ from importlib import metadata
 from io import TextIOBase
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 
 from qiskit.qasm2 import dump as dump2
 from qiskit.qasm3 import dump as dump3
@@ -124,28 +124,6 @@ def _write_file_atomically(
         if destination.exists():
             temporary.chmod(destination.stat().st_mode)
         temporary.replace(destination)
-
-
-@overload
-def write_circuit(
-    qc: QuantumCircuit,
-    destination: Path,
-    level: BenchmarkLevel,
-    fmt: OutputFormat = OutputFormat.QASM3,
-    target: Target | None = None,
-) -> None:  # pragma: no cover - typing overload only
-    ...
-
-
-@overload
-def write_circuit(
-    qc: QuantumCircuit,
-    destination: TextIOBase | BinaryIO,
-    level: BenchmarkLevel,
-    fmt: OutputFormat = OutputFormat.QASM3,
-    target: Target | None = None,
-) -> None:  # pragma: no cover - typing overload only
-    ...
 
 
 def write_circuit(
