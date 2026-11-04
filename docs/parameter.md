@@ -25,10 +25,11 @@ your own Qiskit circuit.
 - **`opt_level`**: Set the Qiskit optimization level from 0 to 3 (default: 2)
   for target-independent, native, and mapped compilation.
 - **`random_parameters` and `seed`**: By default, MQT Bench binds free circuit
-  parameters to random angles. Set `random_parameters=False` to retain symbolic
-  parameters. An explicit `seed` controls parameter binding and is passed to
-  named benchmark factories that accept it. Without an explicit seed, each
-  factory uses its own default and parameter binding uses seed 10.
+  parameters to random angles. Set `random_parameters=False` to skip this
+  binding. Bind the angles before compiling to a target that requires numerical
+  rotations, such as `clifford+t`. An explicit `seed` controls parameter binding
+  and is passed to named benchmark factories that accept it. Without an explicit
+  seed, each factory uses its own default and parameter binding uses seed 10.
 - **Benchmark options**: Pass options such as `depth` or `hidden_string` as
   keyword arguments when generating a named benchmark. The
   {doc}`catalogue <benchmark_selection>` links to each factory's options and

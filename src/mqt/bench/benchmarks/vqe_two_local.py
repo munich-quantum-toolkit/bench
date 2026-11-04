@@ -33,7 +33,8 @@ def create_circuit(
     """Build a variational ansatz with configurable rotation and entanglement layers.
 
     Args:
-        num_qubits: Number of qubits in the ansatz.
+        num_qubits: Number of qubits in the ansatz. Each gate in an entanglement layer
+            must fit the register. The default CX requires at least two qubits.
         rotation_blocks: Gate names or gates to use in the rotation layers.
         entanglement_blocks: Gate names or gates to use in the entanglement layers.
         entanglement: Qiskit entanglement pattern. Options include ``full``, ``linear``,

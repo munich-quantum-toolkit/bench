@@ -8,8 +8,9 @@ mystnb:
 
 # Supported Benchmark Algorithms
 
-Pass a benchmark name to {func}`~mqt.bench.get_benchmark`. Select a name below
-for its factory options, size requirements, and circuit description.
+Pass a benchmark name to {func}`~mqt.bench.get_benchmark`. The
+{doc}`benchmark API reference <api/mqt/bench/benchmarks/index>` lists the
+factories with their options, size requirements, and circuit descriptions.
 
 ```{code-cell} ipython3
 ---

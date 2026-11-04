@@ -7,11 +7,6 @@ mystnb:
   execution_in_temp: true
 ---
 
-```{code-cell} ipython3
-:tags: [remove-cell]
-%config InlineBackend.figure_formats = ['svg']
-```
-
 # Usage
 
 ## Usage via the Webpage
@@ -30,7 +25,7 @@ circuit at the algorithmic level:
 from mqt.bench import BenchmarkLevel, get_benchmark
 
 qc = get_benchmark("dj", BenchmarkLevel.ALG, 5)
-qc.draw(output="mpl")
+print(qc.draw(output="text"))
 ```
 
 Further examples can be found in the {doc}`quickstart` guide.

@@ -205,10 +205,13 @@ print(stream.getvalue())
 Use QPY to retain the Qiskit circuit and its metadata in a binary file.
 
 ```{code-cell} ipython3
+from pathlib import Path
+
 from qiskit import qpy
 
-save_circuit(qc_target_independent_level, "dj", BenchmarkLevel.INDEP, OutputFormat.QPY)
-with open("dj.qpy", "rb") as file:
+path = Path("dj.qpy")
+write_circuit(qc_target_independent_level, path, BenchmarkLevel.INDEP, OutputFormat.QPY)
+with path.open("rb") as file:
     [restored] = qpy.load(file)
 print(restored.metadata["mqt_bench_generation"])
 ```
