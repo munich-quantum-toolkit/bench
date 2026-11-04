@@ -205,32 +205,40 @@ def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
     get_available_device_names()
     monkeypatch.setattr("mqt.bench.targets.devices._registry._REGISTRY", {})
+    num_qubits = 1
 
     @register_device("dummy_device")
     def _dummy_factory() -> Target:
-        return Target(num_qubits=1)
+        return Target(num_qubits=num_qubits)
 
     names = get_available_device_names()
     assert "dummy_device" in names
 
     dev = get_device("dummy_device")
     assert isinstance(dev, Target)
+    assert dev.num_qubits == 1
+    num_qubits = 2
+    assert get_device("dummy_device").num_qubits == 2
 
 
 def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A gateset registered at runtime should immediately be visible through the public helpers."""
     get_available_gateset_names()
     monkeypatch.setattr("mqt.bench.targets.gatesets._registry._REGISTRY", {})
+    gate_names = ["dummy_gate"]
 
     @register_gateset("dummy_gateset")
     def _dummy_factory() -> list[str]:
-        return ["dummy_gate"]
+        return gate_names.copy()
 
     names = get_available_gateset_names()
     assert "dummy_gateset" in names
 
     gateset = get_gateset("dummy_gateset")
     assert gateset == ["dummy_gate"]
+    gate_names.append("x")
+    gateset.clear()
+    assert get_gateset("dummy_gateset") == ["dummy_gate", "x"]
 
     with pytest.raises(ValueError, match=re.escape("Gate 'dummy_gate' not found in available custom gates.")):
         get_target_for_gateset("dummy_gateset", 2)
@@ -270,14 +278,32 @@ def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None
             return ["dummy_gate"]
 
 
-def test_get_device_immutability() -> None:
+@pytest.mark.parametrize("device_name", get_available_device_names())
+def test_get_device_immutability(device_name: str) -> None:
     """Changes to a device retrieved by get_device should not affect the device in the registry. Same for device names."""
-    device = get_device("ionq_forte_36")
+    device = get_device(device_name)
     device.description = "dummy_description"
     assert device.description == "dummy_description"
 
-    device2 = get_device("ionq_forte_36")
-    assert device2.description == "ionq_forte_36"
+    gate, qargs, properties = next(
+        (gate, qargs, properties)
+        for gate in device.operation_names
+        for qargs, properties in device[gate].items()
+        if properties is not None
+    )
+    duration = properties.duration
+    properties.duration = 0.125
+
+    device2 = get_device(device_name)
+    assert device2.description == device_name
+    assert device2[gate][qargs].duration == duration
+    for name in device.operation_names:
+        operation = device.operation_from_name(name)
+        if isinstance(operation, type) or not operation.params:
+            continue
+        parameters = [str(parameter) for parameter in operation.params]
+        operation.params[0] = 0.125
+        assert [str(parameter) for parameter in device2.operation_from_name(name).params] == parameters
 
     device_names = get_available_device_names()
     device_names.append("dummy_devicename")
@@ -286,13 +312,14 @@ def test_get_device_immutability() -> None:
     assert "dummy_devicename" not in device_names2
 
 
-def test_get_gateset_immutability() -> None:
+@pytest.mark.parametrize("gateset_name", get_available_gateset_names())
+def test_get_gateset_immutability(gateset_name: str) -> None:
     """Changes to a gateset retrieved by get_gateset should not affect the gateset in the registry. Sames for gateset names."""
-    gateset = get_gateset("ibm_heron")
+    gateset = get_gateset(gateset_name)
     gateset.append("dummy_gate")
     assert "dummy_gate" in gateset
 
-    gateset2 = get_gateset("ibm_heron")
+    gateset2 = get_gateset(gateset_name)
     assert "dummy_gate" not in gateset2
 
     gateset_names = get_available_gateset_names()
