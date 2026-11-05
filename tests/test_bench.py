@@ -17,7 +17,7 @@ import random
 import re
 from enum import StrEnum
 from importlib import metadata
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 import networkx as nx
 import numpy as np
@@ -1270,96 +1270,55 @@ def test_get_benchmark_encoding_ignored_for_non_alg_level(level: BenchmarkLevel,
     assert qc.depth() > 0, "get_benchmark should still return a benchmark when it ignores `encoding`"
 
 
-def test_get_benchmark_faulty_parameters() -> None:
-    """Test the get_benchmark method with faulty parameters."""
-    match = re.escape(
-        f"'wrong_name' is not a supported benchmark. Available benchmarks: {get_available_benchmark_names()}"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark("wrong_name", BenchmarkLevel.INDEP, 6)
-    match = "`circuit_size` cannot be None when `benchmark` is a str."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "dj",
-            BenchmarkLevel.INDEP,
-            None,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = "`circuit_size` must be a positive integer when `benchmark` is a str."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "dj",
-            BenchmarkLevel.INDEP,
-            -1,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "shor",
-            BenchmarkLevel.INDEP,
-            3,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = re.escape("Invalid `opt_level` '4'. Must be in the range [0, 3].")
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.INDEP,
-            3,
-            get_device("rigetti_cepheus_108"),
-            4,
-        )
-    match = re.escape("Invalid `encoding` 'wrong_encoding'. Must be one of ")
-    with pytest.raises(ValueError, match=match):
-        get_benchmark("bv", BenchmarkLevel.ALG, 3, encoding="wrong_encoding")
-    match = re.escape(
-        "'wrong_gateset' is not a supported gateset. Known modules: ['aqt', 'clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.NATIVEGATES,
-            3,
-            get_target_for_gateset("wrong_gateset", 3),
-            1,
-        )
-    match = re.escape(
-        "'wrong_device' is not a supported device. Known modules: ['aqt', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.MAPPED,
-            3,
-            get_device("wrong_device"),
-            1,
-        )
-
-    match = "Target must be provided for 'nativegates' level."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(benchmark="ghz", level=BenchmarkLevel.NATIVEGATES, circuit_size=3, target=None, opt_level=0)
-
-    match = "Target must be provided for 'mapped' level."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(benchmark="ghz", level=BenchmarkLevel.MAPPED, circuit_size=3, target=None, opt_level=0)
-
-
 @pytest.mark.parametrize(
-    ("benchmark", "level", "size", "message"),
+    ("kwargs", "message"),
     [
-        ("shor", BenchmarkLevel.INDEP, 3, "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74."),
-        ("ghz", BenchmarkLevel.NATIVEGATES, 3, "Target must be provided for 'nativegates' level."),
-        ("ghz", BenchmarkLevel.MAPPED, 3, "Target must be provided for 'mapped' level."),
+        pytest.param(
+            {"benchmark": "wrong_name", "level": BenchmarkLevel.INDEP, "circuit_size": 6},
+            f"'wrong_name' is not a supported benchmark. Available benchmarks: {get_available_benchmark_names()}",
+            id="unknown-benchmark",
+        ),
+        pytest.param(
+            {"benchmark": "dj", "level": BenchmarkLevel.INDEP, "circuit_size": None},
+            "`circuit_size` cannot be None when `benchmark` is a str.",
+            id="missing-size",
+        ),
+        pytest.param(
+            {"benchmark": "dj", "level": BenchmarkLevel.INDEP, "circuit_size": -1},
+            "`circuit_size` must be a positive integer when `benchmark` is a str.",
+            id="negative-size",
+        ),
+        pytest.param(
+            {"benchmark": "shor", "level": BenchmarkLevel.INDEP, "circuit_size": 3},
+            "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74.",
+            id="unsupported-shor-size",
+        ),
+        pytest.param(
+            {"benchmark": "ghz", "level": BenchmarkLevel.NATIVEGATES, "circuit_size": 3},
+            "Target must be provided for 'nativegates' level.",
+            id="nativegates-without-target",
+        ),
+        pytest.param(
+            {"benchmark": "ghz", "level": BenchmarkLevel.MAPPED, "circuit_size": 3},
+            "Target must be provided for 'mapped' level.",
+            id="mapped-without-target",
+        ),
+        pytest.param(
+            {"benchmark": "qpeexact", "level": BenchmarkLevel.INDEP, "circuit_size": 3, "opt_level": 4},
+            "Invalid `opt_level` '4'. Must be in the range [0, 3].",
+            id="invalid-opt-level",
+        ),
+        pytest.param(
+            {"benchmark": "bv", "level": BenchmarkLevel.ALG, "circuit_size": 3, "encoding": "wrong_encoding"},
+            "Invalid `encoding` 'wrong_encoding'. Must be one of ",
+            id="unknown-encoding",
+        ),
     ],
 )
-def test_get_benchmark_faulty_parameters(benchmark: str, level: BenchmarkLevel, size: int, message: str) -> None:
-    """Report unsupported Shor instances and missing compilation targets."""
+def test_get_benchmark_faulty_parameters(kwargs: dict[str, Any], message: str) -> None:
+    """Reject invalid arguments to get_benchmark with a descriptive error."""
     with pytest.raises(ValueError, match=re.escape(message)):
-        get_benchmark(benchmark, level, size)
+        get_benchmark(**kwargs)
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
