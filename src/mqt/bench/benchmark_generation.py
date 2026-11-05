@@ -99,13 +99,12 @@ def _get_circuit(
                 continue
     generation["options"] = options
 
-    if qc.parameters and random_parameters:
+    if random_parameters and qc.num_parameters:
         seed = kwargs.get("seed", 10)
         rng = np.random.default_rng(seed)
-        param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
         if qc is benchmark:
             qc = qc.copy()
-        qc.assign_parameters(param_dict, inplace=True)
+        qc.assign_parameters(rng.uniform(0, 2 * np.pi, qc.num_parameters), inplace=True)
         generation["random_parameters"] = True
         generation["parameter_seed"] = seed
     return qc, generation
