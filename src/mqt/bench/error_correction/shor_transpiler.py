@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from qiskit.circuit.library import IGate
 
-from mqt.bench.components.shor_circuit_components import (
+from mqt.bench.error_correction.components.shor_circuit_components import (
     apply_nine_qubit_shors_code_bit_flip_correction,
     apply_nine_qubit_shors_code_phase_flip_correction,
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,

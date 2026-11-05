@@ -24,7 +24,7 @@ from qiskit.circuit.library import (
     ZGate,
 )
 
-from mqt.bench.components.steane_circuit_components import (
+from mqt.bench.error_correction.components.steane_circuit_components import (
     apply_seven_qubit_steane_code_correction,
     get_seven_qubit_steane_code_decoding_circuit,
     get_seven_qubit_steane_code_encoding_circuit,
