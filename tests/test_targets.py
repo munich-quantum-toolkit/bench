@@ -141,9 +141,11 @@ def test_device_spec(spec: DeviceSpec) -> None:
 
 @pytest.mark.parametrize(("lookup", "kind"), [(get_device, "device"), (get_gateset, "gateset")])
 def test_unknown_target(lookup: Callable[[str], object], kind: str) -> None:
-    """Report unsupported target families from their public lookups."""
+    """Reject unknown target families and unknown names within known families."""
     with pytest.raises(ValueError, match=f"'unknown_name' is not a supported {kind}. Known modules:"):
         lookup("unknown_name")
+    with pytest.raises(KeyError, match="ibm_unknown"):
+        lookup("ibm_unknown")
 
 
 def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
