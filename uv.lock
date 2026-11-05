@@ -1529,16 +1529,12 @@ wheels = [
 name = "mqt-bench"
 source = { editable = "." }
 dependencies = [
+    { name = "mqt-core" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "qiskit" },
-]
-
-[package.optional-dependencies]
-mqt = [
-    { name = "mqt-core" },
 ]
 
 [package.dev-dependencies]
@@ -1576,7 +1572,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mqt-core", marker = "extra == 'mqt'", git = "https://github.com/munich-quantum-toolkit/core.git?rev=ed8fe3a6fb0217274bce9b6c1f45d5f0e536654d" },
+    { name = "mqt-core", git = "https://github.com/munich-quantum-toolkit/core.git?rev=ed8fe3a6fb0217274bce9b6c1f45d5f0e536654d" },
     { name = "networkx", specifier = ">=2.8.8" },
     { name = "numpy", specifier = ">=2" },
     { name = "numpy", marker = "python_full_version >= '3.13'", specifier = ">=2.1" },
@@ -1584,7 +1580,6 @@ requires-dist = [
     { name = "numpy", marker = "python_full_version >= '3.15'", specifier = ">=2.5.2" },
     { name = "qiskit", specifier = ">=2.5.2,<3" },
 ]
-provides-extras = ["mqt"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -14,9 +14,9 @@ that minor releases may include breaking changes.
 
 ### Added
 
-- ✨ Add optional MQT Core compilation for target-independent, native-gate, and
-  mapped circuits via `compiler="mqt"` or `--compiler mqt`, with logical native
-  QASM exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
+- ✨ Add MQT Core compilation for target-independent, native-gate, and mapped
+  circuits via `compiler="mqt"` or `--compiler mqt`, with logical native QASM
+  exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
   [**@burgholzer**])
 - ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
   rejection loop ([#1053]) ([**@algovista-collab**])

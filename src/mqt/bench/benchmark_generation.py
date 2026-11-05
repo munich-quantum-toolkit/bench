@@ -68,7 +68,7 @@ def _get_circuit(
         benchmark: Name of the benchmark for which the circuit is to be created.
         circuit_size: Size of the circuit to be created, required when the benchmark is a name.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: Additional keyword arguments passed to circuit creation.
 
     Returns:
         The circuit and its generation settings.
@@ -227,10 +227,8 @@ def _validate_compiler(compiler: str, opt_level: int, compiler_options: Compilat
     if compiler_options is not None and compiler != "mqt":
         msg = 'compiler_options requires compiler="mqt".'
         raise ValueError(msg)
-    _validate_opt_level(opt_level)
-    if compiler == "mqt" and opt_level != 2:
-        msg = "MQT Core uses its default optimization pipeline; omit opt_level or set it to 2."
-        raise ValueError(msg)
+    if compiler == "qiskit":
+        _validate_opt_level(opt_level)
 
 
 def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
@@ -327,11 +325,14 @@ def get_benchmark_alg(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: Additional keyword arguments passed to circuit creation.
 
     Returns:
         Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
     """
+    if kwargs.pop("compiler_options", None) is not None:
+        msg = "compiler_options requires a compilation level; the algorithm level does not compile."
+        raise ValueError(msg)
     qc, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if qc is benchmark:
         qc = qc.copy()
@@ -348,7 +349,6 @@ def get_benchmark_indep(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -362,7 +362,6 @@ def get_benchmark_indep(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -376,7 +375,6 @@ def get_benchmark_indep(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -389,7 +387,6 @@ def get_benchmark_indep(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -399,16 +396,16 @@ def get_benchmark_indep(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
     """
+    compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
@@ -434,7 +431,6 @@ def get_benchmark_native_gates(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -449,7 +445,6 @@ def get_benchmark_native_gates(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -464,7 +459,6 @@ def get_benchmark_native_gates(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -478,7 +472,6 @@ def get_benchmark_native_gates(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -489,16 +482,16 @@ def get_benchmark_native_gates(
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
     """
+    compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
@@ -578,7 +571,6 @@ def get_benchmark_mapped(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -593,7 +585,6 @@ def get_benchmark_mapped(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -608,7 +599,6 @@ def get_benchmark_mapped(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -622,7 +612,6 @@ def get_benchmark_mapped(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -633,16 +622,16 @@ def get_benchmark_mapped(
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
     """
+    compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
 
     circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
@@ -681,7 +670,6 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -697,7 +685,6 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -713,7 +700,6 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -728,7 +714,6 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    compiler_options: CompilationOptions | None = None,
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -741,21 +726,17 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
-        opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
     """
-    _validate_compiler(compiler, opt_level if level is not BenchmarkLevel.ALG else 2, compiler_options)
+    _validate_compiler(compiler, opt_level if level is not BenchmarkLevel.ALG else 2, kwargs.get("compiler_options"))
     if level is BenchmarkLevel.ALG:
-        if compiler_options is not None:
-            msg = "compiler_options requires a compilation level; the algorithm level does not compile."
-            raise ValueError(msg)
         return get_benchmark_alg(
             benchmark=benchmark,
             circuit_size=circuit_size,
@@ -770,7 +751,6 @@ def get_benchmark(
             circuit_size=circuit_size,
             opt_level=opt_level,
             compiler=compiler,
-            compiler_options=compiler_options,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,
@@ -786,7 +766,6 @@ def get_benchmark(
             target=target,
             opt_level=opt_level,
             compiler=compiler,
-            compiler_options=compiler_options,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,
@@ -802,7 +781,6 @@ def get_benchmark(
             target=target,
             opt_level=opt_level,
             compiler=compiler,
-            compiler_options=compiler_options,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,

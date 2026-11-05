@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -37,6 +38,62 @@ def _generate(script_runner: ScriptRunner, level: str, algorithm: str, size: int
         str(size),
         *options,
     ])
+
+
+@pytest.mark.parametrize(
+    ("extra_args", "seed", "trials"),
+    [([], 10, 8), (["--compiler-seed", "17"], 17, 8), (["--mapping-trials", "3"], 10, 3)],
+)
+def test_mqt_cli(script_runner: ScriptRunner, tmp_path: Path, extra_args: list[str], seed: int, trials: int) -> None:
+    """Keep compilation controls separate from factory options and Qiskit's opt_level."""
+    result = _generate(
+        script_runner,
+        "nativegates",
+        "graphstate",
+        3,
+        "--compiler",
+        "mqt",
+        "--target",
+        "ibm_heron",
+        "--seed",
+        "42",
+        "--benchmark-options",
+        '{"degree": 2}',
+        "--optimization-level",
+        "1",
+        "--save",
+        "--target-directory",
+        str(tmp_path),
+        *extra_args,
+    )
+    assert result.success
+    filename = "graphstate_nativegates_ibm_heron_mqt_3.qasm"
+    assert filename in result.stdout
+    exported = (tmp_path / filename).read_text()
+    generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
+    assert generation["options"] == {"seed": 42, "degree": 2}
+    options = json.loads(exported.split("// Compiler options: ")[1].splitlines()[0])
+    assert options["seed"] == seed
+    assert options["mapping"]["trials"] == trials
+    assert "// Compiler: mqt " in exported
+
+
+@pytest.mark.parametrize(
+    ("compiler", "level", "extra_args", "message"),
+    [
+        ("qiskit", "indep", ["--compiler-seed", "17"], "require --compiler mqt"),
+        ("mqt", "alg", ["--mapping-trials", "2"], "require a compilation level"),
+        ("mqt", "indep", ["--compiler-seed", "-1"], "--compiler-seed must be nonnegative"),
+        ("mqt", "indep", ["--mapping-trials", "0"], "--mapping-trials must be positive"),
+    ],
+)
+def test_mqt_cli_errors(
+    script_runner: ScriptRunner, compiler: str, level: str, extra_args: list[str], message: str
+) -> None:
+    """Report invalid compiler controls as usage errors."""
+    result = _generate(script_runner, level, "ghz", 3, "--compiler", compiler, *extra_args)
+    assert result.returncode == 2
+    assert message in result.stderr
 
 
 @pytest.mark.parametrize(

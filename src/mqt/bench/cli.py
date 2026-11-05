@@ -67,13 +67,13 @@ def main() -> None:
         "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
     )
     parser.add_argument("--compiler-seed", type=int, help="MQT Core compilation seed (default: 10).")
-    parser.add_argument("--mapping-trials", type=int, help="Number of MQT Core mapping trials (default: 4).")
+    parser.add_argument("--mapping-trials", type=int, help="Number of MQT Core mapping trials (default: 8).")
     parser.add_argument(
         "--optimization-level",
         type=int,
         choices=range(4),
         default=2,
-        help="Qiskit optimization level (0-3, default: 2). The MQT compiler requires the default value 2.",
+        help="Qiskit optimization level (0-3, default: 2). Ignored by the MQT compiler.",
     )
     parser.add_argument(
         "--target",
@@ -143,9 +143,6 @@ def main() -> None:
     if level in (BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED) and not args.target:
         parser.error(f"--target is required when --level is '{args.level}'.")
 
-    if args.compiler == "mqt" and level != BenchmarkLevel.ALG and args.optimization_level != 2:
-        parser.error("--compiler mqt requires --optimization-level 2.")
-
     compiler_options = None
     if args.compiler_seed is not None or args.mapping_trials is not None:
         if args.compiler != "mqt":
@@ -156,7 +153,7 @@ def main() -> None:
             parser.error("--compiler-seed must be nonnegative.")
         if args.mapping_trials is not None and args.mapping_trials < 1:
             parser.error("--mapping-trials must be positive.")
-        from ._mqt_compiler import CompilationOptions, MappingOptions  # ruff:ignore[import-outside-top-level]
+        from mqt.core.mlir import CompilationOptions, MappingOptions  # ruff:ignore[import-outside-top-level]
 
         compiler_options = CompilationOptions(
             seed=args.compiler_seed if args.compiler_seed is not None else 10,

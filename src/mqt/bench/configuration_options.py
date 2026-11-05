@@ -15,18 +15,23 @@ from typing import TYPE_CHECKING, TypedDict
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from mqt.core.mlir import CompilationOptions
     from qiskit.circuit import Gate, QuantumCircuit
 
 __all__ = ["ConfigurationOptions"]
 
 
 class ConfigurationOptions(TypedDict, total=False):
-    """Configuration options for benchmark generation.
+    """Configuration options for benchmark generation and compilation.
 
-    All fields are optional. Each factory accepts only its documented options.
+    All fields are optional. Benchmark generation consumes ``compiler_options``;
+    each factory accepts only its documented generation options.
     The shared seed also controls random parameter values and is passed to
     factories that accept it.
     """
+
+    compiler_options: CompilationOptions | None
+    """MQT Core compilation controls; used only with compiler="mqt" at a compilation level."""
 
     seed: int | None
     """Random seed for parameter values and factories that accept a seed (None for random behavior)."""

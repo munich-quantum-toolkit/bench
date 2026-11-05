@@ -6,44 +6,26 @@
 #
 # Licensed under the MIT License
 
-"""Optional MQT Core compiler for Qiskit benchmark circuits."""
+"""MQT Core compiler for Qiskit benchmark circuits."""
 
 from __future__ import annotations
 
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
+import mqt.core.mlir as core
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library import GlobalPhaseGate
-
-try:
-    from mqt.core.mlir import (
-        CompilationOptions,
-        CompilerTarget,
-        MappingOptions,
-        OutputFormat,
-        PayloadEncoding,
-        PayloadFormat,
-        PayloadSpecification,
-        ProgramCapability,
-        TargetEnvironment,
-        compile_program,
-    )
-except ModuleNotFoundError as exc:
-    if exc.name not in {"mqt.core", "mqt.core.mlir"}:
-        raise
-    msg = 'MQT compilation requires MQT Core. Install it with: pip install "mqt-bench[mqt]"'
-    raise ImportError(msg) from exc
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
 
 _CONTROL_FLOW = {
-    "if_else": ProgramCapability.FORWARD_BRANCHING,
-    "for_loop": ProgramCapability.COUNTED_ITERATION,
-    "while_loop": ProgramCapability.CONDITIONAL_LOOP,
-    "switch_case": ProgramCapability.MULTIWAY_BRANCHING,
+    "if_else": core.ProgramCapability.FORWARD_BRANCHING,
+    "for_loop": core.ProgramCapability.COUNTED_ITERATION,
+    "while_loop": core.ProgramCapability.CONDITIONAL_LOOP,
+    "switch_case": core.ProgramCapability.MULTIWAY_BRANCHING,
 }
 
 
@@ -73,7 +55,7 @@ def _logical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
     return result
 
 
-def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> TargetEnvironment:
+def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
         msg = "The MQT mapped target must have at least as many qubits as the circuit."
@@ -97,20 +79,22 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
         and not isinstance(target.operation_from_name(name), GlobalPhaseGate)
     ]
     if mapped:
-        core_target = CompilerTarget.from_qiskit(target, operation_names=names)
+        core_target = core.CompilerTarget.from_qiskit(target, operation_names=names)
     else:
         names = [name for name in names if target.operation_from_name(name).num_qubits <= num_qubits]
-        core_target = CompilerTarget(
+        core_target = core.CompilerTarget(
             num_qubits,
-            connectivity=CompilerTarget.Connectivity.all_to_all(),
-            native_operations=CompilerTarget.NativeOperations.from_qiskit(target, operation_names=names),
+            connectivity=core.CompilerTarget.Connectivity.all_to_all(),
+            native_operations=core.CompilerTarget.NativeOperations.from_qiskit(target, operation_names=names),
         )
-    return TargetEnvironment(
+    return core.TargetEnvironment(
         core_target,
-        PayloadSpecification(
-            PayloadFormat("qiskit", ".".join(version("qiskit").split(".")[:2]), encoding=PayloadEncoding.BINARY),
+        core.PayloadSpecification(
+            core.PayloadFormat(
+                "qiskit", ".".join(version("qiskit").split(".")[:2]), encoding=core.PayloadEncoding.BINARY
+            ),
             capabilities=[
-                ProgramCapability(capability) for name, capability in _CONTROL_FLOW.items() if name in target
+                core.ProgramCapability(capability) for name, capability in _CONTROL_FLOW.items() if name in target
             ],
         ),
     )
@@ -141,7 +125,7 @@ def compile_circuit(
     target: Target | None = None,
     *,
     mapped: bool = False,
-    options: CompilationOptions | None = None,
+    options: core.CompilationOptions | None = None,
 ) -> QuantumCircuit:
     """Compile through Core and return a Qiskit circuit with compiler provenance.
 
@@ -155,13 +139,13 @@ def compile_circuit(
         A Qiskit circuit. Mapped circuits use physical wires without layout metadata.
     """
     if options is None:
-        options = CompilationOptions(seed=10, mapping=MappingOptions(trials=8))
+        options = core.CompilationOptions(seed=10, mapping=core.MappingOptions(trials=8))
     source = _physical_circuit(circuit)
     if target is None:
-        result = compile_program(source, options=options)
+        result = core.compile_program(source, options=options)
     elif mapped:
         environment = _target_environment(target, circuit.num_qubits, mapped=True)
-        result = compile_program(source, target=environment, output=OutputFormat.QISKIT, options=options)
+        result = core.compile_program(source, target=environment, output=core.OutputFormat.QISKIT, options=options)
         result._layout = None  # ruff:ignore[private-member-access]
     else:
         environment = _target_environment(target, circuit.num_qubits, mapped=False)
@@ -171,7 +155,7 @@ def compile_circuit(
             trailing_barriers.append(source.data.pop())
         # Native synthesis still elides terminal swaps unless a barrier follows.
         source.barrier()
-        program = compile_program(source, output=OutputFormat.QCO, options=options)
+        program = core.compile_program(source, output=core.OutputFormat.QCO, options=options)
         program.synthesize_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
         if result.data and result.data[-1].operation.name == "barrier":

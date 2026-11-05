@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import builtins
 import datetime as dt
 import io
 import json
@@ -1842,38 +1841,8 @@ def test_invalid_compiler(compiler: str) -> None:
 @pytest.mark.parametrize("opt_level", [0, 1, 3])
 def test_mqt_optimization_level(opt_level: int) -> None:
     """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
-    with pytest.raises(ValueError, match="MQT Core uses its default optimization pipeline"):
-        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level)
-
-
-def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A base installation works and gives an installation hint when Core is selected."""
-    import sys  # ruff:ignore[import-outside-top-level]
-
-    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
-    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
-    assert get_benchmark_indep("ghz", 3)
-    with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
-        get_benchmark_indep("ghz", 3, compiler="mqt")
-
-
-def test_broken_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Preserve dependency import failures instead of reporting Core as uninstalled."""
-    import sys  # ruff:ignore[import-outside-top-level]
-
-    original_import = cast("Callable[..., object]", builtins.__import__)
-
-    def fail_core_import(name: str, *args: object, **kwargs: object) -> object:
-        if name == "mqt.core.mlir":
-            msg = "Missing native dependency"
-            raise ModuleNotFoundError(msg, name="core_native_dependency")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
-    monkeypatch.setattr(builtins, "__import__", fail_core_import)
-    with pytest.raises(ModuleNotFoundError, match="Missing native dependency") as exc:
-        get_benchmark_indep("ghz", 3, compiler="mqt")
-    assert exc.value.name == "core_native_dependency"
+    expected = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+    assert get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level) == expected
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))

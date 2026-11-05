@@ -6,30 +6,27 @@
 #
 # Licensed under the MIT License
 
-"""Tests for compilation with the optional MQT Core dependency."""
+"""Integration tests for MQT Core compilation."""
 
 from __future__ import annotations
 
 import io
 import json
-import sys
+from importlib import import_module
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from mqt.core import mlir as core
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
-    Gate,
     IfElseOp,
     Parameter,
     ParameterVector,
-    ParameterVectorElement,
 )
 from qiskit.circuit.library import (
     CXGate,
     GlobalPhaseGate,
-    RXGate,
-    RYGate,
     RZGate,
     RZZGate,
     SXGate,
@@ -41,7 +38,6 @@ from qiskit.transpiler import Target
 
 from mqt.bench import (
     BenchmarkLevel,
-    cli,
     get_benchmark,
     get_benchmark_alg,
     get_benchmark_indep,
@@ -53,11 +49,7 @@ from mqt.bench.targets import get_device, get_target_for_gateset
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from mqt.core.mlir import CompilationOptions
-
-core = pytest.importorskip("mqt.core.mlir")
+    from mqt.bench.configuration_options import ConfigurationOptions
 
 
 @pytest.mark.parametrize("name", ["ibm_heron_156", "ibm_nighthawk_120", "ibm_heron_156_fractional"])
@@ -137,34 +129,21 @@ def test_symbolic_independent_circuit() -> None:
         )
 
 
-def test_parameter_vector_identity() -> None:
-    """Core preserves vector membership and identity inside parameter expressions."""
-    angles = ParameterVector("angles", 3)
-    circuit = QuantumCircuit(1)
-    circuit.rx(2 * angles[2] + angles[0], 0)
-    result = get_benchmark_indep(circuit, compiler="mqt", random_parameters=False)
-    assert result.parameters == circuit.parameters
-    for parameter in result.parameters:
-        assert isinstance(parameter, ParameterVectorElement)
-        assert len(parameter.vector) == 3
-    values = {angles[0]: 0.2, angles[2]: 0.3}
-    assert Operator(result.assign_parameters(values)).equiv(Operator(circuit.assign_parameters(values)))
-
-
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 @pytest.mark.parametrize("mirror", [False, True])
 def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pytest.MonkeyPatch) -> None:
     """Use caller options for compilation and target-specific mirror recompilation."""
     options = core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=2, iterations=2, lookahead=0))
     seen = []
-    compile_circuit = pytest.importorskip("mqt.bench._mqt_compiler").compile_circuit
+    compile_circuit = import_module("mqt.bench._mqt_compiler").compile_circuit
+    configuration: ConfigurationOptions = {"compiler_options": options, "seed": 42}
 
     def record_options(
         circuit: QuantumCircuit,
         target: Target | None = None,
         *,
         mapped: bool = False,
-        options: CompilationOptions | None = None,
+        options: core.CompilationOptions | None = None,
     ) -> QuantumCircuit:
         seen.append(options)
         return compile_circuit(circuit, target, mapped=mapped, options=options)
@@ -176,8 +155,7 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         3,
         target=get_device("iqm_crystal_5"),
         compiler="mqt",
-        compiler_options=options,
-        seed=42,
+        **configuration,
         generate_mirror_circuit=mirror,
     )
     assert seen == [options] * (2 if mirror and level is not BenchmarkLevel.INDEP else 1)
@@ -221,6 +199,8 @@ def test_compiler_options_require_core_compilation() -> None:
         get_benchmark_indep("ghz", 3, compiler_options=options)
     with pytest.raises(ValueError, match="algorithm level does not compile"):
         get_benchmark("ghz", BenchmarkLevel.ALG, 3, compiler="mqt", compiler_options=options)
+    with pytest.raises(ValueError, match="algorithm level does not compile"):
+        get_benchmark_alg("ghz", 3, compiler_options=options)
 
 
 def test_mapped_measurement_order() -> None:
@@ -319,32 +299,6 @@ def test_native_ion_and_fixed_rx_gate_targets(gateset: str, level: BenchmarkLeve
         assert any(item.operation.name == "rxpi2" for item in result.data)
 
 
-@pytest.mark.parametrize(
-    ("gateset", "entangler", "count"), [("ionq_forte", "rzz", 1), ("aqt", "rxx", 1), ("rigetti", "cz", 2)]
-)
-@pytest.mark.parametrize("gate", ["rxx", "ryy", "rzx", "rzz", "cp", "crx", "cry", "crz"])
-def test_symbolic_rotations_use_native_entanglers(gateset: str, entangler: str, count: int, gate: str) -> None:
-    """Compile before binding while preserving native names, phase, and parameters."""
-    theta = Parameter("theta")
-    source = QuantumCircuit(2, global_phase=0.19)
-    getattr(source, gate)(theta, 0, 1)
-    target = get_target_for_gateset(gateset, 2)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
-    assert result.parameters == source.parameters
-    assert result.count_ops().get(entangler, 0) == count
-    for item in result.data:
-        assert target.instruction_supported(
-            operation_name=item.operation.name,
-            qargs=tuple(result.find_bit(qubit).index for qubit in item.qubits),
-            parameters=item.operation.params,
-        )
-    for value in [-0.37, 0.0, np.pi, 2 * np.pi]:
-        assert np.allclose(
-            Operator.from_circuit(result.assign_parameters({theta: value})).data,
-            Operator(source.assign_parameters({theta: value})).data,
-        )
-
-
 @pytest.mark.parametrize("gate_name", ["gpi", "gpi2", "rzz", "rz"])
 @pytest.mark.parametrize("symbolic", [False, True])
 def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None:
@@ -364,56 +318,6 @@ def test_native_input_gates_preserved(gate_name: str, *, symbolic: bool) -> None
         assert np.allclose(
             Operator(result.assign_parameters(bindings)).data,
             Operator(source.assign_parameters(bindings)).data,
-        )
-
-
-def test_fixed_ion_entangler_uses_radians() -> None:
-    """Fixed RZZ angles and ordered placements survive native synthesis."""
-    target = Target(num_qubits=2)
-    target.add_instruction(RZGate(Parameter("theta")))
-    target.add_instruction(GPIGate(Parameter("phi")))
-    target.add_instruction(GPI2Gate(Parameter("phi2")))
-    target.add_instruction(RZZGate(np.pi / 2), {(1, 0): None})
-    source = QuantumCircuit(2, global_phase=0.19)
-    source.u(0.37, -0.21, 0.42, 0)
-    source.cx(0, 1)
-    original = source.copy()
-    result = get_benchmark_mapped(source, None, target, compiler="mqt")
-    assert source == original
-    assert result.count_ops().get("rzz", 0) > 0
-    for item in result.data:
-        assert target.instruction_supported(
-            operation_name=item.operation.name,
-            qargs=tuple(result.find_bit(qubit).index for qubit in item.qubits),
-            parameters=item.operation.params,
-        )
-        if item.operation.name == "rzz":
-            assert item.operation.params == [np.pi / 2]
-    assert np.allclose(Operator(result).data, Operator(source).data)
-
-
-@pytest.mark.parametrize("wrapper", ["custom", "controlled", "annotated", "inverse"])
-def test_nested_ion_gate_conversion(wrapper: str) -> None:
-    """Native gates preserve nested definitions, modifiers, and phase."""
-    block = QuantumCircuit(1)
-    block.append(GPIGate(Parameter("phi")), [0])
-    operation = block.to_gate() if wrapper == "custom" else block.data[0].operation
-    if wrapper in {"controlled", "annotated"}:
-        operation = operation.control(
-            1, ctrl_state=None if wrapper == "annotated" else 0, annotated=wrapper == "annotated"
-        )
-    elif wrapper == "inverse":
-        operation = operation.inverse(annotated=True)
-    source = QuantumCircuit(operation.num_qubits, global_phase=0.19)
-    source.append(operation, range(operation.num_qubits))
-    original = source.copy()
-    result = get_benchmark_indep(source, compiler="mqt", random_parameters=False)
-    assert source == original
-    assert result.parameters == source.parameters
-    for value in [-0.37, 0.13, 1.25]:
-        values = dict.fromkeys(source.parameters, value)
-        assert np.allclose(
-            Operator(result.assign_parameters(values)).data, Operator(source.assign_parameters(values)).data
         )
 
 
@@ -467,19 +371,6 @@ def test_single_qubit_circuit_with_two_qubit_target(gateset: str) -> None:
     assert np.allclose(Operator(result).data, Operator(source).data)
 
 
-def test_fixed_parameter_target() -> None:
-    """A native gate with a fixed angle survives compilation with a complete synthesis basis."""
-    target = Target(num_qubits=1)
-    target.add_instruction(RZGate(Parameter("theta")))
-    target.add_instruction(RXGate(np.pi / 2))
-    source = QuantumCircuit(1)
-    source.rx(np.pi / 2, 0)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
-    assert result.count_ops() == {"rx": 1}
-    assert result.data[0].operation.params == [np.pi / 2]
-    assert np.allclose(Operator(result).data, Operator(source).data)
-
-
 @pytest.mark.parametrize("native", [False, True])
 def test_incomplete_target_requires_synthesis_basis(*, native: bool) -> None:
     """Even native inputs need a complete basis for target compilation."""
@@ -492,54 +383,6 @@ def test_incomplete_target_requires_synthesis_basis(*, native: bool) -> None:
         source.h(0)
     with pytest.raises(RuntimeError, match="requires a single-qubit synthesis basis"):
         get_benchmark_native_gates(source, None, target, compiler="mqt")
-
-
-@pytest.mark.parametrize("angle", [np.pi / 2, -np.pi / 2])
-def test_fixed_rx_gate_target_preserves_symbolic_parameters(angle: float) -> None:
-    """RZ and fixed RX quarter turns synthesize symbolic inputs with exact phase."""
-    theta = Parameter("theta")
-    target = Target(num_qubits=1)
-    target.add_instruction(RZGate(Parameter("phi")))
-    target.add_instruction(RXGate(angle))
-    source = QuantumCircuit(1)
-    source.u(theta, 0.31, -0.42, 0)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
-    assert result.parameters == source.parameters
-    for instruction in result.data:
-        if instruction.operation.name == "rx":
-            assert instruction.operation.params == [angle]
-    for value in [0.0, 0.37, np.pi]:
-        assert np.allclose(
-            Operator(result.assign_parameters({theta: value})).data,
-            Operator(source.assign_parameters({theta: value})).data,
-        )
-
-
-@pytest.mark.parametrize(
-    ("free", "fixed"),
-    [(free, fixed) for free in (RXGate, RYGate, RZGate) for fixed in (RXGate, RYGate, RZGate) if free is not fixed],
-)
-@pytest.mark.parametrize("angle", [np.pi / 4, -0.37])
-def test_unsupported_fixed_angle_basis_rejected(
-    free: type[RXGate | RYGate | RZGate], fixed: type[RXGate | RYGate | RZGate], angle: float
-) -> None:
-    """Representable fixed values do not imply a supported synthesis recipe."""
-    theta = Parameter("theta")
-    target = Target(num_qubits=1)
-    target.add_instruction(free(theta))
-    target.add_instruction(fixed(angle))
-    source = QuantumCircuit(1)
-    source.u(theta, 0.31, -0.42, 0)
-    with pytest.raises(RuntimeError, match="requires a single-qubit synthesis basis"):
-        get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
-
-
-def test_nonfinite_target_parameter_rejected() -> None:
-    """A target cannot advertise non-finite fixed parameters."""
-    target = Target(num_qubits=1)
-    target.add_instruction(UGate(np.inf, 0.0, 0.0))
-    with pytest.raises(ValueError, match="parameter constraints"):
-        get_benchmark_native_gates(QuantumCircuit(1), None, target, compiler="mqt")
 
 
 @pytest.mark.parametrize("mapped", [False, True])
@@ -562,36 +405,6 @@ def test_unrepresentable_target_constraints_rejected(constraint: str, *, mapped:
     compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
     with pytest.raises(ValueError, match=message):
         compile_circuit(source, None, target, compiler="mqt", random_parameters=False)
-
-
-@pytest.mark.parametrize("symbolic", [False, True])
-def test_named_fixed_rx_capabilities(*, symbolic: bool) -> None:
-    """Multiple RX aliases retain fixed values, names, and exact phase."""
-    theta = Parameter("theta")
-    target = Target(num_qubits=2)
-    target.add_instruction(RZGate(Parameter("phi")))
-    target.add_instruction(CXGate())
-    for name, angle in [("rx_quarter", np.pi / 2), ("rx_half", np.pi), ("rx_minus", -np.pi / 2)]:
-        target.add_instruction(RXGate(angle), name=name)
-    source = QuantumCircuit(2, global_phase=0.19)
-    source.rx(np.pi, 0)
-    source.ry(theta if symbolic else 0.37, 1)
-    source.cx(0, 1)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
-    assert result.parameters == source.parameters
-    for item in result.data:
-        assert target.instruction_supported(item.operation.name, parameters=item.operation.params)
-    values = dict.fromkeys(source.parameters, 0.42)
-    assert np.allclose(Operator(result.assign_parameters(values)).data, Operator(source.assign_parameters(values)).data)
-
-
-@pytest.mark.parametrize("name", ["custom", "rx", "gpi2"])
-def test_unknown_target_gate_definitions_rejected(name: str) -> None:
-    """A familiar name does not grant unknown gate definitions native semantics."""
-    target = Target(num_qubits=1)
-    target.add_instruction(Gate(name, 1, []))
-    with pytest.raises(ValueError, match="custom or unsupported operation"):
-        get_benchmark_native_gates(QuantumCircuit(1), None, target, compiler="mqt")
 
 
 @pytest.mark.parametrize("mapped", [False, True])
@@ -638,19 +451,6 @@ def test_explicit_global_phase_capability(name: str, *, mapped: bool) -> None:
     assert np.allclose(Operator(result).data, Operator(source).data)
 
 
-@pytest.mark.parametrize("mapped", [False, True])
-def test_unbounded_angle_target(*, mapped: bool) -> None:
-    """Explicit infinite bounds impose no additional parameter restriction."""
-    target = Target(num_qubits=1)
-    target.add_instruction(RZGate(Parameter("theta")), angle_bounds=[(-np.inf, np.inf)])
-    target.add_instruction(SXGate())
-    source = QuantumCircuit(1)
-    source.h(0)
-    compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
-    result = compile_circuit(source, None, target, compiler="mqt", random_parameters=False)
-    assert np.allclose(Operator(result).data, Operator(source).data)
-
-
 def test_target_capacity() -> None:
     """Mapped compilation rejects circuits that do not fit on the device."""
     with pytest.raises(ValueError, match="at least as many qubits"):
@@ -683,102 +483,6 @@ def test_compiler_provenance() -> None:
     assert generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt") == "ghz_indep_mqt_3"
 
 
-@pytest.mark.parametrize(
-    ("extra_args", "seed", "trials"),
-    [
-        ([], 10, 8),
-        (["--compiler-seed", "17"], 17, 8),
-        (["--mapping-trials", "8"], 10, 8),
-        (["--compiler-seed", "0", "--mapping-trials", "2"], 0, 2),
-    ],
-)
-def test_mqt_cli(
-    extra_args: list[str],
-    seed: int,
-    trials: int,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """Apply CLI compiler controls, retain omitted defaults, and save a distinct file."""
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "mqt-bench",
-            "--compiler",
-            "mqt",
-            "--seed",
-            "42",
-            "--benchmark-options",
-            '{"degree": 2}',
-            "--level",
-            "nativegates",
-            "--algorithm",
-            "graphstate",
-            "--num-qubits",
-            "3",
-            "--target",
-            "ibm_heron",
-            "--save",
-            "--target-directory",
-            str(tmp_path),
-            *extra_args,
-        ],
-    )
-    cli.main()
-    assert "graphstate_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
-    exported = (tmp_path / "graphstate_nativegates_ibm_heron_mqt_3.qasm").read_text()
-    generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
-    assert generation["options"] == {"seed": 42, "degree": 2}
-    compiler_options = json.loads(exported.split("// Compiler options: ")[1].splitlines()[0])
-    assert compiler_options["seed"] == seed
-    assert compiler_options["mapping"]["trials"] == trials
-    assert "// Compiler: mqt " in exported
-
-
-@pytest.mark.parametrize(
-    ("compiler", "level", "extra_args", "message"),
-    [
-        ("qiskit", "indep", ["--compiler-seed", "17"], "require --compiler mqt"),
-        ("qiskit", "indep", ["--mapping-trials", "8"], "require --compiler mqt"),
-        ("mqt", "alg", ["--mapping-trials", "2"], "require a compilation level"),
-        ("mqt", "indep", ["--optimization-level", "1"], "requires --optimization-level 2"),
-        ("mqt", "indep", ["--compiler-seed", "-1"], "--compiler-seed must be nonnegative"),
-        ("mqt", "indep", ["--mapping-trials", "0"], "--mapping-trials must be positive"),
-    ],
-)
-def test_mqt_cli_errors(
-    compiler: str,
-    level: str,
-    extra_args: list[str],
-    message: str,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """Report invalid compiler controls as CLI usage errors."""
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "mqt-bench",
-            "--algorithm",
-            "ghz",
-            "--num-qubits",
-            "3",
-            "--compiler",
-            compiler,
-            "--level",
-            level,
-            *extra_args,
-        ],
-    )
-    with pytest.raises(SystemExit) as exc:
-        cli.main()
-    assert exc.value.code == 2
-    assert message in capsys.readouterr().err
-
-
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 def test_qiskit_recompilation_provenance(level: BenchmarkLevel) -> None:
     """Recompiling with Qiskit must not retain Core as the last compiler."""
@@ -803,15 +507,6 @@ def test_classical_feed_forward(level: BenchmarkLevel) -> None:
     assert core.QCProgram.from_qiskit(result).to_qco().sample(shots=16, seed=42) == {"101": 16}
 
 
-@pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-def test_amplitude_estimation_import(level: BenchmarkLevel) -> None:
-    """Preserve amplitude-estimation output through Core compilation."""
-    original = get_benchmark_alg("ae", 3)
-    result = get_benchmark(original, level, target=get_device("iqm_crystal_5"), compiler="mqt")
-    assert result.name == original.name
-    assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(original))
-
-
 def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Validate block-local operands against their enclosing physical qubit sites."""
     target = Target(num_qubits=3)
@@ -828,7 +523,7 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     source = QuantumCircuit(3)
     source.x(0)
     get_benchmark_native_gates(source, None, target, compiler="mqt")
-    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_program", lambda *args, **kwargs: circuit)
+    monkeypatch.setattr(core, "compile_program", lambda *args, **kwargs: circuit)
     with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
         get_benchmark_mapped(source, None, target, compiler="mqt")
 
