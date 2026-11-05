@@ -401,7 +401,7 @@ def get_benchmark_indep(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and four mapping trials.
+        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -491,7 +491,7 @@ def get_benchmark_native_gates(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
         opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and four mapping trials.
+        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -635,7 +635,7 @@ def get_benchmark_mapped(
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
         opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and four mapping trials.
+        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -743,7 +743,7 @@ def get_benchmark(
                 (only used for "nativegates" and "mapped" level)
         opt_level: Qiskit optimization level. MQT Core uses its default pipeline and requires the default value 2.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
-        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and four mapping trials.
+        compiler_options: Core CompilationOptions for compiler="mqt". Defaults to seed 10 and eight mapping trials.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to the circuit creation.

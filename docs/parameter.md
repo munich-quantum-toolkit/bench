@@ -61,7 +61,7 @@ print(get_available_device_names())
 - `opt_level`: Optimization level for `"qiskit"` (`0`-`3`, default `2`). For
   `"mqt"`, leave this at `2`; Core uses its own default pipeline.
 - `compiler_options`: Core `CompilationOptions` for `compiler="mqt"` at a
-  compilation level. Defaults to seed `10` and four mapping trials.
+  compilation level. Defaults to seed `10` and eight mapping trials.
 - `random_parameters`: Assign random parameters to the circuit's parameters if
   they exist.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
@@ -73,9 +73,9 @@ print(get_available_device_names())
 ## MQT Core compiler
 
 Install the optional compiler with `pip install "mqt-bench[mqt]"`. The extra
-installs MQT Core 4.1.1 and Qiskit 2.5.x. Core wheels include the compiler
-runtime. Qiskit remains the default compiler, and both compilers return
-`QuantumCircuit`.
+builds MQT Core from the pinned development commit. This requires a C++
+compiler; Core downloads its LLVM/MLIR SDK during the build. Qiskit remains the
+default compiler, and both compilers return `QuantumCircuit`.
 
 ```python
 from mqt.bench import BenchmarkLevel, get_benchmark
@@ -94,8 +94,7 @@ circuit = get_benchmark(
 
 The level-specific functions also accept `compiler="mqt"`:
 
-- `INDEP` decomposes multi-controlled operations and runs Core's default
-  target-independent optimization pipeline.
+- `INDEP` runs Core's default target-independent optimization pipeline.
 - `NATIVEGATES` uses the target's gate set with all-to-all connectivity and the
   input circuit's width. Operations wider than the circuit are omitted; physical
   gate placements are ignored. The result uses logical wire order without layout
@@ -123,7 +122,7 @@ Mirrors are formed from the compiled circuit and compiled again with Core when a
 target is supplied. The barrier between both halves prevents cancellation. Core
 uses its own fixed pipeline; `opt_level=0`, `1`, or `3` raises an error.
 
-MQT Bench sets seed `10` and four mapping trials so defaults do not depend on
+MQT Bench sets seed `10` and eight mapping trials so defaults do not depend on
 the CPU count. Python `compiler_options` replace these defaults and also apply
 to mirror recompilation. A bare `CompilationOptions()` uses Core's defaults,
 including a CPU-dependent trial count. These options require the MQT compiler at
@@ -145,7 +144,7 @@ Core filenames contain `_mqt_` and omit Qiskit's optimization level. The
 headers and QPY metadata retain this record separately from benchmark generation
 options. Existing Qiskit filenames remain unchanged.
 
-[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/v4.1.1/docs/mlir/target_compilation.md
+[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/ed8fe3a6fb0217274bce9b6c1f45d5f0e536654d/docs/mlir/target_compilation.md
 
 ## Native Gate-Set Support
 

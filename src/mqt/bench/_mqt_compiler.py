@@ -21,10 +21,11 @@ try:
         CompilationOptions,
         CompilerTarget,
         MappingOptions,
+        OutputFormat,
+        PayloadEncoding,
         PayloadFormat,
         PayloadSpecification,
         ProgramCapability,
-        QCProgram,
         TargetEnvironment,
         compile_program,
     )
@@ -107,7 +108,7 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> Tar
     return TargetEnvironment(
         core_target,
         PayloadSpecification(
-            PayloadFormat("openqasm", "3.0"),
+            PayloadFormat("qiskit", ".".join(version("qiskit").split(".")[:2]), encoding=PayloadEncoding.BINARY),
             capabilities=[
                 ProgramCapability(capability) for name, capability in _CONTROL_FLOW.items() if name in target
             ],
@@ -148,39 +149,38 @@ def compile_circuit(
         circuit: Circuit to compile. Core does not modify it.
         target: Optional Qiskit gate set or device target.
         mapped: Whether to enforce physical connectivity and operation placements.
-        options: Core compiler controls. Defaults to seed 10 and four mapping trials.
+        options: Core compiler controls. Defaults to seed 10 and eight mapping trials.
 
     Returns:
         A Qiskit circuit. Mapped circuits use physical wires without layout metadata.
     """
     if options is None:
-        options = CompilationOptions(seed=10, mapping=MappingOptions(trials=4))
+        options = CompilationOptions(seed=10, mapping=MappingOptions(trials=8))
+    source = _physical_circuit(circuit)
     if target is None:
-        result = compile_program(
-            _physical_circuit(circuit), qco_pipeline="decompose-multi-controlled,mqt-qco-default", options=options
-        ).to_qiskit()
-    else:
-        environment = _target_environment(target, circuit.num_qubits, mapped=mapped)
-        source = _physical_circuit(circuit)
-        trailing_barriers = []
-        if not mapped:
-            source = source.copy()
-            while source.data and source.data[-1].operation.name == "barrier":
-                trailing_barriers.append(source.data.pop())
-            # Keep terminal permutations in native gates instead of layout metadata.
-            source.barrier()
-        program = QCProgram.from_qiskit(source).to_qco()
-        program.compile_for_target(environment, options=options)
-        result = program.to_qiskit(target=environment.target)
-        if not mapped:
-            if result.data and result.data[-1].operation.name == "barrier":
-                result.data.pop()
-            result = _logical_circuit(result)
-            for barrier in reversed(trailing_barriers):
-                result.append(barrier.operation, [source.find_bit(qubit).index for qubit in barrier.qubits])
-        _validate_target(result, target, mapped=mapped)
-    if mapped:
+        result = compile_program(source, options=options)
+    elif mapped:
+        environment = _target_environment(target, circuit.num_qubits, mapped=True)
+        result = compile_program(source, target=environment, output=OutputFormat.QISKIT, options=options)
         result._layout = None  # ruff:ignore[private-member-access]
+    else:
+        environment = _target_environment(target, circuit.num_qubits, mapped=False)
+        source = source.copy()
+        trailing_barriers = []
+        while source.data and source.data[-1].operation.name == "barrier":
+            trailing_barriers.append(source.data.pop())
+        # Native synthesis still elides terminal swaps unless a barrier follows.
+        source.barrier()
+        program = compile_program(source, output=OutputFormat.QCO, options=options)
+        program.synthesize_for_target(environment, options=options)
+        result = program.to_qiskit(target=environment.target)
+        if result.data and result.data[-1].operation.name == "barrier":
+            result.data.pop()
+        result = _logical_circuit(result)
+        for barrier in reversed(trailing_barriers):
+            result.append(barrier.operation, [source.find_bit(qubit).index for qubit in barrier.qubits])
+    if target is not None:
+        _validate_target(result, target, mapped=mapped)
     result.name = circuit.name
     result.metadata = (circuit.metadata or {}) | {
         "mqt_bench_compiler": {

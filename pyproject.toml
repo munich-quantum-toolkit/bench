@@ -52,8 +52,7 @@ email = "burgholzer@me.com"
 
 [project.optional-dependencies]
 mqt = [
-  "mqt-core==4.1.1",
-  "qiskit>=2.5.2,<2.6",
+  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@ed8fe3a6fb0217274bce9b6c1f45d5f0e536654d",
 ]
 
 [project.urls]
@@ -97,6 +96,9 @@ docs = [
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mqt/bench/_version.py"

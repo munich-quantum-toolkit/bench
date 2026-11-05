@@ -160,7 +160,7 @@ def main() -> None:
 
         compiler_options = CompilationOptions(
             seed=args.compiler_seed if args.compiler_seed is not None else 10,
-            mapping=MappingOptions(trials=args.mapping_trials if args.mapping_trials is not None else 4),
+            mapping=MappingOptions(trials=args.mapping_trials if args.mapping_trials is not None else 8),
         )
 
     options = dict(args.benchmark_options)

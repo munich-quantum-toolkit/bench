@@ -55,7 +55,7 @@ from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from mqt.core.mlir import CompilationOptions, QCOProgram, QCProgram, TargetEnvironment
+    from mqt.core.mlir import CompilationOptions
 
 core = pytest.importorskip("mqt.core.mlir")
 
@@ -157,19 +157,19 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
     """Use caller options for compilation and target-specific mirror recompilation."""
     options = core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=2, iterations=2, lookahead=0))
     seen = []
-    compile_program = core.compile_program
-    compile_for_target = core.QCOProgram.compile_for_target
+    compile_circuit = pytest.importorskip("mqt.bench._mqt_compiler").compile_circuit
 
-    def record_program(program: QuantumCircuit, *, qco_pipeline: str, options: CompilationOptions) -> QCProgram:
+    def record_options(
+        circuit: QuantumCircuit,
+        target: Target | None = None,
+        *,
+        mapped: bool = False,
+        options: CompilationOptions | None = None,
+    ) -> QuantumCircuit:
         seen.append(options)
-        return compile_program(program, qco_pipeline=qco_pipeline, options=options)
+        return compile_circuit(circuit, target, mapped=mapped, options=options)
 
-    def record_target(program: QCOProgram, environment: TargetEnvironment, *, options: CompilationOptions) -> None:
-        seen.append(options)
-        compile_for_target(program, environment, options=options)
-
-    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_program", record_program)
-    monkeypatch.setattr(core.QCOProgram, "compile_for_target", record_target)
+    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_circuit", record_options)
     result = get_benchmark(
         "ghz",
         level,
@@ -204,23 +204,14 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         assert _measurement_probabilities(result) == pytest.approx({"000": 0.5, "111": 0.5})
 
 
-def test_default_mapping_reproducibility(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Bench fixes the seed and trial count instead of depending on CPU count."""
-    compile_for_target = core.QCOProgram.compile_for_target
-    seeds_and_trials = []
-
-    def record_options(program: QCOProgram, environment: TargetEnvironment, *, options: CompilationOptions) -> None:
-        seeds_and_trials.append((options.seed, options.mapping.trials))
-        compile_for_target(program, environment, options=options)
-
-    monkeypatch.setattr(core.QCOProgram, "compile_for_target", record_options)
+def test_default_mapping_reproducibility() -> None:
+    """MQT Bench fixes the seed and trial count instead of depending on CPU count."""
     target = get_device("iqm_crystal_5")
     results = [get_benchmark_mapped("ghz", 3, target, compiler="mqt") for _ in range(2)]
-    assert seeds_and_trials == [(10, 4), (10, 4)]
     assert results[0] == results[1]
     defaults = results[0].metadata["mqt_bench_compiler"]["options"]
     assert defaults["seed"] == 10
-    assert defaults["mapping"]["trials"] == 4
+    assert defaults["mapping"]["trials"] == 8
 
 
 def test_compiler_options_require_core_compilation() -> None:
@@ -695,8 +686,8 @@ def test_compiler_provenance() -> None:
 @pytest.mark.parametrize(
     ("extra_args", "seed", "trials"),
     [
-        ([], 10, 4),
-        (["--compiler-seed", "17"], 17, 4),
+        ([], 10, 8),
+        (["--compiler-seed", "17"], 17, 8),
         (["--mapping-trials", "8"], 10, 8),
         (["--compiler-seed", "0", "--mapping-trials", "2"], 0, 2),
     ],
@@ -710,14 +701,6 @@ def test_mqt_cli(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Apply CLI compiler controls, retain omitted defaults, and save a distinct file."""
-    seen = []
-    compile_for_target = core.QCOProgram.compile_for_target
-
-    def record_options(program: QCOProgram, environment: TargetEnvironment, *, options: CompilationOptions) -> None:
-        seen.append((options.seed, options.mapping.trials))
-        compile_for_target(program, environment, options=options)
-
-    monkeypatch.setattr(core.QCOProgram, "compile_for_target", record_options)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -744,7 +727,6 @@ def test_mqt_cli(
         ],
     )
     cli.main()
-    assert seen == [(seed, trials)]
     assert "graphstate_nativegates_ibm_heron_mqt_3.qasm" in capsys.readouterr().out
     exported = (tmp_path / "graphstate_nativegates_ibm_heron_mqt_3.qasm").read_text()
     generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
@@ -846,6 +828,7 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     source = QuantumCircuit(3)
     source.x(0)
     get_benchmark_native_gates(source, None, target, compiler="mqt")
+    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_program", lambda *args, **kwargs: circuit)
     with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
         get_benchmark_mapped(source, None, target, compiler="mqt")
 
