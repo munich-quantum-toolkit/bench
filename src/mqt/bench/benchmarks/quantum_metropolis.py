@@ -158,6 +158,8 @@ def create_circuit(
 
     phase_estimation = _phase_estimation(num_spins, r, time, shift, num_trotter_steps)
     estimate_and_rotate = _estimate_and_rotate(phase_estimation, num_spins, r, beta, bin_width)
+    inverse_phase_estimation = phase_estimation.inverse()
+    inverse_estimate_and_rotate = estimate_and_rotate.inverse()
     pe_qubits = [*e_new, *system]
     u_qubits = [*system, *e_old, *e_new, *accept]
     flag = e_old[0]
@@ -173,14 +175,14 @@ def create_circuit(
         qc.compose(estimate_and_rotate, u_qubits, inplace=True)
 
     def apply_u_inverse() -> None:
-        qc.compose(estimate_and_rotate.inverse(), u_qubits, inplace=True)
+        qc.compose(inverse_estimate_and_rotate, u_qubits, inplace=True)
         apply_update()  # Pauli updates are their own inverse
 
     def read_energy() -> None:
         """Step 1 (Fig. 1a): project onto an eigenstate and measure its energy bin."""
         qc.compose(phase_estimation, pe_qubits, inplace=True)
         qc.cx(e_new, e_old)
-        qc.compose(phase_estimation.inverse(), pe_qubits, inplace=True)
+        qc.compose(inverse_phase_estimation, pe_qubits, inplace=True)
         qc.measure(e_old, c_energy)
 
     def measure_p() -> None:
@@ -196,7 +198,7 @@ def create_circuit(
         for j in range(r):
             with qc.if_test((c_energy[j], 0)):
                 qc.x(e_new[j])
-        qc.compose(phase_estimation.inverse(), pe_qubits, inplace=True)
+        qc.compose(inverse_phase_estimation, pe_qubits, inplace=True)
         for j in range(r):  # prepare |E_i> again for W
             with qc.if_test((c_energy[j], 1)):
                 qc.x(e_old[j])
@@ -224,7 +226,7 @@ def create_circuit(
         # Step 3: accept, or reject with the repeat-until-success loop of Fig. 2.
         with qc.if_test((c_accept[0], 1)) as else_:
             qc.measure(e_new, c_energy)
-            qc.compose(phase_estimation.inverse(), pe_qubits, inplace=True)
+            qc.compose(inverse_phase_estimation, pe_qubits, inplace=True)
         with else_:
             apply_u_inverse()
             measure_p()
