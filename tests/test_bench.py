@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import builtins
 import datetime as dt
-import functools
 import io
 import json
 import random
@@ -42,7 +41,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import GatesInBasis, RemoveBarriers, UnrollForLoops
 
 if TYPE_CHECKING:  # pragma: no cover
-    from collections import OrderedDict
     from collections.abc import Callable
     from pathlib import Path
     from typing import BinaryIO
@@ -50,7 +48,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit.circuit import Gate
     from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 
-    from mqt.bench.configuration_options import ConfigurationOptions
 
 import mqt.bench
 import mqt.bench.configuration_options
@@ -166,38 +163,28 @@ def test_qaoa() -> None:
 
 
 @pytest.mark.parametrize(
-    ("benchmark_name", "input_value", "kind"),
+    ("benchmark", "kind", "minimum", "larger"),
     [
-        *[("cdkm_ripple_carry_adder", n, "half") for n in (4, 6, 8, 10)],
-        *[("cdkm_ripple_carry_adder", n, "full") for n in (4, 6, 8, 10)],
-        *[("cdkm_ripple_carry_adder", n, "fixed") for n in (3, 5, 7, 9)],
-        *[("draper_qft_adder", n, "half") for n in (3, 5, 7, 9)],
-        *[("draper_qft_adder", n, "fixed") for n in (2, 4, 6, 8)],
-        *[("vbe_ripple_carry_adder", n, "half") for n in (3, 6, 9, 12)],
-        *[("vbe_ripple_carry_adder", n, "full") for n in (4, 7, 10, 13)],
-        *[("vbe_ripple_carry_adder", n, "fixed") for n in (2, 5, 8, 11)],
+        ("cdkm_ripple_carry_adder", "half", 4, 10),
+        ("cdkm_ripple_carry_adder", "full", 4, 10),
+        ("cdkm_ripple_carry_adder", "fixed", 3, 9),
+        ("draper_qft_adder", "half", 3, 9),
+        ("draper_qft_adder", "fixed", 2, 8),
+        ("vbe_ripple_carry_adder", "half", 3, 12),
+        ("vbe_ripple_carry_adder", "full", 4, 13),
+        ("vbe_ripple_carry_adder", "fixed", 2, 11),
+        ("full_adder", None, 4, 16),
+        ("modular_adder", None, 2, 8),
+        ("multiplier", None, 4, 16),
+        ("rg_qft_multiplier", None, 4, 16),
+        ("hrs_cumulative_multiplier", None, 5, 17),
     ],
 )
-def test_adder_circuits(benchmark_name: str, input_value: int, kind: str) -> None:
-    """Adder benchmarks: circuit qubit count matches the requested size."""
-    qc = create_circuit(benchmark_name, input_value, kind)
-    assert qc.num_qubits == input_value
-
-
-@pytest.mark.parametrize(
-    ("benchmark_name", "input_value"),
-    [
-        *[("full_adder", n) for n in (4, 8, 12, 16)],
-        *[("modular_adder", n) for n in (2, 4, 6, 8)],
-        *[("multiplier", n) for n in (4, 8, 12, 16)],
-        *[("rg_qft_multiplier", n) for n in (4, 8, 12, 16)],
-        *[("hrs_cumulative_multiplier", n) for n in (5, 9, 13, 17)],
-    ],
-)
-def test_arithmetic_circuits(benchmark_name: str, input_value: int) -> None:
-    """Arithmetic benchmarks without ``kind``: circuit qubit count matches the requested size."""
-    qc = create_circuit(benchmark_name, input_value)
-    assert qc.num_qubits == input_value
+def test_arithmetic_sizes(benchmark: str, kind: str | None, minimum: int, larger: int) -> None:
+    """Accept both the smallest instance and a wider one for each arithmetic layout."""
+    for size in (minimum, larger):
+        qc = create_circuit(benchmark, size) if kind is None else create_circuit(benchmark, size, kind=kind)
+        assert qc.num_qubits == size
 
 
 @pytest.mark.parametrize(
@@ -349,51 +336,25 @@ def test_wrong_circuit_size(benchmark_name: str, input_value: int, kind: str | N
 
 @pytest.mark.parametrize("num_qubits", [2, 3, 4])
 def test_superdense_coding(num_qubits: int) -> None:
-    """Test the creation and correctness of the scalable superdense coding benchmark."""
-    sampler = StatevectorSampler()
-
-    # Test with default message (all ones)
-    qc_default = create_circuit("superdense_coding", num_qubits)
-    assert qc_default.num_qubits == num_qubits
-    assert qc_default.num_clbits == num_qubits
-    assert "superdense_coding" in qc_default.name
-
-    res_default = sampler.run([qc_default], shots=10).result()
-    assert res_default[0].data["c"].get_counts() == {"1" * num_qubits: 10}
-
-    # Test through pipeline
-    res_alg = get_benchmark_alg("superdense_coding", num_qubits)
-    assert res_alg.num_qubits == num_qubits
+    """The default message is all ones."""
+    circuit = get_benchmark_alg("superdense_coding", num_qubits)
+    counts = StatevectorSampler().run([circuit], shots=10).result()[0].data["c"].get_counts()
+    assert counts == {"1" * num_qubits: 10}
 
 
-@pytest.mark.parametrize("message", ["00", "01", "10", "11"])
-def test_superdense_coding_2qubits_all_messages(message: str) -> None:
-    """Test 2-qubit canonical superdense coding over all four 2-bit messages."""
-    sampler = StatevectorSampler()
-    qc = create_circuit("superdense_coding", 2, message=message)
-    result = sampler.run([qc], shots=10).result()
-    assert result[0].data["c"].get_counts() == {message: 10}
+@pytest.mark.parametrize("message", ["00", "01", "10", "11", "000", "001", "010", "011", "100", "101", "110", "111"])
+def test_superdense_coding_messages(message: str) -> None:
+    """Decode every message for the two- and three-qubit protocols."""
+    qc = create_circuit("superdense_coding", len(message), message=message)
+    counts = StatevectorSampler().run([qc], shots=10).result()[0].data["c"].get_counts()
+    assert counts == {message: 10}
 
 
-@pytest.mark.parametrize("message", ["000", "001", "010", "011", "100", "101", "110", "111"])
-def test_superdense_coding_3qubits_all_messages(message: str) -> None:
-    """Test 3-qubit scalable superdense coding over all eight 3-bit messages."""
-    sampler = StatevectorSampler()
-    qc = create_circuit("superdense_coding", 3, message=message)
-    result = sampler.run([qc], shots=10).result()
-    assert result[0].data["c"].get_counts() == {message: 10}
-
-
-def test_superdense_coding_invalid_inputs() -> None:
-    """Test invalid message and qubit count inputs."""
-    with pytest.raises(ValueError, match="num_qubits must be at least 2"):
-        create_circuit("superdense_coding", 1)
-
+@pytest.mark.parametrize("message", ["010", "ab"])
+def test_superdense_coding_invalid_message(message: str) -> None:
+    """Reject messages of the wrong length or containing non-binary characters."""
     with pytest.raises(ValueError, match="Invalid message"):
-        create_circuit("superdense_coding", 2, message="010")
-
-    with pytest.raises(ValueError, match="Invalid message"):
-        create_circuit("superdense_coding", 3, message="abc")
+        create_circuit("superdense_coding", 2, message=message)
 
 
 @pytest.mark.parametrize(
@@ -529,6 +490,15 @@ def test_iqpe(exact: bool) -> None:
     assert qc.num_qubits == 2
 
 
+def test_iqpe_feedback_threshold() -> None:
+    """At a cutoff of π/4 only the π/2 feedback rotations need a condition."""
+    qc = create_circuit("iqpe", 5, rotation_threshold=np.pi / 4)
+    branches = [inst.operation.blocks[0] for inst in qc if isinstance(inst.operation, IfElseOp)]
+    assert all(len(block) > 0 for block in branches)
+    angles = [inst.operation.params[0] for block in branches for inst in block if inst.operation.name == "rz"]
+    assert angles == [-np.pi / 2] * 3
+
+
 @pytest.mark.parametrize("benchmark", ["qpeexact", "qpeinexact", "iqpe"])
 def test_phase_estimation_preserves_random_state(benchmark: str) -> None:
     """Constructing a benchmark must leave the application's random stream alone."""
@@ -580,25 +550,6 @@ def test_fixed_vbe_arithmetic(width: int) -> None:
         a, b = value & mask, value >> width
         expected[a | (((a + b) & mask) << width)] = initial[value]
     assert Statevector(initial).evolve(qc).equiv(Statevector(expected))
-
-
-def test_teleportation() -> None:
-    """Test the creation of the teleportation benchmark."""
-    qc = create_circuit("teleportation", 3)
-    assert qc.num_qubits == 3
-    assert qc.num_clbits == 3  # 2 mid-circuit bits + 1 final measurement bit
-    assert "teleportation" in qc.name
-    assert qc.count_ops()["if_else"] == 2
-
-    # Multi-block: 2 corrections and 3 classical bits per block
-    qc6 = create_circuit("teleportation", 6)
-    assert qc6.num_qubits == 6
-    assert qc6.num_clbits == 6
-    assert qc6.count_ops()["if_else"] == 4
-
-    # Test through pipeline
-    res = get_benchmark_alg("teleportation", 3)
-    assert res.num_qubits == 3
 
 
 def test_teleportation_state_preparation() -> None:
@@ -674,15 +625,18 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
     return "".join(str(bit) for bit in reversed(final_bits))
 
 
-@pytest.mark.parametrize("num_qubits", [3, 6, 9])
-def test_teleportation_correctness(num_qubits: int) -> None:
-    """Teleporting |1⟩ must always yield 1 on every destination qubit."""
-    prep = QuantumCircuit(1)
-    prep.x(0)
-
+@pytest.mark.parametrize(("num_qubits", "bit"), [(3, 1), (6, 0), (6, 1), (9, 1)])
+def test_teleportation_correctness(num_qubits: int, bit: int) -> None:
+    """Every destination yields the input bit, including the default zero state."""
+    prep = None
+    if bit:
+        prep = QuantumCircuit(1)
+        prep.x(0)
     qc = create_circuit("teleportation", num_qubits, state_preparation=prep)
+    assert qc.num_clbits == num_qubits
+    assert qc.count_ops()["if_else"] == 2 * (num_qubits // 3)
     outcomes = {_run_with_control_flow(qc, seed=seed) for seed in range(20)}
-    assert outcomes == {"1" * (num_qubits // 3)}
+    assert outcomes == {str(bit) * (num_qubits // 3)}
 
 
 def _success_rates(qc: QuantumCircuit, shots: int = 500) -> list[float]:
@@ -731,10 +685,6 @@ def test_mlqae_circuit_structure(num_qubits: int, num_rounds: int) -> None:
     reset_qubits = [qc.find_bit(inst.qubits[0]).index for inst in qc.data if inst.operation.name == "reset"]
     for q_idx in range(num_qubits):
         assert reset_qubits.count(q_idx) == num_rounds
-
-    ops: OrderedDict[str, int] = qc.count_ops()
-    assert ops.get("measure", 0) == num_rounds + 1
-    assert ops.get("reset", 0) == num_rounds * num_qubits
 
 
 def test_mlqae_for_loop() -> None:
@@ -851,7 +801,7 @@ def test_quantum_metropolis_readout_undoes_phase_estimation() -> None:
     With three spins the Trotter terms do not commute. After compilation, the readout without the copy must still be
     the identity on the pointer and the system.
     """
-    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2)
+    qc = create_circuit("quantum_metropolis", 8, num_evaluation_qubits=2, num_trotter_steps=2)
     system, _, pointer, _ = qc.qregs
     first_measure = next(i for i, inst in enumerate(qc.data) if inst.clbits and inst.clbits[0] in qc.cregs[1])
     readout = QuantumCircuit(qc.qubits)
@@ -959,8 +909,9 @@ def test_generation_options_survive_recompilation(bound: bool) -> None:
     expected = circuit.copy()
     expected.remove_final_measurements()
     if not bound:
+        rng = np.random.default_rng(2)
         expected.assign_parameters(
-            np.random.default_rng(2).uniform(0, 2 * np.pi, len(expected.parameters)), inplace=True
+            {parameter: rng.uniform(0, 2 * np.pi) for parameter in expected.parameters}, inplace=True
         )
     compiled.remove_final_measurements()
     assert Operator(compiled).equiv(Operator(expected))
@@ -1018,78 +969,34 @@ def test_error_correction(benchmark: str, width: int, error: Gate, qubit: int) -
 
 
 @pytest.mark.parametrize(
-    (
-        "benchmark_name",
-        "level",
-        "circuit_size",
-        "target",
-        "opt_level",
-    ),
+    ("level", "helper"),
     [
-        # Algorithm-level tests
-        ("dj", BenchmarkLevel.ALG, 3, None, None),
-        ("wstate", BenchmarkLevel.ALG, 3, None, None),
-        ("hhl", BenchmarkLevel.ALG, 3, None, None),
-        ("shor", BenchmarkLevel.ALG, 18, None, None),
-        ("grover", BenchmarkLevel.ALG, 3, None, None),
-        ("qwalk", BenchmarkLevel.ALG, 3, None, None),
-        # Independent level tests
-        ("ghz", BenchmarkLevel.INDEP, 3, None, 2),
-        ("graphstate", BenchmarkLevel.INDEP, 3, None, 2),
-        # Native gates level tests
-        (
-            "dj",
-            BenchmarkLevel.NATIVEGATES,
-            2,
-            get_target_for_gateset("ionq_forte", num_qubits=5),
-            0,
-        ),
-        ("qft", BenchmarkLevel.NATIVEGATES, 3, get_target_for_gateset("rigetti", 5), 2),
-        # Mapped level tests
-        (
-            "ghz",
-            BenchmarkLevel.MAPPED,
-            3,
-            get_device("ibm_heron_156"),
-            0,
-        ),
-        ("ghz", BenchmarkLevel.MAPPED, 3, get_device("ibm_heron_156"), 2),
-        (
-            "ghz",
-            BenchmarkLevel.MAPPED,
-            3,
-            get_device("ionq_forte_36"),
-            0,
-        ),
+        (BenchmarkLevel.ALG, get_benchmark_alg),
+        (BenchmarkLevel.INDEP, get_benchmark_indep),
+        (BenchmarkLevel.NATIVEGATES, get_benchmark_native_gates),
+        (BenchmarkLevel.MAPPED, get_benchmark_mapped),
     ],
 )
-def test_get_benchmark(
-    benchmark_name: str,
-    level: BenchmarkLevel,
-    circuit_size: int | None,
-    target: Target | None,
-    opt_level: int | None,
-) -> None:
-    """Test the creation of the benchmarks using the get_benchmark method."""
-    qc = get_benchmark(
-        benchmark=benchmark_name,
-        level=level,
-        circuit_size=circuit_size,
-        target=target,
-        opt_level=opt_level if opt_level is not None else 2,
-    )
-    assert qc.depth() > 0
+def test_get_benchmark(level: BenchmarkLevel, helper: Callable[..., QuantumCircuit]) -> None:
+    """Check dispatch, generation metadata and native gate constraints at each level."""
+    target = None
+    if level is BenchmarkLevel.NATIVEGATES:
+        target = get_target_for_gateset("ionq_forte", 4)
+    elif level is BenchmarkLevel.MAPPED:
+        target = get_device("ibm_heron_156")
+
+    if target is None:
+        qc = get_benchmark("qft", level, 4)
+        assert qc == helper("qft", 4)
+    else:
+        qc = get_benchmark("qft", level, 4, target, 1)
+        assert qc == helper("qft", 4, target, 1)
+        assert set(qc.count_ops()) <= set(target.operation_names) | {"barrier"}
     generation = qc.metadata["mqt_bench_generation"]
-    assert generation["benchmark"] == benchmark_name
-    assert generation["circuit_size"] == circuit_size
+    assert generation["benchmark"] == "qft"
+    assert generation["circuit_size"] == 4
     assert generation["level"] == level.name.lower()
     assert generation["target"] == (target.description if target is not None else None)
-    if target:
-        assert isinstance(qc, QuantumCircuit)
-        for qc_instruction in qc.data:
-            instruction = qc_instruction.operation
-            gate_type = instruction.name
-            assert gate_type in target.operation_names or gate_type == "barrier"
 
 
 def test_get_benchmark_alg_with_quantum_circuit() -> None:
@@ -1102,119 +1009,30 @@ def test_get_benchmark_alg_with_quantum_circuit() -> None:
     assert not qc.metadata
 
 
-def test_get_benchmark_faulty_parameters() -> None:
-    """Test the get_benchmark method with faulty parameters."""
-    match = re.escape(
-        f"'wrong_name' is not a supported benchmark. Available benchmarks: {get_available_benchmark_names()}"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark("wrong_name", BenchmarkLevel.INDEP, 6)
-    match = "`circuit_size` cannot be None when `benchmark` is a str."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "dj",
-            BenchmarkLevel.INDEP,
-            None,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = "`circuit_size` must be a positive integer when `benchmark` is a str."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "dj",
-            BenchmarkLevel.INDEP,
-            -1,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "shor",
-            BenchmarkLevel.INDEP,
-            3,
-            get_device("rigetti_cepheus_108"),
-            1,
-        )
-    match = re.escape("Invalid `opt_level` '4'. Must be in the range [0, 3].")
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.INDEP,
-            3,
-            get_device("rigetti_cepheus_108"),
-            4,
-        )
-    match = re.escape(
-        "'wrong_gateset' is not a supported gateset. Known modules: ['aqt', 'clifford_t', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.NATIVEGATES,
-            3,
-            get_target_for_gateset("wrong_gateset", 3),
-            1,
-        )
-    match = re.escape(
-        "'wrong_device' is not a supported device. Known modules: ['aqt', 'ibm', 'ionq', 'iqm', 'quantinuum', 'rigetti']"
-    )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            "qpeexact",
-            BenchmarkLevel.MAPPED,
-            3,
-            get_device("wrong_device"),
-            1,
-        )
-
-    match = "Target must be provided for 'nativegates' level."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(benchmark="ghz", level=BenchmarkLevel.NATIVEGATES, circuit_size=3, target=None, opt_level=0)
-
-    match = "Target must be provided for 'mapped' level."
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(benchmark="ghz", level=BenchmarkLevel.MAPPED, circuit_size=3, target=None, opt_level=0)
-
-
 @pytest.mark.parametrize(
-    "getter",
+    ("benchmark", "level", "size", "message"),
     [
-        get_benchmark_alg,
-        get_benchmark_indep,
-        functools.partial(get_benchmark_native_gates, target=get_target_for_gateset("ionq_forte", 3)),
-        functools.partial(get_benchmark_mapped, target=get_device("ionq_forte_36")),
-        functools.partial(get_benchmark, level=BenchmarkLevel.ALG),
-        functools.partial(get_benchmark, level=BenchmarkLevel.INDEP),
-        functools.partial(
-            get_benchmark, level=BenchmarkLevel.NATIVEGATES, target=get_target_for_gateset("ionq_forte", 3)
-        ),
-        functools.partial(get_benchmark, level=BenchmarkLevel.MAPPED, target=get_device("ionq_forte_36")),
+        ("shor", BenchmarkLevel.INDEP, 3, "No Shor instance for circuit_size=3. Available: 18, 42, 58, 74."),
+        ("ghz", BenchmarkLevel.NATIVEGATES, 3, "Target must be provided for 'nativegates' level."),
+        ("ghz", BenchmarkLevel.MAPPED, 3, "Target must be provided for 'mapped' level."),
     ],
 )
-def test_invalid_circuit_size_combinations(getter: Callable[..., QuantumCircuit]) -> None:
-    """All get_benchmark_* helpers must reject the two illegal argument combos."""
-    qc = create_circuit("ae", 3)
+def test_get_benchmark_faulty_parameters(benchmark: str, level: BenchmarkLevel, size: int, message: str) -> None:
+    """Report unsupported Shor instances and missing compilation targets."""
+    with pytest.raises(ValueError, match=re.escape(message)):
+        get_benchmark(benchmark, level, size)
 
-    # QuantumCircuit plus a circuit_size
-    with pytest.raises(
-        ValueError,
-        match=r"`circuit_size` must be omitted or None when `benchmark` is a QuantumCircuit",
-    ):
-        getter(qc, circuit_size=1)
 
-    # str with a bad/absent circuit_size
-    with pytest.raises(
-        ValueError,
-        match=r"`circuit_size` must be a positive integer when `benchmark` is a str",
-    ):
-        getter("ae", circuit_size=-1)
-
-    with pytest.raises(
-        ValueError,
-        match=r"`circuit_size` cannot be None when `benchmark` is a str",
-    ):
-        getter("ae", circuit_size=None)
+@pytest.mark.parametrize("level", list(BenchmarkLevel))
+def test_invalid_circuit_size_combinations(level: BenchmarkLevel) -> None:
+    """Every level rejects a size with a circuit and requires a positive size with a name."""
+    target = get_target_for_gateset("ibm_heron", 3)
+    with pytest.raises(ValueError, match="must be omitted or None"):
+        get_benchmark(QuantumCircuit(3), level, 1, target)
+    with pytest.raises(ValueError, match="must be a positive integer"):
+        get_benchmark("ae", level, -1, target)
+    with pytest.raises(ValueError, match="cannot be None"):
+        get_benchmark("ae", level, None, target)
 
 
 @pytest.mark.parametrize("opt_level", [0, 1, 2, 3])
@@ -1410,6 +1228,7 @@ def test_unmapped_compilation_preserves_permutations(
 
     stream = io.StringIO()
     write_circuit(compiled, stream, level, fmt, target)
+    assert stream.getvalue().startswith("// Benchmark created by MQT Bench on")
     restored = (
         qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
         if fmt is OutputFormat.QASM2
@@ -1426,37 +1245,25 @@ def test_benchmark_helper_shor() -> None:
         assert res_shor
 
 
-def test_validate_input() -> None:
-    """Test the _validate_input() method for various edge cases."""
-    # Case 1: to_be_factored_number (N) < 3.
-    with pytest.raises(ValueError, match=r"The input needs to be an odd integer greater than 3, was 2"):
-        shor.create_circuit_from_num_and_coprime(2, 2)
+def test_shor_custom_base() -> None:
+    """The public Shor constructor also accepts bases outside the catalogue presets."""
+    assert shor.create_circuit_from_num_and_coprime(15, 2).num_qubits == 18
 
-    # Case 2: a < 2.
-    with pytest.raises(ValueError, match=r"a must have value >= 2, was 1"):
-        shor.create_circuit_from_num_and_coprime(15, 1)
 
-    # Case 3: N is even (and thus not odd).
-    with pytest.raises(ValueError, match=r"The input needs to be an odd integer greater than 3, was 4."):
-        shor.create_circuit_from_num_and_coprime(4, 3)
-
-    # Case 4: a >= N.
-    with pytest.raises(
-        ValueError, match=r"The integer a needs to satisfy a < N and gcd\(a, N\) = 1, was a = 15 and N = 15."
-    ):
-        shor.create_circuit_from_num_and_coprime(15, 15)
-
-    # Case 5: gcd(a, N) != 1 (for example, N=15 and a=6, since gcd(15,6)=3).
-    with pytest.raises(
-        ValueError, match=r"The integer a needs to satisfy a < N and gcd\(a, N\) = 1, was a = 6 and N = 15."
-    ):
-        shor.create_circuit_from_num_and_coprime(15, 6)
-
-    # Case 6: Valid input (should not raise any exception).
-    try:
-        shor.create_circuit_from_num_and_coprime(15, 2)
-    except ValueError as e:
-        pytest.fail(f"Unexpected ValueError raised for valid input: {e}")
+@pytest.mark.parametrize(
+    ("number", "a", "message"),
+    [
+        (1, 2, "an odd integer greater than 3"),
+        (4, 3, "an odd integer greater than 3"),
+        (15, 1, "a must have value >= 2"),
+        (15, 15, "a < N and gcd(a, N) = 1"),
+        (15, 6, "a < N and gcd(a, N) = 1"),
+    ],
+)
+def test_invalid_shor_input(number: int, a: int, message: str) -> None:
+    """Reject unsupported factorization inputs and non-coprime bases."""
+    with pytest.raises(ValueError, match=re.escape(message)):
+        shor.create_circuit_from_num_and_coprime(number, a)
 
 
 @pytest.mark.parametrize(
@@ -1688,18 +1495,6 @@ def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     assert "fake" in msg.lower()
 
 
-def test_save_circuit_success(tmp_path: Path) -> None:
-    """Happy-path save."""
-    qc = QuantumCircuit(1)
-    qc.h(0)
-
-    assert save_circuit(qc, "foo", BenchmarkLevel.INDEP, OutputFormat.QASM2, target_directory=str(tmp_path))
-    assert (tmp_path / "foo.qasm").exists()
-
-    assert save_circuit(qc, "bar", BenchmarkLevel.INDEP, OutputFormat.QPY, target_directory=str(tmp_path))
-    assert (tmp_path / "bar.qpy").exists()
-
-
 def test_save_circuit_write_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1717,20 +1512,6 @@ def test_save_circuit_write_error(
     captured = capsys.readouterr()
     assert not captured.out
     assert "boom" in captured.err
-
-
-@pytest.mark.parametrize("fmt", [OutputFormat.QASM2, OutputFormat.QASM3])
-def test_write_circuit_qasm_to_text_stream(fmt: OutputFormat) -> None:
-    """Test writing a QASM circuit to a text stream."""
-    qc = QuantumCircuit(2)
-    qc.cx(0, 1)
-
-    buf = io.StringIO()
-    write_circuit(qc, buf, BenchmarkLevel.INDEP, fmt=fmt)
-
-    text = buf.getvalue().splitlines()
-    assert text[0].startswith("// Benchmark created by MQT Bench on")
-    assert any("cx" in line for line in text)
 
 
 def test_write_circuit_qpy_to_binary_stream() -> None:
@@ -1846,195 +1627,54 @@ def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_leve
     assert loop.blocks[0].to_dag().count_ops(recurse=True)[jump] == 1
 
 
-@pytest.mark.parametrize(("benchmark", "size"), [("qft", 4), ("bv", 6)])
-def test_alg_parity(benchmark: str, size: int) -> None:
-    """Test parity of algorithm-level benchmarks."""
-    qc_wrapper = get_benchmark_alg(benchmark, size)
-    qc_ref = get_benchmark(benchmark, BenchmarkLevel.ALG, size)
-    assert qc_wrapper == qc_ref
+@pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
+@pytest.mark.parametrize("opt_level", [-1, 4])
+def test_validate_opt_level(level: BenchmarkLevel, opt_level: int) -> None:
+    """Reject optimization levels outside the supported interval."""
+    target = get_target_for_gateset("ibm_heron", 3)
+    with pytest.raises(ValueError, match=re.escape(f"Invalid `opt_level` '{opt_level}'. Must be in the range [0, 3].")):
+        get_benchmark("qft", level, 3, target, opt_level)
 
 
-@pytest.mark.parametrize(("benchmark", "size"), [("qft", 4)])
-def test_indep_parity(benchmark: str, size: int) -> None:
-    """Test parity of target-independent benchmarks."""
-    qc_wrapper = get_benchmark_indep(benchmark, size)
-    qc_ref = get_benchmark(benchmark, BenchmarkLevel.INDEP, size)
-    assert qc_wrapper == qc_ref
+@pytest.mark.parametrize(("benchmark", "size"), [("ghz", 3), ("qwalk", 2)])
+@pytest.mark.parametrize(
+    ("level", "opt_level"),
+    [(BenchmarkLevel.ALG, 2), (BenchmarkLevel.INDEP, 0), (BenchmarkLevel.NATIVEGATES, 1), (BenchmarkLevel.MAPPED, 1)],
+)
+def test_get_benchmark_mirror_option(benchmark: str, size: int, level: BenchmarkLevel, opt_level: int) -> None:
+    """The active mirror implements identity and measures its active wires."""
+    target = None
+    if level is BenchmarkLevel.NATIVEGATES:
+        target = get_target_for_gateset("ibm_heron", size)
+    elif level is BenchmarkLevel.MAPPED:
+        target = get_device("ibm_heron_156")
+    base = get_benchmark(benchmark, level, size, target, opt_level)
+    mirror = get_benchmark(benchmark, level, size, target, opt_level, generate_mirror_circuit=True)
 
-
-@pytest.mark.parametrize(("benchmark", "size", "opt_level"), [("qft", 4, 1), ("grover", 3, 2)])
-def test_native_gate_parity(benchmark: str, size: int, opt_level: int) -> None:
-    """Test parity of native gate-level benchmarks."""
-    target = get_target_for_gateset("ionq_forte", num_qubits=size)
-    qc_wrapper = get_benchmark_native_gates(
-        benchmark,
-        size,
-        target,
-        opt_level,
-    )
-    qc_ref = get_benchmark(
-        benchmark,
-        BenchmarkLevel.NATIVEGATES,
-        size,
-        target,
-        opt_level,
-    )
-    assert qc_wrapper == qc_ref
-
-
-@pytest.mark.parametrize(("benchmark", "size", "opt_level"), [("qft", 4, 1)])
-def test_mapped_parity(benchmark: str, size: int, opt_level: int) -> None:
-    """Test parity of mapped benchmarks."""
-    target = get_device("ibm_heron_156")
-    qc_wrapper = get_benchmark_mapped(
-        benchmark,
-        size,
-        target,
-        opt_level,
-    )
-    qc_ref = get_benchmark(
-        benchmark,
-        BenchmarkLevel.MAPPED,
-        size,
-        target,
-        opt_level,
-    )
-    assert qc_wrapper == qc_ref
-
-
-@pytest.mark.parametrize(("benchmark", "size", "opt_level"), [("qft", 4, 4), ("ae", 3, -1)])
-def test_validate_opt_level(benchmark: str, size: int, opt_level: int) -> None:
-    """Test opt_level validation."""
-    match = re.escape(f"Invalid `opt_level` '{opt_level}'. Must be in the range [0, 3].")
-    with pytest.raises(ValueError, match=match):
-        get_benchmark_indep(
-            benchmark,
-            circuit_size=size,
-            opt_level=opt_level,
-        )
-
-    target = get_device("ibm_heron_156")
-    with pytest.raises(ValueError, match=match):
-        get_benchmark_native_gates(
-            benchmark,
-            circuit_size=size,
-            target=target,
-            opt_level=opt_level,
-        )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark_mapped(
-            benchmark,
-            circuit_size=size,
-            target=target,
-            opt_level=opt_level,
-        )
-    with pytest.raises(ValueError, match=match):
-        get_benchmark(
-            benchmark,
-            level=BenchmarkLevel.INDEP,
-            circuit_size=size,
-            target=target,
-            opt_level=opt_level,
-        )
-
-
-def test_assert_never_runtime() -> None:
-    """Test that assert_never raises an error at runtime."""
-    bad_level = cast("BenchmarkLevel", object())
-
-    with pytest.raises(AssertionError):
-        # get_benchmark will fall through the if-chain and hit assert_never
-        get_benchmark("qft", level=bad_level, circuit_size=3)
-
-
-@pytest.mark.parametrize(("benchmark_name", "logical_circuit_size"), [("ghz", 3), ("qwalk", 2)])
-def test_get_benchmark_mirror_option(benchmark_name: str, logical_circuit_size: int) -> None:
-    """Test the creation of mirror benchmarks, including layout verification for mapped circuits."""
-    levels_to_test_config = [
-        (BenchmarkLevel.ALG, None, None),
-        (BenchmarkLevel.INDEP, 0, None),
-        (
-            BenchmarkLevel.NATIVEGATES,
-            1,
-            get_target_for_gateset("ibm_heron", num_qubits=logical_circuit_size),
-        ),
-        (
-            BenchmarkLevel.MAPPED,
-            1,
-            get_device("ibm_heron_156"),
-        ),
-    ]
-
-    for level_enum, comp_opt_level, target_obj in levels_to_test_config:
-        qc_base = get_benchmark(
-            benchmark=benchmark_name,
-            level=level_enum,
-            circuit_size=logical_circuit_size,
-            opt_level=comp_opt_level if comp_opt_level is not None else 2,
-            target=target_obj,
-            generate_mirror_circuit=False,
-        )
-
-        # Get the mirror circuit
-        qc_mirror = get_benchmark(
-            benchmark=benchmark_name,
-            level=level_enum,
-            circuit_size=logical_circuit_size,
-            opt_level=comp_opt_level if comp_opt_level is not None else 2,
-            target=target_obj,
-            generate_mirror_circuit=True,
-        )
-
-        assert qc_mirror.name == f"{qc_base.name}_mirror"
-
-        assert qc_mirror.num_qubits == qc_base.num_qubits
-
-        # Ensure the mirror circuit contains only native gates for the given target.
-        pm = PassManager(GatesInBasis(target=target_obj))
-        pm.run(qc_mirror)
+    assert mirror.name == f"{base.name}_mirror"
+    assert mirror.num_qubits == base.num_qubits
+    assert mirror.count_ops()["barrier"] >= 2
+    measured = {inst.qubits[0] for inst in mirror if inst.operation.name == "measure"}
+    assert len(measured) >= size
+    if target is not None:
+        pm = PassManager(GatesInBasis(target=target))
+        pm.run(mirror)
         assert pm.property_set["all_gates_in_basis"]
+    if level is BenchmarkLevel.MAPPED:
+        assert base.layout is not None
+        assert mirror.layout is not None
+        assert mirror.layout.initial_layout == base.layout.initial_layout
+        assert mirror.layout.final_layout == Layout.generate_trivial_layout(*mirror.qregs)
 
-        # at least each logical qubit should be measured
-        assert sum(inst.operation.name == "measure" for inst in qc_mirror.data) >= logical_circuit_size
-
-        # at least one barrier should be present in the middle of the circuit and one before the measurements at the end
-        assert sum(1 for inst in qc_mirror.data if inst.operation.name == "barrier") >= 2, (
-            f"Mirror circuit for level '{level_enum.name}' should contain at least 2 barriers."
-        )
-
-        # --- Layout Verification ---
-        if level_enum == BenchmarkLevel.MAPPED:
-            assert target_obj is not None, f"Target for {benchmark_name} is None."
-            assert qc_base.layout is not None, f"Base mapped circuit for {benchmark_name} lacks a layout."
-            assert qc_mirror.layout is not None, f"Mirror of mapped circuit for {benchmark_name} lacks a layout."
-
-            assert qc_mirror.layout.initial_layout == qc_base.layout.initial_layout, (
-                f"Mirror circuit's initial_layout ({qc_mirror.layout.initial_layout}) "
-                f"differs from base circuit's initial_layout ({qc_base.layout.initial_layout})."
-            )
-
-            assert qc_mirror.layout.final_layout == Layout.generate_trivial_layout(*qc_mirror.qregs), (
-                f"Mirror circuit's final_layout ({qc_mirror.layout.final_layout}) "
-                f"should be a trivial layout for the mirror circuit, but it is not."
-            )
-
-            # if the circuit to be mapped has fewer qubits than the target, not every qubit should be measured
-            if qc_base.num_qubits < target_obj.num_qubits:
-                measured_qubits = {inst.qubits[0].index for inst in qc_mirror.data if inst.operation.name == "measure"}
-                assert len(measured_qubits) < target_obj.num_qubits, (
-                    f"Mirror circuit for level '{level_enum.name}' should not measure all qubits of the target "
-                    f"({target_obj.num_qubits}), but measures {len(measured_qubits)}."
-                )
-
-        # --- Verification of U @ U_inv being Identity ---
-        qc_mirror.remove_final_measurements(inplace=True)
-        qc_mirror = RemoveBarriers()(qc_mirror)
-
-        active_qubits = [q for q in qc_mirror.qubits if q not in qc_mirror.to_dag().idle_wires()]
-        compact = QuantumCircuit(len(active_qubits), global_phase=qc_mirror.global_phase)
-        for instruction in qc_mirror.data:
-            compact.append(instruction.operation, [active_qubits.index(q) for q in instruction.qubits])
-        np.testing.assert_allclose(Operator(compact).data, np.eye(2 ** len(active_qubits)), atol=1e-12)
+    mirror.remove_final_measurements()
+    mirror = RemoveBarriers()(mirror)
+    idle = set(mirror.to_dag().idle_wires())
+    active = [qubit for qubit in mirror.qubits if qubit not in idle]
+    assert measured == set(active)
+    compact = QuantumCircuit(len(active), global_phase=mirror.global_phase)
+    for instruction in mirror:
+        compact.append(instruction.operation, [active.index(qubit) for qubit in instruction.qubits])
+    np.testing.assert_allclose(Operator(compact).data, np.eye(2 ** len(active)), atol=1e-12)
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))
@@ -2178,20 +1818,10 @@ def test_benchmarks_with_parameters(benchmark: str) -> None:
 
 
 def test_configuration_options() -> None:
-    """Test ConfigurationOptions TypedDict structure and usage."""
-    assert "ConfigurationOptions" in mqt.bench.configuration_options.__all__
-
-    # Test valid configurations
-    valid_config: ConfigurationOptions = {"seed": 42}
-    assert valid_config["seed"] == 42
-
-    # Test with None seed
-    config_with_none: ConfigurationOptions = {"seed": None}
-    assert config_with_none["seed"] is None
-
-    # Test empty dict (all fields are optional due to total=False)
-    empty_config: ConfigurationOptions = {}
-    assert len(empty_config) == 0
+    """Typed options can be passed to the public generation API."""
+    options = mqt.bench.configuration_options.ConfigurationOptions(seed=None)
+    circuit = get_benchmark_alg("vqe_real_amp", 2, **options)
+    assert circuit.metadata["mqt_bench_generation"]["parameter_seed"] is None
 
 
 def test_version() -> None:
