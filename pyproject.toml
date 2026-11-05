@@ -242,11 +242,6 @@ strict = true
 testpaths = [ "tests" ]
 
 
-[tool.coverage]
-precision = 1
-show_missing = true
-skip_empty = true
-
 [tool.coverage.run]
 source = [ "mqt.bench" ]
 parallel = true
@@ -256,9 +251,12 @@ disable_warnings = [
 core = "sysmon"
 
 [tool.coverage.report]
+precision = 1
 exclude_also = [
   '\.\.\.',
   "if TYPE_CHECKING:",
   "raise AssertionError",
   "raise NotImplementedError",
 ]
+skip_empty = true
+show_missing = true
