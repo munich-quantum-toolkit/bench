@@ -169,7 +169,7 @@ def write_circuit(
     *,
     qir_profile: Literal["base", "adaptive"] = "base",
 ) -> None:  # pragma: no cover - typing overload only
-    ...
+    pass
 
 
 @overload
@@ -182,7 +182,7 @@ def write_circuit(
     *,
     qir_profile: Literal["base", "adaptive"] = "base",
 ) -> None:  # pragma: no cover - typing overload only
-    ...
+    pass
 
 
 def write_circuit(
