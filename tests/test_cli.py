@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -37,6 +38,72 @@ def _generate(script_runner: ScriptRunner, level: str, algorithm: str, size: int
         str(size),
         *options,
     ])
+
+
+@pytest.mark.parametrize(
+    ("extra_args", "seed", "trials"),
+    [([], 10, 8), (["--compiler-seed", "17"], 17, 8), (["--mapping-trials", "3"], 10, 3)],
+)
+def test_mqt_cli(script_runner: ScriptRunner, tmp_path: Path, extra_args: list[str], seed: int, trials: int) -> None:
+    """Keep compilation controls separate from factory options and Qiskit's opt_level."""
+    result = _generate(
+        script_runner,
+        "nativegates",
+        "graphstate",
+        3,
+        "--compiler",
+        "mqt",
+        "--target",
+        "ibm_heron",
+        "--seed",
+        "42",
+        "--benchmark-options",
+        '{"degree": 2}',
+        "--optimization-level",
+        "1",
+        "--save",
+        "--target-directory",
+        str(tmp_path),
+        *extra_args,
+    )
+    assert result.success
+    filename = "graphstate_nativegates_ibm_heron_mqt_3.qasm"
+    assert filename in result.stdout
+    exported = (tmp_path / filename).read_text()
+    generation = json.loads(exported.split("// Generation options: ")[1].splitlines()[0])
+    assert generation["options"] == {"seed": 42, "degree": 2}
+    options = json.loads(exported.split("// Compiler options: ")[1].splitlines()[0])
+    assert options["seed"] == seed
+    assert options["mapping"]["trials"] == trials
+    assert "// Compiler: mqt " in exported
+
+
+@pytest.mark.parametrize(
+    ("compiler", "level", "extra_args", "message"),
+    [
+        ("qiskit", "indep", ["--compiler-seed", "17"], "require --compiler mqt"),
+        ("mqt", "alg", ["--mapping-trials", "2"], "require a compilation level"),
+        ("mqt", "indep", ["--compiler-seed", "-1"], "--compiler-seed must be nonnegative"),
+        ("mqt", "indep", ["--mapping-trials", "0"], "--mapping-trials must be positive"),
+        ("mqt", "indep", ["--compiler-seed", str(2**64)], "is out of range"),
+        ("mqt", "indep", ["--mapping-trials", str(2**64)], "is out of range"),
+    ],
+)
+def test_mqt_cli_errors(
+    script_runner: ScriptRunner, compiler: str, level: str, extra_args: list[str], message: str
+) -> None:
+    """Report invalid compiler controls as usage errors."""
+    result = _generate(script_runner, level, "ghz", 3, "--compiler", compiler, *extra_args)
+    assert result.returncode == 2
+    assert message in result.stderr
+
+
+def test_mqt_cli_compilation_failure(script_runner: ScriptRunner) -> None:
+    """Report a Core synthesis failure as a CLI usage error."""
+    result = _generate(script_runner, "nativegates", "qft", 4, "--compiler", "mqt", "--target", "clifford+t")
+    assert result.returncode == 2
+    assert "requires a single-qubit synthesis basis" in result.stderr
+    assert not result.stdout
 
 
 @pytest.mark.parametrize(
@@ -136,7 +203,7 @@ def test_cli_benchmark_options(script_runner: ScriptRunner) -> None:
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
     """Test the CLI with different error cases."""
     ret = script_runner.run(["mqt-bench", *args])
-    assert not ret.success
+    assert ret.returncode == 2
     assert expected_output in ret.stderr
     assert "Traceback" not in ret.stderr
     assert not ret.stdout
@@ -206,3 +273,22 @@ def test_cli_targeted_save(
     target = get_device(target_name) if level == BenchmarkLevel.MAPPED else get_target_for_gateset(target_name, 5)
     expected = get_benchmark("ghz", level, 5, target, 1, generate_mirror_circuit=mirror)
     assert qasm2.dumps(expected) in path.read_text(encoding="utf-8")
+
+
+def test_cli_save_error(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """A failed save returns a nonzero exit code and reports the export error."""
+    target_dir = tmp_path / "occupied"
+    target_dir.write_text("existing file")
+    ret = _generate(script_runner, "alg", "ghz", 5, "--output-format", "qpy", "--target-directory", str(target_dir))
+    assert ret.returncode == 1
+    assert target_dir.name in ret.stderr
+    assert "Traceback" not in ret.stderr
+    assert not ret.stdout
+    assert target_dir.read_text() == "existing file"
+
+
+def test_cli_invalid_qir_profile(script_runner: ScriptRunner) -> None:
+    """Reject an unknown QIR profile during argument parsing."""
+    ret = _generate(script_runner, "alg", "ghz", 5, "--qir-profile", "invalid")
+    assert ret.returncode == 2
+    assert "invalid choice" in ret.stderr

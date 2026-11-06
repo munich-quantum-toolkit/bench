@@ -64,11 +64,16 @@ def main() -> None:
         help="Number of qubits for the benchmark.",
     )
     parser.add_argument(
+        "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
+    )
+    parser.add_argument("--compiler-seed", type=int, help="MQT Core compilation seed (default: 10).")
+    parser.add_argument("--mapping-trials", type=int, help="Number of MQT Core mapping trials (default: 8).")
+    parser.add_argument(
         "--optimization-level",
         type=int,
         choices=range(4),
         default=2,
-        help="Qiskit compiler optimization level (0-3, default: 2).",
+        help="Qiskit optimization level (0-3, default: 2). Ignored by the MQT compiler.",
     )
     parser.add_argument(
         "--target",
@@ -90,15 +95,21 @@ def main() -> None:
         help=f"Output format. Possible values: {[fmt.value for fmt in OutputFormat]}.",
     )
     parser.add_argument(
+        "--qir-profile",
+        choices=["base", "adaptive"],
+        default="base",
+        help="Profile for QIR output (default: base). Use adaptive for measurement feedback.",
+    )
+    parser.add_argument(
         "--target-directory",
         type=str,
         default=".",
-        help="Directory to save the output file (only used for 'qpy' or if --save is specified).",
+        help="Directory to save the output file (used for binary formats or if --save is specified).",
     )
     parser.add_argument(
         "--save",
         action="store_true",
-        help="If set, save the output to a file instead of printing to stdout (e.g. for 'qpy', which is not available as text).",
+        help="Save text output to a file. Binary formats always write a file.",
     )
     parser.add_argument(
         "--mirror",
@@ -138,6 +149,23 @@ def main() -> None:
     if level in (BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED) and not args.target:
         parser.error(f"--target is required when --level is '{args.level}'.")
 
+    compiler_options = None
+    if args.compiler_seed is not None or args.mapping_trials is not None:
+        if args.compiler != "mqt":
+            parser.error("--compiler-seed and --mapping-trials require --compiler mqt.")
+        if level == BenchmarkLevel.ALG:
+            parser.error("--compiler-seed and --mapping-trials require a compilation level.")
+        if args.compiler_seed is not None and args.compiler_seed < 0:
+            parser.error("--compiler-seed must be nonnegative.")
+        if args.mapping_trials is not None and args.mapping_trials < 1:
+            parser.error("--mapping-trials must be positive.")
+        from ._mqt_compiler import make_compilation_options  # ruff:ignore[import-outside-top-level]
+
+        try:
+            compiler_options = make_compilation_options(seed=args.compiler_seed, mapping_trials=args.mapping_trials)
+        except (OverflowError, TypeError):
+            parser.error("Compiler seed or mapping trial count is out of range.")
+
     options = dict(args.benchmark_options)
     if args.seed is not None:
         if "seed" in options:
@@ -157,50 +185,55 @@ def main() -> None:
             circuit_size=args.num_qubits,
             target=target,
             opt_level=args.optimization_level,
+            compiler=args.compiler,
+            compiler_options=compiler_options,
             generate_mirror_circuit=args.mirror,
             random_parameters=args.random_parameters,
             **options,
         )
     except (ValueError, TypeError, KeyError, QiskitError) as exc:
         parser.error(str(exc))
+    except RuntimeError as exc:
+        if args.compiler != "mqt":
+            raise
+        parser.error(str(exc).partition("\n")[0])
 
-    fmt = OutputFormat(args.output_format)
+    else:
+        fmt = OutputFormat(args.output_format)
 
-    # For QASM outputs, serialize and print
-    if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
-        assert isinstance(sys.stdout, TextIOBase)
-        try:
-            write_circuit(circuit, sys.stdout, level, fmt, target)
-        except MQTBenchExporterError as exc:
-            print(exc, file=sys.stderr)
+        # Text formats stream to stdout unless saving is requested.
+        if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
+            assert isinstance(sys.stdout, TextIOBase)
+            try:
+                write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
+            except MQTBenchExporterError as exc:
+                print(exc, file=sys.stderr)
+                sys.exit(1)
+            return
+
+        # Otherwise, save to file
+        filename = generate_filename(
+            benchmark_name=args.algorithm,
+            level=level,
+            num_qubits=args.num_qubits,
+            target=target,
+            opt_level=args.optimization_level,
+            compiler=args.compiler,
+            generate_mirror_circuit=args.mirror,
+        )
+        success = save_circuit(
+            qc=circuit,
+            filename=filename,
+            level=level,
+            output_format=fmt,
+            target=target,
+            target_directory=args.target_directory,
+            qir_profile=args.qir_profile,
+        )
+        if not success:
             sys.exit(1)
-        return
 
-    # Otherwise, save to file
-    filename = generate_filename(
-        benchmark_name=args.algorithm,
-        level=level,
-        num_qubits=args.num_qubits,
-        target=target,
-        opt_level=args.optimization_level,
-        generate_mirror_circuit=args.mirror,
-    )
-    success = save_circuit(
-        qc=circuit,
-        filename=filename,
-        level=level,
-        output_format=fmt,
-        target=target,
-        target_directory=args.target_directory,
-    )
-    if not success:
-        sys.exit(1)
-
-    # Optionally, inform user of file location if saving
-    if args.save or fmt == OutputFormat.QPY:
-        file_ext = fmt.extension()
-        path = Path(args.target_directory) / f"{filename}.{file_ext}"
-        print(path)
+        print(Path(args.target_directory) / f"{filename}.{fmt.extension()}")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,12 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- ✨ Add QIR text and bitcode export with Base and Adaptive profiles ([#1094])
+  ([**@simon1hofmann**], [**@burgholzer**])
+- ✨ Add MQT Core compilation for target-independent, native-gate, and mapped
+  circuits via `compiler="mqt"` or `--compiler mqt`, with logical native QASM
+  exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
+  [**@burgholzer**])
 - ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
   rejection loop ([#1053]) ([**@algovista-collab**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
@@ -58,6 +64,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve the caller's layout when mirroring a routed circuit ([#1136])
+  ([**@simon1hofmann**])
 - 🐛 Preserve construction options on recompilation, avoid mirror register-name
   collisions, and support multiline target descriptions in QASM headers
   ([#1124]) ([**@simon1hofmann**])
@@ -303,6 +311,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
 [#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124
@@ -322,6 +331,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1106]: https://github.com/munich-quantum-toolkit/bench/pull/1106
 [#1098]: https://github.com/munich-quantum-toolkit/bench/pull/1098
 [#1095]: https://github.com/munich-quantum-toolkit/bench/pull/1095
+[#1094]: https://github.com/munich-quantum-toolkit/bench/pull/1094
 [#1093]: https://github.com/munich-quantum-toolkit/bench/pull/1093
 [#1089]: https://github.com/munich-quantum-toolkit/bench/pull/1089
 [#1088]: https://github.com/munich-quantum-toolkit/bench/pull/1088
@@ -347,6 +357,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
+[#1027]: https://github.com/munich-quantum-toolkit/bench/pull/1027
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
