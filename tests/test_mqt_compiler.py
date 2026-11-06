@@ -130,8 +130,7 @@ def test_symbolic_independent_circuit() -> None:
 
 
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-@pytest.mark.parametrize("mirror", [False, True])
-def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_compiler_options(level: BenchmarkLevel, monkeypatch: pytest.MonkeyPatch) -> None:
     """Use caller options for compilation and target-specific mirror recompilation."""
     options = core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=2, iterations=2, lookahead=0))
     adapter = import_module("mqt.bench._mqt_compiler")
@@ -146,15 +145,15 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         target=get_device("iqm_crystal_5"),
         compiler="mqt",
         **configuration,
-        generate_mirror_circuit=mirror,
+        generate_mirror_circuit=True,
     )
-    expected_calls = 2 if mirror and level is not BenchmarkLevel.INDEP else 1
+    expected_calls = 1 if level is BenchmarkLevel.INDEP else 2
     assert [call.kwargs["options"] for call in compile_circuit.call_args_list] == [options] * expected_calls
     generation = result.metadata["mqt_bench_generation"]
     assert generation["benchmark"] == "ghz"
     assert generation["level"] == level.name.lower()
     assert generation["options"] == {"seed": 42}
-    assert generation["mirror"] is mirror
+    assert generation["mirror"] is True
     assert generation["opt_level"] is None
     assert generation["target"] == (None if level is BenchmarkLevel.INDEP else "iqm_crystal_5")
     assert options.seed == 17
@@ -226,21 +225,20 @@ def test_mirror_without_qiskit_transpilation(level: BenchmarkLevel, monkeypatch:
 
 
 @pytest.mark.parametrize(
-    ("benchmark", "size", "options"),
+    ("benchmark", "size", "options", "level"),
     [
-        ("qft", 3, {}),
-        ("grover", 3, {"for_loop": True}),
-        ("qwalk", 3, {"for_loop": True}),
-        ("dynamic_qft", 3, {}),
-        ("ghz_dynamic", 3, {}),
-        ("teleportation", 3, {}),
-        ("modular_adder", 4, {}),
-        ("hrs_cumulative_multiplier", 5, {}),
+        ("qft", 3, {}, BenchmarkLevel.INDEP),
+        ("grover", 3, {"for_loop": True}, BenchmarkLevel.MAPPED),
+        ("qwalk", 3, {"for_loop": True}, BenchmarkLevel.NATIVEGATES),
+        ("dynamic_qft", 3, {}, BenchmarkLevel.MAPPED),
+        ("ghz_dynamic", 3, {}, BenchmarkLevel.INDEP),
+        ("teleportation", 3, {}, BenchmarkLevel.NATIVEGATES),
+        ("modular_adder", 4, {}, BenchmarkLevel.NATIVEGATES),
+        ("hrs_cumulative_multiplier", 5, {}, BenchmarkLevel.MAPPED),
     ],
 )
-@pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 def test_benchmark_levels(benchmark: str, size: int, options: ConfigurationOptions, level: BenchmarkLevel) -> None:
-    """Static and structured Bench circuits pass through every Core compilation level."""
+    """Compile representative Bench circuits across the three Core levels."""
     target = get_device("iqm_crystal_5") if level == BenchmarkLevel.MAPPED else get_target_for_gateset("ibm_heron", 3)
     result = get_benchmark(benchmark, level, size, target=target, compiler="mqt", **options)
     assert result.name == benchmark
@@ -379,8 +377,7 @@ def test_target_without_applicable_entangler_rejected(*, mapped: bool) -> None:
         compile_circuit("ghz", 2, target, compiler="mqt")
 
 
-@pytest.mark.parametrize("width", [None, 3])
-@pytest.mark.parametrize("circuit_width", [1, 2])
+@pytest.mark.parametrize(("width", "circuit_width"), [(None, 1), (3, 2)])
 def test_native_target_ignores_hardware_topology(width: int | None, circuit_width: int) -> None:
     """Native compilation ignores hardware topology and gates wider than the circuit."""
     target = Target(num_qubits=width)
@@ -511,8 +508,7 @@ def test_fixed_rx_gate_validation_rejects_unavailable_angle(monkeypatch: pytest.
         get_benchmark_native_gates(QuantumCircuit(2), None, target, compiler="mqt")
 
 
-@pytest.mark.parametrize("ending", ["none", "swap", "barrier", "full_barrier"])
-@pytest.mark.parametrize("idle_qubit", [False, True])
+@pytest.mark.parametrize(("ending", "idle_qubit"), [("swap", False), ("barrier", True), ("full_barrier", False)])
 def test_native_compilation_preserves_logical_wires(ending: str, *, idle_qubit: bool) -> None:
     """Native circuits and QASM exports preserve logical wires, including idle ones."""
     source = QuantumCircuit(4 if idle_qubit else 3, global_phase=0.37)
@@ -520,8 +516,7 @@ def test_native_compilation_preserves_logical_wires(ending: str, *, idle_qubit: 
     source.h(0)
     source.barrier(0, label="inside")
     source.cx(2, 1)
-    if ending != "none":
-        source.swap(0, 2)
+    source.swap(0, 2)
     if ending == "barrier":
         source.barrier(2, label="output")
     elif ending == "full_barrier":

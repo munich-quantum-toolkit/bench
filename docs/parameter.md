@@ -63,9 +63,9 @@ print(get_available_device_names())
   compilation level.
 - `random_parameters`: Bind circuit parameters to random values.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
-  the benchmark. Final measurements are removed before inversion and added after
-  the mirror. Circuits that Qiskit cannot invert, for example those with
-  mid-circuit measurements, resets, or unsupported control flow, raise
+  the benchmark. Remove final measurements before inversion, then measure the
+  mirror's active qubits. Circuits that Qiskit cannot invert, for example those
+  with mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
 
 ## MQT Core compiler
@@ -93,18 +93,18 @@ target's gates and returns logical wire order. `MAPPED` enforces device
 constraints and returns physical wires with the original measurement
 destinations. Both target levels return circuits without layout metadata.
 
-Core defaults to seed `10` and eight mapping trials. `compiler_options` replaces
-these defaults and also applies when recompiling mirrors. The benchmark `seed`
-controls circuit generation and parameter binding.
+MQT Bench uses compilation seed `10` and eight mapping trials by default.
+`compiler_options` replaces these defaults for the benchmark and any mirror
+recompilation. The benchmark `seed` controls circuit generation and parameter
+binding.
 
 ```bash
 mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
   --level mapped --target iqm_crystal_5 --compiler-seed 17 --mapping-trials 8 --save
 ```
 
-Unsupported constraints and compilation failures raise errors. Clifford+T
-compilation requires an exact decomposition. See the [target compilation guide]
-for supported bases and control flow.
+See the [target compilation guide] for supported bases and control flow. MQT
+Core requires an exact decomposition for Clifford+T compilation.
 
 MQT Core output filenames contain `_mqt_`. Circuit metadata and QASM/QPY exports
 record the compiler version and requested options.
