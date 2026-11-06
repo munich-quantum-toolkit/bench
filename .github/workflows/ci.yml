@@ -34,8 +34,6 @@ jobs:
       contents: read
     env:
       MQT_BENCH_COVERAGE_RUNNER: ${{ matrix.runs-on }}
-      # Keep CMake build trees out of the uv cache.
-      SKBUILD_BUILD_DIR: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,17 +43,14 @@ jobs:
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: false
-
-      - name: Set uv cache directory
-        shell: bash
-        run: echo "UV_CACHE_DIR=$RUNNER_TEMP/uv-cache" >> "$GITHUB_ENV"
+          cache-local-path: ${{ runner.temp }}/uv-cache
 
       - name: Restore uv cache
         id: uv-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: bench-uv-${{ matrix.runs-on }}-${{ hashFiles('uv.lock') }}
+          key: bench-uv-${{ matrix.runs-on }}-${{ hashFiles('uv.lock') }}-wheels
           restore-keys: bench-uv-${{ matrix.runs-on }}-
 
       - name: Set up MSVC
@@ -89,7 +84,11 @@ jobs:
 
       - name: Prune uv cache
         if: steps.uv-cache.outputs.cache-hit != 'true'
-        run: uv cache prune --ci
+        shell: bash
+        run: |
+          uv cache prune --ci
+          # Core's CMake build tree is in uv's disposable Git checkout.
+          rm -rf "${UV_CACHE_DIR:?}"/git-v*/checkouts
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -111,12 +110,45 @@ jobs:
     name: 🐍 Lint
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@a4b4977405c7685f95e127cdb6db396bbadce787 # v2.5.5
-    with:
-      enable-ty: true
-      enable-mypy: false
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_GHA_RW_MODE: ${{ github.ref == 'refs/heads/main' && 'READ_WRITE' || 'READ_ONLY' }}
+      SCCACHE_SKIP_CACHE_CHECK: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+          cache-local-path: ${{ runner.temp }}/uv-cache
+
+      - name: Restore uv cache
+        id: uv-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: bench-uv-ubuntu-26.04-${{ hashFiles('uv.lock') }}-wheels
+          restore-keys: bench-uv-ubuntu-26.04-
+
+      - name: Set up sccache
+        id: sccache
+        if: steps.uv-cache.outputs.cache-hit != 'true'
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+
+      - name: Run ty
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.sccache.outcome == 'success' && 'sccache' || '' }}
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.sccache.outcome == 'success' && 'sccache' || '' }}
+        run: uvx prek run -a ty
+
+      - name: Check source distribution
+        run: uvx check-sdist --inject-junk
 
   build-sdist:
     name: 🚀 CD
