@@ -60,9 +60,9 @@ print(get_available_device_names())
 - `random_parameters`: Assign random parameters to the circuit's parameters if
   they exist.
 - `generate_mirror_circuit`: Generate the mirror version (U @ U.inverse()) of
-  the benchmark. Final measurements are removed before inversion and added after
-  the mirror. Circuits that Qiskit cannot invert, for example those with
-  mid-circuit measurements, resets, or unsupported control flow, raise
+  the benchmark. Remove final measurements before inversion, then measure the
+  mirror's active qubits. Circuits that Qiskit cannot invert, for example those
+  with mid-circuit measurements, resets, or unsupported control flow, raise
   `ValueError`. Use `False` to generate these circuits without a mirror.
 
 ## Native Gate-Set Support
