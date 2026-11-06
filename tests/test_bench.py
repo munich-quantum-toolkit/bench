@@ -17,7 +17,7 @@ import random
 import re
 from enum import StrEnum
 from importlib import metadata
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
 import networkx as nx
 import numpy as np
@@ -31,6 +31,7 @@ from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import (
+    CouplingMap,
     InstructionProperties,
     Layout,
     PassManager,
@@ -1097,7 +1098,7 @@ def test_clifford_t_mirror_inverse_gates(opt_level: int, gate_name: str) -> None
 def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
     """Synthesize rotations inside structured loops without unrolling the loop."""
     qc = QuantumCircuit(1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.rx(0.3, 0)
     target = get_target_for_gateset("clifford+t", 1)
 
@@ -1276,6 +1277,7 @@ def test_invalid_shor_input(number: int, a: int, message: str) -> None:
             (BenchmarkLevel.NATIVEGATES, Target(num_qubits=5, description=description), False, expected)
             for description, expected in [
                 (None, "ghz_nativegates_custom_target_opt2_5"),
+                ("", "ghz_nativegates_custom_target_opt2_5"),
                 ("   ", "ghz_nativegates_custom_target_opt2_5"),
                 (r"Custom/native\target", "ghz_nativegates_Custom_native_target_opt2_5"),
                 ("clifford+t", "ghz_nativegates_clifford+t_opt2_5"),
@@ -1307,21 +1309,26 @@ def test_invalid_shor_input(number: int, a: int, message: str) -> None:
         ),
     ],
 )
+@pytest.mark.parametrize("compiler", ["qiskit", "mqt"])
 def test_generate_filename(
     level: BenchmarkLevel,
     target: Target | None,
     generate_mirror_circuit: bool,
     expected: str,
+    compiler: Literal["qiskit", "mqt"],
 ) -> None:
-    """Test the generation of a filename."""
+    """Generate filenames with the positional mirror flag and either compiler."""
     filename = generate_filename(
-        benchmark_name="ghz",
-        level=level,
-        num_qubits=5,
-        target=target,
-        opt_level=2,
-        generate_mirror_circuit=generate_mirror_circuit,
+        "ghz",
+        level,
+        5,
+        target,
+        2 if compiler == "qiskit" else None,
+        generate_mirror_circuit,
+        compiler=compiler,
     )
+    if compiler == "mqt":
+        expected = expected.replace("_opt2_", "_mqt_")
     assert filename == expected
 
 
@@ -1603,7 +1610,7 @@ def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description:
 def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_level: int, conditional: bool) -> None:
     """Compile loop exits using Qiskit's instruction names."""
     qc = QuantumCircuit(2, 1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.x(0)
         if conditional:
             with qc.if_test((qc.clbits[0], 0)):
@@ -1714,9 +1721,30 @@ def test_mapped_mirror_preserves_complete_layout() -> None:
     assert source == original
     assert base.layout is not None
     assert mirror.layout is not None
+    assert mirror.layout.initial_index_layout() == base.layout.initial_index_layout()
     assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
     mirror.remove_final_measurements(inplace=True)
     np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
+
+
+def test_algorithm_mirror_preserves_input_layout() -> None:
+    """Mirroring a routed circuit preserves the caller's routing permutation."""
+    source = QuantumCircuit(3)
+    source.cx(0, 2)
+    source.cx(0, 1)
+    source.x(0)
+    routed = transpile(
+        source, coupling_map=CouplingMap.from_line(3), initial_layout=[0, 1, 2], optimization_level=0, seed_transpiler=1
+    )
+    assert routed.layout is not None
+    routing = routed.layout.final_index_layout()
+    assert routing != [0, 1, 2]
+
+    mirror = get_benchmark_alg(routed, generate_mirror_circuit=True)
+    assert routed.layout.final_index_layout() == routing
+    assert mirror.layout is not None
+    assert mirror.layout is not routed.layout
+    assert mirror.layout.final_index_layout() == [0, 1, 2]
 
 
 def test_dynamic_benchmark_registration() -> None:
@@ -1824,6 +1852,23 @@ def test_version() -> None:
     """Test that the package version is accessible."""
     assert isinstance(mqt.bench.__version__, str)
     assert isinstance(mqt.bench.__version_tuple__, tuple)
+
+
+@pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
+def test_invalid_compiler(compiler: str) -> None:
+    """Reject unknown compilers before circuit generation."""
+    invalid_compiler = cast('Literal["qiskit", "mqt"]', compiler)
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 3])
+def test_mqt_optimization_level(opt_level: int) -> None:
+    """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
+    expected = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+    assert get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level) == expected
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))

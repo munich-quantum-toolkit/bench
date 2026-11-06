@@ -159,6 +159,9 @@ also retains it as metadata. Only JSON-serializable options are recorded, so
 custom gates and state-preparation circuits must be stored separately.
 Recompiling a circuit preserves its construction options. When random parameter
 values are assigned, `parameter_seed` records the seed used for that binding.
+With the MQT Core compiler, `qc.metadata["mqt_bench_compiler"]` also records its
+version and requested compiler options. These options include the compilation
+seed, which is independent of the benchmark-generation seed.
 
 File exports replace the destination only after serialization succeeds.
 `save_circuit` creates missing output directories and reports errors on stderr.

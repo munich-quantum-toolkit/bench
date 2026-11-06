@@ -68,6 +68,7 @@ intersphinx_mapping = {
     "typing_extensions": ("https://typing-extensions.readthedocs.io/en/latest/", None),
     "qiskit": ("https://docs.quantum.ibm.com/api/qiskit", None),
     "mqt": ("https://mqt.readthedocs.io/en/stable/", None),
+    "mqt-core": ("https://mqt.readthedocs.io/projects/core/en/latest/", None),
 }
 
 myst_enable_extensions = [
