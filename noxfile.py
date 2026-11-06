@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import nox
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-nox.needs_version = ">=2026.08.17"
+nox.needs_version = ">=2026.10.20"
 nox.options.default_venv_backend = "uv"
 nox.options.parallel = "auto"
 
@@ -51,22 +52,34 @@ def lint(session: nox.Session) -> None:
     session.run("prek", "run", "--all-files", *session.posargs, external=True)
 
 
+def _run_pytest(session: nox.Session, *pytest_args: str, locked: bool = False) -> None:
+    env = _get_session_env(session)
+    command = ("uv", "run", "--locked", "--no-dev", "--group", "test") if locked else ()
+    posargs = session.posargs
+    if session.parallel:
+        pytest_args += ("-n", "0")
+        env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
+        # The reusable workflow passes the same report path to every session.
+        posargs = [
+            f"{arg.removesuffix('.xml')}-{session.name}.xml"
+            if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
+            else arg
+            for arg in posargs
+        ]
+    session.run(
+        *command,
+        "pytest",
+        *pytest_args,
+        *posargs,
+        "--cov-config=pyproject.toml",
+        env=env,
+    )
+
+
 @nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    session.run(
-        "uv",
-        "run",
-        "--no-dev",
-        "--group",
-        "test",
-        "pytest",
-        "-n",
-        "0",
-        *session.posargs,
-        "--cov-config=pyproject.toml",
-        env=_get_session_env(session),
-    )
+    _run_pytest(session, locked=True)
 
 
 def _run_tests_without_lockfile(
@@ -90,22 +103,16 @@ def _run_tests_without_lockfile(
     )
     if extra_packages:
         session.run(*uv_pip_install, *extra_packages, env=env)
-    session.run(
-        "pytest",
-        *pytest_run_args,
-        *session.posargs,
-        "--cov-config=pyproject.toml",
-        env=env,
-    )
+    _run_pytest(session, *pytest_run_args)
 
 
-@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv", default=True, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, venv_backend="uv", default=True, allow_parallel=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
     _run_tests_without_lockfile(
         session,
         install_args=["--resolution=lowest-direct"],
-        pytest_run_args=["-Wdefault", "-n", "0"],
+        pytest_run_args=["-Wdefault"],
     )
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 

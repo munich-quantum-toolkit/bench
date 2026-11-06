@@ -65,7 +65,7 @@ mqt-bench = "mqt.bench.cli:main"
 [dependency-groups]
 dev = [
   { include-group = "test" },
-  "nox>=2026.8.17",
+  "nox>=2026.10.20",
   "prek>=0.2.27",
 ]
 test = [
