@@ -1,4 +1,4 @@
-name: 🐳 Publish Docker image
+name: 🐳 Docker image
 
 on:
   workflow_dispatch:
@@ -14,14 +14,11 @@ on:
 permissions: {}
 
 jobs:
-  push_to_registry:
-    name: Push Docker image to Docker Hub
+  image:
+    name: Build Docker image
     runs-on: ubuntu-latest
     permissions:
-      packages: write
       contents: read
-      attestations: write
-      id-token: write
     steps:
       - name: Check out the repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -29,37 +26,45 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Check whether the Docker credentials are available as secrets. If both are set, then set a boolean flag and export it to the environment.
       - name: Check Docker credentials
+        if: github.event_name != 'pull_request'
+        id: dockerhub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-              echo "::notice title=Docker credentials are not set.::If you want to run this job on a PR from a fork, you need to set the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets in the repository settings."
-              echo "DOCKER_CREDENTIALS_SET=false" >> $GITHUB_ENV
-          else
-              echo "::notice title=Docker credentials are set.::The subsequent steps will run."
-              echo "DOCKER_CREDENTIALS_SET=true" >> $GITHUB_ENV
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Login to Docker Hub
-        if: env.DOCKER_CREDENTIALS_SET == 'true'
+        if: steps.dockerhub.outputs.configured == 'true'
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Docker meta
-        if: env.DOCKER_CREDENTIALS_SET == 'true'
+        if: steps.dockerhub.outputs.configured == 'true'
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/mqt-bench
 
       - name: Build and push Docker image
-        if: env.DOCKER_CREDENTIALS_SET == 'true'
-        id: push
+        if: github.event_name == 'pull_request' || steps.dockerhub.outputs.configured == 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          load: ${{ github.event_name == 'pull_request' }}
+          push: ${{ steps.dockerhub.outputs.configured == 'true' }}
+          tags: ${{ github.event_name == 'pull_request' && 'mqt-bench:pr' || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Test Core compilation in the image
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          docker run --rm --network none mqt-bench:pr \
+            --compiler mqt --algorithm ghz --num-qubits 3 --level mapped --target iqm_crystal_5 \
+            | grep '^// Compiler: mqt '

@@ -1,86 +1,45 @@
-# syntax=docker/dockerfile:1.9
+# syntax=docker/dockerfile:1
 
-# Adapted from https://hynek.me/articles/docker-uv/
-FROM ubuntu:noble AS build
+FROM ubuntu:noble AS base
 
-SHELL ["sh", "-exc"]
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpython3.12 python3.12 \
+    && rm -rf /var/lib/apt/lists/*
 
-### Start build prep.
+FROM base AS build
 
-RUN <<EOT
-apt-get update -qy
-apt-get install -qyy \
-    -o APT::Install-Recommends=false \
-    -o APT::Install-Suggests=false \
-    ca-certificates \
-    curl \
-    g++ \
-    git \
-    python3.12-dev \
-    zlib1g-dev
-EOT
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl g++ git python3.12-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install `uv`
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /usr/local/bin/uv
 
-# - Silence uv complaining about not being able to use hard links,
-# - tell uv to byte-compile packages for faster application startups,
-# - prevent uv from accidentally downloading isolated Python builds,
-# - pick a Python,
-# - and finally declare `/mqt-bench` as the target for `uv sync`.
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
-    UV_PYTHON=python3.12 \
-    UV_PROJECT_ENVIRONMENT=/mqt-bench
+    UV_PYTHON=/usr/bin/python3.12 \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
 
-### End build prep.
+WORKDIR /src
 
-# Synchronize DEPENDENCIES and install the APPLICATION from `/src`.
-# `/src` will NOT be copied into the runtime container.
-COPY . /src
-RUN --mount=type=cache,target=/root/.cache \
-    cd /src && uv sync --frozen --no-dev --no-editable
+# Compiling the pinned MQT Core revision can exhaust Docker Desktop's memory.
+ARG CMAKE_BUILD_PARALLEL_LEVEL=2
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
 
-##########################################################################
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-editable
 
-FROM ubuntu:noble
-SHELL ["sh", "-exc"]
+FROM base AS runtime
 
-# Add the application virtualenv to search path.
-ENV PATH=/mqt-bench/bin:$PATH
+COPY --from=build /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Run application as non-root user.
-RUN <<EOT
-groupadd -r mqt-bench
-useradd -r -d /mqt-bench -g mqt-bench -N mqt-bench
-EOT
-
-ENTRYPOINT ["mqt-bench"]
-STOPSIGNAL SIGINT
-
-# Note how the runtime dependencies differ from build-time ones.
-# Notably, there is no uv either!
-RUN <<EOT
-apt-get update -qy
-apt-get install -qyy \
-    -o APT::Install-Recommends=false \
-    -o APT::Install-Suggests=false \
-    python3.12 \
-    libpython3.12
-
-apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-EOT
-
-# Copy the pre-built `/app` directory to the runtime container
-# and change the ownership to user app and group app in one step.
-COPY --from=build --chown=mqt-bench:mqt-bench /mqt-bench /mqt-bench
-
+RUN useradd --system --user-group --create-home --home-dir /mqt-bench mqt-bench
 USER mqt-bench
 WORKDIR /mqt-bench
 
-RUN <<EOT
-python -V
-mqt-bench --help
-EOT
+ENTRYPOINT ["mqt-bench"]
+STOPSIGNAL SIGINT
