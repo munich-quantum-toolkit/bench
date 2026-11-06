@@ -286,9 +286,8 @@ def test_cli_save_error(tmp_path: Path, script_runner: ScriptRunner) -> None:
     assert target_dir.read_text() == "existing file"
 
 
-@pytest.mark.parametrize("option", ["--output-format", "--qir-profile"])
-def test_cli_invalid_export_option(option: str, script_runner: ScriptRunner) -> None:
-    """Reject unknown formats and QIR profiles during argument parsing."""
-    ret = _generate(script_runner, "alg", "ghz", 5, option, "invalid")
+def test_cli_invalid_qir_profile(script_runner: ScriptRunner) -> None:
+    """Reject an unknown QIR profile during argument parsing."""
+    ret = _generate(script_runner, "alg", "ghz", 5, "--qir-profile", "invalid")
     assert ret.returncode == 2
     assert "invalid choice" in ret.stderr

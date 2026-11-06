@@ -109,7 +109,7 @@ def main() -> None:
     parser.add_argument(
         "--save",
         action="store_true",
-        help="If set, save the output to a file instead of printing to stdout (e.g. for 'qpy', which is not available as text).",
+        help="Save text output to a file. Binary formats always write a file.",
     )
     parser.add_argument(
         "--mirror",
@@ -232,11 +232,7 @@ def main() -> None:
     if not success:
         sys.exit(1)
 
-    # Optionally, inform user of file location if saving
-    if args.save or fmt in (OutputFormat.QPY, OutputFormat.QIR_BITCODE):
-        file_ext = fmt.extension()
-        path = Path(args.target_directory) / f"{filename}.{file_ext}"
-        print(path)
+    print(Path(args.target_directory) / f"{filename}.{fmt.extension()}")
 
 
 if __name__ == "__main__":
