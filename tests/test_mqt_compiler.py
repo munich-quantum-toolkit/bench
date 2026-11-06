@@ -6,19 +6,21 @@
 #
 # Licensed under the MIT License
 
-"""Integration tests for MQT Core compilation."""
+"""Integration tests for MQT Core compilation and QIR export."""
 
 from __future__ import annotations
 
 import io
 import json
 from importlib import import_module
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
 from mqt.core import mlir as core
+from mqt.core.qdmi import ProgramFormat
+from mqt.core.qdmi.builtin_driver import open_device
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
     ForLoopOp,
@@ -50,11 +52,16 @@ from mqt.bench import (
     get_benchmark_mapped,
     get_benchmark_native_gates,
 )
-from mqt.bench.output import OutputFormat, write_circuit
+from mqt.bench.output import MQTBenchExporterError, OutputFormat, save_circuit, write_circuit
 from mqt.bench.targets import get_device, get_target_for_gateset
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
 if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Literal
+
+    from pytest_console_scripts import ScriptRunner
+
     from mqt.bench.configuration_options import ConfigurationOptions
 
 
@@ -568,3 +575,158 @@ def test_fractional_heron_mqt(*, mapped: bool, symbolic: bool) -> None:
             bound_circuit = circuit.assign_parameters({theta: angle}) if symbolic else circuit
             bound_result = result.assign_parameters({theta: angle}) if symbolic else result
             assert np.allclose(Operator.from_circuit(bound_result).data, Operator(bound_circuit).data)
+
+
+@pytest.mark.parametrize(
+    ("fmt", "profile", "program_format"),
+    [
+        (OutputFormat.QIR, "base", ProgramFormat.QIR_BASE_STRING),
+        (OutputFormat.QIR_BITCODE, "adaptive", ProgramFormat.QIR_ADAPTIVE_MODULE),
+    ],
+)
+def test_qir_export(
+    fmt: OutputFormat, profile: Literal["base", "adaptive"], program_format: ProgramFormat, tmp_path: Path
+) -> None:
+    """Text and bitcode preserve classical measurement order through streams and files."""
+    circuit = QuantumCircuit(2, 2, metadata={"user": 42})
+    circuit.x(0)
+    circuit.measure([0, 1], [1, 0])
+    circuit = get_benchmark_alg(circuit, seed=42)
+    binary = fmt is OutputFormat.QIR_BITCODE
+    if binary:
+        circuit.metadata["mqt_bench_generation"]["custom"] = 1j
+    original = circuit.copy()
+    stream = io.BytesIO() if binary else io.StringIO()
+    write_circuit(circuit, stream, BenchmarkLevel.ALG, fmt, qir_profile=profile)
+    assert circuit == original
+    assert circuit.metadata == original.metadata
+    assert save_circuit(circuit, "qir", BenchmarkLevel.ALG, fmt, target_directory=str(tmp_path), qir_profile=profile)
+    path = tmp_path / ("qir.bc" if binary else "qir.ll")
+    data = path.read_bytes() if binary else path.read_text()
+    assert data == stream.getvalue()
+    if isinstance(data, str):
+        assert data.startswith("; Benchmark created by MQT Bench")
+        assert "; QIR exporter: MQT Core " in data
+        assert (
+            json.loads(data.split("; Generation options: ")[1].splitlines()[0])
+            == circuit.metadata["mqt_bench_generation"]
+        )
+        assert f'"qir_profiles"="{profile}_profile"' in data
+    else:
+        assert data.startswith(b"BC\xc0\xde")
+
+    device = open_device("mqt.ddsim.default")
+    job = device.submit_job(data, program_format, 8)
+    assert job.wait()
+    assert job.get_counts() == {"10": 8}
+
+
+def test_qir_feedback_and_export_errors(tmp_path: Path) -> None:
+    """Adaptive export handles feedback; failed lowering leaves an existing file intact."""
+    circuit = QuantumCircuit(2, 2)
+    circuit.x(0)
+    circuit.measure(0, 0)
+    with circuit.if_test((circuit.clbits[0], True)):
+        circuit.x(1)
+    circuit.measure(1, 1)
+    stream = io.StringIO()
+    write_circuit(circuit, stream, BenchmarkLevel.ALG, OutputFormat.QIR, qir_profile="adaptive")
+    device = open_device("mqt.ddsim.default")
+    job = device.submit_job(stream.getvalue(), ProgramFormat.QIR_ADAPTIVE_STRING, 8)
+    assert job.wait()
+    assert job.get_counts() == {"11": 8}
+
+    path = tmp_path / "existing.ll"
+    path.write_text("existing output")
+    with pytest.raises(MQTBenchExporterError, match="Unknown QIR profile"):
+        write_circuit(
+            circuit,
+            path,
+            BenchmarkLevel.ALG,
+            OutputFormat.QIR,
+            qir_profile=cast('Literal["base", "adaptive"]', "invalid"),
+        )
+    with pytest.raises(MQTBenchExporterError, match="base profile"):
+        write_circuit(circuit, path, BenchmarkLevel.ALG, OutputFormat.QIR)
+    assert path.read_text() == "existing output"
+    circuit.rx(Parameter("theta"), 0)
+    with pytest.raises(MQTBenchExporterError, match="requires bound parameters"):
+        write_circuit(circuit, path, BenchmarkLevel.ALG, OutputFormat.QIR, qir_profile="adaptive")
+    assert path.read_text() == "existing output"
+
+
+@pytest.mark.parametrize("fmt", [OutputFormat.QIR, OutputFormat.QIR_BITCODE])
+def test_qir_stream_mode(fmt: OutputFormat) -> None:
+    """Reject text/bitcode stream mismatches before writing output."""
+    stream = io.StringIO() if fmt is OutputFormat.QIR_BITCODE else io.BytesIO()
+    with pytest.raises(MQTBenchExporterError, match="requires a"):
+        write_circuit(QuantumCircuit(1), stream, BenchmarkLevel.ALG, fmt)
+    assert not stream.getvalue()
+
+
+@pytest.mark.parametrize(("fmt", "extension"), [("qir", None), ("qir", "ll"), ("qir-bitcode", "bc")])
+def test_qir_cli(fmt: str, extension: str | None, script_runner: ScriptRunner, tmp_path: Path) -> None:
+    """Stream LLVM text or save a file with the correct extension and profile."""
+    directory = tmp_path / "output"
+    result = script_runner.run([
+        "mqt-bench",
+        "--algorithm",
+        "ghz_dynamic",
+        "--num-qubits",
+        "3",
+        "--level",
+        "indep",
+        "--compiler",
+        "mqt",
+        "--output-format",
+        fmt,
+        "--qir-profile",
+        "adaptive",
+        "--target-directory",
+        str(directory),
+        *(["--save"] if extension == "ll" else []),
+    ])
+    assert result.success
+    if extension is None:
+        assert not directory.exists()
+        text = result.stdout
+    else:
+        path = directory / f"ghz_dynamic_indep_mqt_3.{extension}"
+        assert result.stdout.strip() == str(path)
+        if extension == "bc":
+            assert path.read_bytes().startswith(b"BC\xc0\xde")
+            return
+        text = path.read_text()
+    assert text.startswith("; Benchmark created by MQT Bench")
+    assert "; Compiler: mqt " in text
+    assert '"qir_profiles"="adaptive_profile"' in text
+
+
+@pytest.mark.parametrize(
+    ("compiler", "level", "fmt", "program_format"),
+    [
+        ("qiskit", BenchmarkLevel.MAPPED, OutputFormat.QIR_BITCODE, ProgramFormat.QIR_BASE_MODULE),
+        ("mqt", BenchmarkLevel.NATIVEGATES, OutputFormat.QIR, ProgramFormat.QIR_BASE_STRING),
+    ],
+)
+def test_qir_compiled_circuit(
+    compiler: Literal["qiskit", "mqt"], level: BenchmarkLevel, fmt: OutputFormat, program_format: ProgramFormat
+) -> None:
+    """Export native and mapped circuits from either compiler with measurement order intact."""
+    source = QuantumCircuit(2, 2)
+    source.x(0)
+    source.measure([0, 1], [1, 0])
+    target = get_device("iqm_crystal_5")
+    circuit = get_benchmark(source, level, target=target, compiler=compiler)
+    original = circuit.copy()
+    stream = io.BytesIO() if fmt is OutputFormat.QIR_BITCODE else io.StringIO()
+    with pytest.raises(AssertionError, match="Target must be provided"):
+        write_circuit(circuit, stream, level, fmt)
+    write_circuit(circuit, stream, level, fmt, target)
+    assert circuit == original
+    assert circuit.layout == original.layout
+    assert circuit.metadata == original.metadata
+    device = open_device("mqt.ddsim.default")
+    job = device.submit_job(stream.getvalue(), program_format, 8)
+    assert job.wait()
+    assert job.get_counts() == {"10": 8}
