@@ -29,15 +29,74 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-26.04, ubuntu-26.04-arm, macos-26, windows-2025]
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@a4b4977405c7685f95e127cdb6db396bbadce787 # v2.5.5
-    with:
-      runs-on: ${{ matrix.runs-on }}
-      use-sccache-gha: false
-      sessions: >-
-        ${{ github.event_name == 'pull_request' && matrix.runs-on != 'ubuntu-26.04'
-            && '["tests-3.15"]' || '["minimums", "tests"]' }}
+    runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
+    env:
+      MQT_BENCH_COVERAGE_RUNNER: ${{ matrix.runs-on }}
+      # Keep CMake build trees out of the uv cache.
+      SKBUILD_BUILD_DIR: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+
+      - name: Set uv cache directory
+        shell: bash
+        run: echo "UV_CACHE_DIR=$RUNNER_TEMP/uv-cache" >> "$GITHUB_ENV"
+
+      - name: Restore uv cache
+        id: uv-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: bench-uv-${{ matrix.runs-on }}-${{ hashFiles('uv.lock') }}
+          restore-keys: bench-uv-${{ matrix.runs-on }}-
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Set up mold
+        if: runner.os == 'Linux'
+        uses: rui314/setup-mold@339e96b4ff1f3bd865856ba4cbbe8818a7acb038 # v1
+
+      - name: Run Python tests
+        shell: bash
+        env:
+          DRAFT: ${{ github.event.pull_request.draft }}
+          EVENT: ${{ github.event_name }}
+          PLATFORM: ${{ matrix.runs-on }}
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            export CMAKE_GENERATOR=Ninja
+          fi
+          if [[ "$DRAFT" == true ]]; then
+            uvx nox -s tests-3.14
+          elif [[ "$EVENT" == pull_request && "$PLATFORM" != ubuntu-26.04 ]]; then
+            uvx nox -s tests-3.15
+          else
+            # Build the pinned Core wheel once before the sessions start.
+            UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/bench-dependencies" \
+              uv sync --locked --no-dev --group test --python 3.14
+            uvx nox --parallel auto -s minimums tests
+          fi
+
+      - name: Prune uv cache
+        if: steps.uv-cache.outputs.cache-hit != 'true'
+        run: uv cache prune --ci
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-${{ matrix.runs-on }}
+          path: coverage-*.xml
+          if-no-files-found: error
 
   python-coverage:
     name: 🐍 Coverage

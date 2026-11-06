@@ -16,36 +16,19 @@
 from __future__ import annotations
 
 import argparse
-import contextlib
 import os
 import shutil
-import tempfile
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import nox
 
-if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
-
-
-nox.needs_version = ">=2025.10.16"
+nox.needs_version = ">=2026.10.20"
 nox.options.default_venv_backend = "uv"
 
 PYTHON_ALL_VERSIONS = ["3.11", "3.12", "3.13", "3.14", "3.15"]
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
-
-
-@contextlib.contextmanager
-def preserve_lockfile() -> Generator[None]:
-    """Preserve the lockfile by moving it to a temporary directory."""
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        shutil.move("uv.lock", f"{temp_dir_name}/uv.lock")
-        try:
-            yield
-        finally:
-            shutil.move(f"{temp_dir_name}/uv.lock", "uv.lock")
 
 
 @nox.session(reuse_venv=True, default=True)
@@ -57,61 +40,45 @@ def lint(session: nox.Session) -> None:
     session.run("prek", "run", "--all-files", *session.posargs, external=True)
 
 
-def _run_tests(
-    session: nox.Session,
-    *,
-    install_args: Sequence[str] = (),
-    extra_command: Sequence[str] = (),
-    pytest_run_args: Sequence[str] = (),
-) -> None:
+def _run_tests(session: nox.Session, *pytest_args: str, locked: bool = False) -> None:
     env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-    if extra_command:
-        session.run(*extra_command, env=env)
+    command = ("uv", "run", "--locked", "--no-dev", "--group", "test") if locked else ()
+    if runner := os.environ.get("MQT_BENCH_COVERAGE_RUNNER"):
+        env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
+        pytest_args += ("--cov", f"--cov-report=xml:coverage-{runner}-{session.name}.xml")
+    if session.parallel:
+        pytest_args += ("-n", "0")
     session.run(
-        "uv",
-        "run",
-        "--no-dev",
-        "--group",
-        "test",
-        *install_args,
+        *command,
         "pytest",
-        *pytest_run_args,
+        *pytest_args,
         *session.posargs,
         "--cov-config=pyproject.toml",
         env=env,
     )
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, default=True)
+@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    _run_tests(session)
+    _run_tests(session, locked=True)
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, venv_backend="uv", default=True)
+@nox.session(python=PYTHON_ALL_VERSIONS, default=True, allow_parallel=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
-    with preserve_lockfile():
-        _run_tests(
-            session,
-            install_args=["--resolution=lowest-direct"],
-            pytest_run_args=["-Wdefault"],
-        )
-        env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-        session.run("uv", "tree", "--frozen", env=env)
+    session.install("--resolution=lowest-direct", "--group", "test", "--editable", ".")
+    _run_tests(session, "-Wdefault")
+    session.run("uv", "pip", "tree")
 
 
-@nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS)
+@nox.session(python=PYTHON_ALL_VERSIONS)
 def qiskit(session: nox.Session) -> None:
     """Tests against the latest version of Qiskit."""
-    with preserve_lockfile():
-        _run_tests(
-            session,
-            extra_command=["uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"],
-        )
-        env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-        session.run("uv", "pip", "show", "qiskit", env=env)
+    session.install("--group", "test", "--editable", ".")
+    session.install("qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git")
+    _run_tests(session)
+    session.run("uv", "pip", "show", "qiskit")
 
 
 @nox.session(python="3.14", reuse_venv=True)
