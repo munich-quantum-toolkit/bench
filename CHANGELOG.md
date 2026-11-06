@@ -60,6 +60,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Preserve the caller's layout when mirroring a routed circuit ([#1136])
+  ([**@simon1hofmann**])
 - 🐛 Preserve construction options on recompilation, avoid mirror register-name
   collisions, and support multiline target descriptions in QASM headers
   ([#1124]) ([**@simon1hofmann**])
@@ -305,6 +307,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
 [#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124

@@ -31,6 +31,7 @@ from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import (
+    CouplingMap,
     InstructionProperties,
     Layout,
     PassManager,
@@ -1097,7 +1098,7 @@ def test_clifford_t_mirror_inverse_gates(opt_level: int, gate_name: str) -> None
 def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
     """Synthesize rotations inside structured loops without unrolling the loop."""
     qc = QuantumCircuit(1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.rx(0.3, 0)
     target = get_target_for_gateset("clifford+t", 1)
 
@@ -1609,7 +1610,7 @@ def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description:
 def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_level: int, conditional: bool) -> None:
     """Compile loop exits using Qiskit's instruction names."""
     qc = QuantumCircuit(2, 1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.x(0)
         if conditional:
             with qc.if_test((qc.clbits[0], 0)):
@@ -1720,9 +1721,30 @@ def test_mapped_mirror_preserves_complete_layout() -> None:
     assert source == original
     assert base.layout is not None
     assert mirror.layout is not None
+    assert mirror.layout.initial_index_layout() == base.layout.initial_index_layout()
     assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
     mirror.remove_final_measurements(inplace=True)
     np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
+
+
+def test_algorithm_mirror_preserves_input_layout() -> None:
+    """Mirroring a routed circuit preserves the caller's routing permutation."""
+    source = QuantumCircuit(3)
+    source.cx(0, 2)
+    source.cx(0, 1)
+    source.x(0)
+    routed = transpile(
+        source, coupling_map=CouplingMap.from_line(3), initial_layout=[0, 1, 2], optimization_level=0, seed_transpiler=1
+    )
+    assert routed.layout is not None
+    routing = routed.layout.final_index_layout()
+    assert routing != [0, 1, 2]
+
+    mirror = get_benchmark_alg(routed, generate_mirror_circuit=True)
+    assert routed.layout.final_index_layout() == routing
+    assert mirror.layout is not None
+    assert mirror.layout is not routed.layout
+    assert mirror.layout.final_index_layout() == [0, 1, 2]
 
 
 def test_dynamic_benchmark_registration() -> None:

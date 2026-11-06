@@ -129,24 +129,14 @@ def _record_generation(
     qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
 
-def _create_mirror_circuit(
-    qc_original: QuantumCircuit, *, inplace: bool = False, pass_manager: PassManager | None = None
-) -> QuantumCircuit:
-    """Generates the mirror version (qc @ qc.inverse()) of a given quantum circuit.
+def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManager | None = None) -> QuantumCircuit:
+    """Append the inverse and measure the active qubits of an owned circuit.
 
-    For circuits with an initial layout (e.g., mapped circuits), this function ensures
-    that the final layout of the mirrored circuit matches the initial layout of the
-    original circuit. While Qiskit's `inverse()` and `compose()` methods correctly track
-    the permutation of qubits, this benchmark requires that the final qubit permutation
-    is identical to the initial one, requiring the explicit layout handling herein.
-    Also ensures that the mirrored circuit respects the native gate set of the target device
-    if a pass manager is provided.
-
-    All qubits are measured at the end of the mirror circuit.
+    The optional pass manager restores the native gate set. The mirror
+    preserves the initial layout and resets the final routing permutation.
 
     Args:
-        qc_original: The quantum circuit to mirror.
-        inplace: If True, modifies the circuit in place. Otherwise, returns a new circuit.
+        target_qc: The circuit to modify.
         pass_manager: Compiler pipeline to reuse for the mirror.
 
     Returns:
@@ -157,7 +147,7 @@ def _create_mirror_circuit(
     """
     # Check inversion before modifying the input circuit.
     try:
-        qc_inv = RemoveFinalMeasurements()(qc_original).inverse()
+        qc_inv = RemoveFinalMeasurements()(target_qc).inverse()
     except CircuitError as exc:
         msg = (
             "Cannot mirror this circuit: after removing final measurements, it contains operations "
@@ -166,29 +156,26 @@ def _create_mirror_circuit(
         )
         raise ValueError(msg) from exc
 
-    target_qc = qc_original if inplace else qc_original.copy()
     target_qc.remove_final_measurements(inplace=True)
 
-    # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
+    # Keep optimization from cancelling both halves of the mirror.
     dag = target_qc.to_dag()
     idle_qubits = set(dag.idle_wires())
     active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in idle_qubits]
     target_qc.barrier(active_qubits)
 
-    # Form the mirror circuit by composing the original circuit with its inverse.
     target_qc.compose(qc_inv, inplace=True)
 
-    # Transpile to ensure the final circuit uses only native gates while preserving the initial layout.
+    input_layout = target_qc.layout
     if pass_manager is not None:
-        layout = deepcopy(target_qc.layout)
         target_qc = pass_manager.run(target_qc)
         if target_qc.layout is not None:
             final_indices = target_qc.layout.final_index_layout()
             active_qubits = [final_indices[index] for index in active_qubits]
-        if layout is not None and target_qc.layout is not None:
-            target_qc._layout = layout  # ruff:ignore[private-member-access]
+    if input_layout is not None and target_qc.layout is not None:
+        # Qiskit circuit copies can share the layout. Detach it before resetting routing.
+        target_qc._layout = deepcopy(input_layout)  # ruff:ignore[private-member-access]
 
-    # Add final measurements to all active qubits
     target_qc.barrier(active_qubits)
     name = "meas"
     existing_names = {register.name for register in target_qc.cregs}
@@ -198,10 +185,8 @@ def _create_mirror_circuit(
     target_qc.add_register(new_creg)
     target_qc.measure(active_qubits, new_creg)
 
-    # Adjust circuit name to indicate it is a mirror circuit.
     target_qc.name = f"{target_qc.name}_mirror"
 
-    # Reset the permutation caused by routing back to the identity (all SWAPs are undone by the inverse).
     if target_qc.layout is not None:
         target_qc.layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
 
@@ -267,7 +252,7 @@ def _get_mqt_benchmark(
 
     compiled = compile_circuit(circuit, target, mapped=mapped, options=compiler_options)
     if generate_mirror_circuit:
-        compiled = _create_mirror_circuit(compiled, inplace=True)
+        compiled = _create_mirror_circuit(compiled)
         if target is not None:
             compiled = compile_circuit(compiled, target, mapped=mapped, options=compiler_options)
     level = (
@@ -338,7 +323,7 @@ def get_benchmark_alg(
         qc = qc.copy()
     _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc, inplace=True)
+        return _create_mirror_circuit(qc)
     return qc
 
 
@@ -419,7 +404,7 @@ def get_benchmark_indep(
         qc_processed, BenchmarkLevel.INDEP, generation, opt_level=opt_level, mirror=generate_mirror_circuit
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc_processed, inplace=True)
+        return _create_mirror_circuit(qc_processed)
     return qc_processed
 
 
@@ -559,7 +544,7 @@ def get_benchmark_native_gates(
         mirror=generate_mirror_circuit,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(compiled_circuit, inplace=True, pass_manager=mirror_pm)
+        return _create_mirror_circuit(compiled_circuit, pass_manager=mirror_pm)
     return compiled_circuit
 
 
@@ -657,7 +642,7 @@ def get_benchmark_mapped(
         mirror=generate_mirror_circuit,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, inplace=True, pass_manager=pm)
+        return _create_mirror_circuit(mapped_circuit, pass_manager=pm)
     return mapped_circuit
 
 
