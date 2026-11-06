@@ -620,7 +620,7 @@ def _run_with_control_flow(qc: QuantumCircuit, *, seed: int) -> str:
                 state = state.evolve(op, qubits)
         return state
 
-    state = run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
+    run_block(qc.data, {q: i for i, q in enumerate(qc.qubits)}, state)
     final_bits = [clbits[bit_index[bit]] for bit in qc.cregs[-1]]
     return "".join(str(bit) for bit in reversed(final_bits))
 

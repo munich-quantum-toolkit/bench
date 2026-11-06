@@ -95,15 +95,21 @@ def main() -> None:
         help=f"Output format. Possible values: {[fmt.value for fmt in OutputFormat]}.",
     )
     parser.add_argument(
+        "--qir-profile",
+        choices=["base", "adaptive"],
+        default="base",
+        help="Profile for QIR output (default: base). Use adaptive for measurement feedback.",
+    )
+    parser.add_argument(
         "--target-directory",
         type=str,
         default=".",
-        help="Directory to save the output file (only used for 'qpy' or if --save is specified).",
+        help="Directory to save the output file (used for binary formats or if --save is specified).",
     )
     parser.add_argument(
         "--save",
         action="store_true",
-        help="If set, save the output to a file instead of printing to stdout (e.g. for 'qpy', which is not available as text).",
+        help="Save text output to a file. Binary formats always write a file.",
     )
     parser.add_argument(
         "--mirror",
@@ -192,44 +198,42 @@ def main() -> None:
             raise
         parser.error(str(exc).partition("\n")[0])
 
-    fmt = OutputFormat(args.output_format)
+    else:
+        fmt = OutputFormat(args.output_format)
 
-    # For QASM outputs, serialize and print
-    if fmt in (OutputFormat.QASM2, OutputFormat.QASM3) and not args.save:
-        assert isinstance(sys.stdout, TextIOBase)
-        try:
-            write_circuit(circuit, sys.stdout, level, fmt, target)
-        except MQTBenchExporterError as exc:
-            print(exc, file=sys.stderr)
+        # Text formats stream to stdout unless saving is requested.
+        if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
+            assert isinstance(sys.stdout, TextIOBase)
+            try:
+                write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
+            except MQTBenchExporterError as exc:
+                print(exc, file=sys.stderr)
+                sys.exit(1)
+            return
+
+        # Otherwise, save to file
+        filename = generate_filename(
+            benchmark_name=args.algorithm,
+            level=level,
+            num_qubits=args.num_qubits,
+            target=target,
+            opt_level=args.optimization_level,
+            compiler=args.compiler,
+            generate_mirror_circuit=args.mirror,
+        )
+        success = save_circuit(
+            qc=circuit,
+            filename=filename,
+            level=level,
+            output_format=fmt,
+            target=target,
+            target_directory=args.target_directory,
+            qir_profile=args.qir_profile,
+        )
+        if not success:
             sys.exit(1)
-        return
 
-    # Otherwise, save to file
-    filename = generate_filename(
-        benchmark_name=args.algorithm,
-        level=level,
-        num_qubits=args.num_qubits,
-        target=target,
-        opt_level=args.optimization_level,
-        compiler=args.compiler,
-        generate_mirror_circuit=args.mirror,
-    )
-    success = save_circuit(
-        qc=circuit,
-        filename=filename,
-        level=level,
-        output_format=fmt,
-        target=target,
-        target_directory=args.target_directory,
-    )
-    if not success:
-        sys.exit(1)
-
-    # Optionally, inform user of file location if saving
-    if args.save or fmt == OutputFormat.QPY:
-        file_ext = fmt.extension()
-        path = Path(args.target_directory) / f"{filename}.{file_ext}"
-        print(path)
+        print(Path(args.target_directory) / f"{filename}.{fmt.extension()}")
 
 
 if __name__ == "__main__":

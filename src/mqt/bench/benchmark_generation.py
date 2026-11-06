@@ -570,4 +570,4 @@ def get_benchmark(
             **kwargs,
         )
 
-    assert_never(level)
+    return assert_never(level)

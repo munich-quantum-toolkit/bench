@@ -103,6 +103,7 @@ def test_mqt_cli_compilation_failure(script_runner: ScriptRunner) -> None:
     result = _generate(script_runner, "nativegates", "qft", 4, "--compiler", "mqt", "--target", "clifford+t")
     assert result.returncode == 2
     assert "requires a single-qubit synthesis basis" in result.stderr
+    assert not result.stdout
 
 
 @pytest.mark.parametrize(
@@ -202,7 +203,7 @@ def test_cli_benchmark_options(script_runner: ScriptRunner) -> None:
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
     """Test the CLI with different error cases."""
     ret = script_runner.run(["mqt-bench", *args])
-    assert not ret.success
+    assert ret.returncode == 2
     assert expected_output in ret.stderr
     assert "Traceback" not in ret.stderr
     assert not ret.stdout
@@ -272,3 +273,22 @@ def test_cli_targeted_save(
     target = get_device(target_name) if level == BenchmarkLevel.MAPPED else get_target_for_gateset(target_name, 5)
     expected = get_benchmark("ghz", level, 5, target, 1, generate_mirror_circuit=mirror)
     assert qasm2.dumps(expected) in path.read_text(encoding="utf-8")
+
+
+def test_cli_save_error(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    """A failed save returns a nonzero exit code and reports the export error."""
+    target_dir = tmp_path / "occupied"
+    target_dir.write_text("existing file")
+    ret = _generate(script_runner, "alg", "ghz", 5, "--output-format", "qpy", "--target-directory", str(target_dir))
+    assert ret.returncode == 1
+    assert target_dir.name in ret.stderr
+    assert "Traceback" not in ret.stderr
+    assert not ret.stdout
+    assert target_dir.read_text() == "existing file"
+
+
+def test_cli_invalid_qir_profile(script_runner: ScriptRunner) -> None:
+    """Reject an unknown QIR profile during argument parsing."""
+    ret = _generate(script_runner, "alg", "ghz", 5, "--qir-profile", "invalid")
+    assert ret.returncode == 2
+    assert "invalid choice" in ret.stderr
