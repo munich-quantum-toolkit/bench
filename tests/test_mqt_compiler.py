@@ -92,7 +92,7 @@ def _measurement_probabilities(circuit: QuantumCircuit) -> dict[str, float]:
 @pytest.mark.parametrize("gateset", ["ibm_heron", "iqm", "quantinuum", "clifford+t+rotations"])
 def test_native_equivalence(gateset: str) -> None:
     """Native compilation preserves the unitary, width, name, and user metadata."""
-    circuit = QuantumCircuit(3, name="native_test", metadata={"user": 42})
+    circuit = QuantumCircuit(3, name="native_test", metadata={"user": {"value": 42}})
     circuit.h(0)
     circuit.ry(0.37, 1)
     circuit.cx(0, 2)
@@ -104,7 +104,9 @@ def test_native_equivalence(gateset: str) -> None:
     assert circuit == original
     assert result.num_qubits == circuit.num_qubits
     assert result.name == circuit.name
-    assert result.metadata["user"] == 42
+    assert circuit.metadata == {"user": {"value": 42}}
+    assert result.metadata["user"] == circuit.metadata["user"]
+    assert result.metadata["user"] is not circuit.metadata["user"]
     assert result.metadata["mqt_bench_compiler"]["name"] == "mqt"
     assert Operator(result).equiv(Operator(circuit))
     assert {item.operation.name for item in result.data} <= set(target.operation_names)

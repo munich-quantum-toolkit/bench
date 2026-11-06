@@ -80,28 +80,24 @@ def compile_circuit(
     if options is None:
         options = core.CompilationOptions(seed=10, mapping=core.MappingOptions(trials=8))
     environment = _target_environment(target, circuit.num_qubits, mapped=mapped) if target is not None else None
-    result = core.compile_program(
-        _physical_circuit(circuit), target=environment, output=core.OutputFormat.QISKIT, options=options
-    )
+    result = core.compile_program(_physical_circuit(circuit), target=environment, options=options)
     if target is not None:
         if mapped:
             result._layout = None  # ruff:ignore[private-member-access]
         _validate_target(result, target, mapped=mapped)
-    result.metadata = result.metadata | {
-        "mqt_bench_compiler": {
-            "name": "mqt",
-            "version": version("mqt-core"),
-            "options": {
-                "seed": options.seed,
-                "enable_statistics": options.enable_statistics,
-                "enable_timing": options.enable_timing,
-                "mapping": {
-                    "trials": options.mapping.trials,
-                    "iterations": options.mapping.iterations,
-                    "lookahead": options.mapping.lookahead,
-                    "search_memory_limit": options.mapping.search_memory_limit,
-                },
+    result.metadata["mqt_bench_compiler"] = {
+        "name": "mqt",
+        "version": version("mqt-core"),
+        "options": {
+            "seed": options.seed,
+            "enable_statistics": options.enable_statistics,
+            "enable_timing": options.enable_timing,
+            "mapping": {
+                "trials": options.mapping.trials,
+                "iterations": options.mapping.iterations,
+                "lookahead": options.mapping.lookahead,
+                "search_memory_limit": options.mapping.search_memory_limit,
             },
-        }
+        },
     }
     return result

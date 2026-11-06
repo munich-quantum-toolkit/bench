@@ -107,7 +107,7 @@ compilation requires an exact decomposition. See the [target compilation guide]
 for supported bases and control flow.
 
 MQT Core output filenames contain `_mqt_`. Circuit metadata and QASM/QPY exports
-record the compiler version and effective options.
+record the compiler version and requested options.
 
 [target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/77eecaed2dd26fe932ab2b1dde5863a69ddf0bd6/docs/mlir/target_compilation.md
 
