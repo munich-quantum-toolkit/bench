@@ -6,11 +6,6 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
-### Benchmark filenames
-
-Pass the mirror flag to `generate_filename` with the `generate_mirror_circuit`
-keyword.
-
 ### HHL and IQPE results
 
 HHL now measures a `success` register. Read the system bit in `c` only for shots

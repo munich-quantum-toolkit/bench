@@ -34,7 +34,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@69877d981620219d0bd124af005801f26dd77468",
+  "mqt-core>=4.1.2.dev169",
   "networkx>=2.8.8",
   "numpy>=2",
   "numpy>=2.1; python_version>='3.13'",
@@ -93,9 +93,6 @@ docs = [
 [tool.hatch.version]
 source = "vcs"
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mqt/bench/_version.py"
 
@@ -108,6 +105,7 @@ required-version = ">=0.13.4"
 
 [tool.uv.sources]
 mqt-bench = { workspace = true }
+mqt-core = { git = "https://github.com/munich-quantum-toolkit/core.git", rev = "69877d981620219d0bd124af005801f26dd77468" }
 
 
 [tool.ruff]

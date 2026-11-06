@@ -70,8 +70,9 @@ print(get_available_device_names())
 
 ## MQT Core compiler
 
-MQT Bench installs MQT Core. The development pin builds Core from source and
-requires a C++ compiler. Core downloads its LLVM/MLIR SDK during the build.
+MQT Bench depends on MQT Core. In a Bench checkout, `uv sync` builds the pinned
+Core revision from source. Core needs a C++ compiler and downloads its LLVM/MLIR
+SDK during the build.
 
 ```python
 from mqt.bench import BenchmarkLevel, get_benchmark

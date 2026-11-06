@@ -1316,15 +1316,15 @@ def test_generate_filename(
     expected: str,
     compiler: Literal["qiskit", "mqt"],
 ) -> None:
-    """Test the generation of a filename."""
+    """Generate filenames with the positional mirror flag and either compiler."""
     filename = generate_filename(
-        benchmark_name="ghz",
-        level=level,
-        num_qubits=5,
-        target=target,
-        opt_level=2 if compiler == "qiskit" else None,
+        "ghz",
+        level,
+        5,
+        target,
+        2 if compiler == "qiskit" else None,
+        generate_mirror_circuit,
         compiler=compiler,
-        generate_mirror_circuit=generate_mirror_circuit,
     )
     if compiler == "mqt":
         expected = expected.replace("_opt2_", "_mqt_")

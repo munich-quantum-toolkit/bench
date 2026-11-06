@@ -252,9 +252,9 @@ def generate_filename(
     num_qubits: int | None,
     target: Target | None = None,
     opt_level: int | None = None,
+    generate_mirror_circuit: bool = False,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
 
@@ -264,8 +264,8 @@ def generate_filename(
         num_qubits: number of qubits in the benchmark circuit
         target: target device (e.g., BenchmarkLevel.MAPPED)
         opt_level: Qiskit optimization level for compiled circuits.
-        compiler: Compiler used at compilation levels.
         generate_mirror_circuit: Whether this is a mirror circuit.
+        compiler: Compiler used at compilation levels.
 
     Returns:
         A filename without an extension, containing the benchmark name, level,
