@@ -153,12 +153,12 @@ def main() -> None:
             parser.error("--compiler-seed must be nonnegative.")
         if args.mapping_trials is not None and args.mapping_trials < 1:
             parser.error("--mapping-trials must be positive.")
-        from mqt.core.mlir import CompilationOptions, MappingOptions  # ruff:ignore[import-outside-top-level]
+        from ._mqt_compiler import make_compilation_options  # ruff:ignore[import-outside-top-level]
 
-        compiler_options = CompilationOptions(
-            seed=args.compiler_seed if args.compiler_seed is not None else 10,
-            mapping=MappingOptions(trials=args.mapping_trials if args.mapping_trials is not None else 8),
-        )
+        try:
+            compiler_options = make_compilation_options(seed=args.compiler_seed, mapping_trials=args.mapping_trials)
+        except (OverflowError, TypeError):
+            parser.error("Compiler seed or mapping trial count is out of range.")
 
     options = dict(args.benchmark_options)
     if args.seed is not None:
@@ -187,6 +187,10 @@ def main() -> None:
         )
     except (ValueError, TypeError, KeyError, QiskitError) as exc:
         parser.error(str(exc))
+    except RuntimeError as exc:
+        if args.compiler != "mqt":
+            raise
+        parser.error(str(exc).partition("\n")[0])
 
     fmt = OutputFormat(args.output_format)
 

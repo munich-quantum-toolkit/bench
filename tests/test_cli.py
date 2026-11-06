@@ -85,6 +85,8 @@ def test_mqt_cli(script_runner: ScriptRunner, tmp_path: Path, extra_args: list[s
         ("mqt", "alg", ["--mapping-trials", "2"], "require a compilation level"),
         ("mqt", "indep", ["--compiler-seed", "-1"], "--compiler-seed must be nonnegative"),
         ("mqt", "indep", ["--mapping-trials", "0"], "--mapping-trials must be positive"),
+        ("mqt", "indep", ["--compiler-seed", str(2**64)], "is out of range"),
+        ("mqt", "indep", ["--mapping-trials", str(2**64)], "is out of range"),
     ],
 )
 def test_mqt_cli_errors(
@@ -94,6 +96,13 @@ def test_mqt_cli_errors(
     result = _generate(script_runner, level, "ghz", 3, "--compiler", compiler, *extra_args)
     assert result.returncode == 2
     assert message in result.stderr
+
+
+def test_mqt_cli_compilation_failure(script_runner: ScriptRunner) -> None:
+    """Report a Core synthesis failure as a CLI usage error."""
+    result = _generate(script_runner, "nativegates", "qft", 4, "--compiler", "mqt", "--target", "clifford+t")
+    assert result.returncode == 2
+    assert "requires a single-qubit synthesis basis" in result.stderr
 
 
 @pytest.mark.parametrize(

@@ -21,11 +21,14 @@ import pytest
 from mqt.core import mlir as core
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
+    ForLoopOp,
     Gate,
     IfElseOp,
     Measure,
     Parameter,
     ParameterVector,
+    Store,
+    WhileLoopOp,
 )
 from qiskit.circuit.library import (
     CXGate,
@@ -472,6 +475,30 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     get_benchmark_native_gates(source, None, target, compiler="mqt")
     with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
         get_benchmark_mapped(source, None, target, compiler="mqt")
+
+
+def test_mapped_loop_jump() -> None:
+    """Allow a loop jump on a target that supports the enclosing control flow."""
+    target = Target(num_qubits=2)
+    target.add_instruction(UGate(*ParameterVector("u", 3)))
+    target.add_instruction(CXGate())
+    target.add_instruction(Measure())
+    target.add_instruction(ForLoopOp, name="for_loop")
+    target.add_instruction(WhileLoopOp, name="while_loop")
+    target.add_instruction(IfElseOp, name="if_else")
+    target.add_instruction(Store, name="store")
+
+    circuit = QuantumCircuit(2, 2)
+    with circuit.for_loop(range(3)):
+        circuit.x(0)
+        circuit.measure(0, 0)
+        with circuit.if_test((circuit.clbits[0], True)):
+            circuit.break_loop()
+        circuit.x(1)
+    circuit.measure(1, 1)
+
+    result = get_benchmark_mapped(circuit, None, target, compiler="mqt")
+    assert core.sample(result, shots=4, seed=1) == {"01": 4}
 
 
 def test_fixed_rx_gate_validation_rejects_unavailable_angle(monkeypatch: pytest.MonkeyPatch) -> None:

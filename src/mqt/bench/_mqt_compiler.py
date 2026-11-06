@@ -21,6 +21,14 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 
+def make_compilation_options(*, seed: int | None = None, mapping_trials: int | None = None) -> core.CompilationOptions:
+    """Build the default compiler options with optional CLI overrides."""
+    return core.CompilationOptions(
+        seed=10 if seed is None else seed,
+        mapping=core.MappingOptions(trials=8 if mapping_trials is None else mapping_trials),
+    )
+
+
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
@@ -34,9 +42,9 @@ def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
     sites = list(range(circuit.num_qubits)) if sites is None else sites
     for item in circuit.data:
         operation = item.operation
-        qubits = tuple(sites[circuit.find_bit(qubit).index] for qubit in item.qubits)
-        if operation.name in {"barrier", "store"}:
+        if operation.name in {"barrier", "store", "break_loop", "continue_loop"}:
             continue
+        qubits = tuple(sites[circuit.find_bit(qubit).index] for qubit in item.qubits)
         if not target.instruction_supported(
             operation_name=operation.name,
             qargs=qubits if mapped else None,
@@ -68,7 +76,7 @@ def compile_circuit(
         A Qiskit circuit. Mapped circuits use physical wires without layout metadata.
     """
     if options is None:
-        options = core.CompilationOptions(seed=10, mapping=core.MappingOptions(trials=8))
+        options = make_compilation_options()
     environment = _target_environment(target, circuit.num_qubits, mapped=mapped) if target is not None else None
     result = core.compile_program(
         circuit, target=environment, options=options, ignore_input_layout=True, include_output_layout=not mapped
