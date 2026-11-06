@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import builtins
 import datetime as dt
 import io
 import json
@@ -32,6 +31,7 @@ from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.transpiler import (
+    CouplingMap,
     InstructionProperties,
     Layout,
     PassManager,
@@ -1315,16 +1315,16 @@ def test_generate_filename(
     target: Target | None,
     generate_mirror_circuit: bool,
     expected: str,
-    compiler: str,
+    compiler: Literal["qiskit", "mqt"],
 ) -> None:
-    """Test the generation of a filename."""
+    """Generate filenames with the positional mirror flag and either compiler."""
     filename = generate_filename(
-        benchmark_name="ghz",
-        level=level,
-        num_qubits=5,
-        target=target,
-        opt_level=2,
-        generate_mirror_circuit=generate_mirror_circuit,
+        "ghz",
+        level,
+        5,
+        target,
+        2 if compiler == "qiskit" else None,
+        generate_mirror_circuit,
         compiler=compiler,
     )
     if compiler == "mqt":
@@ -1737,9 +1737,30 @@ def test_mapped_mirror_preserves_complete_layout() -> None:
     assert source == original
     assert base.layout is not None
     assert mirror.layout is not None
+    assert mirror.layout.initial_index_layout() == base.layout.initial_index_layout()
     assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
     mirror.remove_final_measurements(inplace=True)
     np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
+
+
+def test_algorithm_mirror_preserves_input_layout() -> None:
+    """Mirroring a routed circuit preserves the caller's routing permutation."""
+    source = QuantumCircuit(3)
+    source.cx(0, 2)
+    source.cx(0, 1)
+    source.x(0)
+    routed = transpile(
+        source, coupling_map=CouplingMap.from_line(3), initial_layout=[0, 1, 2], optimization_level=0, seed_transpiler=1
+    )
+    assert routed.layout is not None
+    routing = routed.layout.final_index_layout()
+    assert routing != [0, 1, 2]
+
+    mirror = get_benchmark_alg(routed, generate_mirror_circuit=True)
+    assert routed.layout.final_index_layout() == routing
+    assert mirror.layout is not None
+    assert mirror.layout is not routed.layout
+    assert mirror.layout.final_index_layout() == [0, 1, 2]
 
 
 def test_dynamic_benchmark_registration() -> None:
@@ -1849,57 +1870,18 @@ def test_version() -> None:
 @pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
 def test_invalid_compiler(compiler: str) -> None:
     """Reject unknown compilers before circuit generation."""
+    invalid_compiler = cast('Literal["qiskit", "mqt"]', compiler)
     with pytest.raises(ValueError, match="Unknown compiler"):
-        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=cast('Literal["qiskit", "mqt"]', compiler))
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
     with pytest.raises(ValueError, match="Unknown compiler"):
-        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=compiler)
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
 
 
 @pytest.mark.parametrize("opt_level", [0, 1, 3])
 def test_mqt_optimization_level(opt_level: int) -> None:
     """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
-    with pytest.raises(ValueError, match="MQT Core uses its default optimization pipeline"):
-        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level)
-
-
-def test_missing_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A base installation works and gives an installation hint when Core is selected."""
-    import sys  # ruff:ignore[import-outside-top-level]
-
-    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
-    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
-    assert get_benchmark_indep("ghz", 3)
-    with pytest.raises(ImportError, match=r"pip install.*mqt-bench\[mqt\]"):
-        get_benchmark_indep("ghz", 3, compiler="mqt")
-
-
-def test_missing_qir_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Report the optional dependency when QIR export is requested."""
-    import sys  # ruff:ignore[import-outside-top-level]
-
-    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
-    monkeypatch.setitem(sys.modules, "mqt.core.mlir", None)
-    with pytest.raises(MQTBenchExporterError, match=r"pip install.*mqt-bench\[mqt\]"):
-        write_circuit(QuantumCircuit(1), io.StringIO(), BenchmarkLevel.ALG, OutputFormat.QIR)
-
-
-def test_broken_mqt_dependency(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Preserve dependency import failures instead of reporting Core as uninstalled."""
-    import sys  # ruff:ignore[import-outside-top-level]
-
-    original_import = cast("Callable[..., object]", builtins.__import__)
-
-    def fail_core_import(name: str, *args: object, **kwargs: object) -> object:
-        if name == "mqt.core.mlir":
-            msg = "Missing native dependency"
-            raise ModuleNotFoundError(msg, name="core_native_dependency")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.delitem(sys.modules, "mqt.bench._mqt_compiler", raising=False)
-    monkeypatch.setattr(builtins, "__import__", fail_core_import)
-    with pytest.raises(ModuleNotFoundError, match="Missing native dependency") as exc:
-        get_benchmark_indep("ghz", 3, compiler="mqt")
-    assert exc.value.name == "core_native_dependency"
+    expected = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+    assert get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level) == expected
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))

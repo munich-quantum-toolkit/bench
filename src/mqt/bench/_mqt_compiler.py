@@ -6,115 +6,47 @@
 #
 # Licensed under the MIT License
 
-"""Optional MQT Core compiler for Qiskit benchmark circuits."""
+"""MQT Core compiler for Qiskit benchmark circuits."""
 
 from __future__ import annotations
 
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
+import mqt.core.mlir as core
 from qiskit.circuit import ControlFlowOp
-from qiskit.circuit.library import GlobalPhaseGate
-
-try:
-    from mqt.core.mlir import (
-        CompilationOptions,
-        CompilerTarget,
-        MappingOptions,
-        PayloadFormat,
-        PayloadSpecification,
-        ProgramCapability,
-        QCProgram,
-        QIRProfile,
-        QIRProgram,
-        TargetEnvironment,
-        compile_program,
-    )
-except ModuleNotFoundError as exc:
-    if exc.name not in {"mqt.core", "mqt.core.mlir"}:
-        raise
-    msg = 'MQT compilation and QIR export require MQT Core. Install it with: pip install "mqt-bench[mqt]"'
-    raise ImportError(msg) from exc
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
 
-_CONTROL_FLOW = {
-    "if_else": ProgramCapability.FORWARD_BRANCHING,
-    "for_loop": ProgramCapability.COUNTED_ITERATION,
-    "while_loop": ProgramCapability.CONDITIONAL_LOOP,
-    "switch_case": ProgramCapability.MULTIWAY_BRANCHING,
-}
+
+def make_compilation_options(*, seed: int | None = None, mapping_trials: int | None = None) -> core.CompilationOptions:
+    """Build the default compiler options with optional CLI overrides."""
+    return core.CompilationOptions(
+        seed=10 if seed is None else seed,
+        mapping=core.MappingOptions(trials=8 if mapping_trials is None else mapping_trials),
+    )
 
 
-def _physical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
-    """Treat an already mapped circuit's wires as the next compilation input."""
-    if circuit.layout is None:
-        return circuit
-    result = circuit.copy()
-    # Qiskit exposes no public setter for layout metadata.
-    result._layout = None  # ruff:ignore[private-member-access]
-    return result
-
-
-def _logical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
-    """Relabel a native circuit whose output permutation is already materialized."""
-    if circuit.layout is None:
-        return circuit
-    initial = circuit.layout.initial_index_layout()
-    if circuit.layout.final_index_layout() != initial:
-        msg = "MQT Core left an output permutation behind the native compilation boundary."
+def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> core.QIRProgram:
+    """Lower a circuit to QIR without running target compilation."""
+    if profile not in {"base", "adaptive"}:
+        msg = f"Unknown QIR profile '{profile}'. Choose 'base' or 'adaptive'."
         raise ValueError(msg)
-    result = circuit.copy_empty_like(vars_mode="drop")
-    result.global_phase = 0
-    result._layout = None  # ruff:ignore[private-member-access]
-    # Copying operations through Qiskit drops Core's fixed-angle gate names.
-    result.compose(circuit, qubits=sorted(range(len(initial)), key=initial.__getitem__), inplace=True, copy=False)
-    return result
+    if circuit.parameters:
+        msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
+        raise ValueError(msg)
+    program = core.QCProgram.from_qiskit(circuit)
+    return program.to_qir(core.QIRProfile.BASE if profile == "base" else core.QIRProfile.ADAPTIVE)
 
 
-def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> TargetEnvironment:
+def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
         msg = "The MQT mapped target must have at least as many qubits as the circuit."
         raise ValueError(msg)
-    structural = {
-        *_CONTROL_FLOW,
-        "break",
-        "continue",
-        "break_loop",
-        "continue_loop",
-        "delay",
-        "barrier",
-        "box",
-        "store",
-    }
-    names = [
-        name
-        for name in target.operation_names
-        if name not in structural
-        and target.qargs_for_operation_name(name) != set()
-        and not isinstance(target.operation_from_name(name), GlobalPhaseGate)
-    ]
-    if mapped:
-        core_target = CompilerTarget.from_qiskit(target, operation_names=names)
-    else:
-        names = [name for name in names if target.operation_from_name(name).num_qubits <= num_qubits]
-        core_target = CompilerTarget(
-            num_qubits,
-            connectivity=CompilerTarget.Connectivity.all_to_all(),
-            native_operations=CompilerTarget.NativeOperations.from_qiskit(target, operation_names=names),
-        )
-    return TargetEnvironment(
-        core_target,
-        PayloadSpecification(
-            PayloadFormat("openqasm", "3.0"),
-            capabilities=[
-                ProgramCapability(capability) for name, capability in _CONTROL_FLOW.items() if name in target
-            ],
-        ),
-    )
+    return core.TargetEnvironment.from_qiskit(target, native_num_qubits=None if mapped else num_qubits, strict=True)
 
 
 def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, sites: list[int] | None = None) -> None:
@@ -122,9 +54,9 @@ def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
     sites = list(range(circuit.num_qubits)) if sites is None else sites
     for item in circuit.data:
         operation = item.operation
-        qubits = tuple(sites[circuit.find_bit(qubit).index] for qubit in item.qubits)
-        if operation.name in {"barrier", "store"}:
+        if operation.name in {"barrier", "store", "break_loop", "continue_loop"}:
             continue
+        qubits = tuple(sites[circuit.find_bit(qubit).index] for qubit in item.qubits)
         if not target.instruction_supported(
             operation_name=operation.name,
             qargs=qubits if mapped else None,
@@ -137,24 +69,12 @@ def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, s
                 _validate_target(block, target, mapped=mapped, sites=list(qubits))
 
 
-def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> QIRProgram:
-    """Lower a circuit to QIR without running target compilation."""
-    if profile not in {"base", "adaptive"}:
-        msg = f"Unknown QIR profile '{profile}'. Choose 'base' or 'adaptive'."
-        raise ValueError(msg)
-    if circuit.parameters:
-        msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
-        raise ValueError(msg)
-    program = QCProgram.from_qiskit(_physical_circuit(circuit))
-    return program.to_qir(QIRProfile.BASE if profile == "base" else QIRProfile.ADAPTIVE)
-
-
 def compile_circuit(
     circuit: QuantumCircuit,
     target: Target | None = None,
     *,
     mapped: bool = False,
-    options: CompilationOptions | None = None,
+    options: core.CompilationOptions | None = None,
 ) -> QuantumCircuit:
     """Compile through Core and return a Qiskit circuit with compiler provenance.
 
@@ -162,55 +82,32 @@ def compile_circuit(
         circuit: Circuit to compile. Core does not modify it.
         target: Optional Qiskit gate set or device target.
         mapped: Whether to enforce physical connectivity and operation placements.
-        options: Core compiler controls. Defaults to seed 10 and four mapping trials.
+        options: Core compiler controls. Defaults to seed 10 and eight mapping trials.
 
     Returns:
         A Qiskit circuit. Mapped circuits use physical wires without layout metadata.
     """
     if options is None:
-        options = CompilationOptions(seed=10, mapping=MappingOptions(trials=4))
-    if target is None:
-        result = compile_program(
-            _physical_circuit(circuit), qco_pipeline="decompose-multi-controlled,mqt-qco-default", options=options
-        ).to_qiskit()
-    else:
-        environment = _target_environment(target, circuit.num_qubits, mapped=mapped)
-        source = _physical_circuit(circuit)
-        trailing_barriers = []
-        if not mapped:
-            source = source.copy()
-            while source.data and source.data[-1].operation.name == "barrier":
-                trailing_barriers.append(source.data.pop())
-            # Keep terminal permutations in native gates instead of layout metadata.
-            source.barrier()
-        program = QCProgram.from_qiskit(source).to_qco()
-        program.compile_for_target(environment, options=options)
-        result = program.to_qiskit(target=environment.target)
-        if not mapped:
-            if result.data and result.data[-1].operation.name == "barrier":
-                result.data.pop()
-            result = _logical_circuit(result)
-            for barrier in reversed(trailing_barriers):
-                result.append(barrier.operation, [source.find_bit(qubit).index for qubit in barrier.qubits])
+        options = make_compilation_options()
+    environment = _target_environment(target, circuit.num_qubits, mapped=mapped) if target is not None else None
+    result = core.compile_program(
+        circuit, target=environment, options=options, ignore_input_layout=True, include_output_layout=not mapped
+    )
+    if target is not None:
         _validate_target(result, target, mapped=mapped)
-    if mapped:
-        result._layout = None  # ruff:ignore[private-member-access]
-    result.name = circuit.name
-    result.metadata = (circuit.metadata or {}) | {
-        "mqt_bench_compiler": {
-            "name": "mqt",
-            "version": version("mqt-core"),
-            "options": {
-                "seed": options.seed,
-                "enable_statistics": options.enable_statistics,
-                "enable_timing": options.enable_timing,
-                "mapping": {
-                    "trials": options.mapping.trials,
-                    "iterations": options.mapping.iterations,
-                    "lookahead": options.mapping.lookahead,
-                    "search_memory_limit": options.mapping.search_memory_limit,
-                },
+    result.metadata["mqt_bench_compiler"] = {
+        "name": "mqt",
+        "version": version("mqt-core"),
+        "options": {
+            "seed": options.seed,
+            "enable_statistics": options.enable_statistics,
+            "enable_timing": options.enable_timing,
+            "mapping": {
+                "trials": options.mapping.trials,
+                "iterations": options.mapping.iterations,
+                "lookahead": options.mapping.lookahead,
+                "search_memory_limit": options.mapping.search_memory_limit,
             },
-        }
+        },
     }
     return result

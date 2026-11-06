@@ -84,7 +84,7 @@ def _write_qir(
     else:
         header += f"// QIR exporter: MQT Core {metadata.version('mqt-core')}\n// QIR profile: {profile}\n\n"
         text = "\n".join(";" + line[2:] if line.startswith("//") else line for line in header.split("\n"))
-        text += program.llvm_ir
+        text += program.to_llvm_ir()
         assert isinstance(destination, TextIOBase)
         destination.write(text)
 
@@ -206,11 +206,11 @@ def write_circuit(
         level: The level of the circuit (e.g., BenchmarkLevel.MAPPED)
         fmt: Desired output format
         target: The target circuit to be transpiled, if any.
-        qir_profile: QIR profile for QIR/LLVM exports. Requires the ``mqt`` extra
-            and bound parameters. Text uses LLVM comments; bitcode has no Bench header.
+        qir_profile: QIR profile for QIR/LLVM exports. QIR requires bound
+            parameters. LLVM text includes the MQT Bench header as comments.
 
     Raises:
-        MQTBenchExporterError: On missing dependencies, unsupported export, or I/O errors.
+        MQTBenchExporterError: On unsupported export or I/O errors.
     """
     if isinstance(destination, Path):
         try:
@@ -314,7 +314,7 @@ def generate_filename(
     opt_level: int | None = None,
     generate_mirror_circuit: bool = False,
     *,
-    compiler: str = "qiskit",
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
 
@@ -323,9 +323,9 @@ def generate_filename(
         level: abstraction level
         num_qubits: number of qubits in the benchmark circuit
         target: target device (e.g., BenchmarkLevel.MAPPED)
-        opt_level: optional optimization level (used for 'nativegates' and 'mapped')
-        generate_mirror_circuit: whether this is a mirror circuit
-        compiler: Compiler name. MQT filenames omit the Qiskit optimization level.
+        opt_level: Qiskit optimization level for compiled circuits.
+        generate_mirror_circuit: Whether this is a mirror circuit.
+        compiler: Compiler used at compilation levels.
 
     Returns:
         A filename without an extension, containing the benchmark name, level,
@@ -337,17 +337,17 @@ def generate_filename(
     if compiler not in {"qiskit", "mqt"}:
         msg = f"Unknown compiler '{compiler}'. Choose 'qiskit' or 'mqt'."
         raise ValueError(msg)
+    if level == BenchmarkLevel.ALG:
+        return f"{base}_{num_qubits}"
+
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
         description = (target.description or "").strip().split(" ")[0]
         description = re.sub(r"[^A-Za-z0-9_.+-]+", "_", description) or "custom_target"
         base += f"_{description}"
 
-    if compiler == "mqt" and level != BenchmarkLevel.ALG:
+    if compiler == "mqt":
         return f"{base}_mqt_{num_qubits}"
 
-    if level in {BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
-        return f"{base}_opt{opt_level}_{num_qubits}"
-
-    return f"{base}_{num_qubits}"
+    assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
+    return f"{base}_opt{opt_level}_{num_qubits}"
