@@ -20,6 +20,7 @@ import pytest
 from mqt.core import mlir as core
 from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
+    Gate,
     IfElseOp,
     Parameter,
     ParameterVector,
@@ -424,10 +425,11 @@ def test_target_without_applicable_entangler_rejected(*, mapped: bool) -> None:
 @pytest.mark.parametrize("width", [None, 3])
 @pytest.mark.parametrize("circuit_width", [1, 2])
 def test_native_target_ignores_hardware_topology(width: int | None, circuit_width: int) -> None:
-    """Native compilation uses input width and ignores disconnected hardware."""
+    """Native compilation ignores hardware topology and gates wider than the circuit."""
     target = Target(num_qubits=width)
     target.add_instruction(UGate(*ParameterVector("u", 3)))
     target.add_instruction(CXGate(), {(0, 1): None} if width else None)
+    target.add_instruction(Gate("custom_three_qubit", 3, []))
     source = QuantumCircuit(circuit_width, global_phase=0.19)
     source.h(0)
     if circuit_width > 1:

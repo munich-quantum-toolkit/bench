@@ -15,18 +15,10 @@ from typing import TYPE_CHECKING
 
 import mqt.core.mlir as core
 from qiskit.circuit import ControlFlowOp
-from qiskit.circuit.library import GlobalPhaseGate
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
-
-_CONTROL_FLOW = {
-    "if_else": core.ProgramCapability.FORWARD_BRANCHING,
-    "for_loop": core.ProgramCapability.COUNTED_ITERATION,
-    "while_loop": core.ProgramCapability.CONDITIONAL_LOOP,
-    "switch_case": core.ProgramCapability.MULTIWAY_BRANCHING,
-}
 
 
 def _physical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
@@ -55,49 +47,12 @@ def _logical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
     return result
 
 
-def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment:
+def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
         msg = "The MQT mapped target must have at least as many qubits as the circuit."
         raise ValueError(msg)
-    structural = {
-        *_CONTROL_FLOW,
-        "break",
-        "continue",
-        "break_loop",
-        "continue_loop",
-        "delay",
-        "barrier",
-        "box",
-        "store",
-    }
-    names = [
-        name
-        for name in target.operation_names
-        if name not in structural
-        and target.qargs_for_operation_name(name) != set()
-        and not isinstance(target.operation_from_name(name), GlobalPhaseGate)
-    ]
-    if mapped:
-        core_target = core.CompilerTarget.from_qiskit(target, operation_names=names)
-    else:
-        names = [name for name in names if target.operation_from_name(name).num_qubits <= num_qubits]
-        core_target = core.CompilerTarget(
-            num_qubits,
-            connectivity=core.CompilerTarget.Connectivity.all_to_all(),
-            native_operations=core.CompilerTarget.NativeOperations.from_qiskit(target, operation_names=names),
-        )
-    return core.TargetEnvironment(
-        core_target,
-        core.PayloadSpecification(
-            core.PayloadFormat(
-                "qiskit", ".".join(version("qiskit").split(".")[:2]), encoding=core.PayloadEncoding.BINARY
-            ),
-            capabilities=[
-                core.ProgramCapability(capability) for name, capability in _CONTROL_FLOW.items() if name in target
-            ],
-        ),
-    )
+    return core.TargetEnvironment.from_qiskit(target, native_num_qubits=None if mapped else num_qubits, strict=True)
 
 
 def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, sites: list[int] | None = None) -> None:
