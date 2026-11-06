@@ -104,20 +104,19 @@ def compile_circuit(
         result._layout = None  # ruff:ignore[private-member-access]
     else:
         environment = _target_environment(target, circuit.num_qubits, mapped=False)
-        source = source.copy()
-        trailing_barriers = []
-        while source.data and source.data[-1].operation.name == "barrier":
-            trailing_barriers.append(source.data.pop())
-        # Native synthesis still elides terminal swaps unless a barrier follows.
-        source.barrier()
+        last = source.data[-1].operation if source.data else None
+        add_barrier = last is None or last.name != "barrier" or last.num_qubits != source.num_qubits
+        barrier_label = "mqt_bench_wire_order"
+        if add_barrier:
+            # A terminal barrier on all wires keeps Core from eliding final swaps.
+            source = source.copy()
+            source.barrier(label=barrier_label)
         program = core.compile_program(source, output=core.OutputFormat.QCO, options=options)
         program.synthesize_for_target(environment, options=options)
         result = program.to_qiskit(target=environment.target)
-        if result.data and result.data[-1].operation.name == "barrier":
+        if add_barrier and result.data and result.data[-1].operation.label == barrier_label:
             result.data.pop()
         result = _logical_circuit(result)
-        for barrier in reversed(trailing_barriers):
-            result.append(barrier.operation, [source.find_bit(qubit).index for qubit in barrier.qubits])
     if target is not None:
         _validate_target(result, target, mapped=mapped)
     result.name = circuit.name

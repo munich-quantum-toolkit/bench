@@ -481,28 +481,35 @@ def test_fixed_rx_gate_validation_rejects_unavailable_angle(monkeypatch: pytest.
         get_benchmark_native_gates(QuantumCircuit(2), None, target, compiler="mqt")
 
 
-@pytest.mark.parametrize("ending", ["none", "swap", "barrier"])
+@pytest.mark.parametrize("ending", ["none", "swap", "barrier", "full_barrier"])
 @pytest.mark.parametrize("idle_qubit", [False, True])
 def test_native_compilation_preserves_logical_wires(ending: str, *, idle_qubit: bool) -> None:
     """Native circuits and QASM exports preserve logical wires, including idle ones."""
     source = QuantumCircuit(4 if idle_qubit else 3, global_phase=0.37)
     source.x(2)
     source.h(0)
+    source.barrier(0, label="inside")
     source.cx(2, 1)
     if ending != "none":
         source.swap(0, 2)
     if ending == "barrier":
         source.barrier(2, label="output")
+    elif ending == "full_barrier":
+        source.barrier()
     original = source.copy()
     target = get_target_for_gateset("rigetti", source.num_qubits)
     result = get_benchmark_native_gates(source, None, target, compiler="mqt")
     assert source == original
     assert result.layout is None
-    barriers = [item for item in result.data if item.operation.name == "barrier"]
-    assert len(barriers) == int(ending == "barrier")
-    if ending == "barrier":
-        assert barriers[0].operation.label == "output"
-        assert [result.find_bit(qubit).index for qubit in barriers[0].qubits] == [2]
+    assert [
+        (item.operation.label, [result.find_bit(qubit).index for qubit in item.qubits])
+        for item in result.data
+        if item.operation.name == "barrier"
+    ] == [
+        (item.operation.label, [source.find_bit(qubit).index for qubit in item.qubits])
+        for item in source.data
+        if item.operation.name == "barrier"
+    ]
     np.testing.assert_allclose(Operator(result).data, Operator(source).data, atol=1e-12)
     for fmt in (OutputFormat.QASM2, OutputFormat.QASM3):
         stream = io.StringIO()
