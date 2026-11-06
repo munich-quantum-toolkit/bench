@@ -164,17 +164,15 @@ def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManag
 
     target_qc.compose(qc_inv, inplace=True)
 
-    # Qiskit circuit copies can share the layout. Detach it before resetting routing.
-    layout = target_qc.layout
-    if layout is not None:
-        layout = deepcopy(layout)
+    input_layout = target_qc.layout
     if pass_manager is not None:
         target_qc = pass_manager.run(target_qc)
         if target_qc.layout is not None:
             final_indices = target_qc.layout.final_index_layout()
             active_qubits = [final_indices[index] for index in active_qubits]
-    if layout is not None and target_qc.layout is not None:
-        target_qc._layout = layout  # ruff:ignore[private-member-access]
+    if input_layout is not None and target_qc.layout is not None:
+        # Qiskit circuit copies can share the layout. Detach it before resetting routing.
+        target_qc._layout = deepcopy(input_layout)  # ruff:ignore[private-member-access]
 
     target_qc.barrier(active_qubits)
     name = "meas"

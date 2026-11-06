@@ -1715,6 +1715,7 @@ def test_mapped_mirror_preserves_complete_layout() -> None:
     assert source == original
     assert base.layout is not None
     assert mirror.layout is not None
+    assert mirror.layout.initial_index_layout() == base.layout.initial_index_layout()
     assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
     mirror.remove_final_measurements(inplace=True)
     np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
