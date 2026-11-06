@@ -17,7 +17,7 @@ import random
 import re
 from enum import StrEnum
 from importlib import metadata
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
 import networkx as nx
 import numpy as np
@@ -1277,6 +1277,7 @@ def test_invalid_shor_input(number: int, a: int, message: str) -> None:
             (BenchmarkLevel.NATIVEGATES, Target(num_qubits=5, description=description), False, expected)
             for description, expected in [
                 (None, "ghz_nativegates_custom_target_opt2_5"),
+                ("", "ghz_nativegates_custom_target_opt2_5"),
                 ("   ", "ghz_nativegates_custom_target_opt2_5"),
                 (r"Custom/native\target", "ghz_nativegates_Custom_native_target_opt2_5"),
                 ("clifford+t", "ghz_nativegates_clifford+t_opt2_5"),
@@ -1308,21 +1309,26 @@ def test_invalid_shor_input(number: int, a: int, message: str) -> None:
         ),
     ],
 )
+@pytest.mark.parametrize("compiler", ["qiskit", "mqt"])
 def test_generate_filename(
     level: BenchmarkLevel,
     target: Target | None,
     generate_mirror_circuit: bool,
     expected: str,
+    compiler: Literal["qiskit", "mqt"],
 ) -> None:
-    """Test the generation of a filename."""
+    """Generate filenames with the positional mirror flag and either compiler."""
     filename = generate_filename(
-        benchmark_name="ghz",
-        level=level,
-        num_qubits=5,
-        target=target,
-        opt_level=2,
-        generate_mirror_circuit=generate_mirror_circuit,
+        "ghz",
+        level,
+        5,
+        target,
+        2 if compiler == "qiskit" else None,
+        generate_mirror_circuit,
+        compiler=compiler,
     )
+    if compiler == "mqt":
+        expected = expected.replace("_opt2_", "_mqt_")
     assert filename == expected
 
 
@@ -1843,6 +1849,23 @@ def test_version() -> None:
     """Test that the package version is accessible."""
     assert isinstance(mqt.bench.__version__, str)
     assert isinstance(mqt.bench.__version_tuple__, tuple)
+
+
+@pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
+def test_invalid_compiler(compiler: str) -> None:
+    """Reject unknown compilers before circuit generation."""
+    invalid_compiler = cast('Literal["qiskit", "mqt"]', compiler)
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
+    with pytest.raises(ValueError, match="Unknown compiler"):
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
+
+
+@pytest.mark.parametrize("opt_level", [0, 1, 3])
+def test_mqt_optimization_level(opt_level: int) -> None:
+    """Do not interpret Qiskit's optimization levels as Core pipeline settings."""
+    expected = get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt")
+    assert get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt", opt_level=opt_level) == expected
 
 
 @pytest.mark.parametrize("level", list(BenchmarkLevel))

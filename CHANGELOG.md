@@ -14,6 +14,10 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- ✨ Add MQT Core compilation for target-independent, native-gate, and mapped
+  circuits via `compiler="mqt"` or `--compiler mqt`, with logical native QASM
+  exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
+  [**@burgholzer**])
 - ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
   rejection loop ([#1053]) ([**@algovista-collab**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
@@ -348,6 +352,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1044]: https://github.com/munich-quantum-toolkit/bench/pull/1044
 [#1037]: https://github.com/munich-quantum-toolkit/bench/pull/1037
 [#1031]: https://github.com/munich-quantum-toolkit/bench/pull/1031
+[#1027]: https://github.com/munich-quantum-toolkit/bench/pull/1027
 [#1024]: https://github.com/munich-quantum-toolkit/bench/pull/1024
 [#1011]: https://github.com/munich-quantum-toolkit/bench/pull/1011
 [#999]: https://github.com/munich-quantum-toolkit/bench/pull/999
