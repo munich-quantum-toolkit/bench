@@ -54,6 +54,7 @@ jobs:
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@a4b4977405c7685f95e127cdb6db396bbadce787 # v2.5.5
     with:
+      enable-ty: true
       enable-mypy: false
     permissions:
       contents: read
