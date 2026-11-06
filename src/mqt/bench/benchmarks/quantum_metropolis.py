@@ -249,7 +249,7 @@ def create_circuit(
         with else_:
             apply_u_inverse()
             measure_p()
-            with qc.while_loop((c_p[0], 0)):
+            with qc.while_loop((c_p[0], 0), body=None, qubits=None, clbits=None, label=None):
                 measure_q()
                 measure_p()
 

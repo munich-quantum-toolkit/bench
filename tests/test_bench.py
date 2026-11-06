@@ -1098,7 +1098,7 @@ def test_clifford_t_mirror_inverse_gates(opt_level: int, gate_name: str) -> None
 def test_clifford_t_rotations_in_loop(opt_level: int) -> None:
     """Synthesize rotations inside structured loops without unrolling the loop."""
     qc = QuantumCircuit(1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.rx(0.3, 0)
     target = get_target_for_gateset("clifford+t", 1)
 
@@ -1604,7 +1604,7 @@ def test_native_gates_ignore_hardware(opt_level: int, mirror: bool, description:
 def test_native_gates_preserve_loop_jumps(gateset_name: str, jump: str, opt_level: int, conditional: bool) -> None:
     """Compile loop exits using Qiskit's instruction names."""
     qc = QuantumCircuit(2, 1)
-    with qc.for_loop(range(2)):
+    with qc.for_loop(range(2), loop_parameter=None, body=None, qubits=None, clbits=None, label=None):
         qc.x(0)
         if conditional:
             with qc.if_test((qc.clbits[0], 0)):
