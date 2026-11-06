@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from copy import deepcopy
 from enum import Enum, auto
 from importlib.metadata import version
@@ -24,6 +25,7 @@ from qiskit.transpiler import Layout, Target
 from qiskit.transpiler.passes import OptimizeCliffordT, RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
+from .error_correction import get_available_encoding_names, get_transpiler
 from .targets.gatesets import get_target_for_gateset
 from .targets.gatesets._compilation import prepare_target
 from .targets.gatesets.ibm import configure_fractional_angles
@@ -118,6 +120,7 @@ def _record_generation(
     target: Target | None = None,
     opt_level: int | None = None,
     mirror: bool = False,
+    encoding: str = "",
 ) -> None:
     """Attach the compilation settings to the circuit's generation record."""
     generation.update({
@@ -125,6 +128,7 @@ def _record_generation(
         "opt_level": opt_level,
         "target": target.description if target is not None else None,
         "mirror": mirror or generation.get("mirror", False),
+        "encoding": encoding or generation.get("encoding"),
     })
     qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
@@ -267,6 +271,7 @@ def get_benchmark_alg(
     benchmark: str,
     circuit_size: int,
     *,
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -279,6 +284,7 @@ def get_benchmark_alg(
     benchmark: QuantumCircuit,
     circuit_size: None = None,
     *,
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -291,6 +297,7 @@ def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
     *,
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -302,6 +309,7 @@ def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
     *,
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -311,6 +319,7 @@ def get_benchmark_alg(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
+        encoding: Name of an error-correcting code from `get_available_encoding_names()`, or "" for none.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: Additional keyword arguments passed to circuit creation.
@@ -321,12 +330,22 @@ def get_benchmark_alg(
     if kwargs.pop("compiler_options", None) is not None:
         msg = "compiler_options requires a compilation level; the algorithm level does not compile."
         raise ValueError(msg)
+    valid_encodings = {"", *get_available_encoding_names()}
+    if encoding not in valid_encodings:
+        msg = f"Invalid `encoding` '{encoding}'. Must be one of {valid_encodings}."
+        raise ValueError(msg)
+
     qc, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
     if qc is benchmark:
         qc = qc.copy()
-    _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit)
+    _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit, encoding=encoding)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc)
+        qc = _create_mirror_circuit(qc)
+
+    if encoding:
+        # The encoded circuit keeps the metadata, including the generation record.
+        qc = get_transpiler(encoding)(qc).transpile()
+
     return qc
 
 
@@ -667,6 +686,7 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -683,6 +703,7 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -699,6 +720,7 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -714,6 +736,7 @@ def get_benchmark(
     opt_level: int = 2,
     *,
     compiler: Literal["qiskit", "mqt"] = "qiskit",
+    encoding: str = "",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -728,6 +751,8 @@ def get_benchmark(
                 (only used for "nativegates" and "mapped" level)
         opt_level: Qiskit optimization level. Ignored by the MQT compiler.
         compiler: Compiler to use: "qiskit" (default) or "mqt".
+        encoding: Name of an error-correcting code from `get_available_encoding_names()`, or "" for none.
+                Only supported for `BenchmarkLevel.ALG`; ignored (with a warning) for other levels.
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
         kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
@@ -736,12 +761,19 @@ def get_benchmark(
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
     """
     _validate_compiler(compiler, opt_level if level is not BenchmarkLevel.ALG else 2, kwargs.get("compiler_options"))
+    if level is not BenchmarkLevel.ALG and encoding:
+        warnings.warn(
+            f"`encoding` is only supported for BenchmarkLevel.ALG and will be ignored for level={level.name}.",
+            UserWarning,
+            stacklevel=2,
+        )
     if level is BenchmarkLevel.ALG:
         return get_benchmark_alg(
             benchmark=benchmark,
             circuit_size=circuit_size,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
+            encoding=encoding,
             **kwargs,
         )
 
