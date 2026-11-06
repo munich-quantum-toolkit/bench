@@ -29,6 +29,18 @@ def make_compilation_options(*, seed: int | None = None, mapping_trials: int | N
     )
 
 
+def circuit_to_qir(circuit: QuantumCircuit, *, profile: str = "base") -> core.QIRProgram:
+    """Lower a circuit to QIR without running target compilation."""
+    if profile not in {"base", "adaptive"}:
+        msg = f"Unknown QIR profile '{profile}'. Choose 'base' or 'adaptive'."
+        raise ValueError(msg)
+    if circuit.parameters:
+        msg = "QIR export requires bound parameters. Assign all circuit parameters before exporting."
+        raise ValueError(msg)
+    program = core.QCProgram.from_qiskit(circuit)
+    return program.to_qir(core.QIRProfile.BASE if profile == "base" else core.QIRProfile.ADAPTIVE)
+
+
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):

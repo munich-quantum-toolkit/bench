@@ -270,7 +270,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -281,7 +282,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -292,7 +294,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_alg(
@@ -337,7 +340,8 @@ def get_benchmark_indep(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -350,7 +354,8 @@ def get_benchmark_indep(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -363,7 +368,8 @@ def get_benchmark_indep(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_indep(
@@ -419,7 +425,8 @@ def get_benchmark_native_gates(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -433,7 +440,8 @@ def get_benchmark_native_gates(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -447,7 +455,8 @@ def get_benchmark_native_gates(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_native_gates(
@@ -559,7 +568,8 @@ def get_benchmark_mapped(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -573,7 +583,8 @@ def get_benchmark_mapped(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -587,7 +598,8 @@ def get_benchmark_mapped(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_mapped(
@@ -658,7 +670,8 @@ def get_benchmark(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -673,7 +686,8 @@ def get_benchmark(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -688,7 +702,8 @@ def get_benchmark(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark(
@@ -771,4 +786,4 @@ def get_benchmark(
             **kwargs,
         )
 
-    assert_never(level)
+    return assert_never(level)
