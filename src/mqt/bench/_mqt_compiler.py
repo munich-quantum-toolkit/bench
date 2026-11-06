@@ -21,16 +21,6 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 
-def _physical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
-    """Treat an already mapped circuit's wires as the next compilation input."""
-    if circuit.layout is None:
-        return circuit
-    result = circuit.copy()
-    # Qiskit exposes no public setter for layout metadata.
-    result._layout = None  # ruff:ignore[private-member-access]
-    return result
-
-
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
@@ -80,10 +70,10 @@ def compile_circuit(
     if options is None:
         options = core.CompilationOptions(seed=10, mapping=core.MappingOptions(trials=8))
     environment = _target_environment(target, circuit.num_qubits, mapped=mapped) if target is not None else None
-    result = core.compile_program(_physical_circuit(circuit), target=environment, options=options)
+    result = core.compile_program(
+        circuit, target=environment, options=options, ignore_input_layout=True, include_output_layout=not mapped
+    )
     if target is not None:
-        if mapped:
-            result._layout = None  # ruff:ignore[private-member-access]
         _validate_target(result, target, mapped=mapped)
     result.metadata["mqt_bench_compiler"] = {
         "name": "mqt",

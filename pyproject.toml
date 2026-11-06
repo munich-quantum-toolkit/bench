@@ -34,7 +34,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@77eecaed2dd26fe932ab2b1dde5863a69ddf0bd6",
+  "mqt-core @ git+https://github.com/munich-quantum-toolkit/core.git@69877d981620219d0bd124af005801f26dd77468",
   "networkx>=2.8.8",
   "numpy>=2",
   "numpy>=2.1; python_version>='3.13'",

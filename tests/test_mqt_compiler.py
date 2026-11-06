@@ -315,13 +315,15 @@ def test_compiled_input_layout_is_not_mutated() -> None:
     source.measure([0, 1, 2], [2, 0, 1])
     target = get_target_for_gateset("ibm_heron", 3)
     mapped = core.compile_program(source, target=target, output=core.OutputFormat.QISKIT)
-    original = mapped.copy()
     assert mapped.layout is not None
+    original = mapped.copy()
+    original_layout = mapped.layout.final_index_layout()
     result = get_benchmark_mapped(mapped, None, target, compiler="mqt")
     assert result.layout is None
     assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(source))
     assert mapped == original
-    assert mapped.layout == original.layout
+    assert mapped.layout is not None
+    assert mapped.layout.final_index_layout() == original_layout
 
 
 @pytest.mark.parametrize("native", [False, True])
