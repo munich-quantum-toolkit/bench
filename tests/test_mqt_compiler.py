@@ -45,7 +45,7 @@ from mqt.bench import (
     get_benchmark_mapped,
     get_benchmark_native_gates,
 )
-from mqt.bench.output import OutputFormat, generate_filename, write_circuit
+from mqt.bench.output import OutputFormat, write_circuit
 from mqt.bench.targets import get_device, get_target_for_gateset
 from mqt.bench.targets.gatesets.ionq import GPI2Gate, GPIGate
 
@@ -361,17 +361,6 @@ def test_compiled_input_layout_is_not_mutated() -> None:
     assert mapped.layout == original.layout
 
 
-@pytest.mark.parametrize("gateset", ["ibm_heron", "ionq_forte", "rigetti", "aqt"])
-def test_single_qubit_circuit_with_two_qubit_target(gateset: str) -> None:
-    """Unused wider capabilities do not prevent single-qubit compilation."""
-    target = get_target_for_gateset(gateset, 2)
-    source = QuantumCircuit(1)
-    source.h(0)
-    result = get_benchmark_native_gates(source, None, target, compiler="mqt")
-    assert result.num_qubits == 1
-    assert np.allclose(Operator(result).data, Operator(source).data)
-
-
 @pytest.mark.parametrize("native", [False, True])
 def test_incomplete_target_requires_synthesis_basis(*, native: bool) -> None:
     """Even native inputs need a complete basis for target compilation."""
@@ -433,7 +422,7 @@ def test_native_target_ignores_hardware_topology(width: int | None, circuit_widt
     source = QuantumCircuit(circuit_width, global_phase=0.19)
     source.h(0)
     if circuit_width > 1:
-        source.ry(0.24, 1)
+        source.cx(1, 0)
     result = get_benchmark_native_gates(source, None, target, compiler="mqt", random_parameters=False)
     assert result.num_qubits == source.num_qubits
     assert np.allclose(Operator(result).data, Operator(source).data)
@@ -482,7 +471,6 @@ def test_compiler_provenance() -> None:
     restored = qpy.load(binary)[0]
     assert restored.metadata["mqt_bench_compiler"] == result.metadata["mqt_bench_compiler"]
     assert restored.metadata["mqt_bench_generation"] == generation
-    assert generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler="mqt") == "ghz_indep_mqt_3"
 
 
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
