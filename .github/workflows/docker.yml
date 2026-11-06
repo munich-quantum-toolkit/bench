@@ -10,6 +10,15 @@ on:
   pull_request:
     branches:
       - "main"
+    paths:
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+      - "Dockerfile"
+      - "LICENSE"
+      - "README.md"
+      - "pyproject.toml"
+      - "src/**"
+      - "uv.lock"
 
 permissions: {}
 
