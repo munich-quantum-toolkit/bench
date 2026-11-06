@@ -165,7 +165,9 @@ def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManag
     target_qc.compose(qc_inv, inplace=True)
 
     # Qiskit circuit copies can share the layout. Detach it before resetting routing.
-    layout = deepcopy(target_qc.layout)
+    layout = target_qc.layout
+    if layout is not None:
+        layout = deepcopy(layout)
     if pass_manager is not None:
         target_qc = pass_manager.run(target_qc)
         if target_qc.layout is not None:

@@ -1736,6 +1736,7 @@ def test_algorithm_mirror_preserves_input_layout() -> None:
     mirror = get_benchmark_alg(routed, generate_mirror_circuit=True)
     assert routed.layout.final_index_layout() == routing
     assert mirror.layout is not None
+    assert mirror.layout is not routed.layout
     assert mirror.layout.final_index_layout() == [0, 1, 2]
 
 
