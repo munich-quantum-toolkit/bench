@@ -64,11 +64,16 @@ def main() -> None:
         help="Benchmark size. For most algorithms, this is the number of qubits.",
     )
     parser.add_argument(
+        "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."
+    )
+    parser.add_argument("--compiler-seed", type=int, help="MQT Core compilation seed (default: 10).")
+    parser.add_argument("--mapping-trials", type=int, help="Number of MQT Core mapping trials (default: 8).")
+    parser.add_argument(
         "--optimization-level",
         type=int,
         choices=range(4),
         default=2,
-        help="Qiskit compiler optimization level (0-3, default: 2).",
+        help="Qiskit optimization level (0-3, default: 2). Ignored by the MQT compiler.",
     )
     parser.add_argument(
         "--target",
@@ -138,6 +143,23 @@ def main() -> None:
     if level in (BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED) and not args.target:
         parser.error(f"--target is required when --level is '{args.level}'.")
 
+    compiler_options = None
+    if args.compiler_seed is not None or args.mapping_trials is not None:
+        if args.compiler != "mqt":
+            parser.error("--compiler-seed and --mapping-trials require --compiler mqt.")
+        if level == BenchmarkLevel.ALG:
+            parser.error("--compiler-seed and --mapping-trials require a compilation level.")
+        if args.compiler_seed is not None and args.compiler_seed < 0:
+            parser.error("--compiler-seed must be nonnegative.")
+        if args.mapping_trials is not None and args.mapping_trials < 1:
+            parser.error("--mapping-trials must be positive.")
+        from ._mqt_compiler import make_compilation_options  # ruff:ignore[import-outside-top-level]
+
+        try:
+            compiler_options = make_compilation_options(seed=args.compiler_seed, mapping_trials=args.mapping_trials)
+        except (OverflowError, TypeError):
+            parser.error("Compiler seed or mapping trial count is out of range.")
+
     options = dict(args.benchmark_options)
     if args.seed is not None:
         if "seed" in options:
@@ -157,12 +179,18 @@ def main() -> None:
             circuit_size=args.num_qubits,
             target=target,
             opt_level=args.optimization_level,
+            compiler=args.compiler,
+            compiler_options=compiler_options,
             generate_mirror_circuit=args.mirror,
             random_parameters=args.random_parameters,
             **options,
         )
     except (ValueError, TypeError, KeyError, QiskitError) as exc:
         parser.error(str(exc))
+    except RuntimeError as exc:
+        if args.compiler != "mqt":
+            raise
+        parser.error(str(exc).partition("\n")[0])
 
     fmt = OutputFormat(args.output_format)
 
@@ -183,6 +211,7 @@ def main() -> None:
         num_qubits=args.num_qubits,
         target=target,
         opt_level=args.optimization_level,
+        compiler=args.compiler,
         generate_mirror_circuit=args.mirror,
     )
     success = save_circuit(

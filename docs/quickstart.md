@@ -171,6 +171,9 @@ options. If parameters were bound, the record includes `parameter_seed`. To
 recreate a benchmark that uses a custom gate or state-preparation circuit, keep
 that object separately.
 
+With MQT Core, `qc.metadata["mqt_bench_compiler"]` also records the compiler
+version and options. Its compilation seed is independent of the benchmark seed.
+
 ### OpenQASM2
 
 OpenQASM exports include the generation record in a comment header. OpenQASM 2

@@ -12,8 +12,12 @@ apt-get update -qy
 apt-get install -qyy \
     -o APT::Install-Recommends=false \
     -o APT::Install-Suggests=false \
+    ca-certificates \
+    curl \
+    g++ \
+    git \
     python3.12-dev \
-    git
+    zlib1g-dev
 EOT
 
 # Install `uv`
