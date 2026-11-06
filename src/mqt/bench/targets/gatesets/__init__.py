@@ -12,14 +12,14 @@
 
 from __future__ import annotations
 
-import copy
 import importlib
 import importlib.resources as ir
 from functools import cache
+from math import pi
 from typing import TYPE_CHECKING
 
 from qiskit.circuit import BreakLoopOp, ContinueLoopOp, Parameter, get_control_flow_name_mapping
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.circuit.library.standard_gates import RXGate, get_standard_gate_name_mapping
 from qiskit.transpiler import Target
 
 from ._registry import gateset_names, get_gateset_by_name, register_gateset
@@ -27,7 +27,7 @@ from ._registry import gateset_names, get_gateset_by_name, register_gateset
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from qiskit.circuit import Gate, Instruction
+    from qiskit.circuit import Gate
 
 _DISCOVERED_MODULES: set[str] = {
     entry.name.removesuffix(".py")
@@ -51,10 +51,10 @@ _SPECIAL_NAME_TO_MODULE = {
 
 
 def _module_from_gateset_name(gateset_name: str) -> str:
-    """Map a gateset name like ``ibm_falcon`` to the module ``ibm``.
+    """Map a gateset name like ``ibm_heron`` to the module ``ibm``.
 
     The rule is the same as for devices: take everything before the first
-    underscore (``ibm_falcon`` → ``ibm``).  If no underscore is present, the
+    underscore (``ibm_heron`` → ``ibm``).  If no underscore is present, the
     whole name is assumed to be the module.
     """
     if gateset_name in _SPECIAL_NAME_TO_MODULE:
@@ -100,29 +100,28 @@ def get_gateset(gateset_name: str) -> list[str]:
     return _get_gateset(gateset_name).copy()
 
 
-def _lazy_custom_gates() -> dict[str, Callable[[], Gate | type[Instruction]]]:
+def _lazy_custom_gates() -> dict[str, Callable[[], Gate]]:
     """Import custom gates only when needed."""
-    from .ionq import GPI2Gate, GPIGate, MSGate, ZZGate  # ruff:ignore[import-outside-top-level]
-    from .rigetti import RXPI2DgGate, RXPI2Gate, RXPIGate  # ruff:ignore[import-outside-top-level]
+    from .ionq import GPI2Gate, GPIGate  # ruff:ignore[import-outside-top-level]
 
     return {
         "gpi": lambda: GPIGate(Parameter("alpha")),
         "gpi2": lambda: GPI2Gate(Parameter("alpha")),
-        "ms": lambda: MSGate(Parameter("alpha"), Parameter("beta"), Parameter("gamma")),
-        "zz": lambda: ZZGate(Parameter("alpha")),
-        "rxpi": lambda: RXPIGate,
-        "rxpi2": lambda: RXPI2Gate,
-        "rxpi2dg": lambda: RXPI2DgGate,
+        "rxpi": lambda: RXGate(pi),
+        "rxpidg": lambda: RXGate(-pi),
+        "rxpi2": lambda: RXGate(pi / 2),
+        "rxpi2dg": lambda: RXGate(-pi / 2),
     }
 
 
-@cache
-def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
+def get_target_for_gateset(name: str, num_qubits: int) -> Target:
     """Return a native gate-set target without hardware constraints."""
-    target = Target(description=gateset_name, num_qubits=num_qubits)
+    target = Target(description=name, num_qubits=num_qubits)
     standard_gates = get_standard_gate_name_mapping()
     custom_factory = _lazy_custom_gates()
-    for gate_name in dict.fromkeys([*get_gateset(gateset_name), "reset", "delay", "measure"]):
+    for gate_name in dict.fromkeys([*get_gateset(name), "reset", "delay", "measure"]):
+        if name == "ibm_heron_fractional" and gate_name in {"rx", "rzz"}:
+            continue
         if gate_name in standard_gates:
             instruction = standard_gates[gate_name]
         elif gate_name in custom_factory:
@@ -132,14 +131,14 @@ def _get_target_for_gateset(gateset_name: str, num_qubits: int) -> Target:
             raise ValueError(msg)
         target.add_instruction(instruction, name=gate_name)
 
+    if name == "ibm_heron_fractional":
+        from .ibm import add_fractional_gates  # ruff:ignore[import-outside-top-level]
+
+        add_fractional_gates(target)
+
     for name, instruction_class in get_control_flow_name_mapping().items():
         target.add_instruction(instruction_class, name=name)
     target.add_instruction(BreakLoopOp, name="break_loop")
     target.add_instruction(ContinueLoopOp, name="continue_loop")
 
     return target
-
-
-def get_target_for_gateset(name: str, num_qubits: int) -> Target:
-    """Return a copy of a native gate-set target with globally available instructions."""
-    return copy.deepcopy(_get_target_for_gateset(name, num_qubits))

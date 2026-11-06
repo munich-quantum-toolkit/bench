@@ -22,9 +22,13 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     """Returns a quantum circuit implementing Grover's algorithm.
 
     Args:
-        num_qubits: number of qubits of the returned quantum circuit
+        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
         for_loop: whether to use a structured for-loop for the Grover iterations
     """
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2 for Grover's algorithm."
+        raise ValueError(msg)
+
     num_qubits = num_qubits - 1  # -1 because of the flag qubit
     q = QuantumRegister(num_qubits, "q")
     flag = AncillaRegister(1, "flag")
@@ -39,20 +43,15 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     operator = grover_operator(oracle)
     iterations = int(np.pi / 4 * np.sqrt(2**num_qubits))
 
-    num_qubits = operator.num_qubits - 1  # -1 because last qubit is "flag" qubit and already taken care of
-
-    # num_qubits may differ now depending on the mcx_mode
-    q2 = QuantumRegister(num_qubits, "q")
-    qc = QuantumCircuit(q2, flag, name="grover")
+    qc = QuantumCircuit(q, flag, name="grover")
     qc.compose(state_preparation, inplace=True)
 
     if for_loop:
-        body = QuantumCircuit(q2, flag)
+        body = QuantumCircuit(q, flag)
         body.append(operator.to_gate(), body.qubits)
         qc.append(ForLoopOp(range(iterations), None, body), qc.qubits)
     else:
         qc.compose(operator.power(iterations), inplace=True)
     qc.measure_all()
-    qc.name = qc.name
 
     return qc

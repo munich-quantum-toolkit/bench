@@ -132,7 +132,7 @@ class Shor:
 
         circuit = QuantumCircuit(ctrl_qreg, b_qreg, flag_qreg, name="ccphi_add_a_mod_N")
 
-        cc_phi_add_a = self._phi_add_gate(angles).control(2)
+        cc_phi_add_a = self._phi_add_gate(angles).control(2, annotated=False)
         cc_iphi_add_a = cc_phi_add_a.inverse()
 
         circuit.compose(cc_phi_add_a, [*ctrl_qreg, *b_qreg], inplace=True)
@@ -220,7 +220,7 @@ class Shor:
         # Create gates to perform addition/subtraction by N in Fourier Space
         phi_add_n = self._phi_add_gate(self._get_angles(to_be_factored_number, num_bits_necessary + 1))
         iphi_add_n = phi_add_n.inverse()
-        c_phi_add_n = phi_add_n.control(1)
+        c_phi_add_n = phi_add_n.control(1, annotated=False)
 
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation

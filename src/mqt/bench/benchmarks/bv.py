@@ -22,18 +22,22 @@ def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | 
     Arguments:
         num_qubits: Total number of qubits in the circuit (including the flag qubit).
         dynamic: Whether to use a dynamic layout (default: False).
-        hidden_string: The hidden bitstring to be found (default: alternating pattern of 1 and 0). If provided, its length must be num_qubits - 1.
+        hidden_string: The hidden bitstring to be found (default: alternating pattern of 1 and 0). Its length must be num_qubits - 1; character i maps to classical bit i.
 
     Returns:
         QuantumCircuit: Circuit implementing the Bernstein-Vazirani algorithm.
     """
+    if num_qubits < 2:
+        msg = "num_qubits must be at least 2 for Bernstein-Vazirani."
+        raise ValueError(msg)
+
     # Generate a default hidden string if not provided
     if hidden_string is None:
         hidden_string = "".join([str(i % 2) for i in range(num_qubits - 1)])
 
     # Ensure the hidden string matches the number of input qubits (excluding the flag qubit)
-    if len(hidden_string) != num_qubits - 1:
-        msg = "Length of hidden_string must be num_qubits - 1."
+    if len(hidden_string) != num_qubits - 1 or not set(hidden_string).issubset({"0", "1"}):
+        msg = "hidden_string must be a binary string of length num_qubits - 1."
         raise ValueError(msg)
 
     # Create a quantum circuit: num_qubits (flag + inputs) and num_qubits - 1 classical bits

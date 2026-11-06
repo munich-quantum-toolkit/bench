@@ -23,13 +23,17 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
 
     Arguments:
         num_qubits: Total number of qubits, including evaluation and target qubits. Must be at least 2 (1 evaluation + 1 target).
-        probability: Probability of the "good" state.
+        probability: Probability of the "good" state, between 0 and 1.
 
     Returns:
         QuantumCircuit: The constructed amplitude estimation circuit.
     """
     if num_qubits < 2:
         msg = "Number of qubits must be at least 2 (1 evaluation + 1 target)."
+        raise ValueError(msg)
+
+    if not 0 <= probability <= 1:
+        msg = "probability must be between 0 and 1."
         raise ValueError(msg)
 
     # Compute the rotation angle: theta_p = 2 * arcsin(sqrt(p))
@@ -60,7 +64,7 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
     # Compose the phase estimation component.
     qc.compose(pe.decompose(gates_to_decompose="unitary"), inplace=True)
 
-    # Name the circuit and add measurements to all evaluation qubits.
+    # Name the circuit and measure evaluation and target qubits.
     qc.name = "ae"
     qc.measure_all()
 

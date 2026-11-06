@@ -21,16 +21,17 @@ if TYPE_CHECKING:
 
 
 @register_benchmark("randomcircuit", description="Random Quantum Circuit")
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
     """Returns a random quantum circuit twice as deep as wide. The random gate span over four qubits maximum.
 
     Arguments:
         num_qubits: number of qubits of the returned quantum circuit
+        seed: Random seed for circuit construction.
 
     Returns:
         QuantumCircuit: a random quantum circuit twice as deep as wide
     """
-    qc = random_circuit(num_qubits, num_qubits * 2, measure=False, seed=10)
+    qc = random_circuit(num_qubits, num_qubits * 2, measure=False, seed=seed)
     qc.measure_all()
     qc.name = "randomcircuit"
     return qc

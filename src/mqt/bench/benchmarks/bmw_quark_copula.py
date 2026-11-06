@@ -25,14 +25,10 @@
 from __future__ import annotations
 
 from math import comb
-from typing import TYPE_CHECKING
 
 from qiskit.circuit import ParameterVector, QuantumCircuit
 
 from ._registry import register_benchmark
-
-if TYPE_CHECKING:
-    from qiskit.circuit import Parameter
 
 
 @register_benchmark("bmw_quark_copula", description="Copula Circuit (QUARK)")
@@ -40,11 +36,15 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     """Returns a Qiskit circuit based on the copula circuit architecture from the QUARK framework.
 
     Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be divisible by 2.
-        depth: Depth of the returned quantum circuit.
+        num_qubits: Number of qubits of the returned quantum circuit. Must be a positive multiple of 2.
+        depth: Depth of the returned quantum circuit. Must be nonnegative.
     """
-    if num_qubits % 2 != 0:
-        msg = "Number of qubits must be divisible by 2."
+    if num_qubits < 2 or num_qubits % 2:
+        msg = "num_qubits must be a positive multiple of 2."
+        raise ValueError(msg)
+
+    if depth < 0:
+        msg = "depth must be nonnegative."
         raise ValueError(msg)
 
     n_registers = 2
@@ -56,15 +56,7 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     num_rxx_gates = depth * n_registers * comb(n, 2)
     total_params = num_single_qubit_gates + num_rxx_gates
 
-    param_vector = ParameterVector("p", total_params)
-
-    param_index = 0
-
-    def get_param() -> Parameter:
-        nonlocal param_index
-        value = param_vector[param_index]
-        param_index += 1
-        return value
+    parameters = iter(ParameterVector("p", total_params))
 
     # === Initial Hadamards on first register ===
     for q in range(n):
@@ -80,16 +72,16 @@ def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
     for _ in range(depth):
         # Apply RZ-RX-RZ to each qubit
         for q in range(num_qubits):
-            qc.rz(get_param(), q)
-            qc.rx(get_param(), q)
-            qc.rz(get_param(), q)
+            qc.rz(next(parameters), q)
+            qc.rx(next(parameters), q)
+            qc.rz(next(parameters), q)
 
         # Intra-register RXX (full connectivity)
         for reg in range(n_registers):
             base = reg * n
             for i in range(n):
                 for j in range(i + 1, n):
-                    qc.rxx(get_param(), base + i, base + j)
+                    qc.rxx(next(parameters), base + i, base + j)
 
         qc.barrier()
 

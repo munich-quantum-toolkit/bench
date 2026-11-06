@@ -66,7 +66,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     for j in range(1, num_state_qubits + 1):
         for i in range(1, num_state_qubits + 1):
-            for k in range(1, num_result_qubits + 1):
+            # Full turns are identity; omit them before converting to floating point.
+            for k in range(max(1, 2 * num_state_qubits - i - j + 1), num_result_qubits + 1):
                 lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                 qc.mcp(
                     lam,

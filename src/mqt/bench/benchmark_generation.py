@@ -10,20 +10,29 @@
 
 from __future__ import annotations
 
+import json
+from copy import deepcopy
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Unpack, assert_never, overload
+from importlib.metadata import version
+from typing import TYPE_CHECKING, Literal, Unpack, assert_never, overload
 
 import numpy as np
-from qiskit.circuit import CircuitError, ClassicalRegister, QuantumCircuit, SessionEquivalenceLibrary
+from qiskit import generate_preset_pass_manager
+from qiskit.circuit import CircuitError, ClassicalRegister, Gate, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import Layout, Target
-from qiskit.transpiler.passes import RemoveFinalMeasurements
+from qiskit.transpiler.passes import OptimizeCliffordT, RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
-from .targets.gatesets import get_target_for_gateset, ionq, rigetti
+from .targets.gatesets import get_target_for_gateset
+from .targets.gatesets._compilation import prepare_target
+from .targets.gatesets.ibm import configure_fractional_angles
 
 if TYPE_CHECKING:  # pragma: no cover
+    from mqt.core.mlir import CompilationOptions
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.transpiler import PassManager, StagedPassManager
+
     from .configuration_options import ConfigurationOptions
 
 
@@ -36,25 +45,33 @@ class BenchmarkLevel(Enum):
     MAPPED = auto()
 
 
+class RecursiveOptimizeCliffordT(OptimizeCliffordT):
+    """Also optimize control-flow blocks, which Qiskit's pass skips."""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Optimize each control-flow block and then the enclosing circuit."""
+        for node in dag.control_flow_op_nodes():
+            operation = node.op
+            dag.substitute_node(node, operation.replace_blocks([self(block) for block in operation.blocks]))
+        return super().run(dag)
+
+
 def _get_circuit(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    """Creates a raw quantum circuit based on the specified benchmark.
-
-    This function generates a quantum circuit according to the specifications of the
-    desired benchmark.
+) -> tuple[QuantumCircuit, dict]:
+    """Create a raw circuit and collect its generation settings.
 
     Arguments:
         benchmark: Name of the benchmark for which the circuit is to be created.
-        circuit_size: Size of the circuit to be created, required for benchmarks other than "shor".
+        circuit_size: Size of the circuit to be created, required when the benchmark is a name.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: Additional keyword arguments passed to circuit creation.
 
     Returns:
-        QuantumCircuit: Constructed quantum circuit based on the given parameters.
+        The circuit and its generation settings.
     """
     if isinstance(benchmark, QuantumCircuit):
         if circuit_size is not None:
@@ -68,34 +85,59 @@ def _get_circuit(
             raise ValueError(msg)
         qc = create_circuit(benchmark, circuit_size, **kwargs)
 
-    if len(qc.parameters) > 0 and random_parameters:
-        rng = np.random.default_rng(10)
-        param_dict = {param: rng.uniform(0, 2 * np.pi) for param in qc.parameters}
-        qc.assign_parameters(param_dict, inplace=True)
-        assert len(qc.parameters) == 0, "All parameters should be assigned."
-    return qc
+    previous = (qc.metadata or {}).get("mqt_bench_generation", {})
+    generation = deepcopy(previous) if isinstance(previous, dict) else {}
+    generation.setdefault("benchmark", benchmark if isinstance(benchmark, str) else qc.name)
+    generation.setdefault("circuit_size", circuit_size if circuit_size is not None else qc.num_qubits)
+    generation.setdefault("random_parameters", random_parameters)
+    options = dict(generation.get("options", {}))
+    if isinstance(benchmark, str):
+        for name, value in kwargs.items():
+            try:
+                options[name] = json.loads(json.dumps(value, allow_nan=False))
+            except (TypeError, ValueError):
+                continue
+    generation["options"] = options
+
+    if random_parameters and qc.num_parameters:
+        seed = kwargs.get("seed", 10)
+        rng = np.random.default_rng(seed)
+        if qc is benchmark:
+            qc = qc.copy()
+        qc.assign_parameters(rng.uniform(0, 2 * np.pi, qc.num_parameters), inplace=True)
+        generation["random_parameters"] = True
+        generation["parameter_seed"] = seed
+    return qc, generation
 
 
-def _create_mirror_circuit(
-    qc_original: QuantumCircuit, *, inplace: bool = False, target: Target | None = None, optimization_level: int = 2
-) -> QuantumCircuit:
-    """Generates the mirror version (qc @ qc.inverse()) of a given quantum circuit.
+def _record_generation(
+    qc: QuantumCircuit,
+    level: BenchmarkLevel,
+    generation: dict,
+    *,
+    target: Target | None = None,
+    opt_level: int | None = None,
+    mirror: bool = False,
+) -> None:
+    """Attach the compilation settings to the circuit's generation record."""
+    generation.update({
+        "level": level.name.lower(),
+        "opt_level": opt_level,
+        "target": target.description if target is not None else None,
+        "mirror": mirror or generation.get("mirror", False),
+    })
+    qc.metadata = (qc.metadata or {}) | {"mqt_bench_generation": generation}
 
-    For circuits with an initial layout (e.g., mapped circuits), this function ensures
-    that the final layout of the mirrored circuit matches the initial layout of the
-    original circuit. While Qiskit's `inverse()` and `compose()` methods correctly track
-    the permutation of qubits, this benchmark requires that the final qubit permutation
-    is identical to the initial one, requiring the explicit layout handling herein.
-    Also ensures that the mirrored circuit respects the native gate set of the target device
-    if a target is provided.
 
-    All qubits are measured at the end of the mirror circuit.
+def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManager | None = None) -> QuantumCircuit:
+    """Append the inverse and measure the active qubits of an owned circuit.
+
+    The optional pass manager restores the native gate set. The mirror
+    preserves the initial layout and resets the final routing permutation.
 
     Args:
-        qc_original: The quantum circuit to mirror.
-        inplace: If True, modifies the circuit in place. Otherwise, returns a new circuit.
-        target: Target device for transpilation. If provided, ensures native gate set compliance.
-        optimization_level: Optimization level of the transpilation.
+        target_qc: The circuit to modify.
+        pass_manager: Compiler pipeline to reuse for the mirror.
 
     Returns:
         The mirrored quantum circuit.
@@ -105,7 +147,7 @@ def _create_mirror_circuit(
     """
     # Check inversion before modifying the input circuit.
     try:
-        qc_inv = RemoveFinalMeasurements()(qc_original).inverse()
+        qc_inv = RemoveFinalMeasurements()(target_qc).inverse()
     except CircuitError as exc:
         msg = (
             "Cannot mirror this circuit: after removing final measurements, it contains operations "
@@ -114,44 +156,37 @@ def _create_mirror_circuit(
         )
         raise ValueError(msg) from exc
 
-    target_qc = qc_original if inplace else qc_original.copy()
     target_qc.remove_final_measurements(inplace=True)
 
-    # Place a barrier on all active qubits to prevent optimization passes from fully reducing the mirror circuit.
-    dag = circuit_to_dag(target_qc)
-    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in dag.idle_wires()]
+    # Keep optimization from cancelling both halves of the mirror.
+    dag = target_qc.to_dag()
+    idle_qubits = set(dag.idle_wires())
+    active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in idle_qubits]
     target_qc.barrier(active_qubits)
 
-    # Form the mirror circuit by composing the original circuit with its inverse.
     target_qc.compose(qc_inv, inplace=True)
 
-    # Transpile to ensure the final circuit uses only native gates while preserving the initial layout.
-    if target is not None:
-        layout = target_qc.layout.initial_layout if target_qc.layout is not None else None
-        target_qc = transpile(
-            target_qc,
-            target=target,
-            optimization_level=optimization_level,
-            layout_method=None,
-            routing_method=None,
-            seed_transpiler=10,
-        )
+    input_layout = target_qc.layout
+    if pass_manager is not None:
+        target_qc = pass_manager.run(target_qc)
         if target_qc.layout is not None:
             final_indices = target_qc.layout.final_index_layout()
             active_qubits = [final_indices[index] for index in active_qubits]
-        if layout is not None and target_qc.layout is not None:
-            target_qc.layout.initial_layout = layout
+    if input_layout is not None and target_qc.layout is not None:
+        # Qiskit circuit copies can share the layout. Detach it before resetting routing.
+        target_qc._layout = deepcopy(input_layout)  # ruff:ignore[private-member-access]
 
-    # Add final measurements to all active qubits
     target_qc.barrier(active_qubits)
-    new_creg = ClassicalRegister(len(active_qubits), "meas")
+    name = "meas"
+    existing_names = {register.name for register in target_qc.cregs}
+    while name in existing_names:
+        name += "_"
+    new_creg = ClassicalRegister(len(active_qubits), name)
     target_qc.add_register(new_creg)
     target_qc.measure(active_qubits, new_creg)
 
-    # Adjust circuit name to indicate it is a mirror circuit.
     target_qc.name = f"{target_qc.name}_mirror"
 
-    # Reset the permutation caused by routing back to the identity (all SWAPs are undone by the inverse).
     if target_qc.layout is not None:
         target_qc.layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
 
@@ -169,6 +204,64 @@ def _validate_opt_level(opt_level: int) -> None:
         raise ValueError(msg)
 
 
+def _validate_compiler(compiler: str, opt_level: int, compiler_options: CompilationOptions | None = None) -> None:
+    """Validate the compiler before creating or modifying a circuit."""
+    if compiler not in {"qiskit", "mqt"}:
+        msg = f"Unknown compiler '{compiler}'. Choose 'qiskit' or 'mqt'."
+        raise ValueError(msg)
+    if compiler_options is not None and compiler != "mqt":
+        msg = 'compiler_options requires compiler="mqt".'
+        raise ValueError(msg)
+    if compiler == "qiskit":
+        _validate_opt_level(opt_level)
+
+
+def _update_qiskit_provenance(circuit: QuantumCircuit) -> None:
+    """Replace an earlier compiler record when Qiskit recompiles the circuit."""
+    if "mqt_bench_compiler" in circuit.metadata:
+        circuit.metadata = circuit.metadata | {"mqt_bench_compiler": {"name": "qiskit", "version": version("qiskit")}}
+
+
+def _get_qiskit_pass_manager(
+    target: Target, opt_level: int, *, native_num_qubits: int | None = None
+) -> StagedPassManager:
+    """Build the native or mapped pipeline, including final gate lowering."""
+    target, lowering = prepare_target(target, native_num_qubits=native_num_qubits)
+    pm = generate_preset_pass_manager(
+        optimization_level=opt_level,
+        target=target,
+        seed_transpiler=10,
+        routing_method="none" if native_num_qubits is not None else None,
+    )
+    pm.post_scheduling = lowering
+    configure_fractional_angles(pm, target)
+    return pm
+
+
+def _get_mqt_benchmark(
+    circuit: QuantumCircuit,
+    generation: dict,
+    target: Target | None = None,
+    *,
+    mapped: bool = False,
+    compiler_options: CompilationOptions | None = None,
+    generate_mirror_circuit: bool = False,
+) -> QuantumCircuit:
+    """Compile the circuit and its optional mirror without Qiskit transpilation."""
+    from ._mqt_compiler import compile_circuit  # ruff:ignore[import-outside-top-level]
+
+    compiled = compile_circuit(circuit, target, mapped=mapped, options=compiler_options)
+    if generate_mirror_circuit:
+        compiled = _create_mirror_circuit(compiled)
+        if target is not None:
+            compiled = compile_circuit(compiled, target, mapped=mapped, options=compiler_options)
+    level = (
+        BenchmarkLevel.MAPPED if mapped else BenchmarkLevel.NATIVEGATES if target is not None else BenchmarkLevel.INDEP
+    )
+    _record_generation(compiled, level, generation, target=target, mirror=generate_mirror_circuit)
+    return compiled
+
+
 @overload
 def get_benchmark_alg(
     benchmark: str,
@@ -177,7 +270,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -188,7 +282,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -199,7 +294,8 @@ def get_benchmark_alg(
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_alg(
@@ -217,14 +313,20 @@ def get_benchmark_alg(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: Additional keyword arguments passed to circuit creation.
 
     Returns:
         Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
     """
-    qc = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    if kwargs.pop("compiler_options", None) is not None:
+        msg = "compiler_options requires a compilation level; the algorithm level does not compile."
+        raise ValueError(msg)
+    qc, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    if qc is benchmark:
+        qc = qc.copy()
+    _record_generation(qc, BenchmarkLevel.ALG, generation, mirror=generate_mirror_circuit)
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc, inplace=True)
+        return _create_mirror_circuit(qc)
     return qc
 
 
@@ -234,10 +336,12 @@ def get_benchmark_indep(
     circuit_size: int,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -246,10 +350,12 @@ def get_benchmark_indep(
     circuit_size: None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -258,10 +364,12 @@ def get_benchmark_indep(
     circuit_size: int | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_indep(
@@ -269,6 +377,7 @@ def get_benchmark_indep(
     circuit_size: int | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -278,20 +387,30 @@ def get_benchmark_indep(
     Arguments:
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
-        opt_level: Optimization level to be used by the transpiler.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
+        compiler: Compiler to use: "qiskit" (default) or "mqt".
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
     """
-    _validate_opt_level(opt_level)
+    compiler_options = kwargs.pop("compiler_options", None)
+    _validate_compiler(compiler, opt_level, compiler_options)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
-    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10)
+    circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    if compiler == "mqt":
+        return _get_mqt_benchmark(
+            circuit, generation, compiler_options=compiler_options, generate_mirror_circuit=generate_mirror_circuit
+        )
+    qc_processed = transpile(circuit, optimization_level=opt_level, seed_transpiler=10, routing_method="none")
+    _update_qiskit_provenance(qc_processed)
+    _record_generation(
+        qc_processed, BenchmarkLevel.INDEP, generation, opt_level=opt_level, mirror=generate_mirror_circuit
+    )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(qc_processed, inplace=True)
+        return _create_mirror_circuit(qc_processed)
     return qc_processed
 
 
@@ -302,10 +421,12 @@ def get_benchmark_native_gates(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -315,10 +436,12 @@ def get_benchmark_native_gates(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -328,10 +451,12 @@ def get_benchmark_native_gates(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_native_gates(
@@ -340,6 +465,7 @@ def get_benchmark_native_gates(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -350,56 +476,84 @@ def get_benchmark_native_gates(
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Optimization level to be used by the transpiler.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
+        compiler: Compiler to use: "qiskit" (default) or "mqt".
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
     """
-    _validate_opt_level(opt_level)
+    compiler_options = kwargs.pop("compiler_options", None)
+    _validate_compiler(compiler, opt_level, compiler_options)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
 
-    # Native compilation uses the instructions, not the target's physical constraints.
-    native_target = Target(description=target.description, num_qubits=target.num_qubits)
-    for name in target.operation_names:
-        native_target.add_instruction(target.operation_from_name(name), name=name)
-    target = native_target
-
-    if target.description == "clifford+t":
-        from qiskit.circuit.library import PermutationGate  # ruff:ignore[import-outside-top-level]
+    if compiler == "mqt":
+        return _get_mqt_benchmark(
+            circuit,
+            generation,
+            target,
+            compiler_options=compiler_options,
+            generate_mirror_circuit=generate_mirror_circuit,
+        )
+    if {"h", "t"} <= target.operation_names <= get_target_for_gateset("clifford+t", circuit.num_qubits).operation_names:
         from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
-        from qiskit.transpiler.passes.synthesis import SolovayKitaev  # ruff:ignore[import-outside-top-level]
+        from qiskit.transpiler.passes import (  # ruff:ignore[import-outside-top-level]
+            BasisTranslator,
+            HighLevelSynthesis,
+            SynthesizeRZRotations,
+        )
 
+        target, _ = prepare_target(target, native_num_qubits=circuit.num_qubits)
         # Compile to Clifford+T and rotation gates
         clifford_t_rotations = get_target_for_gateset("clifford+t+rotations", num_qubits=circuit.num_qubits)
-        compiled_for_sk = transpile(
-            circuit,
+        pm = generate_preset_pass_manager(
             target=clifford_t_rotations,
             optimization_level=opt_level,
             seed_transpiler=10,
+            # Keep permutations in the circuit so QASM export does not depend on layout metadata.
+            routing_method="none",
         )
-        # Synthesize the rotations to Clifford+T gates
-        pm = PassManager(SolovayKitaev())
-        circuit = pm.run(compiled_for_sk)
-        # Restore the permutation dropped by synthesis
-        if compiled_for_sk.layout is not None:
-            circuit.append(PermutationGate(compiled_for_sk.layout.final_index_layout()), circuit.qubits)
+        mirror_pm = PassManager(HighLevelSynthesis(target=target, equivalence_library=SessionEquivalenceLibrary))
+        if opt_level:
+            basis_gates = [
+                name for name in sorted(target.operation_names) if isinstance(target.operation_from_name(name), Gate)
+            ]
+            mirror_pm.append(RecursiveOptimizeCliffordT(basis_gates=basis_gates))
+        mirror_pm.append(BasisTranslator(SessionEquivalenceLibrary, sorted(target.operation_names), target))
 
-    if "rigetti" in target.description:
-        rigetti.add_equivalences(SessionEquivalenceLibrary)
-    elif "ionq" in target.description:
-        ionq.add_equivalences(SessionEquivalenceLibrary)
-    compiled_circuit = transpile(
-        circuit,
-        optimization_level=opt_level,
+        class RecursiveSynthesizeRZRotations(SynthesizeRZRotations):
+            """Also synthesize rotations in control-flow blocks, which Qiskit's pass skips."""
+
+            def run(self, dag: DAGCircuit) -> DAGCircuit:
+                for node in dag.control_flow_op_nodes():
+                    op = node.op
+                    dag.substitute_node(node, op.replace_blocks([self(block) for block in op.blocks]))
+                return super().run(dag)
+
+        synthesis_pm = PassManager([
+            BasisTranslator(SessionEquivalenceLibrary, sorted(clifford_t_rotations.operation_names - {"rx", "ry"})),
+            RecursiveSynthesizeRZRotations(),
+        ])
+        pm.post_optimization = synthesis_pm + mirror_pm
+    else:
+        pm = _get_qiskit_pass_manager(target, opt_level, native_num_qubits=circuit.num_qubits)
+        mirror_pm = pm
+
+    compiled_circuit = pm.run(circuit)
+    _update_qiskit_provenance(compiled_circuit)
+    _record_generation(
+        compiled_circuit,
+        BenchmarkLevel.NATIVEGATES,
+        generation,
         target=target,
-        seed_transpiler=10,
+        opt_level=opt_level,
+        mirror=generate_mirror_circuit,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(compiled_circuit, inplace=True, target=target, optimization_level=opt_level)
+        return _create_mirror_circuit(compiled_circuit, pass_manager=mirror_pm)
     return compiled_circuit
 
 
@@ -410,10 +564,12 @@ def get_benchmark_mapped(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -423,10 +579,12 @@ def get_benchmark_mapped(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -436,10 +594,12 @@ def get_benchmark_mapped(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark_mapped(
@@ -448,6 +608,7 @@ def get_benchmark_mapped(
     target: Target,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -458,31 +619,42 @@ def get_benchmark_mapped(
         benchmark: QuantumCircuit or name of the benchmark to be generated
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Optimization level to be used by the transpiler.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
+        compiler: Compiler to use: "qiskit" (default) or "mqt".
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
     """
-    _validate_opt_level(opt_level)
+    compiler_options = kwargs.pop("compiler_options", None)
+    _validate_compiler(compiler, opt_level, compiler_options)
 
-    circuit = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    circuit, generation = _get_circuit(benchmark, circuit_size, random_parameters, **kwargs)
+    if compiler == "mqt":
+        return _get_mqt_benchmark(
+            circuit,
+            generation,
+            target,
+            mapped=True,
+            compiler_options=compiler_options,
+            generate_mirror_circuit=generate_mirror_circuit,
+        )
 
-    if "rigetti" in target.description:
-        rigetti.add_equivalences(SessionEquivalenceLibrary)
-    elif "ionq" in target.description:
-        ionq.add_equivalences(SessionEquivalenceLibrary)
-
-    mapped_circuit = transpile(
-        circuit,
+    pm = _get_qiskit_pass_manager(target, opt_level)
+    mapped_circuit = pm.run(circuit)
+    _update_qiskit_provenance(mapped_circuit)
+    _record_generation(
+        mapped_circuit,
+        BenchmarkLevel.MAPPED,
+        generation,
         target=target,
-        optimization_level=opt_level,
-        seed_transpiler=10,
+        opt_level=opt_level,
+        mirror=generate_mirror_circuit,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, inplace=True, target=target, optimization_level=opt_level)
+        return _create_mirror_circuit(mapped_circuit, pass_manager=pm)
     return mapped_circuit
 
 
@@ -494,10 +666,12 @@ def get_benchmark(
     target: Target | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -508,10 +682,12 @@ def get_benchmark(
     target: Target | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 @overload
@@ -522,10 +698,12 @@ def get_benchmark(
     target: Target | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit: ...
+) -> QuantumCircuit:
+    pass
 
 
 def get_benchmark(
@@ -535,6 +713,7 @@ def get_benchmark(
     target: Target | None = None,
     opt_level: int = 2,
     *,
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
     generate_mirror_circuit: bool = False,
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
@@ -547,14 +726,16 @@ def get_benchmark(
         circuit_size: Input for the benchmark creation, in most cases this is equal to the qubit number
         target: `~qiskit.transpiler.target.Target` for the benchmark generation
                 (only used for "nativegates" and "mapped" level)
-        opt_level: Optimization level to be used by the transpiler.
+        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
+        compiler: Compiler to use: "qiskit" (default) or "mqt".
         generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
         random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to the circuit creation.
+        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
 
     Returns:
         Qiskit::QuantumCircuit object representing the benchmark with the selected options
     """
+    _validate_compiler(compiler, opt_level if level is not BenchmarkLevel.ALG else 2, kwargs.get("compiler_options"))
     if level is BenchmarkLevel.ALG:
         return get_benchmark_alg(
             benchmark=benchmark,
@@ -569,6 +750,7 @@ def get_benchmark(
             benchmark=benchmark,
             circuit_size=circuit_size,
             opt_level=opt_level,
+            compiler=compiler,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,
@@ -583,6 +765,7 @@ def get_benchmark(
             circuit_size=circuit_size,
             target=target,
             opt_level=opt_level,
+            compiler=compiler,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,
@@ -597,9 +780,10 @@ def get_benchmark(
             circuit_size=circuit_size,
             target=target,
             opt_level=opt_level,
+            compiler=compiler,
             generate_mirror_circuit=generate_mirror_circuit,
             random_parameters=random_parameters,
             **kwargs,
         )
 
-    assert_never(level)
+    return assert_never(level)

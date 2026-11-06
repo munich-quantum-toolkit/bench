@@ -37,11 +37,8 @@ def create_circuit(num_qubits: int, state_preparation: QuantumCircuit | None = N
     Returns:
         QuantumCircuit: A quantum circuit implementing the quantum teleportation protocol.
     """
-    if num_qubits < 3:
-        msg = "num_qubits must be at least 3."
-        raise ValueError(msg)
-    if num_qubits % 3:
-        msg = "num_qubits must be divisible by 3."
+    if num_qubits < 3 or num_qubits % 3:
+        msg = "num_qubits must be a positive multiple of 3."
         raise ValueError(msg)
     if state_preparation is not None and state_preparation.num_qubits != 1:
         msg = "state_preparation must be a 1-qubit circuit."
