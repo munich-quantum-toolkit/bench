@@ -22,15 +22,14 @@ from ._registry import register_benchmark
 
 @register_benchmark("qpeinexact", description="Quantum Phase Estimation (QPE) not exactly representable phase")
 def create_circuit(num_qubits: int, seed: int | None = 10) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which cannot be exactly estimated.
+    """Build a phase estimation circuit for a phase that needs one extra bit of precision.
 
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
-            None uses system randomness.
+    Args:
+        num_qubits: Total width, including one eigenstate qubit. Must be at least 2.
+        seed: Seed for selecting the target phase. Use ``None`` for system randomness.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the Quantum Phase Estimation algorithm for a phase which cannot be exactly estimated
+        A circuit that measures only the ``num_qubits - 1`` phase bits into ``c``.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for inexact QPE."

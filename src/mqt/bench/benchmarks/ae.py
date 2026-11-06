@@ -19,14 +19,14 @@ from ._registry import register_benchmark
 
 @register_benchmark("ae", description="Amplitude Estimation")
 def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
-    """Returns a quantum circuit implementing Quantum Amplitude Estimation.
+    """Build a circuit for amplitude estimation.
 
-    Arguments:
-        num_qubits: Total number of qubits, including evaluation and target qubits. Must be at least 2 (1 evaluation + 1 target).
-        probability: Probability of the "good" state, between 0 and 1.
+    Args:
+        num_qubits: Total width, including one target qubit and at least one evaluation qubit.
+        probability: Probability of the good state, from 0 to 1 inclusive.
 
     Returns:
-        QuantumCircuit: The constructed amplitude estimation circuit.
+        A circuit that measures the evaluation register and the target qubit.
     """
     if num_qubits < 2:
         msg = "Number of qubits must be at least 2 (1 evaluation + 1 target)."

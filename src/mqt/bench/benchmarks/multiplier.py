@@ -18,15 +18,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("multiplier", description="Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Create a multiplier circuit.
+    """Build a multiplier for two equal-width inputs.
 
-    Measure only the product into ``result``, least-significant bit first.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be an integer ≥ 4 and divisible by 4.
+    Args:
+        num_qubits: Total width, ``4 * n`` for two ``n``-bit operands with ``n >= 1``.
 
     Returns:
-           QuantumCircuit: The constructed multiplier circuit.
+        A circuit that measures only the full product into ``result``, least-significant bit first.
 
     See Also:
         :class:`qiskit.circuit.library.MultiplierGate`

@@ -18,13 +18,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("graphstate", description="Graph State")
 def create_circuit(num_qubits: int, degree: int = 2, seed: int | None = None) -> QuantumCircuit:
-    """Returns a quantum circuit implementing a graph state.
+    """Prepare the graph state of a random regular graph.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
-        degree: Number of edges per node. Must satisfy 0 <= degree < num_qubits,
-            with num_qubits * degree even.
-        seed: seed for the random graph generator (None for random behavior, integer for deterministic)
+    Args:
+        num_qubits: Number of vertices, one per qubit.
+        degree: Edges per vertex. Must satisfy ``0 <= degree < num_qubits``, with
+            ``num_qubits * degree`` even.
+        seed: Seed for the graph generator. Use an integer to reproduce the graph.
+
+    Returns:
+        A circuit with one CZ gate per edge and a final measurement of every qubit.
     """
     if not 0 <= degree < num_qubits or num_qubits * degree % 2:
         msg = "degree must satisfy 0 <= degree < num_qubits, and num_qubits * degree must be even."

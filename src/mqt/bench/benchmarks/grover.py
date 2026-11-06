@@ -19,11 +19,14 @@ from ._registry import register_benchmark
 
 @register_benchmark("grover", description="Grover's Algorithm")
 def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit:
-    """Returns a quantum circuit implementing Grover's algorithm.
+    """Build a Grover search circuit.
 
     Args:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        for_loop: whether to use a structured for-loop for the Grover iterations
+        num_qubits: Total width, including one flag qubit. Must be at least 2.
+        for_loop: Use a structured loop for the Grover iterations.
+
+    Returns:
+        A circuit that measures the search register and the flag qubit.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for Grover's algorithm."
