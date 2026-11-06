@@ -29,75 +29,15 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-26.04, ubuntu-26.04-arm, macos-26, windows-2025]
-    runs-on: ${{ matrix.runs-on }}
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@a4b4977405c7685f95e127cdb6db396bbadce787 # v2.5.5
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      use-sccache-gha: false
+      sessions: >-
+        ${{ github.event_name == 'pull_request' && matrix.runs-on != 'ubuntu-26.04'
+            && '["tests-3.15"]' || '["minimums", "tests"]' }}
     permissions:
       contents: read
-    env:
-      MQT_BENCH_COVERAGE_RUNNER: ${{ matrix.runs-on }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          enable-cache: false
-          cache-local-path: ${{ runner.temp }}/uv-cache
-
-      - name: Restore uv cache
-        id: uv-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/uv-cache
-          key: bench-uv-${{ matrix.runs-on }}-wheels-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            bench-uv-${{ matrix.runs-on }}-wheels-
-            bench-uv-${{ matrix.runs-on }}-${{ hashFiles('uv.lock') }}
-
-      - name: Set up MSVC
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-
-      - name: Set up mold
-        if: runner.os == 'Linux'
-        uses: rui314/setup-mold@339e96b4ff1f3bd865856ba4cbbe8818a7acb038 # v1
-
-      - name: Run Python tests
-        shell: bash
-        env:
-          DRAFT: ${{ github.event.pull_request.draft }}
-          EVENT: ${{ github.event_name }}
-          PLATFORM: ${{ matrix.runs-on }}
-        run: |
-          if [[ "$RUNNER_OS" == Windows ]]; then
-            export CMAKE_GENERATOR=Ninja
-          fi
-          if [[ "$DRAFT" == true ]]; then
-            uvx nox -s tests-3.14
-          elif [[ "$EVENT" == pull_request && "$PLATFORM" != ubuntu-26.04 ]]; then
-            uvx nox -s tests-3.15
-          else
-            # Build the pinned Core wheel once before the sessions start.
-            UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/bench-dependencies" \
-              uv sync --locked --no-dev --group test --python 3.14
-            uvx nox --parallel auto -s minimums tests
-          fi
-
-      - name: Prune uv cache
-        if: steps.uv-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          uv cache prune --ci
-          # Core's CMake build tree is in uv's disposable Git checkout.
-          rm -rf "${UV_CACHE_DIR:?}"/git-v*/checkouts
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coverage-${{ matrix.runs-on }}
-          path: coverage-*.xml
-          if-no-files-found: error
 
   python-coverage:
     name: 🐍 Coverage
@@ -112,47 +52,12 @@ jobs:
     name: 🐍 Lint
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
-    runs-on: ubuntu-26.04
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@a4b4977405c7685f95e127cdb6db396bbadce787 # v2.5.5
+    with:
+      enable-ty: true
+      enable-mypy: false
     permissions:
       contents: read
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_GHA_RW_MODE: ${{ github.ref == 'refs/heads/main' && 'READ_WRITE' || 'READ_ONLY' }}
-      SCCACHE_SKIP_CACHE_CHECK: "true"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          enable-cache: false
-          cache-local-path: ${{ runner.temp }}/uv-cache
-
-      - name: Restore uv cache
-        id: uv-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/uv-cache
-          key: bench-uv-ubuntu-26.04-wheels-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            bench-uv-ubuntu-26.04-wheels-
-            bench-uv-ubuntu-26.04-${{ hashFiles('uv.lock') }}
-
-      - name: Set up sccache
-        id: sccache
-        if: steps.uv-cache.outputs.cache-hit != 'true'
-        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-
-      - name: Run ty
-        env:
-          CMAKE_C_COMPILER_LAUNCHER: ${{ steps.sccache.outcome == 'success' && 'sccache' || '' }}
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ steps.sccache.outcome == 'success' && 'sccache' || '' }}
-        run: uvx prek run -a ty
-
-      - name: Check source distribution
-        run: uvx check-sdist --inject-junk
 
   build-sdist:
     name: 🚀 CD

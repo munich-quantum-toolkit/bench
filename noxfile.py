@@ -29,6 +29,7 @@ PYTHON_ALL_VERSIONS = ["3.11", "3.12", "3.13", "3.14", "3.15"]
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
+    nox.options.parallel = "auto"
 
 
 @nox.session(reuse_venv=True, default=True)
@@ -43,16 +44,22 @@ def lint(session: nox.Session) -> None:
 def _run_tests(session: nox.Session, *pytest_args: str, locked: bool = False) -> None:
     env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
     command = ("uv", "run", "--locked", "--no-dev", "--group", "test") if locked else ()
-    if runner := os.environ.get("MQT_BENCH_COVERAGE_RUNNER"):
-        env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
-        pytest_args += ("--cov", f"--cov-report=xml:coverage-{runner}-{session.name}.xml")
+    posargs = session.posargs
     if session.parallel:
         pytest_args += ("-n", "0")
+        env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
+        # The reusable workflow passes the same report path to every session.
+        posargs = [
+            f"{arg.removesuffix('.xml')}-{session.name}.xml"
+            if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
+            else arg
+            for arg in posargs
+        ]
     session.run(
         *command,
         "pytest",
         *pytest_args,
-        *session.posargs,
+        *posargs,
         "--cov-config=pyproject.toml",
         env=env,
     )
