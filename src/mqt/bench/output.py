@@ -29,7 +29,7 @@ from qiskit.version import __version__ as __qiskit_version__
 from .benchmark_generation import BenchmarkLevel
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import BinaryIO
+    from typing import BinaryIO, Literal
 
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import Target
@@ -252,9 +252,9 @@ def generate_filename(
     num_qubits: int | None,
     target: Target | None = None,
     opt_level: int | None = None,
-    generate_mirror_circuit: bool = False,
     *,
-    compiler: str = "qiskit",
+    compiler: Literal["qiskit", "mqt"] = "qiskit",
+    generate_mirror_circuit: bool = False,
 ) -> str:
     """Generate a benchmark filename based on the abstraction level and context.
 
@@ -263,9 +263,9 @@ def generate_filename(
         level: abstraction level
         num_qubits: number of qubits in the benchmark circuit
         target: target device (e.g., BenchmarkLevel.MAPPED)
-        opt_level: optional optimization level (used for 'nativegates' and 'mapped')
-        generate_mirror_circuit: whether this is a mirror circuit
-        compiler: Compiler name. MQT filenames omit the Qiskit optimization level.
+        opt_level: Qiskit optimization level for compiled circuits.
+        compiler: Compiler used at compilation levels.
+        generate_mirror_circuit: Whether this is a mirror circuit.
 
     Returns:
         A filename without an extension, containing the benchmark name, level,
@@ -277,17 +277,17 @@ def generate_filename(
     if compiler not in {"qiskit", "mqt"}:
         msg = f"Unknown compiler '{compiler}'. Choose 'qiskit' or 'mqt'."
         raise ValueError(msg)
+    if level == BenchmarkLevel.ALG:
+        return f"{base}_{num_qubits}"
+
     if level in {BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
         assert target is not None, f"target is required for '{level.name.lower()}' level filenames."
         description = (target.description or "").strip().split(" ")[0]
         description = re.sub(r"[^A-Za-z0-9_.+-]+", "_", description) or "custom_target"
         base += f"_{description}"
 
-    if compiler == "mqt" and level != BenchmarkLevel.ALG:
+    if compiler == "mqt":
         return f"{base}_mqt_{num_qubits}"
 
-    if level in {BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED}:
-        assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
-        return f"{base}_opt{opt_level}_{num_qubits}"
-
-    return f"{base}_{num_qubits}"
+    assert opt_level is not None, f"opt_level is required for '{level.name.lower()}' level filenames."
+    return f"{base}_opt{opt_level}_{num_qubits}"

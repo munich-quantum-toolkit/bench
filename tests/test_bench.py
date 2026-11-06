@@ -1314,7 +1314,7 @@ def test_generate_filename(
     target: Target | None,
     generate_mirror_circuit: bool,
     expected: str,
-    compiler: str,
+    compiler: Literal["qiskit", "mqt"],
 ) -> None:
     """Test the generation of a filename."""
     filename = generate_filename(
@@ -1322,9 +1322,9 @@ def test_generate_filename(
         level=level,
         num_qubits=5,
         target=target,
-        opt_level=2,
-        generate_mirror_circuit=generate_mirror_circuit,
+        opt_level=2 if compiler == "qiskit" else None,
         compiler=compiler,
+        generate_mirror_circuit=generate_mirror_circuit,
     )
     if compiler == "mqt":
         expected = expected.replace("_opt2_", "_mqt_")
@@ -1832,10 +1832,11 @@ def test_version() -> None:
 @pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])
 def test_invalid_compiler(compiler: str) -> None:
     """Reject unknown compilers before circuit generation."""
+    invalid_compiler = cast('Literal["qiskit", "mqt"]', compiler)
     with pytest.raises(ValueError, match="Unknown compiler"):
-        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=cast('Literal["qiskit", "mqt"]', compiler))
+        get_benchmark("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
     with pytest.raises(ValueError, match="Unknown compiler"):
-        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=compiler)
+        generate_filename("ghz", BenchmarkLevel.INDEP, 3, compiler=invalid_compiler)
 
 
 @pytest.mark.parametrize("opt_level", [0, 1, 3])
