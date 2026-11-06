@@ -86,6 +86,32 @@ record the compiler version and requested options.
 
 [target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/69877d981620219d0bd124af005801f26dd77468/docs/mlir/target_compilation.md
 
+## QIR output
+
+`qir` writes LLVM text (`.ll`). `qir-bitcode` writes LLVM bitcode (`.bc`). The
+CLI prints text to stdout unless you pass `--save`. It always saves bitcode and
+prints the file path.
+
+The default `base` profile handles straight-line circuits. Use `adaptive` for
+measurement feedback and supported control flow.
+
+```bash
+mqt-bench --algorithm ghz_dynamic --num-qubits 3 --level indep \
+  --output-format qir-bitcode --qir-profile adaptive
+```
+
+In Python, pass `OutputFormat.QIR` or `OutputFormat.QIR_BITCODE` and, for
+Adaptive, `qir_profile="adaptive"` to `write_circuit` or `save_circuit`.
+
+Bind free parameters before exporting. QIR export lowers the supplied circuit
+through MQT Core. If an algorithm-level circuit contains reusable gate calls,
+compile it first, for example with `--level indep`. Lowering can decompose gates
+and assign QIR resource identifiers. Run the result with a runtime that supports
+the emitted QIS calls, QIR version, and profile.
+
+LLVM text includes the MQT Bench header and QIR exporter version. Bitcode
+carries the QIR metadata from MQT Core.
+
 ## Native Gate-Set Support
 
 Use `get_target_for_gateset(name, num_qubits)` to construct a native gate-set

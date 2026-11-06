@@ -95,9 +95,9 @@ result = subprocess.run(
 print(result.stdout)
 ```
 
-Pass `--save` to write OpenQASM to a file. QPY always writes a file.
-`--target-directory` selects the output directory. The CLI prints the saved
-path. This command maps the circuit to the IBM Heron device model:
+Pass `--save` to write OpenQASM to a file. QPY and QIR bitcode always write a
+file. `--target-directory` selects the output directory. The CLI prints the
+saved path. This command maps the circuit to the IBM Heron device model:
 
 ```shell
 mqt-bench --level mapped --algorithm dj --num-qubits 5 --optimization-level 3 --target ibm_heron_156 --output-format qasm3 --save
@@ -126,3 +126,14 @@ print(result.stdout)
 ```
 
 For the Python equivalents of the CLI options, see the {doc}`parameter` guide.
+
+## Docker
+
+From a Git clone, build the image and run the CLI:
+
+```bash
+docker build -t mqt-bench .
+docker run --rm mqt-bench --algorithm ghz --num-qubits 3 --level alg
+```
+
+Use `docker run --rm -t mqt-bench --help` for colored CLI help.
