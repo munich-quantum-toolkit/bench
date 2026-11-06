@@ -42,14 +42,13 @@ class OutputFormat(StrEnum):
     QASM3 = "qasm3"
     QPY = "qpy"
     QIR = "qir"
-    LLVM = "llvm"
     QIR_BITCODE = "qir-bitcode"
 
     def extension(self) -> str:
         """Return the canonical filename extension for this format."""
         if self in (OutputFormat.QASM2, OutputFormat.QASM3):
             return "qasm"
-        if self in (OutputFormat.QIR, OutputFormat.LLVM):
+        if self is OutputFormat.QIR:
             return "ll"
         return "bc" if self is OutputFormat.QIR_BITCODE else self.value
 
@@ -237,7 +236,7 @@ def write_circuit(
                 header += f"// Compiler options: {json.dumps(compiler_info['options'], sort_keys=True)}\n"
             header += "\n"
 
-    if fmt in (OutputFormat.QIR, OutputFormat.LLVM, OutputFormat.QIR_BITCODE):
+    if fmt in (OutputFormat.QIR, OutputFormat.QIR_BITCODE):
         binary = fmt is OutputFormat.QIR_BITCODE
         if isinstance(destination, TextIOBase) == binary:
             msg = f"{fmt.value.upper()} output requires a *{'binary' if binary else 'text'}* stream."
@@ -295,7 +294,7 @@ def save_circuit(
         output_format: One of the supported format values, as defined in `OutputFormat`
         target: Target circuit to be transpiled, if any
         target_directory: Directory to place the output file
-        qir_profile: QIR profile for QIR/LLVM exports (default: ``base``).
+        qir_profile: QIR profile for QIR exports (default: ``base``).
 
     Returns:
         True on success, False otherwise.

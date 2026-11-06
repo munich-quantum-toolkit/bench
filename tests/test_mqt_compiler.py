@@ -664,7 +664,7 @@ def test_qir_stream_mode(fmt: OutputFormat) -> None:
     assert not stream.getvalue()
 
 
-@pytest.mark.parametrize(("fmt", "extension"), [("qir", None), ("llvm", "ll"), ("qir-bitcode", "bc")])
+@pytest.mark.parametrize(("fmt", "extension"), [("qir", None), ("qir", "ll"), ("qir-bitcode", "bc")])
 def test_qir_cli(fmt: str, extension: str | None, script_runner: ScriptRunner, tmp_path: Path) -> None:
     """Stream LLVM text or save a file with the correct extension and profile."""
     directory = tmp_path / "output"
@@ -684,7 +684,7 @@ def test_qir_cli(fmt: str, extension: str | None, script_runner: ScriptRunner, t
         "adaptive",
         "--target-directory",
         str(directory),
-        *(["--save"] if fmt == "llvm" else []),
+        *(["--save"] if extension == "ll" else []),
     ])
     assert result.success
     if extension is None:

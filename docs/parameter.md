@@ -112,11 +112,11 @@ record the compiler version and requested options.
 
 [target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/69877d981620219d0bd124af005801f26dd77468/docs/mlir/target_compilation.md
 
-## QIR and LLVM output
+## QIR output
 
-`qir` and `llvm` write LLVM text (`.ll`). `qir-bitcode` writes LLVM bitcode
-(`.bc`). The CLI prints text to stdout unless you pass `--save`. It always saves
-bitcode and prints the file path.
+`qir` writes LLVM text (`.ll`). `qir-bitcode` writes LLVM bitcode (`.bc`). The
+CLI prints text to stdout unless you pass `--save`. It always saves bitcode and
+prints the file path.
 
 The default `base` profile handles straight-line circuits. Use `adaptive` for
 measurement feedback and supported control flow.

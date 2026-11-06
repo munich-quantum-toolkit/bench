@@ -98,7 +98,7 @@ def main() -> None:
         "--qir-profile",
         choices=["base", "adaptive"],
         default="base",
-        help="Profile for QIR/LLVM output (default: base). Use adaptive for measurement feedback.",
+        help="Profile for QIR output (default: base). Use adaptive for measurement feedback.",
     )
     parser.add_argument(
         "--target-directory",
