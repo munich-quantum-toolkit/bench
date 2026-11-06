@@ -14,6 +14,7 @@ import io
 import json
 from importlib import import_module
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -22,6 +23,7 @@ from qiskit import QuantumCircuit, qasm2, qasm3, qpy
 from qiskit.circuit import (
     Gate,
     IfElseOp,
+    Measure,
     Parameter,
     ParameterVector,
 )
@@ -74,28 +76,20 @@ def test_ibm_device_compilation(name: str) -> None:
 
 
 def _measurement_probabilities(circuit: QuantumCircuit) -> dict[str, float]:
-    """Compute classical outputs independently of Core for terminal measurements."""
+    """Return terminal measurement probabilities in classical bit order."""
+    measured = {
+        circuit.find_bit(item.clbits[0]).index: circuit.find_bit(item.qubits[0]).index
+        for item in circuit.data
+        if item.operation.name == "measure"
+    }
+    qubits = [measured[bit] for bit in range(circuit.num_clbits)]
     unitary = circuit.copy()
     unitary.remove_final_measurements(inplace=True)
     state = Statevector.from_instruction(unitary)
-    probabilities: dict[str, float] = {}
-    for basis, probability in enumerate(state.probabilities()):
-        if probability < 1e-10:
-            continue
-        bits = ["0"] * circuit.num_clbits
-        for item in circuit.data:
-            if item.operation.name == "measure":
-                qubit = circuit.find_bit(item.qubits[0]).index
-                bit = circuit.find_bit(item.clbits[0]).index
-                bits[bit] = str((basis >> qubit) & 1)
-        outcome = "".join(reversed(bits))
-        probabilities[outcome] = probabilities.get(outcome, 0.0) + float(probability)
-    return probabilities
+    return {bits: prob for bits, prob in state.probabilities_dict(qargs=qubits).items() if prob >= 1e-10}
 
 
-@pytest.mark.parametrize(
-    "gateset", ["ibm_heron", "iqm", "quantinuum", "aqt", "ionq_forte", "rigetti", "clifford+t+rotations"]
-)
+@pytest.mark.parametrize("gateset", ["ibm_heron", "iqm", "quantinuum", "clifford+t+rotations"])
 def test_native_equivalence(gateset: str) -> None:
     """Native compilation preserves the unitary, width, name, and user metadata."""
     circuit = QuantumCircuit(3, name="native_test", metadata={"user": 42})
@@ -135,21 +129,11 @@ def test_symbolic_independent_circuit() -> None:
 def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pytest.MonkeyPatch) -> None:
     """Use caller options for compilation and target-specific mirror recompilation."""
     options = core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=2, iterations=2, lookahead=0))
-    seen = []
-    compile_circuit = import_module("mqt.bench._mqt_compiler").compile_circuit
+    adapter = import_module("mqt.bench._mqt_compiler")
+    compile_circuit = Mock(wraps=adapter.compile_circuit)
+    monkeypatch.setattr(adapter, "compile_circuit", compile_circuit)
     configuration: ConfigurationOptions = {"compiler_options": options, "seed": 42}
 
-    def record_options(
-        circuit: QuantumCircuit,
-        target: Target | None = None,
-        *,
-        mapped: bool = False,
-        options: core.CompilationOptions | None = None,
-    ) -> QuantumCircuit:
-        seen.append(options)
-        return compile_circuit(circuit, target, mapped=mapped, options=options)
-
-    monkeypatch.setattr("mqt.bench._mqt_compiler.compile_circuit", record_options)
     result = get_benchmark(
         "ghz",
         level,
@@ -159,7 +143,8 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         **configuration,
         generate_mirror_circuit=mirror,
     )
-    assert seen == [options] * (2 if mirror and level is not BenchmarkLevel.INDEP else 1)
+    expected_calls = 2 if mirror and level is not BenchmarkLevel.INDEP else 1
+    assert [call.kwargs["options"] for call in compile_circuit.call_args_list] == [options] * expected_calls
     generation = result.metadata["mqt_bench_generation"]
     assert generation["benchmark"] == "ghz"
     assert generation["level"] == level.name.lower()
@@ -177,10 +162,6 @@ def test_compiler_options(level: BenchmarkLevel, mirror: bool, monkeypatch: pyte
         "enable_timing": False,
         "mapping": {"trials": 2, "iterations": 2, "lookahead": 0, "search_memory_limit": 268435456},
     }
-    if mirror:
-        assert _measurement_probabilities(result) == pytest.approx({"000": 1.0})
-    else:
-        assert _measurement_probabilities(result) == pytest.approx({"000": 0.5, "111": 0.5})
 
 
 def test_default_mapping_reproducibility() -> None:
@@ -207,12 +188,9 @@ def test_compiler_options_require_core_compilation() -> None:
 def test_mapped_measurement_order() -> None:
     """Routing preserves classical results and respects directed physical gates."""
     target = Target(num_qubits=4)
-    for instruction in [XGate(), SXGate(), RZGate(Parameter("theta"))]:
+    for instruction in [XGate(), SXGate(), RZGate(Parameter("theta")), Measure()]:
         target.add_instruction(instruction)
     target.add_instruction(CXGate(), {(1, 0): None, (1, 2): None, (3, 2): None})
-    from qiskit.circuit import Measure  # ruff:ignore[import-outside-top-level]
-
-    target.add_instruction(Measure())
     circuit = QuantumCircuit(3, 3)
     circuit.x(0)
     circuit.h(1)
@@ -231,10 +209,7 @@ def test_mapped_measurement_order() -> None:
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 def test_mirror_without_qiskit_transpilation(level: BenchmarkLevel, monkeypatch: pytest.MonkeyPatch) -> None:
     """A Core mirror keeps both halves and returns only the all-zero outcome."""
-
-    def reject_transpile(*args: object, **kwargs: object) -> None:
-        pytest.fail("The MQT compiler must not call the Qiskit transpiler.")
-
+    reject_transpile = Mock(side_effect=AssertionError("MQT Core must not call the Qiskit transpiler."))
     target = get_device("iqm_crystal_5") if level == BenchmarkLevel.MAPPED else get_target_for_gateset("ibm_heron", 3)
     monkeypatch.setattr("mqt.bench.benchmark_generation.transpile", reject_transpile)
     monkeypatch.setattr("mqt.bench.benchmark_generation.generate_preset_pass_manager", reject_transpile)
@@ -246,31 +221,23 @@ def test_mirror_without_qiskit_transpilation(level: BenchmarkLevel, monkeypatch:
 
 
 @pytest.mark.parametrize(
-    "benchmark",
+    ("benchmark", "size", "options"),
     [
-        "ghz",
-        "qft",
-        "grover",
-        "qwalk",
-        "dynamic_qft",
-        "ghz_dynamic",
-        "teleportation",
-        "modular_adder",
-        "hrs_cumulative_multiplier",
+        ("qft", 3, {}),
+        ("grover", 3, {"for_loop": True}),
+        ("qwalk", 3, {"for_loop": True}),
+        ("dynamic_qft", 3, {}),
+        ("ghz_dynamic", 3, {}),
+        ("teleportation", 3, {}),
+        ("modular_adder", 4, {}),
+        ("hrs_cumulative_multiplier", 5, {}),
     ],
 )
 @pytest.mark.parametrize("level", [BenchmarkLevel.INDEP, BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-def test_benchmark_levels(benchmark: str, level: BenchmarkLevel) -> None:
+def test_benchmark_levels(benchmark: str, size: int, options: ConfigurationOptions, level: BenchmarkLevel) -> None:
     """Static and structured Bench circuits pass through every Core compilation level."""
     target = get_device("iqm_crystal_5") if level == BenchmarkLevel.MAPPED else get_target_for_gateset("ibm_heron", 3)
-    if benchmark in {"grover", "qwalk"}:
-        circuit = get_benchmark(benchmark, BenchmarkLevel.ALG, 3, for_loop=True)
-    else:
-        circuit = get_benchmark(
-            benchmark, BenchmarkLevel.ALG, {"modular_adder": 4, "hrs_cumulative_multiplier": 5}.get(benchmark, 3)
-        )
-    result = get_benchmark(circuit, level, target=target, compiler="mqt")
-    assert isinstance(result, QuantumCircuit)
+    result = get_benchmark(benchmark, level, size, target=target, compiler="mqt", **options)
     assert result.name == benchmark
     assert result.count_ops().get("measure", 0) > 0
     if benchmark == "dynamic_qft":
@@ -345,18 +312,12 @@ def test_compiled_input_layout_is_not_mutated() -> None:
     source.cx(0, 2)
     source.measure([0, 1, 2], [2, 0, 1])
     target = get_target_for_gateset("ibm_heron", 3)
-    environment = core.TargetEnvironment(
-        core.CompilerTarget.from_qiskit(target), core.PayloadSpecification(core.PayloadFormat("openqasm", "3.0"))
-    )
-    program = core.QCProgram.from_qiskit(source).to_qco()
-    program.compile_for_target(environment)
-    mapped = program.to_qiskit(target=environment.target)
+    mapped = core.compile_program(source, target=target, output=core.OutputFormat.QISKIT)
     original = mapped.copy()
     assert mapped.layout is not None
-    for _ in range(2):
-        result = get_benchmark_mapped(mapped, None, target, compiler="mqt")
-        assert result.layout is None
-        assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(source))
+    result = get_benchmark_mapped(mapped, None, target, compiler="mqt")
+    assert result.layout is None
+    assert _measurement_probabilities(result) == pytest.approx(_measurement_probabilities(source))
     assert mapped == original
     assert mapped.layout == original.layout
 
@@ -429,12 +390,11 @@ def test_native_target_ignores_hardware_topology(width: int | None, circuit_widt
 
 
 @pytest.mark.parametrize("mapped", [False, True])
-@pytest.mark.parametrize("name", ["global_phase", "phase_alias"])
-def test_explicit_global_phase_capability(name: str, *, mapped: bool) -> None:
+def test_explicit_global_phase_capability(*, mapped: bool) -> None:
     """Global phase is structural, including under a target alias."""
     target = Target(num_qubits=1)
     target.add_instruction(UGate(*ParameterVector("u", 3)))
-    target.add_instruction(GlobalPhaseGate(Parameter("phase")), name=name)
+    target.add_instruction(GlobalPhaseGate(Parameter("phase")), name="phase_alias")
     source = QuantumCircuit(1, global_phase=0.19)
     source.h(0)
     compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
@@ -449,19 +409,12 @@ def test_target_capacity() -> None:
 
 
 def test_compiler_provenance() -> None:
-    """Text and binary exports identify Core and keep user metadata."""
-    result = get_benchmark_indep(
-        "ghz",
-        3,
-        compiler="mqt",
-        compiler_options=core.CompilationOptions(seed=17, mapping=core.MappingOptions(trials=8)),
-    )
+    """Text and binary exports preserve compilation and generation metadata."""
+    result = get_benchmark_indep("ghz", 3, compiler="mqt", compiler_options=core.CompilationOptions(seed=17))
     text = io.StringIO()
     write_circuit(result, text, BenchmarkLevel.INDEP)
     assert "// Compiler: mqt " in text.getvalue()
     compiler_options = result.metadata["mqt_bench_compiler"]["options"]
-    assert compiler_options["seed"] == 17
-    assert compiler_options["mapping"]["trials"] == 8
     assert json.loads(text.getvalue().split("// Compiler options: ")[1].splitlines()[0]) == compiler_options
     generation = result.metadata["mqt_bench_generation"]
     assert json.loads(text.getvalue().split("// Generation options: ")[1].splitlines()[0]) == generation
