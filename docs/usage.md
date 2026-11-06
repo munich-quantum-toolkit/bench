@@ -185,3 +185,14 @@ os.remove(filename)
 For more information on the available benchmarks and their parameters, please
 refer to the [parameter space description](parameter) and the
 [algorithm selection page](benchmark_selection).
+
+## Docker
+
+From a Git clone, build the image and run the CLI:
+
+```bash
+docker build -t mqt-bench .
+docker run --rm mqt-bench --algorithm ghz --num-qubits 3 --level alg
+```
+
+Use `docker run --rm -t mqt-bench --help` for colored CLI help.
