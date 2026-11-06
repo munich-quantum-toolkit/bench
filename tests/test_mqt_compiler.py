@@ -462,11 +462,10 @@ def test_nested_target_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     block.x(0)
     circuit = QuantumCircuit(3, 1)
     circuit.if_else((circuit.clbits[0], True), block, QuantumCircuit(1), [2], [])
-    monkeypatch.setattr(core.QCOProgram, "to_qiskit", lambda *args, **kwargs: circuit)
+    monkeypatch.setattr(core, "compile_program", lambda *args, **kwargs: circuit)
     source = QuantumCircuit(3)
     source.x(0)
     get_benchmark_native_gates(source, None, target, compiler="mqt")
-    monkeypatch.setattr(core, "compile_program", lambda *args, **kwargs: circuit)
     with pytest.raises(ValueError, match=r"instruction 'x'.*qubits \(2,\)"):
         get_benchmark_mapped(source, None, target, compiler="mqt")
 
@@ -476,7 +475,7 @@ def test_fixed_rx_gate_validation_rejects_unavailable_angle(monkeypatch: pytest.
     target = get_target_for_gateset("rigetti", 2)
     exported = QuantumCircuit(2)
     exported.rx(0.37, 0)
-    monkeypatch.setattr(core.QCOProgram, "to_qiskit", lambda *args, **kwargs: exported)
+    monkeypatch.setattr(core, "compile_program", lambda *args, **kwargs: exported)
     with pytest.raises(ValueError, match="instruction 'rx' outside the requested target"):
         get_benchmark_native_gates(QuantumCircuit(2), None, target, compiler="mqt")
 

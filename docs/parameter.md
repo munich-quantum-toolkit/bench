@@ -109,7 +109,7 @@ for supported bases and control flow.
 MQT Core output filenames contain `_mqt_`. Circuit metadata and QASM/QPY exports
 record the compiler version and effective options.
 
-[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/933a40acba4367d92c92e390846c1748bc920c02/docs/mlir/target_compilation.md
+[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/77eecaed2dd26fe932ab2b1dde5863a69ddf0bd6/docs/mlir/target_compilation.md
 
 ## Native Gate-Set Support
 

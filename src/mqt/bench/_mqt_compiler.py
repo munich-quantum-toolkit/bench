@@ -31,22 +31,6 @@ def _physical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
     return result
 
 
-def _logical_circuit(circuit: QuantumCircuit) -> QuantumCircuit:
-    """Relabel a native circuit whose output permutation is already materialized."""
-    if circuit.layout is None:
-        return circuit
-    initial = circuit.layout.initial_index_layout()
-    if circuit.layout.final_index_layout() != initial:
-        msg = "MQT Core left an output permutation behind the native compilation boundary."
-        raise ValueError(msg)
-    result = circuit.copy_empty_like(vars_mode="drop")
-    result.global_phase = 0
-    result._layout = None  # ruff:ignore[private-member-access]
-    # Copying operations through Qiskit drops Core's fixed-angle gate names.
-    result.compose(circuit, qubits=sorted(range(len(initial)), key=initial.__getitem__), inplace=True, copy=False)
-    return result
-
-
 def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> core.TargetEnvironment[QuantumCircuit]:
     """Convert the target, enforcing placement only for mapped compilation."""
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
@@ -95,32 +79,15 @@ def compile_circuit(
     """
     if options is None:
         options = core.CompilationOptions(seed=10, mapping=core.MappingOptions(trials=8))
-    source = _physical_circuit(circuit)
-    if target is None:
-        result = core.compile_program(source, options=options)
-    elif mapped:
-        environment = _target_environment(target, circuit.num_qubits, mapped=True)
-        result = core.compile_program(source, target=environment, output=core.OutputFormat.QISKIT, options=options)
-        result._layout = None  # ruff:ignore[private-member-access]
-    else:
-        environment = _target_environment(target, circuit.num_qubits, mapped=False)
-        last = source.data[-1].operation if source.data else None
-        add_barrier = last is None or last.name != "barrier" or last.num_qubits != source.num_qubits
-        barrier_label = "mqt_bench_wire_order"
-        if add_barrier:
-            # A terminal barrier on all wires keeps Core from eliding final swaps.
-            source = source.copy()
-            source.barrier(label=barrier_label)
-        program = core.compile_program(source, output=core.OutputFormat.QCO, options=options)
-        program.synthesize_for_target(environment, options=options)
-        result = program.to_qiskit(target=environment.target)
-        if add_barrier and result.data and result.data[-1].operation.label == barrier_label:
-            result.data.pop()
-        result = _logical_circuit(result)
+    environment = _target_environment(target, circuit.num_qubits, mapped=mapped) if target is not None else None
+    result = core.compile_program(
+        _physical_circuit(circuit), target=environment, output=core.OutputFormat.QISKIT, options=options
+    )
     if target is not None:
+        if mapped:
+            result._layout = None  # ruff:ignore[private-member-access]
         _validate_target(result, target, mapped=mapped)
-    result.name = circuit.name
-    result.metadata = (circuit.metadata or {}) | {
+    result.metadata = result.metadata | {
         "mqt_bench_compiler": {
             "name": "mqt",
             "version": version("mqt-core"),
