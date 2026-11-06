@@ -198,41 +198,42 @@ def main() -> None:
             raise
         parser.error(str(exc).partition("\n")[0])
 
-    fmt = OutputFormat(args.output_format)
+    else:
+        fmt = OutputFormat(args.output_format)
 
-    # Text formats stream to stdout unless saving is requested.
-    if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
-        assert isinstance(sys.stdout, TextIOBase)
-        try:
-            write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
-        except MQTBenchExporterError as exc:
-            print(exc, file=sys.stderr)
+        # Text formats stream to stdout unless saving is requested.
+        if fmt not in (OutputFormat.QPY, OutputFormat.QIR_BITCODE) and not args.save:
+            assert isinstance(sys.stdout, TextIOBase)
+            try:
+                write_circuit(circuit, sys.stdout, level, fmt, target, qir_profile=args.qir_profile)
+            except MQTBenchExporterError as exc:
+                print(exc, file=sys.stderr)
+                sys.exit(1)
+            return
+
+        # Otherwise, save to file
+        filename = generate_filename(
+            benchmark_name=args.algorithm,
+            level=level,
+            num_qubits=args.num_qubits,
+            target=target,
+            opt_level=args.optimization_level,
+            compiler=args.compiler,
+            generate_mirror_circuit=args.mirror,
+        )
+        success = save_circuit(
+            qc=circuit,
+            filename=filename,
+            level=level,
+            output_format=fmt,
+            target=target,
+            target_directory=args.target_directory,
+            qir_profile=args.qir_profile,
+        )
+        if not success:
             sys.exit(1)
-        return
 
-    # Otherwise, save to file
-    filename = generate_filename(
-        benchmark_name=args.algorithm,
-        level=level,
-        num_qubits=args.num_qubits,
-        target=target,
-        opt_level=args.optimization_level,
-        compiler=args.compiler,
-        generate_mirror_circuit=args.mirror,
-    )
-    success = save_circuit(
-        qc=circuit,
-        filename=filename,
-        level=level,
-        output_format=fmt,
-        target=target,
-        target_directory=args.target_directory,
-        qir_profile=args.qir_profile,
-    )
-    if not success:
-        sys.exit(1)
-
-    print(Path(args.target_directory) / f"{filename}.{fmt.extension()}")
+        print(Path(args.target_directory) / f"{filename}.{fmt.extension()}")
 
 
 if __name__ == "__main__":

@@ -103,6 +103,7 @@ def test_mqt_cli_compilation_failure(script_runner: ScriptRunner) -> None:
     result = _generate(script_runner, "nativegates", "qft", 4, "--compiler", "mqt", "--target", "clifford+t")
     assert result.returncode == 2
     assert "requires a single-qubit synthesis basis" in result.stderr
+    assert not result.stdout
 
 
 @pytest.mark.parametrize(
@@ -202,7 +203,7 @@ def test_cli_benchmark_options(script_runner: ScriptRunner) -> None:
 def test_cli_errors(args: list[str], expected_output: str, script_runner: ScriptRunner) -> None:
     """Test the CLI with different error cases."""
     ret = script_runner.run(["mqt-bench", *args])
-    assert not ret.success
+    assert ret.returncode == 2
     assert expected_output in ret.stderr
     assert "Traceback" not in ret.stderr
     assert not ret.stdout
