@@ -21,8 +21,8 @@ _REGISTRY: dict[str, _DeviceFactory] = {}
 def register_device(device_name: str) -> Callable[[_DeviceFactory], _DeviceFactory]:
     """Decorator to register a device factory under a unique device_name.
 
-    The factory runs on each lookup and must return a new target whose mutable
-    gates and calibration data are independent of other results.
+    The factory runs on every lookup and must return a new device target
+    that shares no mutable data with other results.
 
     Arguments:
         device_name: unique identifier for the device (e.g., ``"ibm_heron_156"``).
