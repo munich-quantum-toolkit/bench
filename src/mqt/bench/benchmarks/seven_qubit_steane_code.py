@@ -86,49 +86,18 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
 
 @register_benchmark("seven_qubit_steane_code", description="7 Qubit Steane Code")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    r"""Returns a quantum circuit implementing the 7 Qubit Steane Code.
+    """Build independent blocks of the seven-qubit Steane code.
 
-    The Steane code is a quantum error-correcting code that encodes 1 logical qubit
-    into 7 physical qubits. It is a CSS (Calderbank-Shor-Steane) code based on the
-    classical [7,4,3] Hamming code, capable of correcting arbitrary single-qubit errors.
+    Each block encodes one logical qubit using the CSS code based on the classical
+    [7,4,3] Hamming code. The measured syndromes control the X and Z corrections.
 
-    Encoding:
-        The logical states are encoded as superpositions of 8 codewords:
-
-        - \|0_L> = (\|0000000> + \|1010101> + \|0110011> + \|1100110>
-          + \|0001111> + \|1011010> + \|0111100> + \|1101001>) / sqrt(8)
-        - \|1_L> = (\|1111111> + \|0101010> + \|1001100> + \|0011001>
-          + \|1110000> + \|0100101> + \|1000011> + \|0010110>) / sqrt(8)
-
-    Syndrome Extraction:
-        - Bit-flip syndrome: 3 ancilla qubits measure Z-type stabilizers to detect
-          which qubit (if any) experienced a bit flip. The syndrome value (1-7)
-          directly identifies the affected qubit.
-        - Phase-flip syndrome: 3 ancilla qubits measure X-type stabilizers to detect
-          which qubit (if any) experienced a phase flip. The syndrome value (1-7)
-          directly identifies the affected qubit.
-
-    Error Correction:
-        - Bit-flip correction: Based on the 3-bit syndrome measurement, X gates are
-          conditionally applied to correct bit flips on any of the 7 data qubits.
-        - Phase-flip correction: Based on the 3-bit syndrome measurement, Z gates are
-          conditionally applied to correct phase flips on any of the 7 data qubits.
-
-    Circuit Structure:
-        - 13 qubits (per logical qubit):
-            - 7 data qubits (q): The encoded logical qubit
-            - 3 bit-flip syndrome qubits (bfs): For X-error detection
-            - 3 phase-flip syndrome qubits (pfs): For Z-error detection
-        - 7 classical bits (per logical qubit):
-            - 3 bit-flip syndrome measurement bits (bfsm)
-            - 3 phase-flip syndrome measurement bits (pfsm)
-            - 1 logical qubit measurement bit (m)
-
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit (must be a positive multiple of 13)
+    Args:
+        num_qubits: Total width. Each block uses seven data qubits and six syndrome
+            ancillas, so the width must be a positive multiple of 13.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the 7 Qubit Steane Code
+        A circuit with three bit-flip and three phase-flip syndrome bits per block.
+        Register ``m0`` contains the first decoded logical qubit's measurement, ``m1`` the second's, and so on.
     """
     if num_qubits < 13 or num_qubits % 13:
         msg = "num_qubits must be a positive multiple of 13."
