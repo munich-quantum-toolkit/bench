@@ -6,7 +6,11 @@
 #
 # Licensed under the MIT License
 
-"""Quantum Metropolis Sampling benchmark definition. Code is based on the paper Temme et al.: Quantum Metropolis Sampling (2011): https://arxiv.org/abs/0911.3635."""
+"""Quantum Metropolis Sampling benchmark definition.
+
+Based on Temme et al., "Quantum Metropolis Sampling" (2011).
+https://arxiv.org/abs/0911.3635
+"""
 
 from __future__ import annotations
 
@@ -21,7 +25,10 @@ from ._registry import register_benchmark
 
 
 def _heisenberg_hamiltonian(num_spins: int) -> SparsePauliOp:
-    r"""Return the open Heisenberg chain :math:`-\frac{1}{2}\sum_i (X_i X_{i+1} + Y_i Y_{i+1} + Z_i Z_{i+1})` (Eq. 79)."""
+    r"""Return the open Heisenberg chain of Eq. 79.
+
+    :math:`-\frac{1}{2}\sum_i (X_i X_{i+1} + Y_i Y_{i+1} + Z_i Z_{i+1})`.
+    """
     terms = [(pauli * 2, [i, i + 1], -0.5) for i in range(num_spins - 1) for pauli in "XYZ"]
     return SparsePauliOp.from_sparse_list(terms, num_qubits=num_spins)
 

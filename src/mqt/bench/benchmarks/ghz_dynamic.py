@@ -45,7 +45,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     # Apply Hadamard gates to all even qubits
     qc.h(range(0, num_qubits, 2))
 
-    # Apply CNOT gates from all even qubits to the previous and next one, if the total number of qubits is even, we ignore the last CNOT
+    # Apply CNOT gates from all even qubits to the previous and next one.
+    # If the total number of qubits is even, ignore the last CNOT.
     for i in range(0, num_qubits, 2):
         previous_qubit = i - 1
         next_qubit = i + 1
@@ -54,7 +55,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         if next_qubit < num_qubits - 1:
             qc.cx(i, next_qubit)
 
-    # Intermediate measurements on the odd qubits, the if_test statement is there to simulate a reset operation as this is not accepted by some hardware
+    # Measure the odd qubits and reset them conditionally, since some hardware does not support reset operations.
     for classical_bit, qubit in zip(mid_measure, range(1, num_qubits, 2), strict=True):
         qc.measure(qubit, classical_bit)
         with qc.if_test((classical_bit, 1)):
@@ -62,7 +63,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
 
     condition = mid_measure[0]
 
-    # We apply an X gate to all even qubits other than the first one if the XOR of the intermediate measurements of all the previous qubits is 1
+    # Apply X to each even qubit after the first when the XOR of all preceding intermediate measurements is 1.
     for i in range(2, num_qubits, 2):
         with qc.if_test(expr.equal(condition, True)):
             qc.x(i)

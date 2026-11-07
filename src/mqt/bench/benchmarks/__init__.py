@@ -54,7 +54,8 @@ def _ensure_loaded(benchmark_name: str) -> None:
     corresponding to the benchmark is imported, triggering its registration.
 
     Args:
-        benchmark_name (str): The name of the benchmark to ensure is loaded. It must be a valid and supported benchmark name.
+        benchmark_name (str): The name of the benchmark to ensure is loaded. It must be a valid and supported
+            benchmark name.
 
     Raises:
         ValueError: If the provided benchmark name is not supported or not available in the discovered benchmarks.
