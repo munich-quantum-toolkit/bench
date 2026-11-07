@@ -12,10 +12,8 @@
 
 from __future__ import annotations
 
-import copy
 import importlib
 import importlib.resources as ir
-from functools import cache
 from typing import TYPE_CHECKING
 
 from ._registry import device_names, get_device_by_name, register_device
@@ -28,8 +26,6 @@ _DISCOVERED_MODULES: set[str] = {
     for entry in ir.files(__name__).iterdir()
     if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
-
-_IMPORTED_MODULES: set[str] = set()
 
 __all__ = [
     "get_available_device_names",
@@ -58,34 +54,21 @@ def _ensure_loaded(device_name: str) -> None:
         msg = f"'{device_name}' is not a supported device. Known modules: {sorted(_DISCOVERED_MODULES)}"
         raise ValueError(msg)
 
-    if module_name not in _IMPORTED_MODULES:
-        importlib.import_module(f"{__package__}.{module_name}")
-        _IMPORTED_MODULES.add(module_name)
+    importlib.import_module(f"{__package__}.{module_name}")
 
 
 def get_available_device_names() -> list[str]:
     """Return all registered devices.
 
-    To guarantee completeness we import every not-yet-imported module once.
+    Import all discovered modules to load the complete catalogue.
     """
-    for module in _DISCOVERED_MODULES - _IMPORTED_MODULES:
+    for module in _DISCOVERED_MODULES:
         importlib.import_module(f"{__package__}.{module}")
-        _IMPORTED_MODULES.add(module)
 
-    return sorted(device_names()).copy()
-
-
-@cache
-def _get_device(device_name: str) -> Target:
-    """Internal cacheable function to get a device by name.
-
-    Arguments:
-        device_name: Name of the device.
-    """
-    _ensure_loaded(device_name)
-    return get_device_by_name(device_name)
+    return sorted(device_names())
 
 
 def get_device(device_name: str) -> Target:
-    """Return a deepcopy of the requested qiskit ``Target`` device."""
-    return copy.deepcopy(_get_device(device_name))
+    """Return a fresh device target from the registered factory."""
+    _ensure_loaded(device_name)
+    return get_device_by_name(device_name)

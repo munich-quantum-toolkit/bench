@@ -6,6 +6,15 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Custom target factories
+
+Gate-set and device factories now run on every lookup. Each factory registered
+with `register_gateset` must return a new list. Each factory registered with
+`register_device` must return a new target with independent mutable gates and
+calibration data. Allocate these objects inside the factory instead of returning
+a shared object. This lets callers change one result without changing later
+results.
+
 ### HHL and IQPE results
 
 HHL now measures a `success` register. Read the system bit in `c` only for shots
