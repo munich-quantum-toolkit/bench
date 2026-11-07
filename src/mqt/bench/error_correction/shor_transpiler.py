@@ -20,14 +20,14 @@ from mqt.bench.error_correction.components.shor_circuit_components import (
     get_nine_qubit_shors_code_phase_flip_syndrome_extraction_circuit,
     get_three_qubit_bit_flip_encoding_decoding_circuit,
     get_three_qubit_bit_flip_syndrome_extraction_circuit,
+    get_three_qubit_phase_flip_decoding_circuit,
     get_three_qubit_phase_flip_encoding_circuit,
 )
 
 from .ec_transpiler import ECTranspiler, LogicalQubit
 
 if TYPE_CHECKING:
-    from qiskit import QuantumCircuit, QuantumRegister
-    from qiskit.circuit import Gate
+    from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 
 
 class ShorTranspiler(ECTranspiler):
@@ -70,12 +70,12 @@ class ShorTranspiler(ECTranspiler):
         """Apply the decoding of Shor's 9-qubit code to a physical data register."""
         for i in range(self.SHOR_NUM_BLOCKS):
             qc.compose(
-                get_three_qubit_bit_flip_encoding_decoding_circuit().inverse(),
+                get_three_qubit_bit_flip_encoding_decoding_circuit(),
                 qubits=physical_data_register[i * self.SHOR_BLOCK_SIZE : (i + 1) * self.SHOR_BLOCK_SIZE],
                 inplace=True,
             )
         qc.compose(
-            get_three_qubit_phase_flip_encoding_circuit().inverse(),
+            get_three_qubit_phase_flip_decoding_circuit(),
             qubits=[physical_data_register[i] for i in self.SHOR_PHASE_FLIP_TARGETS],
             inplace=True,
         )

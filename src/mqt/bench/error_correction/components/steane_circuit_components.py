@@ -19,32 +19,26 @@ if TYPE_CHECKING:
 
 
 def get_seven_qubit_steane_code_encoding_circuit() -> QuantumCircuit:
-    """Create the 7-qubit Steane code encoding circuit.
+    """Encode qubit 0 into Steane's seven-qubit code.
 
-    Encodes qubit 0 into the 7-qubit Steane code logical state:
-        - ``|0>`` -> (``|0000000>`` + ``|1010101>`` + ``|0110011>`` + ``|1100110>`` + ``|0001111>`` + ``|1011010>`` + ``|0111100>`` + ``|1101001>``)
-        - ``|1>`` -> (``|1111111>`` + ``|0101010>`` + ``|1001100>`` + ``|0011001>`` + ``|1110000>`` + ``|0100101>`` + ``|1000011>`` + ``|0010110>``).
+    The other six qubits must start in ``|0>``. The encoding uses the CSS
+    construction based on the classical [7,4,3] Hamming code.
 
     Returns:
         QuantumCircuit: 7-qubit encoding circuit.
     """
     out = QuantumCircuit(7)
-    # H
     out.h(4)
     out.h(5)
     out.h(6)
-    # CNOT from 0
     out.cx(0, 1)
     out.cx(0, 2)
-    # CNOT from 6
     out.cx(6, 3)
     out.cx(6, 1)
     out.cx(6, 0)
-    # CNOT from 5
     out.cx(5, 3)
     out.cx(5, 2)
     out.cx(5, 0)
-    # CNOT from 4
     out.cx(4, 3)
     out.cx(4, 2)
     out.cx(4, 1)

@@ -34,8 +34,7 @@ from mqt.bench.error_correction.components.steane_circuit_components import (
 from .ec_transpiler import ECTranspiler, LogicalQubit
 
 if TYPE_CHECKING:
-    from qiskit import QuantumCircuit, QuantumRegister
-    from qiskit.circuit import Gate
+    from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 
 
 class SteaneTranspiler(ECTranspiler):

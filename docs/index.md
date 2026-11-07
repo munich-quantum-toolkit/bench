@@ -36,6 +36,7 @@ quickstart
 usage
 abstraction_levels
 parameter
+error_correction
 benchmark_selection
 references
 CHANGELOG

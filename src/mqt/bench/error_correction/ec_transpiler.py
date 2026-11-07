@@ -15,8 +15,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import ClassVar
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit import AncillaRegister, Gate, Instruction
+from qiskit import transpile
+from qiskit.circuit import AncillaRegister, ClassicalRegister, Gate, Instruction, QuantumCircuit, QuantumRegister
 
 
 @dataclass
@@ -31,17 +31,13 @@ class LogicalQubit:
 
     def get_all_registers(self) -> list[QuantumRegister | ClassicalRegister]:
         """Return all active registers for this logical qubit."""
-        regs: list[QuantumRegister | ClassicalRegister] = [self.data]
-        regs.extend(
-            reg
-            for reg in [
-                self.bit_flip_syndrome,
-                self.phase_flip_syndrome,
-                self.bit_flip_measure,
-                self.phase_flip_measure,
-            ]
-        )
-        return regs
+        return [
+            self.data,
+            self.bit_flip_syndrome,
+            self.phase_flip_syndrome,
+            self.bit_flip_measure,
+            self.phase_flip_measure,
+        ]
 
 
 class ECTranspiler(ABC):
@@ -148,8 +144,8 @@ class ECTranspiler(ABC):
         """
         for instruction in self.original_qc.data:
             gate_name = instruction.operation.name
-            logical_qubit_indices = [self.original_qc.qubits.index(q) for q in instruction.qubits]
-            logical_clbit_indices = [self.original_qc.clbits.index(c) for c in instruction.clbits]
+            logical_qubit_indices = [self.original_qc.find_bit(q).index for q in instruction.qubits]
+            logical_clbit_indices = [self.original_qc.find_bit(c).index for c in instruction.clbits]
 
             # only check for actual instructions
             if gate_name != "barrier":
