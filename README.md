@@ -20,7 +20,8 @@
 MQT Bench generates quantum circuits for benchmarking quantum software tools.
 Choose an algorithm, a circuit size, and an abstraction level. You can generate
 circuits with Python, from the command line, or at <https://mqt-bench.app/>. MQT
-Bench is part of the [Munich Quantum Toolkit](https://mqt.readthedocs.io).
+Bench is part of the
+[_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
   <a href="https://mqt.readthedocs.io/projects/bench">
@@ -45,9 +46,8 @@ Bench is part of the [Munich Quantum Toolkit](https://mqt.readthedocs.io).
   [Output formats](https://mqt.readthedocs.io/projects/bench/en/stable/quickstart.html#output-formats)
   ·
   [Usage guide](https://mqt.readthedocs.io/projects/bench/en/stable/usage.html)
-
-MQT Bench circuits are also available as a
-[PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
+- MQT Bench circuits are also available as a
+  [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
 If you have any questions, feel free to create a
 [discussion](https://github.com/munich-quantum-toolkit/bench/discussions) or an
@@ -126,8 +126,10 @@ print(qc_algorithmic_level.draw())
 
 ## System Requirements
 
-MQT Bench requires Python 3.11 or newer and Qiskit `>=2.5.2,<3`. The test suite
-runs on Linux, macOS, and Windows.
+MQT Bench can be installed on all major operating systems with all
+[officially supported Python versions](https://devguide.python.org/versions/).
+It is continuously tested under Linux, macOS, and Windows using the
+[latest available system versions for GitHub Actions](https://github.com/actions/runner-images).
 
 ## Cite This
 

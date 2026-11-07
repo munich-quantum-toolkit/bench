@@ -86,6 +86,8 @@ qc_mirrored.draw(output="mpl")
 
 (self-defined-circuits)=
 
+(custom-circuits)=
+
 ## Custom Circuits
 
 Pass a Qiskit `QuantumCircuit` to `get_benchmark` and omit `circuit_size`. This
@@ -103,6 +105,8 @@ qc_circuit.draw(output="mpl")
 ```
 
 (self-defined-targets)=
+
+(custom-targets)=
 
 ## Custom Targets
 
