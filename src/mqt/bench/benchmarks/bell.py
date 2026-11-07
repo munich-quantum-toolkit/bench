@@ -17,18 +17,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("bell", description="Bell Pairs")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    r"""Returns a quantum circuit that prepares independent Bell pairs.
+    """Prepare independent Bell pairs on neighboring qubits.
 
-    Each pair of neighboring qubits :math:`(2k, 2k + 1)` is prepared in the state
-    :math:`\frac{1}{\sqrt{2}}(|00\rangle + |11\rangle)` by a Hadamard gate on qubit
-    :math:`2k` followed by a CX gate from qubit :math:`2k` to qubit :math:`2k + 1`.
-    The pairs do not interact with each other. All qubits are measured at the end.
+    Each pair consists of qubits ``2k`` and ``2k + 1``. A Hadamard followed by a CX
+    prepares the pair in an equal superposition of 00 and 11.
 
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be a positive even number.
+    Args:
+        num_qubits: Total width. Must be positive and even.
 
     Returns:
-        QuantumCircuit: A quantum circuit preparing ``num_qubits // 2`` Bell pairs.
+        A circuit that measures both qubits of every pair. Each pair yields 00 or 11 ideally.
     """
     if num_qubits < 2 or num_qubits % 2:
         msg = "num_qubits must be a positive multiple of 2."

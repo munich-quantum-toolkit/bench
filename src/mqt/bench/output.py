@@ -171,14 +171,15 @@ def write_circuit(
     """Write a circuit to a file or stream.
 
     Text formats include the MQT Bench header as comments. QPY stores it in
-    circuit metadata. QIR bitcode carries the QIR metadata from MQT Core.
+    circuit metadata under ``mqt_bench``. QIR bitcode carries the QIR metadata from MQT Core.
 
     Arguments:
         qc: The QuantumCircuit to export
-        destination: File path, text stream for OpenQASM or LLVM text, or binary stream for QPY or QIR bitcode.
+        destination: File path including the extension, text stream for OpenQASM or LLVM text,
+            or binary stream for QPY or QIR bitcode.
         level: The level of the circuit (e.g., BenchmarkLevel.MAPPED)
         fmt: Desired output format
-        target: Compilation target. Required for the native and mapped levels.
+        target: Compilation target required for native and mapped circuits.
         qir_profile: Profile for QIR exports. Bind free parameters before exporting.
 
     Raises:
@@ -259,19 +260,19 @@ def save_circuit(
     *,
     qir_profile: Literal["base", "adaptive"] = "base",
 ) -> bool:
-    """Save a circuit with the extension for the selected format.
+    """Save a circuit using the filename extension for the selected format.
 
     Arguments:
         qc: Circuit to export
         filename: Base filename without extension
         level: Level of the circuit (e.g., BenchmarkLevel.MAPPED)
         output_format: One of the supported format values, as defined in `OutputFormat`
-        target: Target circuit to be transpiled, if any
-        target_directory: Directory to place the output file
+        target: Compilation target required for native and mapped circuits.
+        target_directory: Output directory, created if needed.
         qir_profile: QIR profile for QIR exports (default: ``base``).
 
     Returns:
-        True on success, False otherwise.
+        True on success, or False if export fails and an error is printed to stderr.
     """
     path = Path(target_directory) / f"{filename}.{output_format.extension()}"
     try:

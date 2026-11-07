@@ -18,17 +18,15 @@ from ._registry import register_benchmark
 
 @register_benchmark("half_adder", description="Half Adder")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Create a half adder circuit.
+    """Build a half adder with carry-out.
 
-    Measure only the sum into ``result``, least-significant bit first.
-    Carry-out, when present, is the most-significant result bit.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be odd and ≥ 3
-                so that there is a carry-out bit and the rest can be divided by 2 for both registers.
+    Args:
+        num_qubits: Total width of two equal operands and the carry-out qubit.
+            Must be odd and at least 3.
 
     Returns:
-           QuantumCircuit: The constructed half adder circuit.
+        A circuit that measures only the sum into ``result``, least-significant bit first.
+        The highest result bit is the carry-out.
 
     See Also:
         :class:`qiskit.circuit.library.HalfAdderGate`

@@ -19,7 +19,7 @@ from ._registry import register_benchmark
 
 @register_benchmark("hhl", description="Harrow-Hassidim-Lloyd Algorithm (HHL)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    r"""Solve a fixed two-dimensional linear system using HHL.
+    r"""Build an HHL circuit for a fixed two-dimensional linear system.
 
     .. math::
 
@@ -35,11 +35,11 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     system state is :math:`(-|0\rangle + |1\rangle)/\sqrt{2}`.
 
     Args:
-        num_qubits: Total width: one system qubit, ``num_qubits - 2`` phase
-            qubits, and one success ancilla. Must be at least 3.
+        num_qubits: Total width, including a system qubit, ``num_qubits - 2`` phase qubits,
+            and a success ancilla. Must be at least 3.
 
     Returns:
-        The HHL circuit, including success and system measurements.
+        A circuit that measures the system qubit into ``c`` and the success ancilla into ``success``.
     """
     if num_qubits < 3:
         msg = "Number of qubits must be at least 3 for HHL."

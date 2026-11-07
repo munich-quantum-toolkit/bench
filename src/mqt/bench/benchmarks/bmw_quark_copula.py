@@ -33,11 +33,15 @@ from ._registry import register_benchmark
 
 @register_benchmark("bmw_quark_copula", description="Copula Circuit (QUARK)")
 def create_circuit(num_qubits: int, depth: int = 2) -> QuantumCircuit:
-    """Returns a Qiskit circuit based on the copula circuit architecture from the QUARK framework.
+    """Build the copula ansatz from QUARK.
 
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be a positive multiple of 2.
-        depth: Depth of the returned quantum circuit. Must be nonnegative.
+    Args:
+        num_qubits: Total width of the two equal halves. Must be positive and even.
+        depth: Number of layers after the initial Bell pairs. Must be nonnegative.
+
+    Returns:
+        A circuit that prepares Bell pairs across the two halves, applies the requested
+        layers within each half, and measures all qubits.
     """
     if num_qubits < 2 or num_qubits % 2:
         msg = "num_qubits must be a positive multiple of 2."

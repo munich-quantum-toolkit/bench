@@ -17,15 +17,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("bv", description="Bernstein-Vazirani")
 def create_circuit(num_qubits: int, dynamic: bool = False, hidden_string: str | None = None) -> QuantumCircuit:
-    """Create a quantum circuit for the Bernstein-Vazirani algorithm.
+    """Build a Bernstein-Vazirani circuit for a hidden binary string.
 
-    Arguments:
-        num_qubits: Total number of qubits in the circuit (including the flag qubit).
-        dynamic: Whether to use a dynamic layout (default: False).
-        hidden_string: The hidden bitstring to be found (default: alternating pattern of 1 and 0). Its length must be num_qubits - 1; character i maps to classical bit i.
+    Args:
+        num_qubits: Total width, including the flag qubit. Must be at least 2.
+        dynamic: Reuse one input qubit, resetting it between measurements.
+        hidden_string: Binary string of length ``num_qubits - 1``. Defaults to alternating
+            zeros and ones, starting with zero.
 
     Returns:
-        QuantumCircuit: Circuit implementing the Bernstein-Vazirani algorithm.
+        A circuit that writes character ``i`` of the hidden string to classical bit ``i``.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for Bernstein-Vazirani."
