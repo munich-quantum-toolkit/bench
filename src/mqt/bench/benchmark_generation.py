@@ -67,8 +67,8 @@ def _get_circuit(
     Arguments:
         benchmark: Name of the benchmark for which the circuit is to be created.
         circuit_size: Size of the circuit to be created, required when the benchmark is a name.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to circuit creation.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
         The circuit and its generation settings.
@@ -273,14 +273,14 @@ def get_benchmark_alg(
     """Return an algorithm-level benchmark circuit.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
+        benchmark: Name of a registered benchmark or a circuit to compile.
         circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: Additional keyword arguments passed to circuit creation.
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Additional keyword arguments passed to the circuit creation.
 
     Returns:
-        Qiskit::QuantumCircuit representing the raw benchmark circuit without any hardware-specific compilation or mapping.
+        The algorithmic circuit before hardware compilation.
     """
     if kwargs.pop("compiler_options", None) is not None:
         msg = "compiler_options requires a compilation level; the algorithm level does not compile."
@@ -307,16 +307,16 @@ def get_benchmark_indep(
     """Return a target-independent benchmark circuit.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
+        benchmark: Name of a registered benchmark or a circuit to compile.
         circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
-        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
-        compiler: Compiler to use: "qiskit" (default) or "mqt".
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
+        opt_level: Qiskit optimization level. Ignored by MQT Core.
+        compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Benchmark options and MQT Core compiler options.
 
     Returns:
-        Qiskit::QuantumCircuit expressed in a generic basis gate set, still unmapped to any physical device.
+        The circuit optimized without a device target or routing.
     """
     compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
@@ -350,17 +350,17 @@ def get_benchmark_native_gates(
     """Return a benchmark compiled to the target's native gate set.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Size of the benchmark to generate. Pass ``None`` for a QuantumCircuit.
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
-        compiler: Compiler to use: "qiskit" (default) or "mqt".
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
+        target: Target whose native instructions are used across the circuit's qubits.
+        opt_level: Qiskit optimization level. Ignored by MQT Core.
+        compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Benchmark options and MQT Core compiler options.
 
     Returns:
-        Qiskit::QuantumCircuit whose operations are restricted to ``target``'s native gate set but are **not** yet qubit-mapped to a concrete device connectivity.
+        The circuit expressed in native gates on its logical qubits.
     """
     compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
@@ -448,17 +448,17 @@ def get_benchmark_mapped(
     """Return a benchmark fully compiled and qubit-mapped to a device.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        circuit_size: Size of the benchmark to generate. Pass ``None`` for a QuantumCircuit.
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
-        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
-        compiler: Compiler to use: "qiskit" (default) or "mqt".
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        circuit_size: Size of the benchmark to generate. Pass None for a QuantumCircuit.
+        target: Device target that supplies the instructions and physical connectivity.
+        opt_level: Qiskit optimization level. Ignored by MQT Core.
+        compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Benchmark options and MQT Core compiler options.
 
     Returns:
-        Qiskit::QuantumCircuit that has been decomposed and routed onto the connectivity described by ``target``.
+        The circuit expressed in native gates and routed onto the device.
     """
     compiler_options = kwargs.pop("compiler_options", None)
     _validate_compiler(compiler, opt_level, compiler_options)
@@ -502,22 +502,21 @@ def get_benchmark(
     random_parameters: bool = True,
     **kwargs: Unpack[ConfigurationOptions],
 ) -> QuantumCircuit:
-    """Returns one benchmark as a qiskit.QuantumCircuit object.
+    """Generate a benchmark at the requested abstraction level.
 
     Arguments:
-        benchmark: QuantumCircuit or name of the benchmark to be generated
-        level: Choice of level
+        benchmark: Name of a registered benchmark or a circuit to compile.
+        level: Benchmark abstraction level.
         circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
-        target: `~qiskit.transpiler.target.Target` for the benchmark generation
-                (only used for "nativegates" and "mapped" level)
-        opt_level: Qiskit optimization level. Ignored by the MQT compiler.
-        compiler: Compiler to use: "qiskit" (default) or "mqt".
-        generate_mirror_circuit: If True, generates the mirror version (U @ U.inverse()) of the benchmark.
-        random_parameters: If True, assigns random parameters to the circuit's parameters if they exist.
-        kwargs: ConfigurationOptions for benchmark generation and MQT Core compilation.
+        target: Compilation target. Required at the native and mapped levels.
+        opt_level: Qiskit optimization level. Ignored by MQT Core.
+        compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
+        generate_mirror_circuit: Append the inverse and measure the active qubits.
+        random_parameters: Bind free parameters to sampled angles when True.
+        kwargs: Benchmark options and MQT Core compiler options.
 
     Returns:
-        Qiskit::QuantumCircuit object representing the benchmark with the selected options
+        The generated circuit.
     """
     _validate_compiler(compiler, opt_level if level is not BenchmarkLevel.ALG else 2, kwargs.get("compiler_options"))
     if level is BenchmarkLevel.ALG:

@@ -261,51 +261,18 @@ def _create_single_logical_qubit_circuit(index: int) -> QuantumCircuit:
 
 @register_benchmark("shors_nine_qubit_code", description="Shor's 9 Qubit Code")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing Shor's 9 Qubit Code.
+    """Build independent blocks of Shor's nine-qubit code.
 
-    Shor's code is a quantum error-correcting code, capable of correcting arbitrary
-    single-qubit errors. It encodes 1 logical qubit into 9 physical qubits using a
-    concatenation of the 3-qubit bit-flip and phase-flip repetition codes.
+    Each block encodes one logical qubit using three groups of three data qubits.
+    The measured parity checks control the bit-flip and phase-flip corrections.
 
-    Encoding:
-        1. Phase-flip encoding: The logical qubit is encoded across three blocks using
-           ``|0>`` → ``|+++>`` and ``|1>`` → ``|--->`` on qubits 0, 3, and 6.
-        2. Bit-flip encoding: Each of the three qubits is then encoded using the
-           3-qubit repetition code (``|0>`` → ``|000>``, ``|1>`` → ``|111>``), giving three blocks
-           of three qubits each (0-2, 3-5, 6-8).
-        3. So the overall encoding is
-           - ``|0>`` -> (``|000>`` + ``|111>``) ⊗ (``|000>`` + ``|111>``) ⊗ (``|000>`` + ``|111>``)
-           - ``|1>`` -> (``|000>`` - ``|111>``) ⊗ (``|000>`` - ``|111>``) ⊗ (``|000>`` - ``|111>``)
-
-    Syndrome Extraction:
-        - Bit-flip syndrome: For each block, 2 ancilla qubits measure the parity of
-          qubit pairs to detect which qubit (if any) experienced a bit flip.
-          Syndrome 01 → qubit 0, syndrome 10 → qubit 1, syndrome 11 → qubit 2.
-        - Phase-flip syndrome: 2 ancilla qubits detect phase differences between
-          the three blocks. Syndrome 01 → block 1 (qubits 0-2), syndrome 10 → block 2
-          (qubits 3-5), syndrome 11 → block 3 (qubits 6-8).
-
-    Error Correction:
-        - Bit-flip correction: Based on the 6-bit syndrome measurement, X gates are
-          conditionally applied to correct bit flips on any of the 9 data qubits.
-        - Phase-flip correction: Based on the 2-bit syndrome measurement, Z gates are
-          conditionally applied to the first qubit of the affected block.
-
-    Circuit Structure (per logical qubit):
-        - 17 qubits:
-            - 9 data qubits (q): The encoded logical qubit
-            - 6 bit-flip syndrome qubits (bs): 2 per block for bit-flip detection
-            - 2 phase-flip syndrome qubits (ps): For phase-flip detection between blocks
-        - 9 classical bits:
-            - 6 bit-flip syndrome measurement bits (bsm)
-            - 2 phase-flip syndrome measurement bits (psm)
-            - 1 logical qubit measurement bit (m)
-
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit (must be a positive multiple of 17)
+    Args:
+        num_qubits: Total width. Each block uses nine data qubits and eight syndrome
+            ancillas, so the width must be a positive multiple of 17.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing Shor's 9 Qubit Code
+        A circuit with six bit-flip and two phase-flip syndrome bits per block.
+        Register ``m0`` contains the first decoded logical qubit's measurement, ``m1`` the second's, and so on.
     """
     if num_qubits < 17 or num_qubits % 17:
         msg = "num_qubits must be a positive multiple of 17."

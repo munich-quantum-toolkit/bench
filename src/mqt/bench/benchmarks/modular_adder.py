@@ -18,16 +18,14 @@ from ._registry import register_benchmark
 
 @register_benchmark("modular_adder", description="Modular Adder")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Create a modular adder circuit.
+    """Build a modular adder for two equal-width operands.
 
-    Measure only the sum into ``result``, least-significant bit first.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be even and ≥ 2
-                so that they can be divided by 2 for both registers.
+    Args:
+        num_qubits: Total width of two equal operands. Must be even and at least 2.
 
     Returns:
-           QuantumCircuit: The constructed full adder circuit.
+        A circuit that measures only the low ``num_qubits // 2`` bits of the sum into
+        ``result``, least-significant bit first.
 
     See Also:
         :class:`qiskit.circuit.library.ModularAdderGate`

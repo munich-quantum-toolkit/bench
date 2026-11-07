@@ -1,84 +1,66 @@
 # Abstraction Levels
 
-MQT Bench uses the structure proposed by the OpenQASM 3.0 specification
-{cite:labelpar}`Cross_2022` and offers benchmarks on four different abstraction
-levels:
-
-1. Algorithmic Level
-2. Target-independent Level
-3. Target-dependent Native Gates Level
-4. Target-dependent Mapped Level
-
-An example is given in the following:
+MQT Bench provides four views of a circuit, based on the abstraction levels in
+the OpenQASM 3 specification {cite:labelpar}`Cross_2022`. The figures follow a
+three-qubit variational ansatz from its algorithmic form to a circuit mapped
+onto a five-qubit line. For runnable examples at each level, see the
+{doc}`quickstart`.
 
 ## 1. Algorithmic Level
 
+`BenchmarkLevel.ALG` returns the circuit produced by the benchmark factory. It
+can contain gates such as the six parameterized $R_y$ rotations in this ansatz.
+Set `random_parameters=False` to keep the angles symbolic.
+
 ```{image} /_static/level_1.png
 :align: center
-:alt: Illustration of the algorithmic level
+:alt: Three qubits with parameterized Y rotations and CX gates
 :width: 50%
 ```
-
-Variational Quantum Algorithms (VQAs) are an emerging class of quantum
-algorithms with a wide range of applications. A respective circuit is shown
-above, it represents an example of an ansatz function frequently used for
-Variational Quantum Eigensolvers (VQEs), a subclass of VQAs. On this abstraction
-level, the circuit is parameterized by the angles $\theta_i$ of the six
-single-qubit gates.
 
 ## 2. Target-independent Level
 
+`BenchmarkLevel.INDEP` uses Qiskit to optimize the circuit without choosing a
+device. The figure shows the same ansatz with all six angles set to $\pi$.
+Parameter binding is a separate choice at every level.
+
 ```{image} /_static/level_2.png
 :align: center
-:alt: Illustration of the target-independent level
+:alt: The ansatz with each Y rotation set to pi
 :width: 50%
 ```
-
-VQAs are hybrid quantum-classical algorithms, where the parameters of the
-quantum ansatz are iteratively updated by a classical optimizer analogous to
-conventional gradient-based optimization. Consider again the circuit from the
-previous figure. Assuming these parameters have been determined, e.g.,
-$\theta_i$ = −π for i = 0,..., 5, they are now propagated and the resulting
-quantum circuit is shown above.
 
 ## 3. Target-dependent Native Gates Level
 
+`BenchmarkLevel.NATIVEGATES` compiles the circuit to the target's instructions.
+At this level, a two-qubit gate can act on any pair. In the example gate set,
+$X$, $R_z$, and CX are native. Each $R_y(\pi)$ can be expressed using
+$R_z(-\pi)$ followed by $X$, up to a global phase.
+
 ```{image} /_static/level_3.png
 :align: center
-:alt: Illustration of the target-dependent native gates level
+:alt: The Y rotations decomposed into native Z rotations and X gates
 :width: 50%
 ```
-
-Different quantum computer realizations support different native gate-sets. In
-our example, we consider the `ibmq_manila` device as the target device which
-natively supports I, X, √X, Rz and CX gates. Consequently, the Ry gates in the
-previous figure have to be converted using only these native gates. In this
-case, they are substituted by a sequence of X and Rz gates (denoted as • with a
-phase of −π).
 
 ## 4. Target-dependent Mapped Level
 
+`BenchmarkLevel.MAPPED` places the logical qubits on a device and routes
+two-qubit gates along its connections. The illustrative device has five qubits
+in a line. No placement makes every pair of logical qubits neighbors.
+
 ```{image} /_static/arch.png
 :align: center
-:alt: Illustration of the ``ibmq_manila`` device
+:alt: Five physical qubits connected in a line from Q0 to Q4
 :width: 15%
 ```
 
-The architecture of the `ibmq_manila` device is shown above on the right and it
-defines between which qubits a two-qubit operation may be performed. Since the
-circuit shown in the previous figure contains CX gates operating between all
-combination of qubits, there is no mapping directly matching the target
-architecture's layout. As a consequence, a non-trivial mapping followed by a
-round of optimization leads to the resulting circuit shown below.
+The mapped circuit uses physical qubits $Q_0$, $Q_1$, and $Q_2$. Each CX acts on
+neighboring qubits. See the {doc}`parameter guide <parameter>` for the device
+models available in MQT Bench.
 
 ```{image} /_static/level_4.png
 :align: center
-:alt: Illustration of the target-dependent mapped level
+:alt: Circuit routed so every CX acts on adjacent physical qubits
 :width: 50%
 ```
-
-This is also the reason for the different sequence of CX gates compared to the
-previous example.
-
-This circuit is now executable on the `ibmq_manila` device, since all hardware
-induced requirements are fulfilled.

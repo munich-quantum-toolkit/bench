@@ -4,6 +4,7 @@ kernelspec:
   name: python3
 mystnb:
   number_source_lines: true
+  execution_in_temp: true
 ---
 
 ```{code-cell} ipython3
@@ -12,6 +13,10 @@ mystnb:
 ```
 
 # Quickstart
+
+Generate a five-qubit Deutsch–Jozsa circuit at each of the four
+{doc}`abstraction_levels`. The figures use Qiskit’s visualization dependencies.
+Use `draw(output="text")` for a text diagram.
 
 ```{code-cell} ipython3
 from mqt.bench import BenchmarkLevel, get_benchmark
@@ -62,11 +67,10 @@ qc_mapped_level.draw(output="mpl")
 
 ## Mirror Circuits
 
-Mirror circuits replicate a given benchmark circuit and its mirror image
-(inverse) concatenated together. This is useful for performance benchmarking
-because the ideal final state is known (all qubits should return to their
-initial state), making deviations easy to detect. Here, we mirror the circuit
-obtained in the {ref}`mapped-level` section.
+A mirror circuit runs the benchmark followed by its inverse. From an all-zero
+input, the ideal measurement on every active qubit is zero. The benchmark must
+be invertible after removing its final measurements. Use
+`generate_mirror_circuit=True` to generate the mapped example as a mirror.
 
 ```{code-cell} ipython3
 qc_mirrored = get_benchmark(
@@ -80,11 +84,14 @@ qc_mirrored = get_benchmark(
 qc_mirrored.draw(output="mpl")
 ```
 
-## Self-defined Circuits
+(self-defined-circuits)=
 
-Sometimes you want to derive benchmark circuits from an original circuit that
-you created yourself. You can create a `qiskit.QuantumCircuit`, pass it directly
-to `get_benchmark`, and let MQT Bech compile it for your chosen target backend.
+(custom-circuits)=
+
+## Custom Circuits
+
+Pass a Qiskit `QuantumCircuit` to `get_benchmark` and omit `circuit_size`. This
+example compiles a Bell circuit to the native gate set of IBM Heron.
 
 ```{code-cell} ipython3
 from qiskit import QuantumCircuit
@@ -97,19 +104,22 @@ qc_circuit = get_benchmark(benchmark=qc, level=BenchmarkLevel.NATIVEGATES, targe
 qc_circuit.draw(output="mpl")
 ```
 
-## Self-defined Targets
+(self-defined-targets)=
 
-You can also provide a target manually. Here we build a 5‑qubit
-`GenericBackendV2` with a custom basis and attach a short description before
-feeding it into `get_benchmark`.
+(custom-targets)=
+
+## Custom Targets
+
+Pass your own Qiskit `Target` to select a different gate set. Here the native
+level uses the instructions from a five-qubit `GenericBackendV2` target.
 
 ```{code-cell} ipython3
 from qiskit.providers.fake_provider import GenericBackendV2
 
 standard_gates = ["id", "x", "sx", "rz", "cx"]
-backend = GenericBackendV2(num_qubits=5, basis_gates=standard_gates)
+backend = GenericBackendV2(num_qubits=5, basis_gates=standard_gates, seed=10)
 target = backend.target
-target.description = "Awesome Target"
+target.description = "Custom CX target"
 
 qc_target = get_benchmark(
     benchmark="dj",
@@ -149,70 +159,67 @@ qc_symbolic.draw(output="mpl")
 
 ## Output Formats
 
-The `save_circuit` function lets you export circuits in several
-industry‑standard formats so that they can be run or analyzed by other tools.
+Use {func}`~mqt.bench.output.save_circuit` to write a benchmark to a directory.
+It creates the directory if needed, returns `True` on success, and reports write
+errors on stderr and returns `False`. Files are replaced only after
+serialization succeeds.
 
-Circuits returned by `get_benchmark` store their benchmark name, size, level,
-compilation settings, and explicitly supplied options in
-`qc.metadata["mqt_bench_generation"]`. Export headers include this record; QPY
-also retains it as metadata. Only JSON-serializable options are recorded, so
-custom gates and state-preparation circuits must be stored separately.
-Recompiling a circuit preserves its construction options. When random parameter
-values are assigned, `parameter_seed` records the seed used for that binding.
-With the MQT Core compiler, `qc.metadata["mqt_bench_compiler"]` also records its
-version and requested compiler options. These options include the compilation
-seed, which is independent of the benchmark-generation seed.
+{func}`~mqt.bench.output.write_circuit` also accepts an explicit file path or a
+stream. Use a text stream for OpenQASM and a binary stream for QPY. Supply the
+circuit's generation level and, for native or mapped circuits, its target.
 
-File exports replace the destination only after serialization succeeds.
-`save_circuit` creates missing output directories and reports errors on stderr.
+Circuits returned by `get_benchmark` record the benchmark name, size, level,
+compilation settings, and explicitly supplied JSON-serializable factory options
+in `qc.metadata["mqt_bench_generation"]`. Recompilation preserves the factory
+options. If parameters were bound, the record includes `parameter_seed`. To
+recreate a benchmark that uses a custom gate or state-preparation circuit, keep
+that object separately.
+
+With MQT Core, `qc.metadata["mqt_bench_compiler"]` also records the compiler
+version and options. Its compilation seed is independent of the benchmark seed.
 
 ### OpenQASM2
 
+OpenQASM exports include the generation record in a comment header. OpenQASM 2
+and 3 both use the `.qasm` extension, so use different filenames when saving
+both formats.
+
 ```{code-cell} ipython3
----
-mystnb:
-  text_lexer: 'qasm2'
----
-from pathlib import Path
-from mqt.bench.output import (
-    OutputFormat,
-    save_circuit,
-)
+from mqt.bench.output import OutputFormat, save_circuit
 
-qc = QuantumCircuit(2)
-qc.h(0)
-qc.cx(0, 1)
-
-save_circuit(qc, "qasm2", BenchmarkLevel.INDEP, output_format=OutputFormat.QASM2)
-text_qasm2 = Path("qasm2.qasm").read_text()
-print(text_qasm2)
-Path("qasm2.qasm").unlink()
+save_circuit(qc_target_independent_level, "dj_qasm2", BenchmarkLevel.INDEP, OutputFormat.QASM2)
 ```
 
 ### OpenQASM3
+
+OpenQASM 3 is the default output format. The same circuit can also be written to
+a stream:
 
 ```{code-cell} ipython3
 ---
 mystnb:
   text_lexer: 'qasm3'
 ---
-qc = QuantumCircuit(2)
-qc.h(0)
-qc.cx(0, 1)
+from io import StringIO
+from mqt.bench.output import write_circuit
 
-save_circuit(qc, "qasm3", BenchmarkLevel.INDEP, output_format=OutputFormat.QASM3)
-text_qasm3 = Path("qasm3.qasm").read_text()
-print(text_qasm3)
-Path("qasm3.qasm").unlink()
+stream = StringIO()
+write_circuit(qc_target_independent_level, stream, BenchmarkLevel.INDEP)
+print(stream.getvalue())
 ```
 
 ### QPY
 
-```{code-cell} ipython3
-qc = QuantumCircuit(2)
-qc.h(0)
-qc.cx(0, 1)
+Use QPY to retain the Qiskit circuit and its metadata in a binary file.
 
-save_circuit(qc, "qpy", BenchmarkLevel.INDEP, output_format=OutputFormat.QPY)
-Path("qpy.qpy").unlink()
+```{code-cell} ipython3
+from pathlib import Path
+
+from qiskit import qpy
+
+path = Path("dj.qpy")
+write_circuit(qc_target_independent_level, path, BenchmarkLevel.INDEP, OutputFormat.QPY)
+with path.open("rb") as file:
+    [restored] = qpy.load(file)
+print(restored.metadata["mqt_bench_generation"])
 ```

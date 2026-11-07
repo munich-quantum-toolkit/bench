@@ -17,10 +17,10 @@
 
 # MQT Bench - Benchmarking Software and Design Automation Tools for Quantum Computing
 
-MQT Bench is a quantum circuit benchmark suite with cross-level support, i.e.,
-providing the same benchmark algorithms for different abstraction levels
-throughout the quantum computing software stack. MQT Bench is hosted at
-<https://mqt-bench.app/>. It is part of the
+MQT Bench generates quantum circuits for benchmarking quantum software tools.
+Choose an algorithm, a circuit size, and an abstraction level. You can generate
+circuits with Python, from the command line, or at <https://mqt-bench.app/>. MQT
+Bench is part of the
 [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
@@ -31,34 +31,22 @@ throughout the quantum computing software stack. MQT Bench is hosted at
 
 ## Key Features
 
-- **Comprehensive Quantum Benchmark Suite:** Provides a wide range of quantum
-  circuit benchmarks, including algorithms such as GHZ, QAOA, QFT, Grover, Shor,
-  and many more.
-  [List of benchmarks](https://mqt.readthedocs.io/projects/bench/en/stable/benchmark_selection.html)
-- **Cross-Level Benchmark Generation:** Supports four abstraction
-  levels—algorithmic, target-independent, target-dependent native gates, and
-  target-dependent mapped—enabling benchmarking across the entire quantum
-  software stack.
+- Generate algorithms such as GHZ, QAOA, QFT, Grover, and Shor at the
+  algorithmic, target-independent, native-gate, or mapped level.
+  [Benchmark catalogue](https://mqt.readthedocs.io/projects/bench/en/stable/benchmark_selection.html)
+  ·
   [Abstraction levels](https://mqt.readthedocs.io/projects/bench/en/stable/abstraction_levels.html)
-- **Flexible Target and Gateset Support:** Generate circuits for various
-  hardware targets and native gatesets, including IBM, IonQ, Quantinuum,
-  Rigetti, and more.
-  [Supported devices and gatesets](https://mqt.readthedocs.io/projects/bench/en/stable/parameter.html)
-- **Python API, CLI, and Web Interface:** Use MQT Bench programmatically via
-  Python, from the command line, or through an interactive web
-  interface—whichever fits your workflow.
-  [Usage guide](https://mqt.readthedocs.io/projects/bench/en/stable/usage.html)
-- **Parameterized and Mirror Circuits:** Easily generate parameterized circuits
-  (with random or symbolic parameters) and mirror circuits for robust
-  benchmarking and error detection.
+- Compile to a native gate set or map the circuit to a device model with
+  restricted connectivity.
+  [Supported targets](https://mqt.readthedocs.io/projects/bench/en/stable/parameter.html)
+- Keep parameters symbolic, bind them to random angles, or generate a mirror
+  circuit with a known ideal measurement result.
   [Quickstart](https://mqt.readthedocs.io/projects/bench/en/stable/quickstart.html)
-- **Export to Standard Formats:** Save generated circuits in OpenQASM 2,
-  OpenQASM 3, and QPY formats for compatibility with other quantum tools.
+- Export circuits as OpenQASM 2, OpenQASM 3, or QPY.
   [Output formats](https://mqt.readthedocs.io/projects/bench/en/stable/quickstart.html#output-formats)
-- **Extensible and Open Source:** Actively maintained, fully open-source, and
-  designed for easy integration and extension within the quantum computing
-  community.
-- **PennyLane Dataset:** MQT Bench is also available as a
+  ·
+  [Usage guide](https://mqt.readthedocs.io/projects/bench/en/stable/usage.html)
+- MQT Bench circuits are also available as a
   [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
 If you have any questions, feel free to create a
@@ -121,7 +109,7 @@ To support this endeavor, please consider:
 uv pip install mqt.bench
 ```
 
-The following code gives an example on the usage:
+Generate a five-qubit GHZ circuit at the algorithmic level:
 
 ```python3
 from mqt.bench import BenchmarkLevel, get_benchmark
@@ -140,8 +128,7 @@ print(qc_algorithmic_level.draw())
 
 MQT Bench can be installed on all major operating systems with all
 [officially supported Python versions](https://devguide.python.org/versions/).
-Building (and running) is continuously tested under Linux, macOS, and Windows
-using the
+It is continuously tested under Linux, macOS, and Windows using the
 [latest available system versions for GitHub Actions](https://github.com/actions/runner-images).
 
 ## Cite This
