@@ -131,6 +131,9 @@ docstring-code-format = true
 [tool.ruff.lint.isort]
 known-first-party = [ "mqt.bench" ]
 
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 120
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -172,6 +175,7 @@ extend-select = [
   "TID251", # flake8-tidy-imports
   "TRY",    # tryceratops
   "UP",     # pyupgrade
+  "W505",   # Doc line too long
   "YTT",    # flake8-2020
 ]
 ignore = [

@@ -227,7 +227,7 @@ def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None
 
 @pytest.mark.parametrize("device_name", get_available_device_names())
 def test_get_device_immutability(device_name: str) -> None:
-    """Changes to a device retrieved by get_device should not affect the device in the registry. Same for device names."""
+    """Device lookups return independent targets and name lists."""
     device = get_device(device_name)
     device.description = "dummy_description"
     assert device.description == "dummy_description"
@@ -261,7 +261,7 @@ def test_get_device_immutability(device_name: str) -> None:
 
 @pytest.mark.parametrize("gateset_name", get_available_gateset_names())
 def test_get_gateset_immutability(gateset_name: str) -> None:
-    """Changes to a gateset retrieved by get_gateset should not affect the gateset in the registry. Sames for gateset names."""
+    """Gate set lookups return independent gate lists and name lists."""
     gateset = get_gateset(gateset_name)
     gateset.append("dummy_gate")
     assert "dummy_gate" in gateset
