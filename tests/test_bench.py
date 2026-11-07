@@ -1488,7 +1488,7 @@ def test_write_circuit_unsupported_format(tmp_path: Path) -> None:
     qc = QuantumCircuit(1)
 
     with pytest.raises(MQTBenchExporterError) as exc:
-        write_circuit(qc, tmp_path / "foo.fake", BenchmarkLevel.INDEP, fmt=FakeFormat.FAKE)  # ty: ignore[no-matching-overload]
+        write_circuit(qc, tmp_path / "foo.fake", BenchmarkLevel.INDEP, fmt=FakeFormat.FAKE)  # ty: ignore[invalid-argument-type]
 
     msg = str(exc.value)
     assert "unsupported output format" in msg.lower()
@@ -1794,16 +1794,19 @@ def test_duplicate_benchmark_registration() -> None:
 
 def test_catalogue_and_names_match() -> None:
     """Every entry returned by benchmark_catalogue must appear in benchmark_names and vice-versa."""
-    names = set(get_available_benchmark_names())
+    names = get_available_benchmark_names()
     cat = get_benchmark_catalog()
 
-    assert set(cat) == names, "Name → description mapping is out of sync with benchmark_names()"
+    assert set(cat) == set(names), "Name → description mapping is out of sync with benchmark_names()"
 
     # all descriptions are strings (may be empty)
     assert all(isinstance(desc, str) for desc in cat.values())
 
     for name in names:
         assert get_benchmark_description(name) == cat[name]
+
+    names.clear()
+    assert get_available_benchmark_names() == sorted(cat)
 
 
 @pytest.mark.parametrize(
