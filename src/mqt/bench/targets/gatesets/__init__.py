@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.resources as ir
-from functools import cache
 from math import pi
 from typing import TYPE_CHECKING
 
@@ -34,8 +33,6 @@ _DISCOVERED_MODULES: set[str] = {
     for entry in ir.files(__name__).iterdir()
     if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
-
-_IMPORTED_MODULES: set[str] = set()
 
 __all__ = [
     "get_available_gateset_names",
@@ -74,30 +71,21 @@ def _ensure_loaded(gateset_name: str) -> None:
         msg = f"'{gateset_name}' is not a supported gateset. Known modules: {sorted(_DISCOVERED_MODULES)}"
         raise ValueError(msg)
 
-    if module_name not in _IMPORTED_MODULES:
-        importlib.import_module(f"{__package__}.{module_name}")
-        _IMPORTED_MODULES.add(module_name)
+    importlib.import_module(f"{__package__}.{module_name}")
 
 
 def get_available_gateset_names() -> list[str]:
     """Return a list of available gateset names."""
-    for module in _DISCOVERED_MODULES - _IMPORTED_MODULES:
+    for module in _DISCOVERED_MODULES:
         importlib.import_module(f"{__package__}.{module}")
-        _IMPORTED_MODULES.add(module)
 
-    return sorted(gateset_names()).copy()
-
-
-@cache
-def _get_gateset(gateset_name: str) -> list[str]:
-    """Internal cacheable access. Ensures *lazy* loading."""
-    _ensure_loaded(gateset_name)
-    return get_gateset_by_name(gateset_name)
+    return sorted(gateset_names())
 
 
 def get_gateset(gateset_name: str) -> list[str]:
-    """Return the basis-gate list for gateset_name."""
-    return _get_gateset(gateset_name).copy()
+    """Return a fresh basis-gate list from the registered factory."""
+    _ensure_loaded(gateset_name)
+    return get_gateset_by_name(gateset_name)
 
 
 def _lazy_custom_gates() -> dict[str, Callable[[], Gate]]:

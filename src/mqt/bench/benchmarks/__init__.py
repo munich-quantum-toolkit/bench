@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.resources as ir
-from functools import cache
 from inspect import Parameter, signature
 from typing import TYPE_CHECKING, Any
 
@@ -27,7 +26,7 @@ from ._registry import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Mapping
 
     from qiskit.circuit import QuantumCircuit
 
@@ -37,8 +36,6 @@ _DISCOVERED_BENCHMARKS: set[str] = {
     for entry in ir.files(__name__).iterdir()
     if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("_")
 }
-
-_IMPORTED_BENCHMARKS: set[str] = set()
 
 __all__ = [
     "create_circuit",
@@ -71,17 +68,14 @@ def _ensure_loaded(benchmark_name: str) -> None:
         )
         raise ValueError(msg)
 
-    if benchmark_name not in _IMPORTED_BENCHMARKS:
-        importlib.import_module(f"{__name__}.{benchmark_name}")
-        _IMPORTED_BENCHMARKS.add(benchmark_name)
+    importlib.import_module(f"{__name__}.{benchmark_name}")
 
 
 def get_available_benchmark_names() -> list[str]:
     """Return a list of available benchmark names."""
-    return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names())).copy()
+    return sorted(_DISCOVERED_BENCHMARKS | set(benchmark_names()))
 
 
-@cache
 def get_benchmark_description(benchmark_name: str) -> str:
     """Return the benchmark description given a benchmark name."""
     _ensure_loaded(benchmark_name)
@@ -93,13 +87,6 @@ def get_benchmark_catalog() -> Mapping[str, str]:
     for benchmark_name in get_available_benchmark_names():
         _ensure_loaded(benchmark_name)
     return benchmark_catalog()
-
-
-@cache
-def _get_factory(benchmark_name: str) -> Callable[..., QuantumCircuit]:
-    """Internal factory that can be cached."""
-    _ensure_loaded(benchmark_name)
-    return get_benchmark_by_name(benchmark_name)
 
 
 # ruff:file-ignore[any-type]
@@ -122,7 +109,8 @@ def create_circuit(benchmark_name: str, circuit_size: int, /, *args: Any, **kwar
         msg = "`circuit_size` must be a positive integer when `benchmark` is a str."
         raise ValueError(msg)
 
-    factory = _get_factory(benchmark_name)
+    _ensure_loaded(benchmark_name)
+    factory = get_benchmark_by_name(benchmark_name)
     if "seed" in kwargs:
         parameters = signature(factory).parameters
         if "seed" not in parameters and not any(p.kind == Parameter.VAR_KEYWORD for p in parameters.values()):

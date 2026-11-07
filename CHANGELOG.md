@@ -44,6 +44,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ♻️ Create gate sets and devices on each lookup. Custom factories must return
+  independently mutable results ([#1133]) ([**@simon1hofmann**])
 - ⚡ Bind random parameters in batches, omit empty IQPE feedback conditions, and
   reuse Quantum Metropolis inverse circuits ([#1131]) ([**@simon1hofmann**])
 - ⬆️ Require Qiskit 2.5.2 and NumPy 2, remove older Qiskit fallbacks, and use
@@ -310,6 +312,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
+[#1133]: https://github.com/munich-quantum-toolkit/bench/pull/1133
 [#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131
 [#1125]: https://github.com/munich-quantum-toolkit/bench/pull/1125
 [#1124]: https://github.com/munich-quantum-toolkit/bench/pull/1124

@@ -19,6 +19,9 @@ _REGISTRY: dict[str, _GatesetFactory] = {}
 def register_gateset(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetFactory]:
     """Decorator to register a gateset factory under a unique gateset_name.
 
+    The factory runs on every lookup and must return a new basis-gate list
+    that shares no mutable data with other results.
+
     Arguments:
         gateset_name: unique identifier for the gateset (e.g., ``"ibm_heron"``).
 

@@ -14,7 +14,7 @@ import json
 from copy import deepcopy
 from enum import Enum, auto
 from importlib.metadata import version
-from typing import TYPE_CHECKING, Literal, Unpack, assert_never, overload
+from typing import TYPE_CHECKING, Literal, Unpack, assert_never
 
 import numpy as np
 from qiskit import generate_preset_pass_manager
@@ -262,42 +262,6 @@ def _get_mqt_benchmark(
     return compiled
 
 
-@overload
-def get_benchmark_alg(
-    benchmark: str,
-    circuit_size: int,
-    *,
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_alg(
-    benchmark: QuantumCircuit,
-    circuit_size: None = None,
-    *,
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_alg(
-    benchmark: str | QuantumCircuit,
-    circuit_size: int | None = None,
-    *,
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
 def get_benchmark_alg(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
@@ -310,7 +274,7 @@ def get_benchmark_alg(
 
     Arguments:
         benchmark: Name of a registered benchmark or a circuit to compile.
-        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
         generate_mirror_circuit: Append the inverse and measure the active qubits.
         random_parameters: Bind free parameters to sampled angles when True.
         kwargs: Additional keyword arguments passed to the circuit creation.
@@ -330,48 +294,6 @@ def get_benchmark_alg(
     return qc
 
 
-@overload
-def get_benchmark_indep(
-    benchmark: str,
-    circuit_size: int,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_indep(
-    benchmark: QuantumCircuit,
-    circuit_size: None = None,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_indep(
-    benchmark: str | QuantumCircuit,
-    circuit_size: int | None = None,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
 def get_benchmark_indep(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None = None,
@@ -386,7 +308,7 @@ def get_benchmark_indep(
 
     Arguments:
         benchmark: Name of a registered benchmark or a circuit to compile.
-        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
         opt_level: Qiskit optimization level. Ignored by MQT Core.
         compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
         generate_mirror_circuit: Append the inverse and measure the active qubits.
@@ -412,51 +334,6 @@ def get_benchmark_indep(
     if generate_mirror_circuit:
         return _create_mirror_circuit(qc_processed)
     return qc_processed
-
-
-@overload
-def get_benchmark_native_gates(
-    benchmark: str,
-    circuit_size: int,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_native_gates(
-    benchmark: QuantumCircuit,
-    circuit_size: None,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_native_gates(
-    benchmark: str | QuantumCircuit,
-    circuit_size: int | None,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
 
 
 def get_benchmark_native_gates(
@@ -557,51 +434,6 @@ def get_benchmark_native_gates(
     return compiled_circuit
 
 
-@overload
-def get_benchmark_mapped(
-    benchmark: str,
-    circuit_size: int,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_mapped(
-    benchmark: QuantumCircuit,
-    circuit_size: None,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark_mapped(
-    benchmark: str | QuantumCircuit,
-    circuit_size: int | None,
-    target: Target,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
 def get_benchmark_mapped(
     benchmark: str | QuantumCircuit,
     circuit_size: int | None,
@@ -658,54 +490,6 @@ def get_benchmark_mapped(
     return mapped_circuit
 
 
-@overload
-def get_benchmark(
-    benchmark: str,
-    level: BenchmarkLevel,
-    circuit_size: int,
-    target: Target | None = None,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark(
-    benchmark: QuantumCircuit,
-    level: BenchmarkLevel,
-    circuit_size: None,
-    target: Target | None = None,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
-@overload
-def get_benchmark(
-    benchmark: str | QuantumCircuit,
-    level: BenchmarkLevel,
-    circuit_size: int | None = None,
-    target: Target | None = None,
-    opt_level: int = 2,
-    *,
-    compiler: Literal["qiskit", "mqt"] = "qiskit",
-    generate_mirror_circuit: bool = False,
-    random_parameters: bool = True,
-    **kwargs: Unpack[ConfigurationOptions],
-) -> QuantumCircuit:
-    pass
-
-
 def get_benchmark(
     benchmark: str | QuantumCircuit,
     level: BenchmarkLevel,
@@ -723,7 +507,7 @@ def get_benchmark(
     Arguments:
         benchmark: Name of a registered benchmark or a circuit to compile.
         level: Benchmark abstraction level.
-        circuit_size: Size of the benchmark to generate. Omit or pass None for a QuantumCircuit.
+        circuit_size: Size of the benchmark to generate. Omit or pass ``None`` for a QuantumCircuit.
         target: Compilation target. Required at the native and mapped levels.
         opt_level: Qiskit optimization level. Ignored by MQT Core.
         compiler: Compiler to use at compilation levels. Choose "qiskit" or "mqt".
