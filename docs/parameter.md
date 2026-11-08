@@ -41,6 +41,9 @@ your own Qiskit circuit.
   that can be inverted after its final measurements are removed. Mid-circuit
   measurements and resets, for example, prevent inversion and raise
   `ValueError`.
+- **`encoding`**: Apply `"steane"` or `"shor"` at `BenchmarkLevel.ALG`, or use
+  `""` for no encoding. Other levels ignore this option with a warning. See
+  {doc}`error_correction` for examples and export limitations.
 
 ## MQT Core compiler
 
