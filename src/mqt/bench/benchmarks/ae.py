@@ -26,7 +26,8 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
         probability: Probability of the good state, from 0 to 1 inclusive.
 
     Returns:
-        A circuit that measures the evaluation register and the target qubit.
+        A circuit that measures the evaluation register followed by the target qubit.
+        Evaluation qubit 0 is the most significant phase bit.
     """
     if num_qubits < 2:
         msg = "Number of qubits must be at least 2 (1 evaluation + 1 target)."
