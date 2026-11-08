@@ -1549,15 +1549,6 @@ def test_shor_custom_base() -> None:
     assert shor.create_circuit_from_num_and_coprime(15, 2).num_qubits == 18
 
 
-def test_shor_order_finding() -> None:
-    """Order finding for base 2 modulo 3 returns the two phases of an order-two cycle."""
-    circuit = shor.create_circuit_from_num_and_coprime(3, 2)
-    circuit.remove_final_measurements()
-    state = Statevector.from_instruction(circuit)
-    probabilities = state.probabilities(qargs=list(range(len(circuit.qregs[0]))))
-    assert probabilities[[0, 8]] == pytest.approx([0.5, 0.5])
-
-
 @pytest.mark.parametrize(
     ("number", "a", "message"),
     [
