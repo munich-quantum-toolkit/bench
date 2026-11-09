@@ -226,14 +226,14 @@ class Shor:
         iphi_add_n = phi_add_n.inverse()
         c_phi_add_n = phi_add_n.control(1, annotated=False)
 
-        # Apply the multiplication gates as showed in
-        # the report in order to create the exponentiation
+        multipliers: dict[int, QuantumCircuit] = {}
         for i in range(2 * num_bits_necessary):
             partial_a = pow(a, pow(2, i), to_be_factored_number)
-            modulo_multiplier = self._controlled_multiple_mod_n(
-                num_bits_necessary, to_be_factored_number, partial_a, c_phi_add_n, iphi_add_n, qft, iqft
-            )
-            circuit.compose(modulo_multiplier, [up_qreg[i], *down_qreg, *aux_qreg], inplace=True)
+            if partial_a not in multipliers:
+                multipliers[partial_a] = self._controlled_multiple_mod_n(
+                    num_bits_necessary, to_be_factored_number, partial_a, c_phi_add_n, iphi_add_n, qft, iqft
+                )
+            circuit.compose(multipliers[partial_a], [up_qreg[i], *down_qreg, *aux_qreg], inplace=True)
 
         return circuit
 
