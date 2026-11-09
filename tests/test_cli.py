@@ -99,10 +99,11 @@ def test_mqt_cli_errors(
 
 
 def test_mqt_cli_compilation_failure(script_runner: ScriptRunner) -> None:
-    """Report a Core synthesis failure as a CLI usage error."""
+    """Report an unsupported MQT target as a CLI usage error with an alternative."""
     result = _generate(script_runner, "nativegates", "qft", 4, "--compiler", "mqt", "--target", "clifford+t")
     assert result.returncode == 2
-    assert "requires a single-qubit synthesis basis" in result.stderr
+    assert "continuous single-qubit synthesis basis" in result.stderr
+    assert 'compiler="qiskit"' in result.stderr
     assert not result.stdout
 
 
