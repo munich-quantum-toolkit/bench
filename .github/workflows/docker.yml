@@ -83,4 +83,5 @@ jobs:
         run: |
           docker run --rm --network none mqt-bench:pr \
             --compiler mqt --algorithm ghz --num-qubits 3 --level mapped --target iqm_crystal_5 \
-            | grep '^// Compiler: mqt '
+            | tee "$RUNNER_TEMP/core-smoke.qasm"
+          grep -q '^// Compiler: mqt ' "$RUNNER_TEMP/core-smoke.qasm"

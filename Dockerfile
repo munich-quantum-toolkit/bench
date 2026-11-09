@@ -10,7 +10,9 @@ RUN apt-get update \
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /usr/local/bin/uv
 
-ENV UV_LINK_MODE=copy \
+# Native dependencies must run on CPUs other than the build runner.
+ENV DEPLOY=ON \
+    UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -20,11 +22,11 @@ WORKDIR /src
 # Limit memory use in native dependency builds.
 ARG CMAKE_BUILD_PARALLEL_LEVEL=2
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=mqt-bench-deploy,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
 COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=mqt-bench-deploy,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable
 
 FROM base AS runtime
