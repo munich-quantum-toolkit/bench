@@ -242,6 +242,7 @@ def test_mirror_without_qiskit_transpilation(level: BenchmarkLevel, monkeypatch:
         ("teleportation", 3, {}, BenchmarkLevel.NATIVEGATES),
         ("modular_adder", 4, {}, BenchmarkLevel.NATIVEGATES),
         ("hrs_cumulative_multiplier", 5, {}, BenchmarkLevel.MAPPED),
+        ("quantum_metropolis", 5, {}, BenchmarkLevel.NATIVEGATES),
     ],
 )
 def test_benchmark_levels(benchmark: str, size: int, options: ConfigurationOptions, level: BenchmarkLevel) -> None:
@@ -334,18 +335,16 @@ def test_compiled_input_layout_is_not_mutated() -> None:
     assert mapped.layout.final_index_layout() == original_layout
 
 
-@pytest.mark.parametrize("native", [False, True])
-def test_incomplete_target_requires_synthesis_basis(*, native: bool) -> None:
-    """Even native inputs need a complete basis for target compilation."""
+@pytest.mark.parametrize("mapped", [False, True])
+def test_discrete_targets_rejected(*, mapped: bool) -> None:
+    """Reject custom discrete targets even when the input gates are native."""
     target = Target(num_qubits=1)
     target.add_instruction(RZGate(np.pi / 4))
     source = QuantumCircuit(1)
-    if native:
-        source.rz(np.pi / 4, 0)
-    else:
-        source.h(0)
-    with pytest.raises(RuntimeError, match="requires a single-qubit synthesis basis"):
-        get_benchmark_native_gates(source, None, target, compiler="mqt")
+    source.rz(np.pi / 4, 0)
+    compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
+    with pytest.raises(ValueError, match="continuous synthesis basis"):
+        compile_circuit(source, None, target, compiler="mqt")
 
 
 @pytest.mark.parametrize("mapped", [False, True])
