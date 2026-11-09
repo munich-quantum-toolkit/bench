@@ -66,8 +66,6 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
-- 🐛 Compile Quantum Metropolis with MQT Core and reject unsupported discrete
-  targets with compiler guidance ([#1150]) ([**@simon1hofmann**])
 - 🐛 Preserve the caller's layout when mirroring a routed circuit ([#1136])
   ([**@simon1hofmann**])
 - 🐛 Preserve construction options on recompilation, avoid mirror register-name
@@ -315,7 +313,6 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
-[#1150]: https://github.com/munich-quantum-toolkit/bench/pull/1150
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
 [#1133]: https://github.com/munich-quantum-toolkit/bench/pull/1133
 [#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131
