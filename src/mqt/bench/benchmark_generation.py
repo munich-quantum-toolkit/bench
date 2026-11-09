@@ -392,7 +392,7 @@ def get_benchmark_native_gates(
             generate_mirror_circuit=generate_mirror_circuit,
         )
     if {"h", "t"} <= target.operation_names <= get_target_for_gateset("clifford+t", circuit.num_qubits).operation_names:
-        from qiskit.transpiler import PassManager  # ruff:ignore[import-outside-top-level]
+        from qiskit.transpiler import PassManager, TransformationPass  # ruff:ignore[import-outside-top-level]
         from qiskit.transpiler.passes import (  # ruff:ignore[import-outside-top-level]
             BasisTranslator,
             HighLevelSynthesis,
@@ -417,14 +417,14 @@ def get_benchmark_native_gates(
             mirror_pm.append(RecursiveOptimizeCliffordT(basis_gates=basis_gates))
         mirror_pm.append(BasisTranslator(SessionEquivalenceLibrary, sorted(target.operation_names), target))
 
-        class RecursiveSynthesizeRZRotations(SynthesizeRZRotations):
-            """Also synthesize rotations in control-flow blocks, which Qiskit's pass skips."""
+        class RecursiveSynthesizeRZRotations(TransformationPass):
+            """Synthesize rotations inside control-flow blocks."""
 
             def run(self, dag: DAGCircuit) -> DAGCircuit:
                 for node in dag.control_flow_op_nodes():
                     op = node.op
                     dag.substitute_node(node, op.replace_blocks([self(block) for block in op.blocks]))
-                return super().run(dag)
+                return SynthesizeRZRotations().run(dag)
 
         synthesis_pm = PassManager([
             BasisTranslator(SessionEquivalenceLibrary, sorted(clifford_t_rotations.operation_names - {"rx", "ry"})),
