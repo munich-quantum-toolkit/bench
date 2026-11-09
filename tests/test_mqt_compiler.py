@@ -335,20 +335,15 @@ def test_compiled_input_layout_is_not_mutated() -> None:
     assert mapped.layout.final_index_layout() == original_layout
 
 
-@pytest.mark.parametrize("target_name", ["clifford+t", "fixed_rz"])
 @pytest.mark.parametrize("mapped", [False, True])
-def test_discrete_targets_rejected(target_name: str, *, mapped: bool) -> None:
-    """Reject discrete targets with guidance even for already-native inputs."""
+def test_discrete_targets_rejected(*, mapped: bool) -> None:
+    """Reject custom discrete targets even when the input gates are native."""
+    target = Target(num_qubits=1)
+    target.add_instruction(RZGate(np.pi / 4))
     source = QuantumCircuit(1)
-    if target_name == "clifford+t":
-        target = get_target_for_gateset(target_name, 2)
-        source.h(0)
-    else:
-        target = Target(num_qubits=1)
-        target.add_instruction(RZGate(np.pi / 4))
-        source.rz(np.pi / 4, 0)
+    source.rz(np.pi / 4, 0)
     compile_circuit = get_benchmark_mapped if mapped else get_benchmark_native_gates
-    with pytest.raises(ValueError, match="continuous single-qubit synthesis basis"):
+    with pytest.raises(ValueError, match="continuous synthesis basis"):
         compile_circuit(source, None, target, compiler="mqt")
 
 

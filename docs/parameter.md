@@ -81,9 +81,8 @@ mqt-bench --compiler mqt --algorithm ghz --num-qubits 3 \
   --level mapped --target iqm_crystal_5 --compiler-seed 17 --mapping-trials 8 --save
 ```
 
-MQT Core compilation currently requires a continuous single-qubit synthesis
-basis. Use `compiler="qiskit"` for pure `clifford+t` targets;
-`clifford+t+rotations` also works with `compiler="mqt"`. See the
+For `compiler="mqt"`, use targets with a continuous synthesis basis, such as
+`clifford+t+rotations`. Pure `clifford+t` requires `compiler="qiskit"`. See the
 [target compilation guide] for supported bases and control flow.
 
 MQT Core output filenames contain `_mqt_`. Circuit metadata and QASM/QPY exports

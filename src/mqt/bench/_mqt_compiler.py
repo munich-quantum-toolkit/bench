@@ -46,17 +46,12 @@ def _target_environment(target: Target, num_qubits: int, *, mapped: bool) -> cor
     if mapped and (target.num_qubits is None or target.num_qubits < num_qubits):
         msg = "The MQT mapped target must have at least as many qubits as the circuit."
         raise ValueError(msg)
-    environment = core.TargetEnvironment.from_qiskit(
-        target, native_num_qubits=None if mapped else num_qubits, strict=True
-    )
+    env = core.TargetEnvironment.from_qiskit(target, native_num_qubits=None if mapped else num_qubits, strict=True)
     # Remove this restriction when adopting Core's discrete-target compilation support (core#2979).
-    if environment.target.synthesis_basis is None:
-        msg = (
-            "The MQT compiler currently requires a continuous single-qubit synthesis basis. "
-            'Use compiler="qiskit" or a target such as "clifford+t+rotations".'
-        )
+    if env.target.synthesis_basis is None:
+        msg = 'MQT compilation requires a continuous synthesis basis. Use compiler="qiskit" for discrete targets.'
         raise ValueError(msg)
-    return environment
+    return env
 
 
 def _validate_target(circuit: QuantumCircuit, target: Target, *, mapped: bool, sites: list[int] | None = None) -> None:
