@@ -6,115 +6,91 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
-### Custom target factories
+### Dependencies
 
-Gate-set and device factories now run on every lookup. Each factory registered
-with `register_gateset` must return a new list. Each factory registered with
-`register_device` must return a new target with independent mutable gates and
-calibration data. Allocate these objects inside the factory instead of returning
-a shared object. This lets callers change one result without changing later
-results.
-
-### HHL and IQPE results
-
-HHL now measures a `success` register. Read the system bit in `c` only for shots
-where `success[0]` is one. Its successful state solves the documented matrix.
-
-IQPE stores its phase estimate in the same bit order as ordinary QPE. Remove any
-reversal of its result strings. Inexact IQPE now selects the same phase as
-`qpeinexact` with the default seed, so previously generated instances differ.
-
-### Seeded parameter values
-
-An explicit `seed` now controls random parameter binding as well as benchmark
-construction. Seeded variational circuits therefore have different numeric
-parameters than before. Calls without a seed retain the previous binding seed of
-10.
-
-In generation metadata, read `parameter_seed` for the seed used to bind random
-parameter values. Recompilation preserves the original factory arguments in
-`options`, including the construction seed.
-
-### Clifford+T compilation
-
-Native Clifford+T compilation always uses gridsynth. The Solovay-Kitaev fallback
-is removed. The synthesized gate sequences and gate counts can differ between
-Qiskit versions.
-
-The requested optimization level applies before synthesis. For nonzero levels,
-Qiskit's public `OptimizeCliffordT` pass also runs after synthesis, including
-inside control-flow blocks. A final basis translation enforces the target gate
-set. Structured loops and loop jumps remain supported. Mirrors use the exact
-inverse of the synthesized circuit and receive the same optimization without
-another approximate synthesis.
-
-Native Clifford+T circuits retain qubit permutations as gates, so QASM exports
-preserve their semantics without relying on Qiskit layout metadata.
-
-### Qiskit 2.5.2 and NumPy 2 minimums
-
-MQT Bench requires Qiskit 2.5.2 or newer and NumPy 2 or newer. Update lower
-dependency pins and upgrade Qiskit:
+MQT Bench requires Qiskit 2.5.2 and NumPy 2 or newer. Update dependency pins and
+upgrade:
 
 ```console
-python -m pip install --upgrade "qiskit>=2.5.2,<3"
+python -m pip install --upgrade "qiskit>=2.5.2,<3" "numpy>=2"
 ```
 
-Qiskit 2.5.2 fixes incorrect Clifford+T optimization for targets without SX
-gates. Qiskit's Linux wheels now require glibc 2.28 or newer.
+Qiskit's Linux wheels require glibc 2.28 or newer. To import OpenQASM 3 with
+Qiskit, install `qiskit[qasm3-import]` explicitly; MQT Bench no longer includes
+it. QASM 3 export is unchanged.
 
-To load OpenQASM 3 files with Qiskit, install `qiskit[qasm3-import]` explicitly.
-MQT Bench no longer installs the importer automatically. QASM 3 export is
-unchanged.
-
-### Device models
+### Targets and native gates
 
 - Replace `rigetti_ankaa_84` with `rigetti_cepheus_108`.
+- Replace the `ionq_aria` gate set with `ionq_forte` and the `ionq_aria_25`
+  device with `ionq_forte_36`.
 - The `ibm_falcon` and `ibm_eagle` gate sets and `ibm_falcon_27`,
   `ibm_falcon_127`, `ibm_eagle_127`, and `ibm_heron_133` devices are removed.
-  Use `ibm_heron` and `ibm_heron_156`, or a custom Qiskit target for older
-  hardware.
-- Replace the IonQ Aria model with `ionq_forte_36`.
+  Use `ibm_heron` and `ibm_heron_156`, or a custom target for older hardware.
+- IonQ GPI/GPI2 phases now use radians: multiply old values in turns by
+  `2 * pi`. The custom `MSGate` and `ZZGate` classes are removed; replace
+  `ZZGate(theta)` with Qiskit's `RZZGate(2 * pi * theta)`.
+- Rigetti uses Qiskit's `RXGate` instead of the custom RX classes, with target
+  names `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg`. Its entangling gate is now
+  `cz` instead of `iswap`.
 
-### Native gates
+### Custom target factories
 
-- IonQ GPI/GPI2 phases now use radians. The custom MS/ZZ classes are removed;
-  Forte uses Qiskit's standard `RZZGate`.
-- Rigetti uses standard RX gates named `rxpi`, `rxpidg`, `rxpi2`, and `rxpi2dg`.
+Factories run on every lookup. `register_gateset` factories must return a fresh
+list; `register_device` factories must return a fresh target with independent
+mutable gates and calibration data. Allocate results inside the factory.
 
-### Native compilation
+### Benchmark results
 
-Target-independent and native circuits retain qubit permutations as gates.
-Remove any manual permutation correction applied to their QASM exports.
+- Arithmetic benchmarks measure only the sum or product into `result`. Read
+  `pub_result.data.result` instead of `pub_result.data.meas`. Carry-out, when
+  present, is the most-significant bit. Mirrors still measure all active qubits.
+- HHL adds a `success` register. Read the system bit in `c` only for shots where
+  `success[0]` is one.
+- IQPE uses ordinary QPE bit order: remove any reversal of result strings.
+  Inexact IQPE now selects the same phase as `qpeinexact` with the default seed,
+  so previously generated instances differ.
+- Fixed-width `vbe_ripple_carry_adder` now handles carry propagation correctly.
+  Regenerate reference results for affected inputs.
+- QAOA now adds final measurements. Remove extra `measure_all()` calls, or use
+  `qc.remove_final_measurements(inplace=True)` to omit measurements.
 
-`get_target_for_gateset` no longer adds simulated calibration or connectivity.
-Native compilation ignores these constraints and device capacity even when
-passed a device target, including for mirrors. Use the mapped level to apply
-device constraints.
-
-Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
-`break` and `continue`.
-
-### Arithmetic result measurements
-
-Adder and multiplier benchmarks now measure only the sum or product into
-`result`. Read `pub_result.data.result` instead of `pub_result.data.meas`. Input
-and helper qubits are no longer measured. Carry-out, when present, is the
-most-significant result bit.
-
-To measure all qubits, apply this before compilation:
+To measure all arithmetic qubits, apply this before compilation:
 
 ```python
 qc.remove_final_measurements()
 qc.measure_all()
 ```
 
-Mirrors still measure all active qubits.
+### Seeds and input validation
 
-### QAOA final measurements
+An explicit `seed` now controls both construction and random parameter binding.
+Seeded variational circuits therefore have different numeric parameters. Without
+an explicit seed, parameter binding still uses seed 10.
 
-QAOA now adds final measurements. Remove any extra `measure_all()` workaround.
-Use `qc.remove_final_measurements(inplace=True)` to omit measurements.
+Width and option-range checks now raise `ValueError` before construction. In
+particular, `bv`, `dj`, `grover`, and `qwalk` require at least two qubits. Use
+positive multiples of 13 for `seven_qubit_steane_code` and 17 for
+`shors_nine_qubit_code`, and nonnegative depths and repetitions. Check the
+[benchmark catalogue](https://mqt.readthedocs.io/projects/bench/en/latest/benchmark_selection.html)
+for each factory's constraints.
+
+### Compilation and QASM exports
+
+Target-independent and native circuits retain qubit permutations as gates.
+Remove manual permutation corrections from their QASM exports.
+
+`get_target_for_gateset` no longer adds simulated calibration or connectivity.
+Native compilation ignores connectivity, calibration, and device capacity,
+including for mirrors. Use the mapped level to apply placement constraints.
+
+Qiskit's native Clifford+T compilation uses gridsynth and optimizes after
+synthesis at nonzero optimization levels, including in loops and mirrors. The
+Solovay-Kitaev fallback is removed. Gate sequences and counts can differ between
+Qiskit versions.
+
+Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
+`break` and `continue`.
 
 ## [2.3.0]
 
