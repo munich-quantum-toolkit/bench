@@ -18,9 +18,11 @@
 # MQT Bench - Benchmarking Software and Design Automation Tools for Quantum Computing
 
 MQT Bench generates quantum circuits for benchmarking quantum software tools.
-Choose an algorithm, a circuit size, and an abstraction level. You can generate
-circuits with Python, from the command line, or at <https://mqt-bench.app/>. MQT
-Bench is part of the
+Choose an algorithm, a circuit size, and an abstraction level. Generate circuits
+at <https://mqt-bench.app/>, with Python, or from the command line. Our
+[2026 QCE paper](https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_and_ai_training.pdf)
+describes programmable benchmark generation and its use cases. MQT Bench is part
+of the
 [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
@@ -137,24 +139,22 @@ Please cite the work that best fits your use case.
 
 ### MQT Bench (the tool)
 
-When citing the software itself or results produced with it, cite the MQT Bench
-paper:
+For programmable benchmark generation with MQT Bench, cite our 2026 QCE paper:
 
 ```bibtex
-@article{quetschlich2023mqtbench,
-  title        = {{{MQT Bench}}: {Benchmarking Software and Design Automation Tools for Quantum Computing}},
-  shorttitle   = {{MQT Bench}},
-  author       = {Quetschlich, Nils and Burgholzer, Lukas and Wille, Robert},
-  year         = {2023},
-  journal      = {{Quantum}},
-  volume       = {7},
-  pages        = {1062},
-  doi          = {10.22331/q-2023-07-20-1062},
-  note         = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}},
-  eprint       = {2204.13719},
-  eprinttype   = {arxiv}
+@inproceedings{hofmann2026quantumbenchmarkgeneration,
+  title     = {Quantum Benchmark Generation for Software Evaluation, Hardware Design, and {AI} Training},
+  author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
+  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
+  year      = {2026},
+  url       = {https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_and_ai_training.pdf}
 }
 ```
+
+For the original benchmark suite, cite
+[Quetschlich et al. (2023)](https://doi.org/10.22331/q-2023-07-20-1062).
+Both references are available in
+[CITATION.bib](https://github.com/munich-quantum-toolkit/bench/blob/main/CITATION.bib).
 
 ### The Munich Quantum Toolkit (the project)
 
