@@ -51,13 +51,13 @@ another approximate synthesis.
 Native Clifford+T circuits retain qubit permutations as gates, so QASM exports
 preserve their semantics without relying on Qiskit layout metadata.
 
-### Qiskit 2.5.2 and NumPy 2 minimums
+### Dependency minimums
 
-MQT Bench requires Qiskit 2.5.2 or newer and NumPy 2 or newer. Update lower
-dependency pins and upgrade Qiskit:
+MQT Bench requires MQT Core 4.2, Qiskit 2.5.2, and NumPy 2 or newer. Update
+lower dependency pins and upgrade:
 
 ```console
-python -m pip install --upgrade "qiskit>=2.5.2,<3"
+python -m pip install --upgrade "mqt-core>=4.2.0" "qiskit>=2.5.2,<3"
 ```
 
 Qiskit 2.5.2 fixes incorrect Clifford+T optimization for targets without SX
