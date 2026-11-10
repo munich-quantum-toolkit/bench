@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.14-slim-trixie AS base
-
-FROM base AS build
+FROM python:3.14-slim-trixie AS build
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
@@ -12,10 +10,9 @@ COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c12
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON_DOWNLOADS=never \
-    UV_PROJECT_ENVIRONMENT=/opt/venv
+    UV_PYTHON_DOWNLOADS=never
 
-WORKDIR /src
+WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,id=mqt-bench,target=/root/.cache/uv \
@@ -25,10 +22,10 @@ COPY . .
 RUN --mount=type=cache,id=mqt-bench,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable
 
-FROM base AS runtime
+FROM python:3.14-slim-trixie AS runtime
 
-COPY --from=build /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+COPY --from=build /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 RUN useradd --system --user-group --create-home --home-dir /mqt-bench mqt-bench
 USER mqt-bench
