@@ -3,10 +3,9 @@
 ## Programmable benchmark generation
 
 For programmable benchmark generation with MQT Bench, cite
-{cite:p}`hofmann2026quantumbenchmarkgeneration`. The
-[2026 QCE paper](https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_and_ai_training.pdf)
-describes the generation framework and its use in software evaluation, hardware
-design, and AI training.
+{cite:p}`hofmann2026quantumbenchmarkgeneration`. The paper describes the
+generation framework and its use in software evaluation, hardware design, and AI
+training.
 
 ```bibtex
 @inproceedings{hofmann2026quantumbenchmarkgeneration,
@@ -14,7 +13,7 @@ design, and AI training.
   author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
   booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
   year      = {2026},
-  url       = {https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_and_ai_training.pdf}
+  note      = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}}
 }
 ```
 

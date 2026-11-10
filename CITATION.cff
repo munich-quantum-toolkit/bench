@@ -34,4 +34,4 @@ preferred-citation:
       given-names: Robert
   collection-title: IEEE International Conference on Quantum Computing and Engineering (QCE)
   year: 2026
-  url: https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_and_ai_training.pdf
+  notes: MQT Bench is available at https://mqt-bench.app/

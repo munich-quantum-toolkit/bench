@@ -55,10 +55,7 @@ email = "burgholzer@me.com"
 Homepage = "https://mqt-bench.app/"
 Documentation = "https://mqt.readthedocs.io/projects/bench/"
 Source = "https://github.com/munich-quantum-toolkit/bench"
-Paper = """\
-  https://www.cda.cit.tum.de/files/eda/2026_qce_quantum_benchmark_generation_for_software_evaluation_hardware_design_an\
-  d_ai_training.pdf\
-  """
+Paper = "https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation"
 "Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
 Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
 Research = "https://www.cda.cit.tum.de/research/quantum/"
