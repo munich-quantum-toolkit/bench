@@ -38,8 +38,8 @@ that minor releases may include breaking changes.
 - ✨ Add `SPDX-License-Identifier: MIT` to generated circuit headers ([#1083])
   ([**@simon1hofmann**])
 - ✨ Add Bell-pair benchmark ([#1071]) ([**@NiranjanRSoorej06**])
-- 👷 Enable testing on Python 3.15 ([#1054]) ([**@denialhaag**])
 - ✨ Add quantum teleportation benchmark ([#1045]) ([**@AsharHusain**])
+- 👷 Enable testing on Python 3.15 ([#1054]) ([**@denialhaag**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
 
