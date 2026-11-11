@@ -14,6 +14,9 @@ mystnb:
 Use the [web interface](https://mqt-bench.app/) to generate and download a
 benchmark interactively, or use Python or the CLI to automate generation.
 
+When you use the web interface to generate and download circuits, also cite the
+2026 paper (see {doc}`references`).
+
 ## Usage via the `mqt-bench` Python package
 
 After {doc}`installation`, pass a name from the

@@ -156,10 +156,10 @@ Bench paper:
 }
 ```
 
-Our
+If you use the [web interface](https://mqt-bench.app/) to generate and download
+circuits, please also cite our
 [2026 QCE paper](https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation)
-describes use cases for software evaluation, hardware design, and AI training.
-Please cite it additionally when discussing these use cases.
+on use cases for software evaluation, hardware design, and AI training.
 
 ### The Munich Quantum Toolkit (the project)
 

@@ -24,7 +24,8 @@ When citing MQT Bench or results produced with it, use the 2023 paper
 ## Programmable benchmark generation
 
 Our 2026 QCE paper describes use cases for software evaluation, hardware design,
-and AI training. When discussing these use cases, also cite
+and AI training. When using the [web interface](https://mqt-bench.app/) to
+generate and download circuits, please also cite
 {cite:p}`hofmann2026quantumbenchmarkgeneration`:
 
 ```bibtex
