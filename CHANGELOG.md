@@ -14,10 +14,8 @@ that minor releases may include breaking changes.
 
 ### Added
 
-- ✨ Add Shor and Steane encoding at algorithm level. See the
-  [error-correction guide](https://mqt.readthedocs.io/projects/bench/en/latest/error_correction.html)
-  for opaque logical gates and export limits ([#930]) ([**@Felix-Gundlach**],
-  [**@emilkanic0909**], [**@SalehAlsherif**])
+- ✨ Add Shor and Steane encoding at algorithm level ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 - ✨ Add QIR text and bitcode export with Base and Adaptive profiles ([#1094])
   ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add MQT Core compilation for target-independent, native-gate, and mapped
@@ -100,7 +98,7 @@ that minor releases may include breaking changes.
 
 ### Removed
 
-- 🔥 Stop installing the QASM 3 importer by default ([#1120])
+- 🔥 Stop installing the OpenQASM 3 importer by default ([#1120])
   ([**@simon1hofmann**])
 - 🔥 Remove the unused scikit-learn dependency ([#1114]) ([**@simon1hofmann**])
 - 🔥 Remove the `ionq_aria` gate set and `ionq_aria_25` device ([#1086])

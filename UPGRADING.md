@@ -9,7 +9,13 @@ of changes including minor and patch releases, please refer to the
 ### Dependencies
 
 MQT Bench requires Qiskit 2.5.2 and NumPy 2 or newer. Update dependency pins and
-upgrade:
+upgrade with [uv](https://docs.astral.sh/uv/):
+
+```console
+uv pip install --upgrade "qiskit>=2.5.2,<3" "numpy>=2"
+```
+
+Alternatively, use `pip`:
 
 ```console
 python -m pip install --upgrade "qiskit>=2.5.2,<3" "numpy>=2"
@@ -91,6 +97,10 @@ Qiskit versions.
 
 Loop jumps use Qiskit's names `break_loop` and `continue_loop` instead of
 `break` and `continue`.
+
+Encoded circuits may contain opaque logical gates. See the
+[error-correction guide](https://mqt.readthedocs.io/projects/bench/en/latest/error_correction.html)
+for the `encoding` option's compilation and export limits.
 
 ## [2.3.0]
 
