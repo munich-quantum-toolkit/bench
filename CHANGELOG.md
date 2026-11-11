@@ -14,20 +14,19 @@ that minor releases may include breaking changes.
 
 ### Added
 
+- ✨ Add Shor and Steane encoding at algorithm level ([#930])
+  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 - ✨ Add QIR text and bitcode export with Base and Adaptive profiles ([#1094])
   ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add MQT Core compilation for target-independent, native-gate, and mapped
-  circuits via `compiler="mqt"` or `--compiler mqt`, with logical native QASM
-  exports and recorded compiler options ([#1027]) ([**@simon1hofmann**],
-  [**@burgholzer**])
+  circuits via `compiler="mqt"` or `--compiler mqt` ([#1027])
+  ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add Quantum Metropolis Sampling benchmark with a repeat-until-success
   rejection loop ([#1053]) ([**@algovista-collab**])
 - ✨ Expose benchmark options, seeds, and catalogues in the CLI; record
   generation settings in circuit metadata and export headers ([#1115])
   ([**@simon1hofmann**])
 - ✨ Add Simon's algorithm benchmark ([#1079]) ([**@gautham0104-neitizen**])
-- ✨ Add the full 108-qubit Rigetti Cepheus architecture and document target
-  models ([#1095]) ([**@simon1hofmann**], [**@burgholzer**])
 - ✨ Add fractional IBM Heron targets with bounded RZZ angles ([#1087])
   ([**@burgholzer**], [**@simon1hofmann**])
 - ✨ Add the IBM Nighthawk 120-qubit device and CZ gate set ([#1085])
@@ -37,102 +36,75 @@ that minor releases may include breaking changes.
 - ✨ Add `SPDX-License-Identifier: MIT` to generated circuit headers ([#1083])
   ([**@simon1hofmann**])
 - ✨ Add Bell-pair benchmark ([#1071]) ([**@NiranjanRSoorej06**])
-- 👷 Enable testing on Python 3.15 ([#1054]) ([**@denialhaag**])
 - ✨ Add quantum teleportation benchmark ([#1045]) ([**@AsharHusain**])
+- 👷 Enable testing on Python 3.15 ([#1054]) ([**@denialhaag**])
 - ✨ Add ML-QAE benchmark ([#1044]) ([**@algovista-collab**])
 - ✨ Add Superdense Coding benchmark ([#1037]) ([**@Anshu666666**])
-- ✨ Add `encoding` option for Steane's and Shor's codes ([#930])
-  ([**@Felix-Gundlach**], [**@emilkanic0909**], [**@SalehAlsherif**])
 
 ### Changed
 
 - ⬆️ Require MQT Core 4.2 and use its published wheels ([#1151])
   ([**@simon1hofmann**])
-- ♻️ Create gate sets and devices on each lookup. Custom factories must return
-  independently mutable results ([#1133]) ([**@simon1hofmann**])
-- ⚡ Bind random parameters in batches, omit empty IQPE feedback conditions, and
-  reuse Quantum Metropolis inverse circuits ([#1131]) ([**@simon1hofmann**])
-- ⬆️ Require Qiskit 2.5.2 and NumPy 2, remove older Qiskit fallbacks, and use
-  target-aware Clifford+T optimization ([#1122], [#1087]) ([**@simon1hofmann**])
-- ⚡ Build fresh native gate-set targets without retaining every circuit width
-  in a cache ([#1125]) ([**@simon1hofmann**])
-- ⚡ Reuse the controlled adder in HRS multipliers and build graph-state gates
-  directly from sparse edges ([#1119]) ([**@simon1hofmann**])
-- ⚡ Test all Python versions on Linux and Python 3.15 on other platforms for
-  ready pull requests. Keep the full matrix on main, merge queues, and manual
-  runs ([#1112]) ([**@simon1hofmann**])
-- ✨ Use gridsynth for native Clifford+T compilation ([#1081])
-  ([**@simon1hofmann**])
-- ✨ Measure arithmetic sums and products in a `result` register, excluding
-  input and helper qubits ([#1065]) ([**@simon1hofmann**])
+- ♻️ Return fresh gate sets and devices on each lookup. Custom factories must
+  return independently mutable results ([#1133], [#1125]) ([**@simon1hofmann**])
+- ⚡ Speed up parameter binding, IQPE, Quantum Metropolis, HRS multipliers, and
+  graph-state construction ([#1131], [#1119]) ([**@simon1hofmann**])
+- ⬆️ Require Qiskit 2.5.2 and NumPy 2 ([#1122]) ([**@simon1hofmann**])
+- ✨ Use gridsynth and target-aware optimization for native Clifford+T
+  compilation ([#1122], [#1081]) ([**@simon1hofmann**])
+- ✨ Replace Rigetti Ankaa with 108-qubit Cepheus (`rigetti_cepheus_108`) and
+  switch Rigetti targets to CZ gates ([#1095], [#1086]) ([**@simon1hofmann**],
+  [**@burgholzer**])
+- ✨ Measure arithmetic sums and products in `result`, excluding input and
+  helper qubits ([#1065]) ([**@simon1hofmann**])
 
 ### Fixed
 
-- 🐛 Preserve the caller's layout when mirroring a routed circuit ([#1136])
+- 🐛 Preserve mirror layouts and active qubits, avoid register-name collisions,
+  and keep measurements when inversion fails ([#1136], [#1124], [#1052])
   ([**@simon1hofmann**])
-- 🐛 Preserve construction options on recompilation, avoid mirror register-name
-  collisions, and support multiline target descriptions in QASM headers
-  ([#1124]) ([**@simon1hofmann**])
-- 🐛 Avoid numerical errors from full rotations in large QFT multipliers
-  ([#1123]) ([**@simon1hofmann**])
-- 🐛 Reject negative copula depth and QAOA repetitions ([#1123])
-  ([**@simon1hofmann**])
+- 🐛 Preserve construction options and mirror provenance across recompilation;
+  handle custom target names and multiline QASM descriptions ([#1124], [#1118],
+  [#1117]) ([**@simon1hofmann**])
+- 🐛 Avoid numerical errors from full rotations in large `rg_qft_multiplier`
+  circuits ([#1123]) ([**@simon1hofmann**])
+- 🐛 Validate benchmark sizes, depths, repetitions, graph degrees, and factory
+  options ([#1123], [#1118], [#1108], [#1106], [#1098]) ([**@simon1hofmann**],
+  [**@jyothikacodes**], [**@NiranjanRSoorej06**])
 - 🐛 Correct HHL solutions and exports, IQPE phase results, and fixed-width VBE
-  addition; preserve caller random state and test benchmark semantics ([#1109])
-  ([**@simon1hofmann**])
-- 🐛 Validate graph-state degree and cardinality depth, type the Deutsch–Jozsa
-  `balanced` option, and handle custom target names in generated filenames
-  ([#1118]) ([**@simon1hofmann**])
-- 🐛 Retain mirror provenance when recompiling existing circuits ([#1117])
-  ([**@simon1hofmann**])
-- 🐛 Preserve logical permutations in target-independent and native QASM
-  exports, and ignore device capacity during native compilation ([#1116])
-  ([**@simon1hofmann**])
+  addition; preserve caller random state ([#1109]) ([**@simon1hofmann**])
+- 🐛 Preserve logical permutations in unmapped QASM exports; ignore
+  connectivity, calibration, and device capacity in native compilation. Keep
+  coupling-map headers stable across Qiskit versions ([#1116], [#1069], [#1067])
+  ([**@simon1hofmann**], [**@burgholzer**], [**@denialhaag**])
 - 🐛 Preserve existing files when export fails, create output directories, and
   report CLI argument and export errors on stderr ([#1115])
   ([**@simon1hofmann**])
-- 🐛 Select Clifford+T synthesis from target capabilities instead of
-  descriptions ([#1110]) ([**@simon1hofmann**])
-- 🐛 Validate benchmark sizes and options, document factory constraints, and
-  type supported keyword arguments ([#1108]) ([**@simon1hofmann**])
-- 🐛 Validate qubit counts across benchmarks, including the Shor, Steane, and
-  BMW copula benchmarks; combine size checks for Bell pairs and teleportation
-  ([#1098]) ([#1106]) ([**@jyothikacodes**], [**@simon1hofmann**],
-  [**@NiranjanRSoorej06**])
-- 🐛 Keep native Clifford+T optimization in the target basis, including loops
-  and mirrors, and preserve permutations in QASM exports ([#1093])
-  ([**@simon1hofmann**], [**@burgholzer**])
-- 🐛 Preserve native IonQ and Rigetti gate phases with local Qiskit lowering and
-  mirror layouts; require Qiskit 2.1.2 or newer ([#1086]) ([**@burgholzer**],
-  [**@simon1hofmann**])
-- 📝 Fix API documentation markup, heading anchors, and notebook build
-  concurrency ([#1088]) ([**@burgholzer**])
+- 🐛 Select Clifford+T synthesis from target capabilities; preserve its basis,
+  classical data, and permutations through loops and mirrors ([#1110], [#1093],
+  [#1047]) ([**@simon1hofmann**], [**@burgholzer**])
+- 🐛 Preserve global phases when compiling and mirroring native IonQ and Rigetti
+  gates ([#1086]) ([**@burgholzer**], [**@simon1hofmann**])
+- 📝 Fix API links and concurrent notebook execution ([#1088])
+  ([**@burgholzer**])
 - 🐛 Preserve caller-provided circuits during benchmark generation ([#1077])
   ([**@AthulKampiyil**])
 - 🐛 Default optimization level to 2 and require target for native gates and
   mapped levels in CLI ([#1076]) ([**@jyothikacodes**])
-- 🐛 Compile native gates without device connectivity or simulated calibration,
-  and keep coupling-map headers stable across Qiskit versions ([#1069], [#1067])
-  ([**@simon1hofmann**], [**@burgholzer**], [**@denialhaag**])
 - 🐛 Restore final measurements on all qubits in QAOA benchmarks ([#1059])
   ([**@flowerthrower**])
-- 🐛 Report unsupported mirror circuits with a clear error and retain final
-  measurements when inversion fails ([#1052]) ([**@simon1hofmann**])
 - 🐛 Support two-qubit quantum walks with and without structured loops ([#1052])
   ([**@simon1hofmann**])
-- 🐛 Preserve active qubit references when recompiling mirror circuits ([#1052])
-  ([**@simon1hofmann**])
-- 🐛 Preserve measurements and classical registers when compiling to Clifford+T
-  ([#1047]) ([**@simon1hofmann**])
 - 🐛 Expose `__version__` and `__version_tuple__` at the package root ([#1031])
   ([**@algovista-collab**])
 
 ### Removed
 
-- 🔥 Move the QASM 3 importer to test dependencies and remove the pytest-sugar
-  test plugin ([#1120]) ([**@simon1hofmann**])
-- 🔥 Remove the unused scikit-learn runtime dependency and its unused transitive
-  dependencies ([#1114]) ([**@simon1hofmann**])
+- 🔥 Stop installing the OpenQASM 3 importer by default ([#1120])
+  ([**@simon1hofmann**])
+- 🔥 Remove the unused scikit-learn dependency ([#1114]) ([**@simon1hofmann**])
+- 🔥 Remove the `ionq_aria` gate set and `ionq_aria_25` device ([#1086])
+  ([**@burgholzer**], [**@simon1hofmann**])
 - 🔥 Remove retired IBM Falcon, Eagle, and 133-qubit Heron models ([#1089])
   ([**@burgholzer**])
 
@@ -330,7 +302,6 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [#1116]: https://github.com/munich-quantum-toolkit/bench/pull/1116
 [#1115]: https://github.com/munich-quantum-toolkit/bench/pull/1115
 [#1114]: https://github.com/munich-quantum-toolkit/bench/pull/1114
-[#1112]: https://github.com/munich-quantum-toolkit/bench/pull/1112
 [#1110]: https://github.com/munich-quantum-toolkit/bench/pull/1110
 [#1109]: https://github.com/munich-quantum-toolkit/bench/pull/1109
 [#1108]: https://github.com/munich-quantum-toolkit/bench/pull/1108
