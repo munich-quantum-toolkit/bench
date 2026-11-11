@@ -52,10 +52,7 @@ name = "Lukas Burgholzer"
 email = "burgholzer@me.com"
 
 [project.urls]
-Homepage = "https://mqt-bench.app/"
-Documentation = "https://mqt.readthedocs.io/projects/bench/"
-Source = "https://github.com/munich-quantum-toolkit/bench"
-Paper = "https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation"
+Homepage = "https://github.com/munich-quantum-toolkit/bench"
 "Bug Tracker" = "https://github.com/munich-quantum-toolkit/bench/issues"
 Discussions = "https://github.com/munich-quantum-toolkit/bench/discussions"
 Research = "https://www.cda.cit.tum.de/research/quantum/"

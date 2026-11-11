@@ -1,25 +1,9 @@
 # References
 
-## Programmable benchmark generation
+## MQT Bench
 
-For programmable benchmark generation with MQT Bench, cite
-{cite:p}`hofmann2026quantumbenchmarkgeneration`. The paper describes the
-generation framework and its use in software evaluation, hardware design, and AI
-training.
-
-```bibtex
-@inproceedings{hofmann2026quantumbenchmarkgeneration,
-  title     = {Quantum Benchmark Generation for Software Evaluation, Hardware Design, and {AI} Training},
-  author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
-  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
-  year      = {2026},
-  note      = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}}
-}
-```
-
-## Original benchmark suite
-
-The original MQT Bench suite is described in {cite:p}`quetschlich2023mqtbench`:
+When citing MQT Bench or results produced with it, use the original paper
+{cite:p}`quetschlich2023mqtbench`:
 
 ```bibtex
 @article{quetschlich2023mqtbench,
@@ -34,6 +18,22 @@ The original MQT Bench suite is described in {cite:p}`quetschlich2023mqtbench`:
   note         = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}},
   eprint       = {2204.13719},
   eprinttype   = {arxiv}
+}
+```
+
+## Programmable benchmark generation
+
+Our 2026 QCE paper describes use cases for software evaluation, hardware design,
+and AI training. When discussing these use cases, also cite
+{cite:p}`hofmann2026quantumbenchmarkgeneration`:
+
+```bibtex
+@inproceedings{hofmann2026quantumbenchmarkgeneration,
+  title     = {Quantum Benchmark Generation for Software Evaluation, Hardware Design, and {AI} Training},
+  author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
+  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
+  year      = {2026},
+  note      = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}}
 }
 ```
 

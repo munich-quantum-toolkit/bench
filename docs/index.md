@@ -9,8 +9,8 @@ _{doc}`Munich Quantum Toolkit (MQT) <mqt:index>`_.
   circuits in your browser.
 - **{doc}`Use Python or the CLI <usage>`**: Generate circuits from code or the
   command line.
-- **{doc}`2026 paper and citation <references>`**: Benchmark generation for
-  software evaluation, hardware design, and AI training.
+- **{doc}`Papers and citation <references>`**: The original 2023 paper and the
+  2026 paper on benchmark generation use cases.
 
 Start with {doc}`installation` and {doc}`quickstart` to generate your first
 circuit. The {doc}`benchmark catalogue <benchmark_selection>` lists the

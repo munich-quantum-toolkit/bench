@@ -19,10 +19,8 @@
 
 MQT Bench generates quantum circuits for benchmarking quantum software tools.
 Choose an algorithm, a circuit size, and an abstraction level. Generate circuits
-at <https://mqt-bench.app/>, with Python, or from the command line. Our
-[2026 QCE paper](https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation)
-describes programmable benchmark generation and its use cases. MQT Bench is part
-of the
+at <https://mqt-bench.app/>, with Python, or from the command line. MQT Bench is
+part of the
 [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
@@ -139,22 +137,29 @@ Please cite the work that best fits your use case.
 
 ### MQT Bench (the tool)
 
-For programmable benchmark generation with MQT Bench, cite our 2026 QCE paper:
+When citing the software itself or results produced with it, cite the original
+MQT Bench paper:
 
 ```bibtex
-@inproceedings{hofmann2026quantumbenchmarkgeneration,
-  title     = {Quantum Benchmark Generation for Software Evaluation, Hardware Design, and {AI} Training},
-  author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
-  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
-  year      = {2026},
-  note      = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}}
+@article{quetschlich2023mqtbench,
+  title        = {{{MQT Bench}}: {Benchmarking Software and Design Automation Tools for Quantum Computing}},
+  shorttitle   = {{MQT Bench}},
+  author       = {Quetschlich, Nils and Burgholzer, Lukas and Wille, Robert},
+  year         = {2023},
+  journal      = {{Quantum}},
+  volume       = {7},
+  pages        = {1062},
+  doi          = {10.22331/q-2023-07-20-1062},
+  note         = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}},
+  eprint       = {2204.13719},
+  eprinttype   = {arxiv}
 }
 ```
 
-For the original benchmark suite, cite
-[Quetschlich et al. (2023)](https://doi.org/10.22331/q-2023-07-20-1062).
-Both references are available in
-[CITATION.bib](https://github.com/munich-quantum-toolkit/bench/blob/main/CITATION.bib).
+Our
+[2026 QCE paper](https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation)
+describes use cases for software evaluation, hardware design, and AI training.
+Please cite it additionally when discussing these use cases.
 
 ### The Munich Quantum Toolkit (the project)
 

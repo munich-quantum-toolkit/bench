@@ -1,7 +1,5 @@
 cff-version: 1.2.0
-message: >-
-  For programmable benchmark generation with MQT Bench, please cite our 2026
-  QCE paper below. See CITATION.bib for the original benchmark suite.
+message: If you use MQT Bench, please cite the original paper below.
 title: MQT Bench
 type: software
 authors:
@@ -23,15 +21,18 @@ authors:
 url: https://mqt-bench.app/
 repository-code: https://github.com/munich-quantum-toolkit/bench
 preferred-citation:
-  type: conference-paper
-  title: Quantum Benchmark Generation for Software Evaluation, Hardware Design, and AI Training
+  type: article
+  title: "MQT Bench: Benchmarking Software and Design Automation Tools for Quantum Computing"
   authors:
-    - family-names: Hofmann
-      given-names: Simon
+    - family-names: Quetschlich
+      given-names: Nils
     - family-names: Burgholzer
       given-names: Lukas
     - family-names: Wille
       given-names: Robert
-  collection-title: IEEE International Conference on Quantum Computing and Engineering (QCE)
-  year: 2026
+  journal: Quantum
+  volume: "7"
+  start: "1062"
+  year: 2023
+  doi: 10.22331/q-2023-07-20-1062
   notes: MQT Bench is available at https://mqt-bench.app/
