@@ -12,12 +12,8 @@ build:
     python: "3.14"
   jobs:
     install:
-      # The executed examples use Qiskit. AutoAPI reads the Core integration from source.
-      - >-
-        UV_PROJECT_ENVIRONMENT="$READTHEDOCS_VIRTUALENV_PATH"
-        uv sync --locked --no-dev --group docs --no-install-package mqt-core
+      - uv sync --locked --no-dev --group docs
 
-# Select uv for virtual environment setup.
 python:
   install:
     - method: uv

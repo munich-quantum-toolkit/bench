@@ -69,7 +69,6 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          build-args: CMAKE_BUILD_PARALLEL_LEVEL=4
           cache-from: type=gha,scope=mqt-bench,timeout=2m
           cache-to: type=gha,scope=mqt-bench,mode=max,timeout=2m,ignore-error=true
           load: ${{ github.event_name == 'pull_request' }}

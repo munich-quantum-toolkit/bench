@@ -34,7 +34,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "mqt-core>=4.1.2.dev169",
+  "mqt-core>=4.2",
   "networkx>=2.8.8",
   "numpy>=2",
   "numpy>=2.1; python_version>='3.13'",
@@ -105,10 +105,6 @@ packages = [ "src/mqt" ]
 
 [tool.uv]
 required-version = ">=0.13.4"
-
-[tool.uv.sources]
-mqt-bench = { workspace = true }
-mqt-core = { git = "https://github.com/munich-quantum-toolkit/core.git", rev = "58a6541655c74eeaeeac64df94d9cd7d13c74af9" }
 
 
 [tool.ruff]

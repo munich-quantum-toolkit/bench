@@ -56,6 +56,7 @@ jobs:
     with:
       enable-ty: true
       enable-mypy: false
+      use-sccache-gha: false
     permissions:
       contents: read
 
