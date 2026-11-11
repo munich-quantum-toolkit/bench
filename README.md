@@ -137,8 +137,8 @@ Please cite the work that best fits your use case.
 
 ### MQT Bench (the tool)
 
-When citing the software itself or results produced with it, cite the original
-MQT Bench paper:
+When citing the software itself or results produced with it, cite the 2023 MQT
+Bench paper:
 
 ```bibtex
 @article{quetschlich2023mqtbench,

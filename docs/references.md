@@ -2,7 +2,7 @@
 
 ## MQT Bench
 
-When citing MQT Bench or results produced with it, use the original paper
+When citing MQT Bench or results produced with it, use the 2023 paper
 {cite:p}`quetschlich2023mqtbench`:
 
 ```bibtex
