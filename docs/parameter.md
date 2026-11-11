@@ -47,9 +47,7 @@ your own Qiskit circuit.
 
 ## MQT Core compiler
 
-MQT Bench depends on MQT Core. In a Bench checkout, `uv sync` builds the pinned
-Core revision from source. Core needs a C++ compiler and downloads its LLVM/MLIR
-SDK during the build.
+MQT Bench installs MQT Core from PyPI, using prebuilt wheels where available.
 
 ```python
 from mqt.bench import BenchmarkLevel, get_benchmark
@@ -88,7 +86,7 @@ For `compiler="mqt"`, use targets with a continuous synthesis basis, such as
 MQT Core output filenames contain `_mqt_`. Circuit metadata and QASM/QPY exports
 record the compiler version and requested options.
 
-[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/58a6541655c74eeaeeac64df94d9cd7d13c74af9/docs/mlir/target_compilation.md
+[target compilation guide]: https://github.com/munich-quantum-toolkit/core/blob/v4.2.0/docs/mlir/target_compilation.md
 
 ## QIR output
 

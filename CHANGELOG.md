@@ -43,6 +43,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⬆️ Require MQT Core 4.2 and use its published wheels ([#1151])
+  ([**@simon1hofmann**])
 - ♻️ Return fresh gate sets and devices on each lookup. Custom factories must
   return independently mutable results ([#1133], [#1125]) ([**@simon1hofmann**])
 - ⚡ Speed up parameter binding, IQPE, Quantum Metropolis, HRS multipliers, and
@@ -285,6 +287,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1151]: https://github.com/munich-quantum-toolkit/bench/pull/1151
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
 [#1133]: https://github.com/munich-quantum-toolkit/bench/pull/1133
 [#1131]: https://github.com/munich-quantum-toolkit/bench/pull/1131

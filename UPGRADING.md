@@ -8,11 +8,11 @@ of changes including minor and patch releases, please refer to the
 
 ### Dependencies
 
-MQT Bench requires Qiskit 2.5.2 or newer. Update dependency pins and upgrade
-with [uv](https://docs.astral.sh/uv/):
+MQT Bench requires MQT Core 4.2 and Qiskit 2.5.2 or newer. Update dependency
+pins and upgrade with [uv](https://docs.astral.sh/uv/):
 
 ```console
-uv pip install --upgrade "qiskit>=2.5.2,<3"
+uv pip install --upgrade "mqt-core>=4.2" "qiskit>=2.5.2,<3"
 ```
 
 Qiskit's Linux wheels require glibc 2.28 or newer. To import OpenQASM 3 with
