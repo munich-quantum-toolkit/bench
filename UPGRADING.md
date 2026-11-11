@@ -8,8 +8,8 @@ of changes including minor and patch releases, please refer to the
 
 ### Dependencies
 
-MQT Bench requires Qiskit 2.5.2 and NumPy 2 or newer. Update dependency pins and
-upgrade with [uv](https://docs.astral.sh/uv/):
+MQT Bench requires Qiskit 2.5.2 or newer. Update dependency pins and upgrade
+with [uv](https://docs.astral.sh/uv/):
 
 ```console
 uv pip install --upgrade "qiskit>=2.5.2,<3"
