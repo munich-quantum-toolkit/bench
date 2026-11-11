@@ -5,12 +5,9 @@ message: >-
 title: MQT Bench
 type: software
 authors:
-  - family-names: Quetschlich
-    given-names: Nils
-    email: nils.quetschlich@tum.de
   - family-names: Burgholzer
     given-names: Lukas
-    email: lukas@mq.sc
+    email: burgholzer@me.com
   - family-names: Hofmann
     given-names: Simon
     email: simon@mq.sc
@@ -20,6 +17,9 @@ authors:
   - family-names: Haag
     given-names: Daniel
     email: daniel@mq.sc
+  - family-names: Quetschlich
+    given-names: Nils
+    email: nils.quetschlich@tum.de
 url: https://mqt-bench.app/
 repository-code: https://github.com/munich-quantum-toolkit/bench
 preferred-citation:
