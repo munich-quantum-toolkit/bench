@@ -44,12 +44,8 @@ dependencies = [
 ]
 
 [[project.authors]]
-name = "Nils Quetschlich"
-email = "nils.quetschlich@tum.de"
-
-[[project.authors]]
 name = "Lukas Burgholzer"
-email = "lukas@mq.sc"
+email = "burgholzer@me.com"
 
 [[project.authors]]
 name = "Simon Hofmann"
@@ -62,6 +58,10 @@ email = "patrick@mq.sc"
 [[project.authors]]
 name = "Daniel Haag"
 email = "daniel@mq.sc"
+
+[[project.authors]]
+name = "Nils Quetschlich"
+email = "nils.quetschlich@tum.de"
 
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
