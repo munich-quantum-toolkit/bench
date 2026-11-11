@@ -12,13 +12,7 @@ MQT Bench requires Qiskit 2.5.2 and NumPy 2 or newer. Update dependency pins and
 upgrade with [uv](https://docs.astral.sh/uv/):
 
 ```console
-uv pip install --upgrade "qiskit>=2.5.2,<3" "numpy>=2"
-```
-
-Alternatively, use `pip`:
-
-```console
-python -m pip install --upgrade "qiskit>=2.5.2,<3" "numpy>=2"
+uv pip install --upgrade "qiskit>=2.5.2,<3"
 ```
 
 Qiskit's Linux wheels require glibc 2.28 or newer. To import OpenQASM 3 with
