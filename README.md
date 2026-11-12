@@ -18,9 +18,9 @@
 # MQT Bench - Benchmarking Software and Design Automation Tools for Quantum Computing
 
 MQT Bench generates quantum circuits for benchmarking quantum software tools.
-Choose an algorithm, a circuit size, and an abstraction level. You can generate
-circuits with Python, from the command line, or at <https://mqt-bench.app/>. MQT
-Bench is part of the
+Choose an algorithm, a circuit size, and an abstraction level. Generate circuits
+at <https://mqt-bench.app/>, with Python, or from the command line. MQT Bench is
+part of the
 [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io).
 
 <p align="center">
@@ -137,8 +137,8 @@ Please cite the work that best fits your use case.
 
 ### MQT Bench (the tool)
 
-When citing the software itself or results produced with it, cite the MQT Bench
-paper:
+When citing the software itself or results produced with it, cite the 2023 MQT
+Bench paper:
 
 ```bibtex
 @article{quetschlich2023mqtbench,
@@ -155,6 +155,11 @@ paper:
   eprinttype   = {arxiv}
 }
 ```
+
+If you use the [web interface](https://mqt-bench.app/) to generate and download
+circuits, please also cite our
+[2026 QCE paper](https://mqt.readthedocs.io/projects/bench/en/latest/references.html#programmable-benchmark-generation)
+on use cases for software evaluation, hardware design, and AI training.
 
 ### The Munich Quantum Toolkit (the project)
 

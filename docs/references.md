@@ -1,10 +1,9 @@
 # References
 
-MQT Bench has a strong foundation in peer‑reviewed research. Many of its
-built‑in algorithms are based on methods published in scientific journals and
-conferences. For an overview of MQT Bench and its features, see
-{cite:p}`quetschlich2023mqtbench`. If you want to cite this article, please use
-the following BibTeX entry:
+## MQT Bench
+
+When citing MQT Bench or results produced with it, use the 2023 paper
+{cite:p}`quetschlich2023mqtbench`:
 
 ```bibtex
 @article{quetschlich2023mqtbench,
@@ -16,11 +15,30 @@ the following BibTeX entry:
   volume       = {7},
   pages        = {1062},
   doi          = {10.22331/q-2023-07-20-1062},
-  note         = {{{MQT Bench}} is available at \url{https://www.cda.cit.tum.de/mqtbench/}},
+  note         = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}},
   eprint       = {2204.13719},
   eprinttype   = {arxiv}
 }
 ```
+
+## Programmable benchmark generation
+
+Our 2026 QCE paper describes use cases for software evaluation, hardware design,
+and AI training. When using the [web interface](https://mqt-bench.app/) to
+generate and download circuits, please also cite
+{cite:p}`hofmann2026quantumbenchmarkgeneration`:
+
+```bibtex
+@inproceedings{hofmann2026quantumbenchmarkgeneration,
+  title     = {Quantum Benchmark Generation for Software Evaluation, Hardware Design, and {AI} Training},
+  author    = {Hofmann, Simon and Burgholzer, Lukas and Wille, Robert},
+  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCE)},
+  year      = {2026},
+  note      = {{{MQT Bench}} is available at \url{https://mqt-bench.app/}}
+}
+```
+
+## Munich Quantum Toolkit
 
 MQT Bench is part of the Munich Quantum Toolkit, which is described in
 {cite:p}`mqt`. If you want to cite the Munich Quantum Toolkit, please use the
@@ -40,7 +58,7 @@ following BibTeX entry:
 }
 ```
 
-A full list of references is given below.
+## Bibliography
 
 ```{bibliography}
 

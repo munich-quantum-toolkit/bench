@@ -5,11 +5,18 @@ Choose an algorithm and a size, then generate the circuit at one of four
 {doc}`abstraction levels <abstraction_levels>`. MQT Bench is part of the
 _{doc}`Munich Quantum Toolkit (MQT) <mqt:index>`_.
 
+- **[Generate online](https://mqt-bench.app/)**: Create and download benchmark
+  circuits in your browser.
+- **{doc}`Use Python or the CLI <usage>`**: Generate circuits from code or the
+  command line.
+- **{doc}`Papers and citation <references>`**: The 2023 paper and the 2026 paper
+  on benchmark generation use cases.
+
 Start with {doc}`installation` and {doc}`quickstart` to generate your first
 circuit. The {doc}`benchmark catalogue <benchmark_selection>` lists the
-algorithms and their parameters. See {doc}`usage` for the web interface, Python
-API, and command line, or browse the {doc}`API reference <api/mqt/bench/index>`.
-Circuits are also available as a
+algorithms and their parameters. Browse the
+{doc}`API reference <api/mqt/bench/index>` for the Python interfaces. Circuits
+are also available as a
 [PennyLane dataset](https://pennylane.ai/datasets/single-dataset/mqt-bench).
 
 The [source code](https://github.com/munich-quantum-toolkit/bench) is on GitHub
