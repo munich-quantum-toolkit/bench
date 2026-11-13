@@ -12,6 +12,10 @@ that minor releases may include breaking changes.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-13
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#240)._
+
 ### Added
 
 - ✨ Add Shor and Steane encoding at algorithm level ([#930])
@@ -274,7 +278,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.3.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.4.0
 [2.3.0]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.3.0
 [2.2.3]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.3
 [2.2.2]: https://github.com/munich-quantum-toolkit/bench/releases/tag/v2.2.2

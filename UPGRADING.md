@@ -6,6 +6,8 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+## [2.4.0]
+
 ### Dependencies
 
 MQT Bench requires MQT Core 4.2 and Qiskit 2.5.2 or newer. Update dependency
@@ -298,7 +300,8 @@ accordingly.
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.3.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/bench/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.2.3...v2.3.0
 [2.2.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/munich-quantum-toolkit/bench/compare/v2.0.1...v2.1.0
