@@ -6,6 +6,11 @@ of changes including minor and patch releases, please refer to the
 
 ## [Unreleased]
 
+### Dependencies
+
+MQT Bench requires Python 3.11.5 or newer. If you use Python 3.11.0–3.11.4,
+upgrade Python before updating MQT Bench.
+
 ## [2.4.0]
 
 ### Dependencies
