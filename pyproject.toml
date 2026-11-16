@@ -115,6 +115,9 @@ packages = [ "src/mqt" ]
 [tool.uv]
 required-version = ">=0.13.4"
 
+[tool.uv.dependency-groups]
+docs = { requires-python = ">=3.11.5" }
+
 
 [tool.ruff]
 line-length = 120
