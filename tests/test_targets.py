@@ -472,29 +472,6 @@ def test_native_gate_names_do_not_override_capabilities(name: str, operation: Ga
     assert lowering is None
 
 
-@pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-@pytest.mark.parametrize("gateset", ["ionq_forte", "rigetti"])
-def test_native_aliases_keep_bounded_entanglers(level: BenchmarkLevel, gateset: str) -> None:
-    """Lowering aliases retains angle constraints on other native operations."""
-    from qiskit.circuit.library import RZZGate  # ruff:ignore[import-outside-top-level]
-
-    original = get_target_for_gateset(gateset, 2)
-    target = Target(num_qubits=2)
-    for name in original.operation_names:
-        operation = original.operation_from_name(name)
-        if operation.num_qubits == 1:
-            target.add_instruction(operation, name=name)
-    target.add_instruction(RZZGate(Parameter("theta")), angle_bounds=[(0, pi / 2)])
-    circuit = QuantumCircuit(2)
-    circuit.rzz(0.37, 0, 1)
-    result = get_benchmark(circuit, level, target=target)
-    assert all(
-        target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
-    )
-    assert target.gate_has_angle_bounds("rzz")
-    np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(circuit).data, atol=1e-12)
-
-
 def test_native_target_legacy_angle_bounds() -> None:
     """Accept bounded targets with the Qiskit 2.2-2.5 serialization schema."""
 
@@ -543,7 +520,7 @@ def test_fractional_heron_qiskit(level: BenchmarkLevel, angle: float, opt_level:
 
 @pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 @pytest.mark.parametrize("gateset", ["ionq_forte", "rigetti"])
-@pytest.mark.parametrize("angle", [-0.37, 2.4])
+@pytest.mark.parametrize("angle", [-0.37, 0.37, 2.4])
 def test_native_aliases_preserve_angle_bounds(level: BenchmarkLevel, gateset: str, angle: float) -> None:
     """Native alias lowering retains bounds on other target gates."""
     target = get_target_for_gateset(gateset, 2)
@@ -557,6 +534,7 @@ def test_native_aliases_preserve_angle_bounds(level: BenchmarkLevel, gateset: st
     circuit = QuantumCircuit(2)
     circuit.rzz(angle, 0, 1)
     result = get_benchmark(circuit, level, target=bounded, random_parameters=False)
+    assert bounded.gate_has_angle_bounds("rzz")
     assert all(
         bounded.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
     )
