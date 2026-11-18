@@ -57,22 +57,22 @@ def _run_pytest(session: nox.Session, *pytest_args: str, locked: bool = False) -
     posargs = session.posargs
     if session.parallel:
         pytest_args += ("-n", "0")
-    if (
-        "--cov" in posargs
-        and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
-        and os.environ.get("GITHUB_REF") != "refs/heads/main"
-        and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
-    ):
-        posargs = [*posargs, "--no-cov"]
-    elif session.parallel:
-        env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
-        # The reusable workflow passes the same report path to every session.
-        posargs = [
-            f"{arg.removesuffix('.xml')}-{session.name}.xml"
-            if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
-            else arg
-            for arg in posargs
-        ]
+        if (
+            "--cov" in posargs
+            and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
+            and os.environ.get("GITHUB_REF") != "refs/heads/main"
+            and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
+        ):
+            posargs = [*posargs, "--no-cov"]
+        else:
+            env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
+            # The reusable workflow passes the same report path to every session.
+            posargs = [
+                f"{arg.removesuffix('.xml')}-{session.name}.xml"
+                if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
+                else arg
+                for arg in posargs
+            ]
     session.run(
         *command,
         "pytest",
@@ -118,7 +118,7 @@ def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
     _run_tests_without_lockfile(
         session,
-        install_args=["--resolution=lowest-direct"],
+        install_args=["--upgrade", "--resolution=lowest-direct"],
         pytest_run_args=["-Wdefault"],
     )
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
