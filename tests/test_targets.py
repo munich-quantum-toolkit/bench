@@ -302,6 +302,30 @@ def test_gateset_targets_are_independent() -> None:
     assert not second.instruction_supported("rzz", (4, 5))
 
 
+def test_builtin_names_reserved_before_lookup() -> None:
+    """Custom factories cannot replace built-ins before their first lookup."""
+    script = """
+import pytest
+from mqt.bench.benchmarks import create_circuit, register_benchmark
+from mqt.bench.targets import get_device, get_gateset
+from mqt.bench.targets.devices import register_device
+from mqt.bench.targets.gatesets import register_gateset
+
+for register, name in (
+    (register_benchmark, "ghz"),
+    (register_device, "ibm_heron_156"),
+    (register_gateset, "clifford+t"),
+):
+    with pytest.raises(ValueError, match="already registered"):
+        register(name)(lambda *args: None)
+
+assert create_circuit("ghz", 3).num_qubits == 3
+assert get_device("ibm_heron_156").num_qubits == 156
+assert "t" in get_gateset("clifford+t")
+"""
+    subprocess.run([sys.executable, "-c", script], check=True)
+
+
 @pytest.mark.parametrize("alias", ["clifford+t", "clifford+t+rotations"])
 def test_target_lookup_before_listing(alias: str) -> None:
     """Resolve both Clifford aliases and vendor names before loading the catalogue."""

@@ -10,30 +10,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-_GatesetFactory = Callable[[], list[str]]
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from . import _GatesetFactory
+
 _REGISTRY: dict[str, _GatesetFactory] = {}
 
 
 def register_gateset(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetFactory]:
-    """Decorator to register a gateset factory under a unique gateset_name.
-
-    The factory runs on every lookup and must return a new basis-gate list
-    that shares no mutable data with other results.
-
-    Arguments:
-        gateset_name: unique identifier for the gateset (e.g., ``"ibm_heron"``).
-
-    Returns:
-        The original factory function, unmodified.
-
-    Raises:
-        ValueError: if the chosen name is already present in the registry.
-    """
+    """Register a gateset factory under a unique name."""
 
     def _decorator(func: _GatesetFactory) -> _GatesetFactory:
-        if gateset_name in _REGISTRY:  # pragma: no cover
+        if gateset_name in _REGISTRY:
             msg = f"Gateset name '{gateset_name}' already registered"
             raise ValueError(msg)
         _REGISTRY[gateset_name] = func

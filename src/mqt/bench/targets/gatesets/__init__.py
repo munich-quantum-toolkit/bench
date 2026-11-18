@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.resources as ir
+from collections.abc import Callable
 from math import pi
 from typing import TYPE_CHECKING
 
@@ -21,12 +22,13 @@ from qiskit.circuit import BreakLoopOp, ContinueLoopOp, Parameter, get_control_f
 from qiskit.circuit.library.standard_gates import RXGate, get_standard_gate_name_mapping
 from qiskit.transpiler import Target
 
-from ._registry import gateset_names, get_gateset_by_name, register_gateset
+from ._registry import gateset_names, get_gateset_by_name
+from ._registry import register_gateset as _register_gateset
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from qiskit.circuit import Gate
+
+_GatesetFactory = Callable[[], list[str]]
 
 _DISCOVERED_MODULES: set[str] = {
     entry.name.removesuffix(".py")
@@ -72,6 +74,19 @@ def _ensure_loaded(gateset_name: str) -> None:
         raise ValueError(msg)
 
     importlib.import_module(f"{__package__}.{module_name}")
+
+
+def register_gateset(gateset_name: str) -> Callable[[_GatesetFactory], _GatesetFactory]:
+    """Register a custom gateset factory under a unique name.
+
+    The factory must return a fresh basis-gate list on every lookup.
+
+    Raises:
+        ValueError: If a built-in or custom factory already uses the name.
+    """
+    if _module_from_gateset_name(gateset_name) in _DISCOVERED_MODULES:
+        _ensure_loaded(gateset_name)
+    return _register_gateset(gateset_name)
 
 
 def get_available_gateset_names() -> list[str]:

@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import importlib
 import importlib.resources as ir
-from typing import TYPE_CHECKING
+from collections.abc import Callable
 
-from ._registry import device_names, get_device_by_name, register_device
+from qiskit.transpiler import Target
 
-if TYPE_CHECKING:
-    from qiskit.transpiler import Target
+from ._registry import device_names, get_device_by_name
+from ._registry import register_device as _register_device
+
+_DeviceFactory = Callable[[], Target]
 
 _DISCOVERED_MODULES: set[str] = {
     entry.name.removesuffix(".py")
@@ -55,6 +57,19 @@ def _ensure_loaded(device_name: str) -> None:
         raise ValueError(msg)
 
     importlib.import_module(f"{__package__}.{module_name}")
+
+
+def register_device(device_name: str) -> Callable[[_DeviceFactory], _DeviceFactory]:
+    """Register a custom device factory under a unique name.
+
+    The factory must return a fresh target on every lookup.
+
+    Raises:
+        ValueError: If a built-in or custom factory already uses the name.
+    """
+    if _module_from_device_name(device_name) in _DISCOVERED_MODULES:
+        _ensure_loaded(device_name)
+    return _register_device(device_name)
 
 
 def get_available_device_names() -> list[str]:

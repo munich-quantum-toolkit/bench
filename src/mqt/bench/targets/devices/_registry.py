@@ -10,32 +10,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from qiskit.transpiler import Target
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
-_DeviceFactory = Callable[[], Target]
+    from qiskit.transpiler import Target
+
+    from . import _DeviceFactory
+
 _REGISTRY: dict[str, _DeviceFactory] = {}
 
 
 def register_device(device_name: str) -> Callable[[_DeviceFactory], _DeviceFactory]:
-    """Decorator to register a device factory under a unique device_name.
-
-    The factory runs on every lookup and must return a new device target
-    that shares no mutable data with other results.
-
-    Arguments:
-        device_name: unique identifier for the device (e.g., ``"ibm_heron_156"``).
-
-    Returns:
-        The original factory function, unmodified.
-
-    Raises:
-        ValueError: if the chosen name is already present in the registry.
-    """
+    """Register a device factory under a unique name."""
 
     def _decorator(func: _DeviceFactory) -> _DeviceFactory:
-        if device_name in _REGISTRY:  # pragma: no cover
+        if device_name in _REGISTRY:
             msg = f"Device name '{device_name}' already registered"
             raise ValueError(msg)
         _REGISTRY[device_name] = func
