@@ -16,6 +16,11 @@ that minor releases may include breaking changes.
 
 - ⬆️ Require Python 3.11.5 or newer ([#1164]) ([**@simon1hofmann**])
 
+### Fixed
+
+- 🐛 Reject custom benchmark, gate-set, and device names that match built-ins
+  regardless of import order ([#1168]) ([**@simon1hofmann**])
+
 ## [2.4.0] - 2026-11-13
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#240)._
@@ -296,6 +301,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1168]: https://github.com/munich-quantum-toolkit/bench/pull/1168
 [#1164]: https://github.com/munich-quantum-toolkit/bench/pull/1164
 [#1151]: https://github.com/munich-quantum-toolkit/bench/pull/1151
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
