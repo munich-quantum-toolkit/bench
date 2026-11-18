@@ -2009,10 +2009,7 @@ def test_dynamic_ghz_mirror_rejected(level: BenchmarkLevel) -> None:
 
 def test_mapped_mirror_preserves_complete_layout() -> None:
     """Mirror layout metadata keeps the original logical qubits and ancillas."""
-    source = QuantumCircuit(3)
-    source.h(2)
-    source.cx(2, 1)
-    source.cx(1, 0)
+    source = create_circuit("qft", 3)
     original = source.copy()
     target = get_device("iqm_crystal_5")
     base = get_benchmark_mapped(source, None, target)
@@ -2022,6 +2019,8 @@ def test_mapped_mirror_preserves_complete_layout() -> None:
     assert mirror.layout is not None
     assert mirror.layout.initial_index_layout() == base.layout.initial_index_layout()
     assert mirror.layout.final_index_layout() == base.layout.initial_index_layout(filter_ancillas=True)
+    measured = {mirror.find_bit(inst.qubits[0]).index for inst in mirror if inst.operation.name == "measure"}
+    assert set(mirror.layout.final_index_layout()) <= measured
     mirror.remove_final_measurements(inplace=True)
     np.testing.assert_allclose(Operator.from_circuit(mirror).data, np.eye(2**mirror.num_qubits), atol=1e-12)
 
