@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
 nox.needs_version = ">=2026.10.20"
 nox.options.default_venv_backend = "uv"
-nox.options.parallel = "auto"
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
@@ -58,6 +57,14 @@ def _run_pytest(session: nox.Session, *pytest_args: str, locked: bool = False) -
     posargs = session.posargs
     if session.parallel:
         pytest_args += ("-n", "0")
+    if (
+        "--cov" in posargs
+        and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
+        and os.environ.get("GITHUB_REF") != "refs/heads/main"
+        and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
+    ):
+        posargs = [*posargs, "--no-cov"]
+    elif session.parallel:
         env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
         # The reusable workflow passes the same report path to every session.
         posargs = [
@@ -70,8 +77,8 @@ def _run_pytest(session: nox.Session, *pytest_args: str, locked: bool = False) -
         *command,
         "pytest",
         *pytest_args,
-        *posargs,
         "--cov-config=pyproject.toml",
+        *posargs,
         env=env,
     )
 
