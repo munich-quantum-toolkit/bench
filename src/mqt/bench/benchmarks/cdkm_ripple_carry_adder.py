@@ -23,20 +23,17 @@ if TYPE_CHECKING:
 
 @register_benchmark("cdkm_ripple_carry_adder", description="Cuccaro-Draper-Kutin-Moulton (CDKM) Ripple-Carry Adder")
 def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
-    """Create a CDKM ripple-carry adder circuit.
+    """Build a CDKM ripple-carry adder.
 
-    Measure only the sum into ``result``, least-significant bit first.
-    Carry-out, when present, is the most-significant result bit.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be even and ≥ 4 for full and half adders, and odd and ≥ 3 for fixed adders.
-            kind: The kind of adder, can be ``"full"`` for a full adder, ``"half"`` for a half
-               adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
-               and carry-out, a half ader only carry-out, but an additional helper qubit, and a fixed-sized
-               adder neither carry-in or carry-out, but also has an additional helper qubit.
+    Args:
+        num_qubits: Total width. Full and half adders require an even width of at least 4.
+            A fixed-width adder requires an odd width of at least 3.
+        kind: ``"full"`` includes carry-in and carry-out, ``"half"`` includes only carry-out,
+            and ``"fixed"`` retains only the low bits that fit in one operand. Half and fixed adders use a helper qubit.
 
     Returns:
-           QuantumCircuit: The constructed CDKM ripple-carry adder circuit.
+        A circuit that measures only the sum into ``result``, least-significant bit first.
+        For full and half addition, the highest result bit is the carry-out.
 
     See Also:
         :class:`qiskit.circuit.library.CDKMRippleCarryAdder`

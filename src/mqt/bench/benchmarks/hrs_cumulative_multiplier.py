@@ -32,16 +32,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("hrs_cumulative_multiplier", description="Häner-Roetteler-Svore (HRS) Cumulative Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Create a hrs cumulative multiplier circuit.
+    """Build an HRS multiplier using controlled ripple-carry additions.
 
-    Measure only the product into ``result``, least-significant bit first.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be an integer ≥ 5 and (num_qubits - 1) must be divisible by 4.
+    Args:
+        num_qubits: Total width, ``4 * n + 1`` for two ``n``-bit operands with ``n >= 1``.
 
     Returns:
-           QuantumCircuit: The constructed hrs cumulative multiplier circuit.
-
+        A circuit that measures only the full product into ``result``, least-significant bit first.
 
     See Also:
         :class:`qiskit.circuit.library.HRSCumulativeMultiplier`

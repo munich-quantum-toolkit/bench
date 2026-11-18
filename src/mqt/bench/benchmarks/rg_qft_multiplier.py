@@ -33,15 +33,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("rg_qft_multiplier", description="Ruiz-Garcia (RG) QFT Multiplier")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Create a rg qft multiplier circuit.
+    """Build a Fourier multiplier using controlled phase rotations.
 
-    Measure only the product into ``result``, least-significant bit first.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit. Must be an integer ≥ 4 and divisible by 4.
+    Args:
+        num_qubits: Total width, ``4 * n`` for two ``n``-bit operands with ``n >= 1``.
 
     Returns:
-           QuantumCircuit: The constructed rg qft multiplier circuit.
+        A circuit that measures only the full product into ``result``, least-significant bit first.
 
     See Also:
         :class:`qiskit.circuit.library.RGQFTMultiplier`

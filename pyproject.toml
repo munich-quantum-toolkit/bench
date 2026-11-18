@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = [ "benchmarking", "MQT", "performance", "quantum computing", "testing" ]
 license = "MIT"
 license-files = [ "LICENSE" ]
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -34,7 +34,7 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "mqt-core>=4.1.2.dev169",
+  "mqt-core>=4.2",
   "networkx>=2.8.8",
   "numpy>=2",
   "numpy>=2.1; python_version>='3.13'",
@@ -44,12 +44,24 @@ dependencies = [
 ]
 
 [[project.authors]]
-name = "Nils Quetschlich"
-email = "nils.quetschlich@tum.de"
-
-[[project.authors]]
 name = "Lukas Burgholzer"
 email = "burgholzer@me.com"
+
+[[project.authors]]
+name = "Simon Hofmann"
+email = "simon@mq.sc"
+
+[[project.authors]]
+name = "Patrick Hopf"
+email = "patrick@mq.sc"
+
+[[project.authors]]
+name = "Daniel Haag"
+email = "daniel@mq.sc"
+
+[[project.authors]]
+name = "Nils Quetschlich"
+email = "nils.quetschlich@tum.de"
 
 [project.urls]
 Homepage = "https://github.com/munich-quantum-toolkit/bench"
@@ -103,10 +115,6 @@ packages = [ "src/mqt" ]
 [tool.uv]
 required-version = ">=0.13.4"
 
-[tool.uv.sources]
-mqt-bench = { workspace = true }
-mqt-core = { git = "https://github.com/munich-quantum-toolkit/core.git", rev = "69877d981620219d0bd124af005801f26dd77468" }
-
 
 [tool.ruff]
 line-length = 120
@@ -130,6 +138,9 @@ docstring-code-format = true
 
 [tool.ruff.lint.isort]
 known-first-party = [ "mqt.bench" ]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 120
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -172,6 +183,7 @@ extend-select = [
   "TID251", # flake8-tidy-imports
   "TRY",    # tryceratops
   "UP",     # pyupgrade
+  "W505",   # pycodestyle
   "YTT",    # flake8-2020
 ]
 ignore = [

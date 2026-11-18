@@ -55,15 +55,6 @@ class DeviceSpec:
     # If *symmetric_connectivity* is *True*, require (q1, q0) whenever (q0, q1)
     symmetric_connectivity: Mapping[str, bool] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:  # pragma: no cover
-        """Ensures that all declared two-qubit gates have an associated symmetry flag."""
-        # Ensure symmetry flags are defined for all declared 2-qubit gates
-        missing = self.two_qubit_gates.difference(self.symmetric_connectivity)
-        if missing:
-            object.__setattr__(
-                self, "symmetric_connectivity", {**self.symmetric_connectivity, **dict.fromkeys(missing, False)}
-            )
-
 
 DEVICE_SPECS: Sequence[DeviceSpec] = [
     # ─────────────────────────────────────────────────────────────────── IBM ──
@@ -150,41 +141,51 @@ def test_device_spec(spec: DeviceSpec) -> None:
 
 @pytest.mark.parametrize(("lookup", "kind"), [(get_device, "device"), (get_gateset, "gateset")])
 def test_unknown_target(lookup: Callable[[str], object], kind: str) -> None:
-    """Report unsupported target families from their public lookups."""
+    """Reject unknown target families and unknown names within known families."""
     with pytest.raises(ValueError, match=f"'unknown_name' is not a supported {kind}. Known modules:"):
         lookup("unknown_name")
+    with pytest.raises(KeyError, match="ibm_unknown"):
+        lookup("ibm_unknown")
 
 
 def test_dynamic_device_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A device registered at runtime should immediately be visible through the public helpers."""
     get_available_device_names()
     monkeypatch.setattr("mqt.bench.targets.devices._registry._REGISTRY", {})
+    num_qubits = 1
 
     @register_device("dummy_device")
     def _dummy_factory() -> Target:
-        return Target(num_qubits=1)
+        return Target(num_qubits=num_qubits)
 
     names = get_available_device_names()
     assert "dummy_device" in names
 
     dev = get_device("dummy_device")
     assert isinstance(dev, Target)
+    assert dev.num_qubits == 1
+    num_qubits = 2
+    assert get_device("dummy_device").num_qubits == 2
 
 
 def test_dynamic_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     """A gateset registered at runtime should immediately be visible through the public helpers."""
     get_available_gateset_names()
     monkeypatch.setattr("mqt.bench.targets.gatesets._registry._REGISTRY", {})
+    gate_names = ["dummy_gate"]
 
     @register_gateset("dummy_gateset")
     def _dummy_factory() -> list[str]:
-        return ["dummy_gate"]
+        return gate_names.copy()
 
     names = get_available_gateset_names()
     assert "dummy_gateset" in names
 
     gateset = get_gateset("dummy_gateset")
     assert gateset == ["dummy_gate"]
+    gate_names.append("x")
+    gateset.clear()
+    assert get_gateset("dummy_gateset") == ["dummy_gate", "x"]
 
     with pytest.raises(ValueError, match=re.escape("Gate 'dummy_gate' not found in available custom gates.")):
         get_target_for_gateset("dummy_gateset", 2)
@@ -224,14 +225,32 @@ def test_duplicate_gateset_registration(monkeypatch: pytest.MonkeyPatch) -> None
             return ["dummy_gate"]
 
 
-def test_get_device_immutability() -> None:
-    """Changes to a device retrieved by get_device should not affect the device in the registry. Same for device names."""
-    device = get_device("ionq_forte_36")
+@pytest.mark.parametrize("device_name", get_available_device_names())
+def test_get_device_immutability(device_name: str) -> None:
+    """Device lookups return independent targets and name lists."""
+    device = get_device(device_name)
     device.description = "dummy_description"
     assert device.description == "dummy_description"
 
-    device2 = get_device("ionq_forte_36")
-    assert device2.description == "ionq_forte_36"
+    gate, qargs, properties = next(
+        (gate, qargs, properties)
+        for gate in device.operation_names
+        for qargs, properties in device[gate].items()
+        if properties is not None
+    )
+    duration = properties.duration
+    properties.duration = 0.125
+
+    device2 = get_device(device_name)
+    assert device2.description == device_name
+    assert device2[gate][qargs].duration == duration
+    for name in device.operation_names:
+        operation = device.operation_from_name(name)
+        if isinstance(operation, type) or not operation.params:
+            continue
+        parameters = [str(parameter) for parameter in operation.params]
+        operation.params[0] = 0.125
+        assert [str(parameter) for parameter in device2.operation_from_name(name).params] == parameters
 
     device_names = get_available_device_names()
     device_names.append("dummy_devicename")
@@ -240,13 +259,14 @@ def test_get_device_immutability() -> None:
     assert "dummy_devicename" not in device_names2
 
 
-def test_get_gateset_immutability() -> None:
-    """Changes to a gateset retrieved by get_gateset should not affect the gateset in the registry. Sames for gateset names."""
-    gateset = get_gateset("ibm_heron")
+@pytest.mark.parametrize("gateset_name", get_available_gateset_names())
+def test_get_gateset_immutability(gateset_name: str) -> None:
+    """Gate set lookups return independent gate lists and name lists."""
+    gateset = get_gateset(gateset_name)
     gateset.append("dummy_gate")
     assert "dummy_gate" in gateset
 
-    gateset2 = get_gateset("ibm_heron")
+    gateset2 = get_gateset(gateset_name)
     assert "dummy_gate" not in gateset2
 
     gateset_names = get_available_gateset_names()
@@ -452,29 +472,6 @@ def test_native_gate_names_do_not_override_capabilities(name: str, operation: Ga
     assert lowering is None
 
 
-@pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
-@pytest.mark.parametrize("gateset", ["ionq_forte", "rigetti"])
-def test_native_aliases_keep_bounded_entanglers(level: BenchmarkLevel, gateset: str) -> None:
-    """Lowering aliases retains angle constraints on other native operations."""
-    from qiskit.circuit.library import RZZGate  # ruff:ignore[import-outside-top-level]
-
-    original = get_target_for_gateset(gateset, 2)
-    target = Target(num_qubits=2)
-    for name in original.operation_names:
-        operation = original.operation_from_name(name)
-        if operation.num_qubits == 1:
-            target.add_instruction(operation, name=name)
-    target.add_instruction(RZZGate(Parameter("theta")), angle_bounds=[(0, pi / 2)])
-    circuit = QuantumCircuit(2)
-    circuit.rzz(0.37, 0, 1)
-    result = get_benchmark(circuit, level, target=target)
-    assert all(
-        target.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
-    )
-    assert target.gate_has_angle_bounds("rzz")
-    np.testing.assert_allclose(Operator.from_circuit(result).data, Operator(circuit).data, atol=1e-12)
-
-
 def test_native_target_legacy_angle_bounds() -> None:
     """Accept bounded targets with the Qiskit 2.2-2.5 serialization schema."""
 
@@ -523,7 +520,7 @@ def test_fractional_heron_qiskit(level: BenchmarkLevel, angle: float, opt_level:
 
 @pytest.mark.parametrize("level", [BenchmarkLevel.NATIVEGATES, BenchmarkLevel.MAPPED])
 @pytest.mark.parametrize("gateset", ["ionq_forte", "rigetti"])
-@pytest.mark.parametrize("angle", [-0.37, 2.4])
+@pytest.mark.parametrize("angle", [-0.37, 0.37, 2.4])
 def test_native_aliases_preserve_angle_bounds(level: BenchmarkLevel, gateset: str, angle: float) -> None:
     """Native alias lowering retains bounds on other target gates."""
     target = get_target_for_gateset(gateset, 2)
@@ -537,6 +534,7 @@ def test_native_aliases_preserve_angle_bounds(level: BenchmarkLevel, gateset: st
     circuit = QuantumCircuit(2)
     circuit.rzz(angle, 0, 1)
     result = get_benchmark(circuit, level, target=bounded, random_parameters=False)
+    assert bounded.gate_has_angle_bounds("rzz")
     assert all(
         bounded.instruction_supported(item.operation.name, parameters=item.operation.params) for item in result.data
     )

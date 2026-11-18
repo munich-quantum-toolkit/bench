@@ -18,13 +18,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("qftentangled", description="QFT with GHZ state input")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Quantum Fourier Transform algorithm using entangled qubits.
+    """Apply the quantum Fourier transform to a GHZ state.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the GHZ state and the transform.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the Quantum Fourier Transform algorithm using entangled qubits
+        A circuit that measures the full register after the transform.
     """
     q = QuantumRegister(num_qubits, "q")
     qc = QuantumCircuit(q)

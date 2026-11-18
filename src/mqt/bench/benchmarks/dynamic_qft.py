@@ -18,15 +18,16 @@ from ._registry import register_benchmark
 
 @register_benchmark("dynamic_qft", description="Dynamic Quantum Fourier Transformation (QFT)")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Dynamic Quantum Fourier Transform algorithm.
+    """Build a semiclassical quantum Fourier transform.
 
-    More details on the “Semiclassical Fourier Transform for Quantum Computation” can be found in https://arxiv.org/abs/quant-ph/9511007
+    See https://arxiv.org/abs/quant-ph/9511007 for the semiclassical construction.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits to transform and measure.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the Dynamic Quantum Fourier Transform algorithm
+        A circuit that measures qubits from highest to lowest index. Measurement results
+        select the phase rotations on the remaining qubits.
     """
     q = QuantumRegister(num_qubits, "q")
     meas = ClassicalRegister(num_qubits, "meas")

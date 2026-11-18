@@ -18,13 +18,13 @@ from ._registry import register_benchmark
 
 @register_benchmark("wstate", description="W-State")
 def create_circuit(num_qubits: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the W state.
+    """Prepare a W state with one excitation shared among all qubits.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
+    Args:
+        num_qubits: Number of qubits in the state.
 
     Returns:
-        QuantumCircuit: a quantum circuit implementing the W state
+        A circuit that measures all qubits. Each ideal outcome contains exactly one set bit.
     """
     q = QuantumRegister(num_qubits, "q")
     qc = QuantumCircuit(q, name="wstate")

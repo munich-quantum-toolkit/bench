@@ -6,7 +6,7 @@
 #
 # Licensed under the MIT License
 
-"""Deutsch Josza benchmark definition. Code is based on https://qiskit.org/textbook/ch-algorithms/deutsch-jozsa.html."""
+"""Deutsch-Jozsa benchmark definition. Code is based on https://qiskit.org/textbook/ch-algorithms/deutsch-jozsa.html."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def dj_oracle(case: str, n: int) -> Gate:
-    """Returns a quantum circuit implementing the Deutsch-Josza oracle."""
+    """Build the constant or balanced Deutsch-Jozsa oracle for the input register."""
     # plus one output qubit
     oracle_qc = QuantumCircuit(n + 1)
     rng = np.random.default_rng(10)
@@ -55,7 +55,7 @@ def dj_oracle(case: str, n: int) -> Gate:
 
 
 def dj_algorithm(oracle: Gate, n: int) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Deutsch-Josza algorithm."""
+    """Build the Deutsch-Jozsa circuit for the supplied oracle."""
     dj_circuit = QuantumCircuit(n + 1, n)
 
     dj_circuit.x(n)
@@ -78,11 +78,14 @@ def dj_algorithm(oracle: Gate, n: int) -> QuantumCircuit:
 
 @register_benchmark("dj", description="Deutsch-Jozsa")
 def create_circuit(num_qubits: int, balanced: bool = True) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Deutsch-Josza algorithm.
+    """Build a Deutsch-Jozsa circuit with a balanced or constant oracle.
 
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        balanced: True for a balanced and False for a constant oracle
+    Args:
+        num_qubits: Total width, including the oracle's output qubit. Must be at least 2.
+        balanced: Choose a balanced oracle when true or a constant oracle when false.
+
+    Returns:
+        A circuit that measures only the input register. An all-zero outcome identifies a constant oracle.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for Deutsch-Jozsa."

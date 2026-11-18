@@ -18,23 +18,17 @@ from ._registry import register_benchmark
 
 @register_benchmark("vbe_ripple_carry_adder", description="Vedral-Barenco-Eker (VBE) Ripple-Carry Adder")
 def create_circuit(num_qubits: int, kind: str = "full") -> QuantumCircuit:
-    """Create a vbe ripple-carry adder circuit.
+    """Build a VBE ripple-carry adder.
 
-    Measure only the sum into ``result``, least-significant bit first.
-    Carry-out, when present, is the most-significant result bit.
-
-    Arguments:
-            num_qubits: Number of qubits of the returned quantum circuit
-            kind: The kind of adder, can be ``"full"`` for a full adder, ``"half"`` for a half
-                adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
-                and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
-                nor carry-out. Additionally, num_state_qubits - 1 ancillary qubits are added.
-                For example if num_qubits=13 and kind="full", there is one qubit for carry-in, one qubit
-                for carry-out, num_state_qubits=4 for each of the 2 registers, and num_state_qubits-1=3
-                ancillary qubits.
+    Args:
+        num_qubits: Total width for two ``n``-bit operands, with ``n >= 1``. Use ``3 * n + 1``
+            qubits for full addition, ``3 * n`` for half, or ``3 * n - 1`` for fixed-width.
+        kind: ``"full"`` includes carry-in and carry-out, ``"half"`` includes only carry-out,
+            and ``"fixed"`` retains only the low bits that fit in one operand.
 
     Returns:
-           QuantumCircuit: The constructed vbe ripple-carry adder circuit.
+        A circuit that measures only the sum into ``result``, least-significant bit first.
+        For full and half addition, the highest result bit is the carry-out.
 
     See Also:
         :class:`qiskit.circuit.library.VBERippleCarryAdder`

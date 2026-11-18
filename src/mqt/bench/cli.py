@@ -61,7 +61,7 @@ def main() -> None:
     parser.add_argument(
         "--num-qubits",
         type=int,
-        help="Number of qubits for the benchmark.",
+        help="Benchmark size. For most algorithms, this is the number of qubits.",
     )
     parser.add_argument(
         "--compiler", choices=["qiskit", "mqt"], default="qiskit", help="Compiler to use (default: qiskit)."

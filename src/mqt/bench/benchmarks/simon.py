@@ -17,31 +17,21 @@ from ._registry import register_benchmark
 
 @register_benchmark("simon", description="Simon's Algorithm")
 def create_circuit(num_qubits: int, hidden_string: str | None = None) -> QuantumCircuit:
-    r"""Returns a quantum circuit implementing Simon's algorithm.
+    r"""Build Simon's circuit for a hidden nonzero binary string.
 
-    Simon's algorithm (Simon 1997, SIAM J. Comput. 26, 1474) considers a function
-    :math:`f: \{0,1\}^n \to \{0,1\}^n` with the promise that
-    :math:`f(x) = f(y)` if and only if :math:`y = x` or :math:`y = x \oplus s`
-    for a hidden, non-zero bitstring :math:`s`. The circuit uses two registers of
-    :math:`n` qubits each:
+    The oracle implements the two-to-one function of Simon (1997, SIAM J. Comput.
+    26, 1474). Inputs that differ by the hidden string give the same output.
 
-    1. Hadamard gates are applied to the :math:`n` input qubits.
-    2. The oracle :math:`U_f` maps :math:`|x\rangle|0\rangle` to :math:`|x\rangle|f(x)\rangle`.
-       Here, :math:`f(x) = x \oplus x_j \cdot s`, where :math:`j` is the position of the
-       first set bit of :math:`s`.
-    3. Hadamard gates are applied to the input qubits again.
-    4. The input qubits are measured. Every measured bitstring :math:`y`
-       satisfies :math:`y \cdot s = 0 \pmod 2`.
-
-    Arguments:
-        num_qubits: Total number of qubits of the returned quantum circuit
-            (input register plus output register). Must be even and at least 2.
-        hidden_string: Hidden bitstring :math:`s`. Its length must be ``num_qubits / 2`` and it must
-            contain at least one ``'1'``. The character ``hidden_string[i]`` belongs to input qubit
-            :math:`q_i`. If None, defaults to an alternating pattern starting with ``'1'``.
+    Args:
+        num_qubits: Total width of the equal input and output registers. Must be even
+            and at least 2.
+        hidden_string: Binary string of length ``num_qubits // 2`` containing at least
+            one ``1``. Character ``i`` belongs to input qubit ``i``. The default alternates
+            ones and zeros, starting with one.
 
     Returns:
-        A quantum circuit implementing Simon's algorithm.
+        A circuit that measures only the input register. Each ideal outcome :math:`y`
+        satisfies :math:`y \cdot s = 0 \pmod 2` for the hidden string :math:`s`.
     """
     if num_qubits < 2 or num_qubits % 2 != 0:
         msg = "num_qubits must be an even integer ≥ 2."

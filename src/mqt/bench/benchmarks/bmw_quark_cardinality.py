@@ -32,11 +32,15 @@ from ._registry import register_benchmark
 
 @register_benchmark("bmw_quark_cardinality", description="Cardinality Circuit (QUARK)")
 def create_circuit(num_qubits: int, depth: int = 3) -> QuantumCircuit:
-    """Returns a Qiskit circuit based on the cardinality circuit architecture from the QUARK framework.
+    """Build the cardinality ansatz from QUARK.
 
-    Arguments:
-        num_qubits: number of qubits of the returned quantum circuit
-        depth: Depth of the returned quantum circuit. Must be nonnegative.
+    Args:
+        num_qubits: Number of qubits in the ansatz.
+        depth: Number of entangling layers. Must be nonnegative.
+
+    Returns:
+        A circuit with parameterized rotations, nearest-neighbor RXX gates in each layer,
+        and final measurements on all qubits.
     """
     if depth < 0:
         msg = "depth must be nonnegative."

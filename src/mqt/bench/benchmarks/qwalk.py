@@ -23,16 +23,16 @@ def create_circuit(
     *,
     for_loop: bool = False,
 ) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Quantum Walk algorithm.
+    """Build a discrete-time quantum walk with a Hadamard coin.
 
     Args:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be at least 2.
-        depth: Number of quantum steps. Must be nonnegative.
-        coin_state_preparation: optional quantum circuit for state preparation
-        for_loop: whether to use a structured for-loop for the quantum walk steps
+        num_qubits: Total width, including one coin qubit. Must be at least 2.
+        depth: Number of walk steps. Must be nonnegative.
+        coin_state_preparation: Optional one-qubit circuit applied to the coin before the walk.
+        for_loop: Use a structured loop for the walk steps.
 
     Returns:
-        qc: a quantum circuit implementing the Quantum Walk algorithm
+        A circuit that measures the node register and the coin after the walk.
     """
     if num_qubits < 2:
         msg = "num_qubits must be at least 2 for quantum walks."

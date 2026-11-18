@@ -6,55 +6,27 @@ mystnb:
   number_source_lines: true
 ---
 
-```{code-cell} ipython3
-:tags: [remove-cell]
-%config InlineBackend.figure_formats = ['svg']
-```
-
 # Supported Benchmark Algorithms
 
-The current release includes the following benchmark algorithms, with each
-abbreviated `benchmark_name` mapped to its full description in the table below:
+Pass a benchmark name to {func}`~mqt.bench.get_benchmark`. The
+{doc}`benchmark API reference <api/mqt/bench/benchmarks/index>` lists the
+factories with their options, size requirements, and circuit descriptions.
 
 ```{code-cell} ipython3
-:tags: [hide-input]
+---
+tags: [hide-input]
+mystnb:
+  markdown_format: myst
+---
+from IPython.display import Markdown
 from mqt.bench.benchmarks import get_benchmark_catalog
-import pandas as pd
-from IPython.display import HTML
 
-df = pd.DataFrame(
-    [
-        {"Actual Benchmark": desc or name, "benchmark_name": name}
-        for name, desc in sorted(get_benchmark_catalog().items())
-    ]
-)
-
-def dark_even_rows(s):
-    return ['background-color:#262626;color:#f8f8f8' if s.name % 2 else '' for _ in s]
-
-html = (
-    df.style
-      .apply(dark_even_rows, axis=1)                         # zebra rows
-      .set_table_styles([
-          # index cells in zebra rows
-          {'selector': 'tr:nth-child(even) th',
-           'props': [('background-color','#262626'),
-                     ('color','#f8f8f8')]},
-
-          # entire header row
-          {'selector': 'thead th',
-           'props': [('background-color','#3b3b3b'),
-                     ('color','#f8f8f8')]}
-      ], overwrite=False)
-      .to_html()
-)
-
-HTML(html)
+rows = ["| Name | Algorithm |", "| --- | --- |"]
+for name, description in sorted(get_benchmark_catalog().items()):
+    factory = f"mqt.bench.benchmarks.{name}.create_circuit"
+    rows.append(f"| {{func}}`{name} <{factory}>` | {description or name} |")
+Markdown("\n".join(rows))
 ```
-
-See the
-[benchmark description](https://www.cda.cit.tum.de/mqtbench/benchmark_description)
-for further details on the individual benchmarks.
 
 ## Arithmetic results
 
@@ -68,7 +40,7 @@ classical register named `result`. Bit `result[0]` is the least-significant bit.
 | `cdkm_ripple_carry_adder`, `vbe_ripple_carry_adder`, `draper_qft_adder` | Sum including carry-out for `full`/`half`; sum modulo $2^n$ for `fixed` |
 | `multiplier`, `rg_qft_multiplier`, `hrs_cumulative_multiplier`          | Full $2n$-bit product                                                   |
 
-Input registers, carry-in, and helper qubits are not measured. The benchmarks
-leave inputs in their default zero state; prepare inputs before the arithmetic
-operations to obtain nonzero results. Mirror benchmarks continue to measure all
-active qubits to check that the circuit and its inverse return them to zero.
+The constructors leave the input qubits in their default zero state. To run a
+specific addition or multiplication, prepare the operands before the arithmetic
+operations. A mirror circuit measures all active qubits after the inverse,
+including active input and helper qubits.

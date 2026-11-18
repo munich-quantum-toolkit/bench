@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: If you use MQT Bench, please cite the 2023 paper below.
+title: MQT Bench
+type: software
+authors:
+  - family-names: Burgholzer
+    given-names: Lukas
+    email: burgholzer@me.com
+  - family-names: Hofmann
+    given-names: Simon
+    email: simon@mq.sc
+  - family-names: Hopf
+    given-names: Patrick
+    email: patrick@mq.sc
+  - family-names: Haag
+    given-names: Daniel
+    email: daniel@mq.sc
+  - family-names: Quetschlich
+    given-names: Nils
+    email: nils.quetschlich@tum.de
+url: https://mqt-bench.app/
+repository-code: https://github.com/munich-quantum-toolkit/bench
+preferred-citation:
+  type: article
+  title: "MQT Bench: Benchmarking Software and Design Automation Tools for Quantum Computing"
+  authors:
+    - family-names: Quetschlich
+      given-names: Nils
+    - family-names: Burgholzer
+      given-names: Lukas
+    - family-names: Wille
+      given-names: Robert
+  journal: Quantum
+  volume: "7"
+  start: "1062"
+  year: 2023
+  doi: 10.22331/q-2023-07-20-1062
+  notes: MQT Bench is available at https://mqt-bench.app/

@@ -23,22 +23,18 @@ from ._registry import register_benchmark
 def create_circuit(
     num_qubits: int, exact: bool = True, rotation_threshold: float = 1e-15, seed: int | None = 10
 ) -> QuantumCircuit:
-    """Returns a quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
+    """Build a two-qubit iterative phase estimation circuit.
 
-    In contrast to the regular QPE algorithm, the @p num_qubits argument does not influence the final number of qubits of the circuit.
-    The circuit will always use exactly two qubits, but `num_qubits-1` iterations of the phase estimation loop.
-    This way, transforming the IQPE benchmark circuit to a straight-line circuit (by replacing reset operations with new qubits and applying the deferred measurement principle) results in the equivalent QPE benchmark circuit configured with the same value for `num_qubits`.
-    The name `num_qubits` is kept for consistency with the other benchmark generation functions.
-
-    Arguments:
-        num_qubits: Controls the precision of the phase estimation algorithm. Must be at least 2.
-        exact: Whether to use a target phase that is exactly representable with the chosen precision.
-        rotation_threshold: Emit conditional feedback rotations only when their angle magnitude exceeds this value in radians.
-        seed: Random seed for the target phase. Defaults to 10 for reproducibility;
-            None uses system randomness.
+    Args:
+        num_qubits: Sets the number of phase bits to ``num_qubits - 1``. Must be at least 2.
+        exact: Choose a phase that is exactly representable at the requested precision
+            when true, or one that needs one extra bit when false.
+        rotation_threshold: Include feedback rotations whose angle magnitude exceeds
+            this threshold in radians.
+        seed: Seed for selecting the target phase. Use ``None`` for system randomness.
 
     Returns:
-        QuantumCircuit: A quantum circuit implementing the Iterative Quantum Phase Estimation algorithm.
+        A circuit that reuses one ancilla and stores one measured phase bit per round.
     """
     if num_qubits <= 1:
         msg = "Number of qubits must be at least 2 for IQPE."

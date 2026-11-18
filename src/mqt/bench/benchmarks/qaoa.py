@@ -16,17 +16,17 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from ._registry import register_benchmark
 
 
-@register_benchmark("qaoa", description="Quantum Approximation Optimization Algorithm (QAOA)")
+@register_benchmark("qaoa", description="Quantum Approximate Optimization Algorithm (QAOA)")
 def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> QuantumCircuit:
-    """Constructs a quantum circuit implementing QAOA for a Max-Cut example with random parameters.
+    """Build a QAOA ansatz for Max-Cut on a random graph.
 
-    Arguments:
-        num_qubits: Number of qubits in the circuit (equal to the number of graph nodes).
-        repetitions: Number of QAOA layers (repetitions of the ansatz). Must be nonnegative.
-        seed: Seed for reproducibility.
+    Args:
+        num_qubits: Number of vertices, one per qubit.
+        repetitions: Number of cost and mixer layers. Must be nonnegative.
+        seed: Seed for generating the graph.
 
     Returns:
-        QuantumCircuit: Quantum circuit implementing QAOA.
+        A circuit with symbolic rotation angles. Each measured bit assigns one vertex to a side of the cut.
     """
     if repetitions < 0:
         msg = "repetitions must be nonnegative."

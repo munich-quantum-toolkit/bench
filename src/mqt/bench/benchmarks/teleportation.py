@@ -17,25 +17,20 @@ from ._registry import register_benchmark
 
 @register_benchmark("teleportation", description="Quantum Teleportation")
 def create_circuit(num_qubits: int, state_preparation: QuantumCircuit | None = None) -> QuantumCircuit:
-    r"""Returns a quantum circuit implementing the quantum teleportation protocol.
+    """Teleport a one-qubit state independently in each group of three qubits.
 
-    Each group of 3 qubits forms one independent teleportation:
-        - qubit ``3k`` is the source qubit (the state to be teleported)
-        - qubit ``3k + 1`` is Alice's half of the Bell pair
-        - qubit ``3k + 2`` is Bob's half of the Bell pair (the destination)
+    In group ``k``, qubit ``3k`` is the source and qubits ``3k + 1`` and ``3k + 2``
+    share a Bell pair. The first two measurements control the X and Z corrections
+    on the destination, qubit ``3k + 2``.
 
-    Mid-circuit measurements on the source and Alice's qubit are used to classically
-    control the X and Z corrections on Bob's qubit. At the end, all destination
-    qubits are measured into a ``final_measurement`` register, so that the
-    teleported state can be verified.
-
-    Arguments:
-        num_qubits: Number of qubits of the returned quantum circuit. Must be a positive multiple of 3.
-        state_preparation: Optional 1-qubit circuit with no classical bits, applied
-            to each source qubit to prepare the state to be teleported. If None, :math:`| 0 \rangle` state is teleported.
+    Args:
+        num_qubits: Total width. Must be a positive multiple of 3.
+        state_preparation: Optional one-qubit circuit with no classical bits, applied
+            to each source. The default source state is the computational zero state.
 
     Returns:
-        QuantumCircuit: A quantum circuit implementing the quantum teleportation protocol.
+        A circuit with two intermediate measurement bits per group. It measures each
+        destination into the corresponding bit of ``final_measurement``.
     """
     if num_qubits < 3 or num_qubits % 3:
         msg = "num_qubits must be a positive multiple of 3."
