@@ -34,30 +34,17 @@ def create_circuit(num_qubits: int, repetitions: int = 2, seed: int = 10) -> Qua
 
     rng = np.random.default_rng(seed)
     adjacency_matrix = rng.integers(0, 2, size=(num_qubits, num_qubits))
-    adjacency_matrix = np.triu(adjacency_matrix, 1)  # Upper triangular part for undirected graph
+    edge_starts, edge_ends = (indices.tolist() for indices in np.triu(adjacency_matrix, 1).nonzero())
 
     gamma_values = ParameterVector("g", repetitions)
     beta_values = ParameterVector("b", repetitions)
 
-    # Initialize QAOA circuit
-    qc = QuantumCircuit(num_qubits)
-
-    # Start in uniform superposition
+    qc = QuantumCircuit(num_qubits, name="qaoa")
     qc.h(range(num_qubits))
-
-    # Define cost and mixer operators for each layer
     for layer in range(repetitions):
-        # Cost Hamiltonian
-        for i in range(num_qubits):
-            for j in range(i + 1, num_qubits):
-                if adjacency_matrix[i, j] != 0:
-                    qc.rzz(2 * gamma_values[layer], i, j)
-
-        # Mixer Hamiltonian
-        for i in range(num_qubits):
-            qc.rx(2 * beta_values[layer], i)
-
-    qc.name = "qaoa"
+        if edge_starts:
+            qc.rzz(2 * gamma_values[layer], edge_starts, edge_ends)
+        qc.rx(2 * beta_values[layer], range(num_qubits))
 
     qc.measure_all()
     return qc
