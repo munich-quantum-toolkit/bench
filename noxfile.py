@@ -61,26 +61,16 @@ def _run_tests(
     session: nox.Session,
     *,
     install_args: Sequence[str] = (),
-    extra_command: Sequence[str] = (),
     pytest_run_args: Sequence[str] = (),
+    upstream_qiskit: bool = False,
 ) -> None:
     env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
 
-    if extra_command:
-        session.run(*extra_command, env=env)
-    session.run(
-        "uv",
-        "run",
-        "--no-dev",
-        "--group",
-        "test",
-        *install_args,
-        "pytest",
-        *pytest_run_args,
-        *session.posargs,
-        "--cov-config=pyproject.toml",
-        env=env,
-    )
+    session.run("uv", "sync", "--no-dev", "--group", "test", *install_args, env=env)
+    if upstream_qiskit:
+        session.run("uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git")
+        session.run("uv", "pip", "freeze")
+    session.run("pytest", *pytest_run_args, *session.posargs, "--cov-config=pyproject.toml")
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, default=True)
@@ -104,14 +94,14 @@ def minimums(session: nox.Session) -> None:
 
 @nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS)
 def qiskit(session: nox.Session) -> None:
-    """Tests against the latest version of Qiskit."""
-    with preserve_lockfile():
-        _run_tests(
-            session,
-            extra_command=["uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"],
-        )
-        env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-        session.run("uv", "pip", "show", "qiskit", env=env)
+    """Test against Qiskit's main branch."""
+    _run_tests(
+        session,
+        install_args=["--locked"],
+        upstream_qiskit=True,
+        # Core warns when Qiskit is newer than its latest tested release.
+        pytest_run_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
+    )
 
 
 @nox.session(python="3.14", reuse_venv=True)
