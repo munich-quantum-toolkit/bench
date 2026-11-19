@@ -10,16 +10,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import QuantumCircuit
-
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
-_BenchmarkFactory = Callable[..., QuantumCircuit]
+    from . import _BenchmarkFactory
 
 
 @dataclass(frozen=True)
@@ -34,21 +31,10 @@ _REGISTRY: dict[str, BenchmarkInfo] = {}
 
 
 def register_benchmark(benchmark_name: str, description: str = "") -> Callable[[_BenchmarkFactory], _BenchmarkFactory]:
-    """Decorator to register a benchmark factory under a unique `benchmark_name`.
-
-    Arguments:
-        benchmark_name: unique identifier for the benchmark (e.g., ``"ae"``).
-        description: One-line description.
-
-    Returns:
-        The original factory function, unmodified.
-
-    Raises:
-        ValueError: if the chosen name is already present in the registry.
-    """
+    """Register a benchmark factory under a unique name."""
 
     def _decorator(func: _BenchmarkFactory) -> _BenchmarkFactory:
-        if benchmark_name in _REGISTRY:  # pragma: no cover
+        if benchmark_name in _REGISTRY:
             msg = f"Benchmark name '{benchmark_name}' already registered"
             raise ValueError(msg)
         _REGISTRY[benchmark_name] = BenchmarkInfo(func, description)
