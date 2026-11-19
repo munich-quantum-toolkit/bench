@@ -169,10 +169,14 @@ def test_quantumcircuit_levels(benchmark_name: str) -> None:
             assert res_mapped
 
 
-def test_qaoa() -> None:
-    """Test that the QAOA benchmark includes measurements."""
-    qc = create_circuit("qaoa", 3)
-    assert qc.count_ops().get("measure", 0) == 3
+@pytest.mark.parametrize(("num_qubits", "edges"), [(1, []), (3, [(0, 1), (1, 2)])])
+def test_qaoa(num_qubits: int, edges: list[tuple[int, int]]) -> None:
+    """Each QAOA layer applies a cost rotation per edge and a mixer rotation per vertex."""
+    qc = create_circuit("qaoa", num_qubits, seed=10)
+    cost_edges = [tuple(qc.find_bit(q).index for q in inst.qubits) for inst in qc if inst.operation.name == "rzz"]
+    assert cost_edges == edges * 2
+    assert qc.count_ops()["rx"] == 2 * num_qubits
+    assert qc.count_ops()["measure"] == num_qubits
 
 
 @pytest.mark.parametrize(

@@ -14,6 +14,8 @@ that minor releases may include breaking changes.
 
 ### Changed
 
+- ⚡ Speed up QAOA circuit construction by batching gates in each layer
+  ([#1166]) ([**@simon1hofmann**])
 - ⬆️ Require Python 3.11.5 or newer ([#1164]) ([**@simon1hofmann**])
 
 ## [2.4.0] - 2026-11-13
@@ -296,6 +298,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1166]: https://github.com/munich-quantum-toolkit/bench/pull/1166
 [#1164]: https://github.com/munich-quantum-toolkit/bench/pull/1164
 [#1151]: https://github.com/munich-quantum-toolkit/bench/pull/1151
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136
