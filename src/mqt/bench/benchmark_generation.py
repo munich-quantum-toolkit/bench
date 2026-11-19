@@ -21,7 +21,7 @@ import numpy as np
 from qiskit import generate_preset_pass_manager
 from qiskit.circuit import CircuitError, ClassicalRegister, Gate, QuantumCircuit, SessionEquivalenceLibrary
 from qiskit.compiler import transpile
-from qiskit.transpiler import Layout, Target
+from qiskit.transpiler import Layout, StagedPassManager, Target
 from qiskit.transpiler.passes import OptimizeCliffordT, RemoveFinalMeasurements
 
 from .benchmarks import create_circuit
@@ -33,7 +33,7 @@ from .targets.gatesets.ibm import configure_fractional_angles
 if TYPE_CHECKING:  # pragma: no cover
     from mqt.core.mlir import CompilationOptions
     from qiskit.dagcircuit import DAGCircuit
-    from qiskit.transpiler import PassManager, StagedPassManager
+    from qiskit.transpiler import PassManager
 
     from .configuration_options import ConfigurationOptions
 
@@ -141,7 +141,7 @@ def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManag
 
     Args:
         target_qc: The circuit to modify.
-        pass_manager: Compiler pipeline to reuse for the mirror.
+        pass_manager: Pipeline to lower the inverse on the same qubits.
 
     Returns:
         The mirrored quantum circuit.
@@ -168,18 +168,9 @@ def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManag
     active_qubits = [index for index, qubit in enumerate(target_qc.qubits) if qubit not in idle_qubits]
     target_qc.barrier(active_qubits)
 
-    target_qc.compose(qc_inv, inplace=True)
-
-    input_layout = target_qc.layout
     if pass_manager is not None:
-        target_qc = pass_manager.run(target_qc)
-        if target_qc.layout is not None:
-            final_indices = target_qc.layout.final_index_layout()
-            active_qubits = [final_indices[index] for index in active_qubits]
-    if input_layout is not None and target_qc.layout is not None:
-        # Qiskit circuit copies can share the layout. Detach it before resetting routing.
-        target_qc._layout = deepcopy(input_layout)  # ruff:ignore[private-member-access]
-
+        qc_inv = pass_manager.run(qc_inv)
+    target_qc.compose(qc_inv, inplace=True)
     target_qc.barrier(active_qubits)
     name = "meas"
     existing_names = {register.name for register in target_qc.cregs}
@@ -192,7 +183,10 @@ def _create_mirror_circuit(target_qc: QuantumCircuit, *, pass_manager: PassManag
     target_qc.name = f"{target_qc.name}_mirror"
 
     if target_qc.layout is not None:
-        target_qc.layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
+        # Qiskit circuit copies can share the layout. Detach it before resetting routing.
+        layout = deepcopy(target_qc.layout)
+        layout.final_layout = Layout.generate_trivial_layout(*target_qc.qregs)
+        target_qc._layout = layout  # ruff:ignore[private-member-access]
 
     return target_qc
 
@@ -502,7 +496,9 @@ def get_benchmark_mapped(
         mirror=generate_mirror_circuit,
     )
     if generate_mirror_circuit:
-        return _create_mirror_circuit(mapped_circuit, pass_manager=pm)
+        # The inverse already uses physical wires. Only translate its gates and lower native aliases.
+        mirror_pm = StagedPassManager(**{stage: getattr(pm, stage) for stage in ("translation", "post_scheduling")})
+        return _create_mirror_circuit(mapped_circuit, pass_manager=mirror_pm)
     return mapped_circuit
 
 
