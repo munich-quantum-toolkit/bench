@@ -478,15 +478,30 @@ def test_invalid_benchmark_options(benchmark: str, size: int, kwargs: dict, mess
 
 @pytest.mark.parametrize(
     ("benchmark_name", "num_qubits", "expected_iterations"),
-    [("grover", 4, 2), ("qwalk", 4, 3), ("qwalk", 2, 3)],
+    [("grover", 4, 2), ("grover", 65, 3_373_259_426), ("qwalk", 4, 3), ("qwalk", 2, 3)],
 )
 def test_for_loop_option(benchmark_name: str, num_qubits: int, expected_iterations: int) -> None:
     """Test the optional structured loop implementations."""
-    assert "for_loop" not in create_circuit(benchmark_name, num_qubits).count_ops()
+    # Keep the unrolled circuit small.
+    assert "for_loop" not in create_circuit(benchmark_name, min(num_qubits, 4)).count_ops()
     circuit = create_circuit(benchmark_name, num_qubits, for_loop=True)
     assert circuit.count_ops()["for_loop"] == 1
     loop = next(instruction.operation for instruction in circuit.data if isinstance(instruction.operation, ForLoopOp))
     assert loop.params[0] == range(expected_iterations)
+
+
+@pytest.mark.parametrize(("num_qubits", "fmt"), [(4, OutputFormat.QASM2), (40, OutputFormat.QASM3)])
+def test_ae_export(num_qubits: int, fmt: OutputFormat) -> None:
+    """Amplitude estimation exports at the algorithm level, including wide evaluation registers."""
+    circuit = get_benchmark_alg("ae", num_qubits)
+    stream = io.StringIO()
+    write_circuit(circuit, stream, BenchmarkLevel.ALG, fmt)
+    restored = (
+        qasm2.loads(stream.getvalue(), custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+        if fmt is OutputFormat.QASM2
+        else qasm3.loads(stream.getvalue())
+    )
+    assert restored.count_ops()["measure"] == num_qubits
 
 
 @pytest.mark.parametrize("exact", [True, False])

@@ -16,6 +16,13 @@ that minor releases may include breaking changes.
 
 - ⬆️ Require Python 3.11.5 or newer ([#1164]) ([**@simon1hofmann**])
 
+### Fixed
+
+- 🐛 Export amplitude-estimation circuits to OpenQASM and avoid numerical
+  failures when constructing larger instances ([#1165]) ([**@simon1hofmann**])
+- 🐛 Fix the iteration count calculation for wide structured Grover circuits
+  ([#1165]) ([**@simon1hofmann**])
+
 ## [2.4.0] - 2026-11-13
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#240)._
@@ -296,6 +303,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1165]: https://github.com/munich-quantum-toolkit/bench/pull/1165
 [#1164]: https://github.com/munich-quantum-toolkit/bench/pull/1164
 [#1151]: https://github.com/munich-quantum-toolkit/bench/pull/1151
 [#1136]: https://github.com/munich-quantum-toolkit/bench/pull/1136

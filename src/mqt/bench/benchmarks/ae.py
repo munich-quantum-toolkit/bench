@@ -10,9 +10,10 @@
 
 from __future__ import annotations
 
-import numpy as np
+from math import asin, sqrt
+
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import phase_estimation
+from qiskit.circuit.library import PermutationGate, RYGate, phase_estimation
 
 from ._registry import register_benchmark
 
@@ -37,36 +38,12 @@ def create_circuit(num_qubits: int, probability: float = 0.2) -> QuantumCircuit:
         msg = "probability must be between 0 and 1."
         raise ValueError(msg)
 
-    # Compute the rotation angle: theta_p = 2 * arcsin(sqrt(p))
-    theta_p = 2 * np.arcsin(np.sqrt(probability))
-
-    # Create the state-preparation operator (A operator) as a single-qubit circuit.
-    state_preparation = QuantumCircuit(1)
-    state_preparation.ry(theta_p, 0)
-
-    # Create the Grover operator (Bernoulli Q operator) as a single-qubit circuit.
-    # It applies a rotation of 2 * theta_p, which corresponds to an effective rotation of 4*arcsin(sqrt(p)).
-    grover_operator = QuantumCircuit(1)
-    grover_operator.ry(2 * theta_p, 0)
-
-    # Compute the number of evaluation qubits (phase estimation qubits).
+    theta_p = 2 * asin(sqrt(probability))
     num_eval_qubits = num_qubits - 1
-
-    # Build the phase estimation circuit with the specified number of evaluation qubits and the Grover operator.
-    pe = phase_estimation(num_eval_qubits, grover_operator.to_gate(label="Q"))
-
-    # Create the overall circuit using the quantum registers from the phase estimation circuit.
-    qc = QuantumCircuit(*pe.qregs)
-
-    # Compose the state-preparation operator on the target qubit. We assume that the target qubit
-    # is the last qubit in the register list.
-    qc.compose(state_preparation, list(range(num_eval_qubits, qc.num_qubits)), inplace=True)
-
-    # Compose the phase estimation component.
-    qc.compose(pe.decompose(gates_to_decompose="unitary"), inplace=True)
-
-    # Name the circuit and measure evaluation and target qubits.
-    qc.name = "ae"
+    pe = phase_estimation(num_eval_qubits, RYGate(2 * theta_p))
+    qc = QuantumCircuit(*pe.qregs, name="ae")
+    qc.ry(theta_p, num_eval_qubits)
+    # Express the final bit reversal as swaps for OpenQASM export.
+    qc.compose(pe.decompose(gates_to_decompose=PermutationGate), inplace=True)
     qc.measure_all()
-
     return qc

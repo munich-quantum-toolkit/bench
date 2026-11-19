@@ -10,7 +10,8 @@
 
 from __future__ import annotations
 
-import numpy as np
+from math import pi, sqrt
+
 from qiskit.circuit import AncillaRegister, ForLoopOp, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import grover_operator
 
@@ -41,10 +42,10 @@ def create_circuit(num_qubits: int, *, for_loop: bool = False) -> QuantumCircuit
     state_preparation.x(flag)
 
     oracle = QuantumCircuit(q, flag)
-    oracle.mcp(np.pi, q, flag)
+    oracle.mcp(pi, q, flag)
 
     operator = grover_operator(oracle)
-    iterations = int(np.pi / 4 * np.sqrt(2**num_qubits))
+    iterations = int(pi / 4 * sqrt(2**num_qubits))
 
     qc = QuantumCircuit(q, flag, name="grover")
     qc.compose(state_preparation, inplace=True)
