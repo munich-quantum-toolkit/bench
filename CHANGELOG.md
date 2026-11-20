@@ -18,6 +18,8 @@ that minor releases may include breaking changes.
 
 ### Fixed
 
+- 🐛 Build the QNN benchmark with the ZZ feature map instead of the Z feature
+  map ([#PRNUM]) ([**@witold-andelie**])
 - 🐛 Reject custom benchmark, gate-set, and device names that match built-ins
   regardless of import order ([#1168]) ([**@simon1hofmann**])
 
