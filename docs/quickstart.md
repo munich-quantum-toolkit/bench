@@ -190,6 +190,15 @@ from mqt.bench.output import OutputFormat, save_circuit
 save_circuit(qc_target_independent_level, "dj_qasm2", BenchmarkLevel.INDEP, OutputFormat.QASM2)
 ```
 
+To read the file with Qiskit, enable its legacy instruction set. Some benchmarks
+use gates such as `rzz` that the default OpenQASM 2 reader does not recognize.
+
+```{code-cell} ipython3
+from qiskit import qasm2
+
+restored = qasm2.load("dj_qasm2.qasm", custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+```
+
 ### OpenQASM3
 
 OpenQASM 3 is the default output format. The same circuit can also be written to
