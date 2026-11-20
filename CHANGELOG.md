@@ -19,7 +19,7 @@ that minor releases may include breaking changes.
 ### Fixed
 
 - 🐛 Build the QNN benchmark with the ZZ feature map instead of the Z feature
-  map ([#PRNUM]) ([**@witold-andelie**])
+  map ([#1173]) ([**@witold-andelie**])
 - 🐛 Reject custom benchmark, gate-set, and device names that match built-ins
   regardless of import order ([#1168]) ([**@simon1hofmann**])
 
@@ -303,6 +303,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#1173]: https://github.com/munich-quantum-toolkit/bench/pull/1173
 [#1168]: https://github.com/munich-quantum-toolkit/bench/pull/1168
 [#1164]: https://github.com/munich-quantum-toolkit/bench/pull/1164
 [#1151]: https://github.com/munich-quantum-toolkit/bench/pull/1151
@@ -427,6 +428,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 [**@jyothikacodes**]: https://github.com/jyothikacodes
 [**@NiranjanRSoorej06**]: https://github.com/NiranjanRSoorej06
 [**@gautham0104-neitizen**]: https://github.com/gautham0104-neitizen
+[**@witold-andelie**]: https://github.com/witold-andelie
 
 <!-- General links -->
 
