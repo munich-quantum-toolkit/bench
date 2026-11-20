@@ -34,7 +34,20 @@ from qiskit.circuit import (
     WhileLoopOp,
 )
 from qiskit.circuit.classical import expr
-from qiskit.circuit.library import CXGate, GraphStateGate, HGate, QFTGate, RXGate, RZGate, TGate, XGate, YGate, ZGate
+from qiskit.circuit.library import (
+    CXGate,
+    GraphStateGate,
+    HGate,
+    QFTGate,
+    RXGate,
+    RZGate,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
+    real_amplitudes,
+    zz_feature_map,
+)
 from qiskit.compiler import transpile
 from qiskit.primitives import StatevectorSampler
 from qiskit.providers.basic_provider import BasicSimulator
@@ -882,6 +895,19 @@ def test_dj_constant_oracle() -> None:
     qc = get_benchmark_alg("dj", 5, balanced=False)
     qc.remove_final_measurements()
     assert Statevector(qc).probabilities([0, 1, 2, 3])[0] == pytest.approx(1)
+
+
+def test_qnn_uses_zz_feature_map() -> None:
+    """The QNN benchmark encodes its input with the ZZ feature map before the real-amplitudes ansatz."""
+    num_qubits = 3
+    expected = zz_feature_map(feature_dimension=num_qubits)
+    expected.compose(real_amplitudes(num_qubits=num_qubits, reps=1), inplace=True)
+    circuit = get_benchmark_alg("qnn", num_qubits, random_parameters=False)
+    circuit.remove_final_measurements()
+
+    assert [parameter.name for parameter in circuit.parameters] == [parameter.name for parameter in expected.parameters]
+    values = np.linspace(0.1, 1.0, circuit.num_parameters)
+    assert Operator(circuit.assign_parameters(values)).equiv(Operator(expected.assign_parameters(values)))
 
 
 @pytest.mark.parametrize(("num_qubits", "degree", "seed"), [(1, 0, 42), (6, 2, 0), (6, 3, 42)])
