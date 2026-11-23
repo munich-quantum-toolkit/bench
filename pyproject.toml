@@ -263,6 +263,7 @@ disable_warnings = [
   "no-sysmon",
 ]
 core = "sysmon"
+patch = [ "subprocess" ]
 
 [tool.coverage.report]
 precision = 1

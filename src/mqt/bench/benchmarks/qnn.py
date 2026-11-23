@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import real_amplitudes, z_feature_map
+from qiskit.circuit.library import real_amplitudes, zz_feature_map
 
 from ._registry import register_benchmark
 
@@ -24,10 +24,10 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
         num_qubits: Number of input features and qubits.
 
     Returns:
-        A circuit with a parameterized Z feature map, a real-amplitudes ansatz, and
+        A circuit with a parameterized ZZ feature map, a real-amplitudes ansatz, and
         final measurements on all qubits.
     """
-    feature_map = z_feature_map(feature_dimension=num_qubits)
+    feature_map = zz_feature_map(feature_dimension=num_qubits)
     ansatz = real_amplitudes(num_qubits=num_qubits, reps=1)
 
     qc = QuantumCircuit(num_qubits)

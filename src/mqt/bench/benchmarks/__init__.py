@@ -14,22 +14,27 @@ from __future__ import annotations
 
 import importlib
 import importlib.resources as ir
+from collections.abc import Callable
 from inspect import Parameter, signature
 from typing import TYPE_CHECKING, Any
+
+from qiskit.circuit import QuantumCircuit
 
 from ._registry import (
     benchmark_catalog,
     benchmark_description,
     benchmark_names,
     get_benchmark_by_name,
-    register_benchmark,
+)
+from ._registry import (
+    register_benchmark as _register_benchmark,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from qiskit.circuit import QuantumCircuit
 
+_BenchmarkFactory = Callable[..., QuantumCircuit]
 
 _DISCOVERED_BENCHMARKS: set[str] = {
     entry.name.removesuffix(".py")
@@ -70,6 +75,19 @@ def _ensure_loaded(benchmark_name: str) -> None:
         raise ValueError(msg)
 
     importlib.import_module(f"{__name__}.{benchmark_name}")
+
+
+def register_benchmark(benchmark_name: str, description: str = "") -> Callable[[_BenchmarkFactory], _BenchmarkFactory]:
+    """Register a custom benchmark factory under a unique name.
+
+    The description appears in the benchmark catalogue.
+
+    Raises:
+        ValueError: If a built-in or custom factory already uses the name.
+    """
+    if benchmark_name in _DISCOVERED_BENCHMARKS:
+        _ensure_loaded(benchmark_name)
+    return _register_benchmark(benchmark_name, description)
 
 
 def get_available_benchmark_names() -> list[str]:
