@@ -18,8 +18,6 @@
 
 from __future__ import annotations
 
-import os
-
 import nox
 from mqt.nox import common, python
 
@@ -36,29 +34,16 @@ def lint(session: nox.Session) -> None:
     common.lint(session)
 
 
-def _coverage_args(session: nox.Session) -> list[str]:
-    """Limit coverage to the latest locked session in pull request matrices."""
-    if (
-        session.parallel
-        and "--cov" in session.posargs
-        and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
-        and os.environ.get("GITHUB_REF") != "refs/heads/main"
-        and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
-    ):
-        return ["--no-cov"]
-    return []
-
-
 @nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    python.tests(session, pytest_args=_coverage_args(session))
+    python.tests(session)
 
 
 @nox.session(python=PYTHON_VERSIONS, venv_backend="uv", default=True, allow_parallel=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
-    python.minimums(session, pytest_args=_coverage_args(session))
+    python.minimums(session)
 
 
 @nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv")
