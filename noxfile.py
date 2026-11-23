@@ -8,147 +8,65 @@
 # Licensed under the MIT License
 
 # /// script
-# dependencies = ["nox"]
+# dependencies = [
+#   "nox>=2026.10.20",
+#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@aa3af05513ba6522453c8f59f0db2623acbe2146",
+# ]
 # ///
 
 """Nox sessions."""
 
 from __future__ import annotations
 
-import argparse
 import os
-import shutil
-from pathlib import Path
-from typing import TYPE_CHECKING
 
 import nox
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
+from mqt.nox import common, python
 
 nox.needs_version = ">=2026.10.20"
 nox.options.default_venv_backend = "uv"
-
-if os.environ.get("CI", None):
-    nox.options.error_on_missing_interpreters = True
 
 PYPROJECT = nox.project.load_toml("pyproject.toml")
 PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
 
 
-def _get_session_env(session: nox.Session) -> dict[str, str]:
-    """Return the environment that a session installs the project in."""
-    return {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-
 @nox.session(reuse_venv=True, default=True)
 def lint(session: nox.Session) -> None:
     """Run the linter."""
-    if shutil.which("prek") is None:
-        session.install("prek")
-
-    session.run("prek", "run", "--all-files", *session.posargs, external=True)
+    common.lint(session)
 
 
-def _run_pytest(session: nox.Session, *pytest_args: str, locked: bool = False) -> None:
-    env = _get_session_env(session)
-    command = ("uv", "run", "--locked", "--no-dev", "--group", "test") if locked else ()
-    posargs = session.posargs
-    if session.parallel:
-        pytest_args += ("-n", "0")
-        if (
-            "--cov" in posargs
-            and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
-            and os.environ.get("GITHUB_REF") != "refs/heads/main"
-            and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
-        ):
-            posargs = [*posargs, "--no-cov"]
-        else:
-            env["COVERAGE_FILE"] = str(Path(session.virtualenv.location).resolve() / ".coverage")
-            # The reusable workflow passes the same report path to every session.
-            posargs = [
-                f"{arg.removesuffix('.xml')}-{session.name}.xml"
-                if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
-                else arg
-                for arg in posargs
-            ]
-    session.run(
-        *command,
-        "pytest",
-        *pytest_args,
-        "--cov-config=pyproject.toml",
-        *posargs,
-        env=env,
-    )
-
-
-def _run_tests(
-    session: nox.Session,
-    *,
-    install_args: Sequence[str] = (),
-    pytest_run_args: Sequence[str] = (),
-    upstream_qiskit: bool = False,
-) -> None:
-    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-    session.run("uv", "sync", "--no-dev", "--group", "test", *install_args, env=env)
-    if upstream_qiskit:
-        session.run("uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git")
-        session.run("uv", "pip", "freeze")
-    session.run("pytest", *pytest_run_args, *session.posargs, "--cov-config=pyproject.toml")
+def _coverage_args(session: nox.Session) -> list[str]:
+    """Limit coverage to the latest locked session in pull request matrices."""
+    if (
+        session.parallel
+        and "--cov" in session.posargs
+        and os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
+        and os.environ.get("GITHUB_REF") != "refs/heads/main"
+        and session.name != f"tests-{PYTHON_VERSIONS[-1]}"
+    ):
+        return ["--no-cov"]
+    return []
 
 
 @nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    _run_pytest(session, locked=True)
-
-
-def _run_tests_without_lockfile(
-    session: nox.Session,
-    *,
-    install_args: Sequence[str] = (),
-    extra_packages: Sequence[str] = (),
-    pytest_run_args: Sequence[str] = (),
-) -> None:
-    """Run the test suite against a resolution that deviates from the lockfile."""
-    env = _get_session_env(session)
-    uv_pip_install = ["uv", "pip", "install", "--python", session.virtualenv.location, *install_args]
-
-    session.run(
-        *uv_pip_install,
-        "--group",
-        "test",
-        "--editable",
-        ".",
-        env=env,
-    )
-    if extra_packages:
-        session.run(*uv_pip_install, *extra_packages, env=env)
-    _run_pytest(session, *pytest_run_args)
+    python.tests(session, pytest_args=_coverage_args(session))
 
 
 @nox.session(python=PYTHON_VERSIONS, venv_backend="uv", default=True, allow_parallel=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
-    _run_tests_without_lockfile(
-        session,
-        install_args=["--upgrade", "--resolution=lowest-direct"],
-        pytest_run_args=["-Wdefault"],
-    )
-    session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
+    python.minimums(session, pytest_args=_coverage_args(session))
 
 
 @nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv")
 def qiskit(session: nox.Session) -> None:
     """Test against Qiskit's main branch."""
-    _run_tests(
+    python.qiskit(
         session,
-        install_args=["--locked"],
-        upstream_qiskit=True,
-        # Core warns when Qiskit is newer than its latest tested release.
-        pytest_run_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
+        pytest_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
     )
 
 
@@ -159,30 +77,7 @@ def docs(session: nox.Session) -> None:
     Use ``--non-interactive`` to avoid serving.
     Pass ``-b linkcheck`` to check links.
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-b", dest="builder", default="html", help="Build target (default: html)")
-    args, posargs = parser.parse_known_args(session.posargs)
-
-    serve = args.builder == "html" and session.interactive
-    if serve:
-        session.install("sphinx-autobuild")
-
-    session.run(
-        "uv",
-        "run",
-        "--no-dev",
-        "--group",
-        "docs",
-        "--frozen",
-        "sphinx-autobuild" if serve else "sphinx-build",
-        "-n",  # nitpicky mode
-        "-T",  # full tracebacks
-        f"-b={args.builder}",
-        "docs",
-        f"docs/_build/{args.builder}",
-        *posargs,
-        env=_get_session_env(session),
-    )
+    python.docs(session, install_args=["--frozen"])
 
 
 if __name__ == "__main__":

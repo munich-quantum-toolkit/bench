@@ -1570,7 +1570,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "nox" },
+    { name = "mqt-nox" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-console-scripts" },
@@ -1614,7 +1614,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "nox", specifier = ">=2026.10.20" },
+    { name = "mqt-nox", git = "https://github.com/munich-quantum-toolkit/nox.git?rev=aa3af05513ba6522453c8f59f0db2623acbe2146" },
     { name = "prek", specifier = ">=0.2.27" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
@@ -1662,6 +1662,14 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3e/ed/64aa5f93f6fecbebabe751cb8af5cc22ed95dbba98f5794368e4c1b8308d/mqt_core-4.2.1-cp315-abi3t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0f88ffd18f2a802995e781c1ad6c35410bbb66e6540207c4bed8e39cbd53e37d", size = 41132571, upload-time = "2026-11-15T06:15:26.23Z" },
     { url = "https://files.pythonhosted.org/packages/23/ee/7f7e0f6818b5fef4a33d85186e5ee536304a574de32d6c71b3c1b1b022c1/mqt_core-4.2.1-cp315-abi3t-win_amd64.whl", hash = "sha256:2631c7ba73961d5896ebc950a19d85e9bc922022999f8cbb54a8eca9f6ed30df", size = 32725937, upload-time = "2026-11-15T06:15:29.361Z" },
     { url = "https://files.pythonhosted.org/packages/82/ec/303a28d8728897420f6f1d6fd2e376137036ef65629c70d794938a2447f6/mqt_core-4.2.1-cp315-abi3t-win_arm64.whl", hash = "sha256:1af6bd83bd3467d164fefbb9505e5f511d75b020d0786c1b19928cc78b0d5d4a", size = 31288920, upload-time = "2026-11-15T06:15:31.881Z" },
+]
+
+[[package]]
+name = "mqt-nox"
+version = "0.1.0"
+source = { git = "https://github.com/munich-quantum-toolkit/nox.git?rev=aa3af05513ba6522453c8f59f0db2623acbe2146#aa3af05513ba6522453c8f59f0db2623acbe2146" }
+dependencies = [
+    { name = "nox" },
 ]
 
 [[package]]
