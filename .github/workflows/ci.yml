@@ -29,11 +29,10 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-26.04, ubuntu-26.04-arm, macos-26, windows-2025]
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@5db3098f02a034e30d9e1744b991c8aa81427ddf # workflows#525
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
     with:
       runs-on: ${{ matrix.runs-on }}
       use-sccache-gha: false
-      parallel-sessions: true
       draft-sessions: '["tests-3.15"]'
     permissions:
       contents: read

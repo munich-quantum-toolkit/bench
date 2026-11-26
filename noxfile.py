@@ -10,7 +10,7 @@
 # /// script
 # dependencies = [
 #   "nox>=2026.10.20",
-#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@aa3af05513ba6522453c8f59f0db2623acbe2146",
+#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@072be263e33c02b74549d26e99e9a898b1da4ec4",
 # ]
 # ///
 
@@ -34,13 +34,13 @@ def lint(session: nox.Session) -> None:
     common.lint(session)
 
 
-@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
     python.tests(session)
 
 
-@nox.session(python=PYTHON_VERSIONS, venv_backend="uv", default=True, allow_parallel=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv", default=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
     python.minimums(session)
