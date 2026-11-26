@@ -10,15 +10,9 @@ on:
 permissions: {}
 
 jobs:
-  build-sdist:
+  package:
     name: 🐍 Packaging
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-sdist.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
-    permissions:
-      contents: read
-
-  build-wheel:
-    name: 🐍 Packaging
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-wheel-build.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-build.yml@85eef7c1358086e8669ceda13b27d1a9caf095c1
     permissions:
       contents: read
 
@@ -29,7 +23,7 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/mqt.bench
-    needs: [build-sdist, build-wheel]
+    needs: package
     permissions:
       attestations: write # Needed to attest the built artifacts
       contents: read
