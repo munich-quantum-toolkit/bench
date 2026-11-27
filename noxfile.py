@@ -8,134 +8,59 @@
 # Licensed under the MIT License
 
 # /// script
-# dependencies = ["nox"]
+# dependencies = [
+#   "nox>=2026.10.20",
+#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@c9a12fd836c5952abf4c563ef425cc936d9fb410",
+# ]
 # ///
 
 """Nox sessions."""
 
 from __future__ import annotations
 
-import argparse
-import contextlib
-import os
-import shutil
-import tempfile
-from typing import TYPE_CHECKING
-
 import nox
+from mqt.nox import common, python
 
-if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
+nox.needs_version = ">=2026.10.20"
 
-
-nox.needs_version = ">=2025.10.16"
-nox.options.default_venv_backend = "uv"
-
-PYTHON_ALL_VERSIONS = ["3.11", "3.12", "3.13", "3.14", "3.15"]
-
-if os.environ.get("CI", None):
-    nox.options.error_on_missing_interpreters = True
-
-
-@contextlib.contextmanager
-def preserve_lockfile() -> Generator[None]:
-    """Preserve the lockfile by moving it to a temporary directory."""
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        shutil.move("uv.lock", f"{temp_dir_name}/uv.lock")
-        try:
-            yield
-        finally:
-            shutil.move(f"{temp_dir_name}/uv.lock", "uv.lock")
+PYPROJECT = nox.project.load_toml("pyproject.toml")
+PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
 
 
 @nox.session(reuse_venv=True, default=True)
 def lint(session: nox.Session) -> None:
     """Run the linter."""
-    if shutil.which("prek") is None:
-        session.install("prek")
-
-    session.run("prek", "run", "--all-files", *session.posargs, external=True)
+    common.lint(session)
 
 
-def _run_tests(
-    session: nox.Session,
-    *,
-    install_args: Sequence[str] = (),
-    pytest_run_args: Sequence[str] = (),
-    upstream_qiskit: bool = False,
-) -> None:
-    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-    session.run("uv", "sync", "--no-dev", "--group", "test", *install_args, env=env)
-    if upstream_qiskit:
-        session.run("uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git")
-        session.run("uv", "pip", "freeze")
-    session.run("pytest", *pytest_run_args, *session.posargs, "--cov-config=pyproject.toml")
-
-
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, default=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    _run_tests(session)
+    python.tests(session)
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS, reuse_venv=True, venv_backend="uv", default=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
-    with preserve_lockfile():
-        _run_tests(
-            session,
-            install_args=["--resolution=lowest-direct"],
-            pytest_run_args=["-Wdefault"],
-        )
-        env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-        session.run("uv", "tree", "--frozen", env=env)
+    python.minimums(session)
 
 
-@nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True)
 def qiskit(session: nox.Session) -> None:
     """Test against Qiskit's main branch."""
-    _run_tests(
+    python.qiskit(
         session,
-        install_args=["--locked"],
-        upstream_qiskit=True,
-        # Core warns when Qiskit is newer than its latest tested release.
-        pytest_run_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
+        pytest_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
     )
 
 
 @nox.session(python="3.14", reuse_venv=True)
 def docs(session: nox.Session) -> None:
-    """Build the docs. Use "--non-interactive" to avoid serving. Pass "-b linkcheck" to check links."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-b", dest="builder", default="html", help="Build target (default: html)")
-    args, posargs = parser.parse_known_args(session.posargs)
+    """Build the docs.
 
-    serve = args.builder == "html" and session.interactive
-    if serve:
-        session.install("sphinx-autobuild")
-
-    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-    shared_args = [
-        "-n",  # nitpicky mode
-        "-T",  # full tracebacks
-        f"-b={args.builder}",
-        "docs",
-        f"docs/_build/{args.builder}",
-        *posargs,
-    ]
-
-    session.run(
-        "uv",
-        "run",
-        "--no-dev",
-        "--group",
-        "docs",
-        "--frozen",
-        "sphinx-autobuild" if serve else "sphinx-build",
-        *shared_args,
-        env=env,
-    )
+    Use "--non-interactive" to avoid serving. Pass "-b linkcheck" to check links.
+    """
+    python.docs(session)
 
 
 if __name__ == "__main__":
