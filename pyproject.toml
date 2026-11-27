@@ -77,7 +77,7 @@ mqt-bench = "mqt.bench.cli:main"
 [dependency-groups]
 dev = [
   { include-group = "test" },
-  "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@cdd19440398f0efffdc99bd6ccb87090e157d99c",
+  "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@d5bcbc5fcc695856af8d7ef2634414b5b65d03bc",
   "prek>=0.2.27",
 ]
 test = [
@@ -94,6 +94,7 @@ docs = [
   "qiskit[visualization]>=2.5.2,<3",
   "sphinx>=9",
   "sphinx-autoapi>=3.6",
+  "sphinx-autobuild>=2025.8.25",
   "sphinx-copybutton>=0.5.2",
   "sphinx-design>=0.7",
   "sphinx-llm>=1",
