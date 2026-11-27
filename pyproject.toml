@@ -107,28 +107,6 @@ required-version = ">=0.13.4"
 
 [tool.uv.build-backend]
 module-name = "mqt.bench"
-source-include = [
-  ".dockerignore",
-  ".github/**",
-  ".gitignore",
-  ".license-tools-config.json",
-  ".pre-commit-config.yaml",
-  ".readthedocs.yaml",
-  ".rumdl.toml",
-  "*.md",
-  "CITATION.bib",
-  "CITATION.cff",
-  "Dockerfile",
-  "docs/*.bib",
-  "docs/*.md",
-  "docs/*.py",
-  "docs/_static/**",
-  "docs/_templates/**",
-  "noxfile.py",
-  "sitecustomize.py",
-  "tests/**",
-  "uv.lock",
-]
 source-exclude = [ "/src/mqt/bench/_version.py" ]
 
 
@@ -219,6 +197,23 @@ PC170 = "We do not use rST files anymore"
 
 [tool.check-sdist]
 sdist-only = [ "pyproject.toml.orig" ]
+git-only = [
+  "docs/*",
+  "tests/*",
+  ".dockerignore",
+  ".gitignore",
+  ".license-tools-config.json",
+  ".readthedocs.yaml",
+  ".rumdl.toml",
+  "AGENTS.md",
+  "CHANGELOG.md",
+  "CITATION.bib",
+  "CITATION.cff",
+  "Dockerfile",
+  "sitecustomize.py",
+  "UPGRADING.md",
+  "uv.lock",
+]
 
 
 [tool.pyproject-fmt]
