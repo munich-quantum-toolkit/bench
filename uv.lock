@@ -1614,7 +1614,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "mqt-nox", git = "https://github.com/munich-quantum-toolkit/nox.git?rev=072be263e33c02b74549d26e99e9a898b1da4ec4" },
+    { name = "mqt-nox", git = "https://github.com/munich-quantum-toolkit/nox.git?rev=cdd19440398f0efffdc99bd6ccb87090e157d99c" },
     { name = "prek", specifier = ">=0.2.27" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "pytest-console-scripts", specifier = ">=1.4.1" },
@@ -1667,7 +1667,7 @@ wheels = [
 [[package]]
 name = "mqt-nox"
 version = "0.1.0"
-source = { git = "https://github.com/munich-quantum-toolkit/nox.git?rev=072be263e33c02b74549d26e99e9a898b1da4ec4#072be263e33c02b74549d26e99e9a898b1da4ec4" }
+source = { git = "https://github.com/munich-quantum-toolkit/nox.git?rev=cdd19440398f0efffdc99bd6ccb87090e157d99c#cdd19440398f0efffdc99bd6ccb87090e157d99c" }
 dependencies = [
     { name = "nox" },
 ]

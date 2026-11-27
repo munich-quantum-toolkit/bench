@@ -10,7 +10,7 @@
 # /// script
 # dependencies = [
 #   "nox>=2026.10.20",
-#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@072be263e33c02b74549d26e99e9a898b1da4ec4",
+#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@cdd19440398f0efffdc99bd6ccb87090e157d99c",
 # ]
 # ///
 
@@ -59,8 +59,7 @@ def qiskit(session: nox.Session) -> None:
 def docs(session: nox.Session) -> None:
     """Build the docs.
 
-    Use ``--non-interactive`` to avoid serving.
-    Pass ``-b linkcheck`` to check links.
+    Use "--non-interactive" to avoid serving. Pass "-b linkcheck" to check links.
     """
     python.docs(session, install_args=["--frozen"])
 
