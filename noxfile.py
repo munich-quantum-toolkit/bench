@@ -10,7 +10,7 @@
 # /// script
 # dependencies = [
 #   "nox>=2026.10.20",
-#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@d5bcbc5fcc695856af8d7ef2634414b5b65d03bc",
+#   "mqt-nox @ git+https://github.com/munich-quantum-toolkit/nox.git@c9a12fd836c5952abf4c563ef425cc936d9fb410",
 # ]
 # ///
 
@@ -22,7 +22,6 @@ import nox
 from mqt.nox import common, python
 
 nox.needs_version = ">=2026.10.20"
-nox.options.default_venv_backend = "uv"
 
 PYPROJECT = nox.project.load_toml("pyproject.toml")
 PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
@@ -40,13 +39,13 @@ def tests(session: nox.Session) -> None:
     python.tests(session)
 
 
-@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv", default=True)
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, default=True)
 def minimums(session: nox.Session) -> None:
     """Test the minimum versions of dependencies."""
     python.minimums(session)
 
 
-@nox.session(python=PYTHON_VERSIONS, reuse_venv=True, venv_backend="uv")
+@nox.session(python=PYTHON_VERSIONS, reuse_venv=True)
 def qiskit(session: nox.Session) -> None:
     """Test against Qiskit's main branch."""
     python.qiskit(
