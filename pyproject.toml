@@ -1,10 +1,11 @@
 [build-system]
-build-backend = "hatchling.build"
-requires = [ "hatch-vcs>=0.4", "hatchling>=1.27" ]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.13,<0.14" ]
 
 
 [project]
 name = "mqt-bench"
+version = "2.4.1.dev0"
 description = "MQT Bench - A MQT tool for Benchmarking Quantum Software Tools"
 readme = "README.md"
 keywords = [ "benchmarking", "MQT", "performance", "quantum computing", "testing" ]
@@ -32,7 +33,6 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Quantum Computing",
   "Typing :: Typed",
 ]
-dynamic = [ "version" ]
 dependencies = [
   "mqt-core>=4.2",
   "networkx>=2.8.8",
@@ -102,18 +102,12 @@ docs = [
 ]
 
 
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "src/mqt/bench/_version.py"
-
-[tool.hatch.build.targets.wheel]
-packages = [ "src/mqt" ]
-
-
 [tool.uv]
 required-version = ">=0.13.4"
+
+[tool.uv.build-backend]
+module-name = "mqt.bench"
+source-exclude = [ "/src/mqt/bench/_version.py" ]
 
 
 [tool.ruff]
@@ -202,7 +196,24 @@ PC170 = "We do not use rST files anymore"
 
 
 [tool.check-sdist]
-sdist-only = [ "src/mqt/bench/_version.py" ]
+sdist-only = [ "pyproject.toml.orig" ]
+git-only = [
+  "docs/*",
+  "tests/*",
+  ".dockerignore",
+  ".gitignore",
+  ".license-tools-config.json",
+  ".readthedocs.yaml",
+  ".rumdl.toml",
+  "AGENTS.md",
+  "CHANGELOG.md",
+  "CITATION.bib",
+  "CITATION.cff",
+  "Dockerfile",
+  "sitecustomize.py",
+  "UPGRADING.md",
+  "uv.lock",
+]
 
 
 [tool.pyproject-fmt]

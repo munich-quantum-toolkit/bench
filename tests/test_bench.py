@@ -2175,8 +2175,8 @@ def test_configuration_options() -> None:
 
 def test_version() -> None:
     """Test that the package version is accessible."""
-    assert isinstance(mqt.bench.__version__, str)
-    assert isinstance(mqt.bench.__version_tuple__, tuple)
+    assert mqt.bench.__version__ == metadata.version("mqt-bench")
+    assert ".".join(map(str, mqt.bench.__version_tuple__)) == mqt.bench.__version__
 
 
 @pytest.mark.parametrize("compiler", ["missing", "", "Qiskit"])

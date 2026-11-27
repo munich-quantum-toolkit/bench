@@ -17,9 +17,22 @@ permissions: {}
 jobs:
   change-detection:
     name: 🔍 Change
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
+    with:
+      additional-docs-files: >-
+        ["{CHANGELOG,UPGRADING}.md", ".github/SUPPORT.md"]
     permissions:
+      pull-requests: read
+
+  docs:
+    name: 📚 Docs
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-docs)
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-docs.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
+    permissions:
+      actions: read # Shared publisher downloads docs artifacts
       contents: read
+      pull-requests: read # Shared publisher verifies preview commits
 
   python-tests:
     name: 🐍 Test
@@ -29,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-26.04, ubuntu-26.04-arm, macos-26, windows-2025]
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-tests.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
     with:
       runs-on: ${{ matrix.runs-on }}
       use-sccache-gha: false
@@ -43,7 +56,7 @@ jobs:
     name: 🐍 Coverage
     needs: [change-detection, python-tests]
     if: fromJSON(needs.change-detection.outputs.run-python-tests)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-coverage.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-coverage.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
     permissions:
       contents: read
       id-token: write
@@ -52,7 +65,7 @@ jobs:
     name: 🐍 Lint
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-python-linter)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
     with:
       enable-ty: true
       enable-mypy: false
@@ -60,19 +73,11 @@ jobs:
     permissions:
       contents: read
 
-  build-sdist:
-    name: 🚀 CD
+  packaging:
+    name: 🐍 Packaging
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-cd)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-sdist.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
-    permissions:
-      contents: read
-
-  build-wheel:
-    name: 🚀 CD
-    needs: change-detection
-    if: fromJSON(needs.change-detection.outputs.run-cd)
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-wheel-build.yml@4e380c0bb1774aa8b9dd53194f4a7f6575cc3d42 # v2.5.10
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-build.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
     permissions:
       contents: read
 
@@ -82,17 +87,18 @@ jobs:
     if: always()
     needs:
       - change-detection
+      - docs
       - python-tests
       - python-coverage
       - python-linter
-      - build-sdist
-      - build-wheel
+      - packaging
     runs-on: ubuntu-slim
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           allowed-skips: >-
+            ${{ !fromJSON(needs.change-detection.outputs.run-docs) && 'docs,' || '' }}
             ${{
               !fromJSON(needs.change-detection.outputs.run-python-tests)
               && 'python-tests,python-coverage,' || ''
@@ -103,6 +109,6 @@ jobs:
             }}
             ${{
               !fromJSON(needs.change-detection.outputs.run-cd)
-              && 'build-sdist,build-wheel' || ''
+              && 'packaging' || ''
             }}
           jobs: ${{ toJSON(needs) }}

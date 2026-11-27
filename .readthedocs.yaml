@@ -1,8 +1,5 @@
 version: 2
 
-formats:
-  - htmlzip
-
 sphinx:
   configuration: docs/conf.py
 
@@ -11,10 +8,6 @@ build:
   tools:
     python: "3.14"
   jobs:
-    install:
-      - uv sync --locked --no-dev --group docs
-
-python:
-  install:
-    - method: uv
-      command: sync
+    post_checkout:
+      # Cancel native builds until the project switches to upload-only hosting.
+      - exit 183

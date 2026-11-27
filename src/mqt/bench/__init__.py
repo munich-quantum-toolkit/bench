@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version
+
 from mqt.bench.benchmark_generation import (
     BenchmarkLevel,
     get_benchmark,
@@ -19,8 +21,8 @@ from mqt.bench.benchmark_generation import (
     get_benchmark_native_gates,
 )
 
-from ._version import version as __version__
-from ._version import version_tuple as __version_tuple__
+__version__ = version("mqt-bench")
+__version_tuple__ = tuple(int(part) if part.isdecimal() else part for part in __version__.split("."))
 
 __all__ = [
     "BenchmarkLevel",

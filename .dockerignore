@@ -1,7 +1,5 @@
 *
 
-# Hatch VCS uses the Git history to derive the package version.
-!.git
 !LICENSE
 !README.md
 !pyproject.toml
