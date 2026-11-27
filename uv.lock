@@ -1558,6 +1558,7 @@ wheels = [
 
 [[package]]
 name = "mqt-bench"
+version = "2.4.1.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "mqt-core" },
