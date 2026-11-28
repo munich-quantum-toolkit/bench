@@ -20,9 +20,9 @@ Set `random_parameters=False` to keep the angles symbolic.
 
 ## 2. Target-independent Level
 
-`BenchmarkLevel.INDEP` uses Qiskit to optimize the circuit without choosing a
-device. The figure shows the same ansatz with all six angles set to $\pi$.
-Parameter binding is a separate choice at every level.
+`BenchmarkLevel.INDEP` optimizes the circuit with Qiskit or MQT Core without
+choosing a device. The figure shows the same ansatz with all six angles set to
+$\pi$. Parameter binding is a separate choice at every level.
 
 ```{image} /_static/level_2.png
 :align: center

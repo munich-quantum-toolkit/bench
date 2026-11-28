@@ -106,10 +106,10 @@ In Python, pass `OutputFormat.QIR` or `OutputFormat.QIR_BITCODE` and, for
 Adaptive, `qir_profile="adaptive"` to `write_circuit` or `save_circuit`.
 
 Bind free parameters before exporting. QIR export lowers the supplied circuit
-through MQT Core. If an algorithm-level circuit contains reusable gate calls,
-compile it first, for example with `--level indep`. Lowering can decompose gates
-and assign QIR resource identifiers. Run the result with a runtime that supports
-the emitted QIS calls, QIR version, and profile.
+through MQT Core. If it contains reusable gate calls, compile to native gates
+first, for example with `--level nativegates --target ibm_heron`. Lowering can
+decompose gates and assign QIR resource identifiers. Run the result with a
+runtime that supports the emitted QIS calls, QIR version, and profile.
 
 LLVM text includes the MQT Bench header and QIR exporter version. Bitcode
 carries the QIR metadata from MQT Core.

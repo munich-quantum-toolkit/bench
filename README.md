@@ -106,10 +106,12 @@ To support this endeavor, please consider:
 `mqt.bench` is available via [PyPI](https://pypi.org/project/mqt.bench/).
 
 ```console
+uv venv
 uv pip install mqt.bench
 ```
 
-Generate a five-qubit GHZ circuit at the algorithmic level:
+Use the virtual environment's Python interpreter to generate a five-qubit GHZ
+circuit at the algorithmic level:
 
 ```python3
 from mqt.bench import BenchmarkLevel, get_benchmark
